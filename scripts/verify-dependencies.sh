@@ -24,6 +24,7 @@ declare -A OPERATORS=(
     [openshift-cert-manager-operator]="cert-manager-operator name=cert-manager-operator"
     [kueue-operator]="openshift-kueue-operator name=openshift-kueue-operator"
     [cluster-observability-operator]="openshift-cluster-observability-operator app.kubernetes.io/name=observability-operator"
+    [opentelemetry-product]="openshift-opentelemetry-operator app.kubernetes.io/name=opentelemetry-operator"
 )
 
 

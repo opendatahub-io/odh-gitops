@@ -37,11 +37,12 @@ The repository is designed to be applied in **layers**, providing flexibility in
 
 ### Dependencies
 
-| Operator | Purpose | Namespace | Required By | Requires Operators |
+| Operator | Purpose | Namespace | Required By | Operators Required |
 |----------|---------|-----------|-------------|-------------|
 | **Cert-Manager** | Certificate management and TLS provisioning | `cert-manager-operator` | Model Serving (Kueue, Ray) | |
 | **Kueue** | Job queue for distributed workloads | `openshift-kueue-operator` | Model Serving (Ray), Trainer | Cert-Manager |
 | **Cluster Observability Operator** | Cluster observability and monitoring | `openshift-cluster-observability-operator` | Monitoring | |
+| **OpenTelemetry Product** | OpenTelemetry product | `openshift-opentelemetry-operator` | Monitoring | |
 
 #### Adding New Dependencies
 
