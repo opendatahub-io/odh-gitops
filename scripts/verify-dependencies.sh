@@ -29,6 +29,7 @@ declare -A OPERATORS=(
     [job-set]="openshift-jobset-operator name=jobset-operator"
     [tempo-product]="openshift-tempo-operator app.kubernetes.io/name=tempo-operator"
     [openshift-custom-metrics-autoscaler-operator]="openshift-keda name=custom-metrics-autoscaler-operator"
+    [rhcl-operator]="kuadrant-system app=kuadrant"
 )
 
 
@@ -203,3 +204,23 @@ if ! wait_for_resource "openshift-keda" "pods" "app=keda-admission-webhooks"; th
     exit 1
 fi
 echo "✓ custom-metrics-autoscaler keda-admission-webhooks pods are running"
+
+# rhcl-operator: Verify pods are running
+echo "Checking rhcl-operator pods..."
+# check kuadrant-console-plugin pods
+if ! wait_for_resource "kuadrant-system" "pods" "app=kuadrant-console-plugin"; then
+    exit 1
+fi
+# check authorino-operator pods
+if ! wait_for_resource "kuadrant-system" "pods" "control-plane=authorino-operator"; then
+    exit 1
+fi
+# check dns-operator-controller pods
+if ! wait_for_resource "kuadrant-system" "pods" "control-plane=dns-operator-controller-manager"; then
+    exit 1
+fi
+# check limitador-operator pods
+if ! wait_for_resource "kuadrant-system" "pods" "control-plane=controller-manager"; then
+    exit 1
+fi
+echo "✓ rhcl-operator pods are running"

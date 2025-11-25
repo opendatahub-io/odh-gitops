@@ -51,6 +51,7 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **Job Set Operator**               | Job management as a unit                    | `openshift-jobset-operator` | Trainer                      | |
 | **Custom Metrics Autoscaler** | Event-driven autoscaler based on KEDA | `openshift-keda` | Model Serving | |
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
+| **Red Hat Connectivity Link** | Multicloud application connectivity and API management | `kuadrant-system` | Model Serving (KServe) | Leader Worker Set, Cert-Manager |
 
 #### Operator Configuration Requirements
 
@@ -60,7 +61,7 @@ Some operators require additional configuration. Below are the configuration req
 
 The Tempo Operator requires object storage configuration and a custom resource (**TempoStack** or **TempoMonolithic**) to be created after the operator is installed.
 
-#### Configuration Steps:
+###### Configuration Steps:
 
 1. Follow the [Red Hat Distributed Tracing Platform Documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/distributed_tracing/distr-tracing-tempo-installing) to:
    - Set up object storage (S3, GCS, or Azure)
@@ -85,6 +86,40 @@ The Tempo Operator requires object storage configuration and a custom resource (
    resources:
      - kueue-operator
      - tempo-operator
+   ```
+
+##### Red Hat Connectivity Link operator
+
+Additional configuration is needed to enable TLS for Authorino. This is done in two stages:
+
+###### Stage 1: Deploy base configuration
+
+1. Apply RHCL base configuration (no TLS enabled):
+   ```bash
+   kubectl apply -k configurations/rhcl-operator
+   ```
+
+2. Verify that Kuadrant CR and Authorino CR exist and are Ready:
+   ```bash
+   kubectl get kuadrant -n <kuadrant-namespace>
+   kubectl get authorino -n <kuadrant-namespace>
+   ```
+
+###### Stage 2: Enable TLS
+
+3. Run the preparation script to annotate the Service, generate the TLS certificate Secret, and update the kustomization.yaml for RHCL:
+   ```bash
+   make prepare-authorino-tls KUADRANT_NS=<kuadrant-namespace>
+   ```
+
+4. Re-apply the configuration to enable TLS for Authorino:
+   ```bash
+   kubectl apply -k configurations/rhcl-operator
+   ```
+
+5. Verify that Authorino has TLS enabled:
+   ```bash
+   kubectl get authorino authorino -n <kuadrant-namespace> -o jsonpath='{.spec.listener.tls}'
    ```
 
 #### Adding New Dependencies

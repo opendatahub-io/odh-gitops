@@ -33,13 +33,17 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 KUBE_LINTER ?= $(LOCALBIN)/kube-linter
 YAMLLINT ?= $(LOCALBIN)/yamllint
 K8S_CLI ?= kubectl
+YQ ?= $(LOCALBIN)/yq
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.0
 KUBE_LINTER_VERSION ?= v0.7.6
 YAMLLINT_VERSION ?= 1.37.1
+YQ_VERSION ?= v4.49.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+
+KUADRANT_NS ?= kuadrant-system # (RHCL operator-related) should match the namespace in Kuadrant CR yaml (default is kuadrant-system)
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -62,8 +66,13 @@ $(YAMLLINT): $(PYTHONLOCALBIN)
 	@echo 'PYTHONPATH="$(PYTHONLOCALBIN):$$PYTHONPATH" python3 -m yamllint "$$@"' >> $(YAMLLINT)
 	@chmod +x $(YAMLLINT)
 
+.PHONY: yq
+yq: $(YQ) ## Download yq locally if necessary.
+$(YQ): $(LOCALBIN)
+	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,$(YQ_VERSION))
+
 .PHONY: tools
-tools: kustomize kube-linter yamllint ## Download all validation tools locally.
+tools: kustomize kube-linter yamllint yq ## Download all validation tools locally.
 	@echo ""
 	@echo "All validation tools installed in $(LOCALBIN)"
 
@@ -128,6 +137,11 @@ remove-all-dependencies:
 	@$(MAKE) remove FOLDER=dependencies
 	@bash ./scripts/remove-dependencies.sh
 	@echo "All dependencies removed successfully! ✓"
+
+.PHONY: prepare-authorino-tls
+prepare-authorino-tls: yq ## Prepare environment to enable TLS for Authorino by annotating the service, waiting for the TLS certificate secret to be generated, and updating the kustomization.yaml
+	@echo "Preparing environment to enable TLS for Authorino..."
+	@KUADRANT_NS=$(KUADRANT_NS) K8S_CLI=$(K8S_CLI) PATH="$(LOCALBIN):$$PATH" bash ./scripts/prepare-authorino-tls.sh
 
 .PHONY: dry-run
 dry-run: kustomize ## Dry run kustomize directory as passed as argument

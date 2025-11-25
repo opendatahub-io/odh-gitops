@@ -10,3 +10,4 @@ components:
   - ../../components/operators/job-set-operator
   - ../../components/operators/tempo-product
   - ../../components/operators/openshift-custom-metrics-autoscaler
+  - ../../components/operators/rhcl-operator
