@@ -37,13 +37,15 @@ The repository is designed to be applied in **layers**, providing flexibility in
 
 ### Dependencies
 
-| Operator | Purpose | Namespace | Required By | Operators Required |
-|----------|---------|-----------|-------------|-------------|
-| **Cert-Manager** | Certificate management and TLS provisioning | `cert-manager-operator` | Model Serving (Kueue, Ray) | |
-| **Kueue** | Job queue for distributed workloads | `openshift-kueue-operator` | Model Serving (Ray), Trainer | Cert-Manager |
-| **Cluster Observability Operator** | Cluster observability and monitoring | `openshift-cluster-observability-operator` | Monitoring | |
-| **OpenTelemetry Product** | OpenTelemetry product | `openshift-opentelemetry-operator` | Monitoring | |
+| Operator                           | Purpose                                     | Namespace | Required By                  | Operators Required |
+|------------------------------------|---------------------------------------------|-----------|------------------------------|-------------|
+| **Cert-Manager**                   | Certificate management and TLS provisioning | `cert-manager-operator` | Model Serving (Kueue, Ray)   | |
+| **Kueue**                          | Job queue for distributed workloads         | `openshift-kueue-operator` | Model Serving (Ray), Trainer | Cert-Manager |
+| **Cluster Observability Operator** | Cluster observability and monitoring        | `openshift-cluster-observability-operator` | Monitoring                   | |
+| **OpenTelemetry Product**          | OpenTelemetry product                       | `openshift-opentelemetry-operator` | Monitoring                   | |
 | **Leader Worker Set** | Deploy a LWS in OpenShift for distributed inference workflows | `openshift-lws-operator` | Model Server | Cert-Manager |
+| **Job Set Operator**               | Job management as a unit                    | `openshift-jobset-operator` | Trainer                      | |
+
 
 #### Adding New Dependencies
 

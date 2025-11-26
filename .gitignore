@@ -4,6 +4,7 @@ bin/
 vendor/
 
 .vscode/
+.idea/
 
 # Compiled python files.
 *.pyc
