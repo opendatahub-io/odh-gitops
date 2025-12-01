@@ -21,7 +21,9 @@ checks:
 customChecks:
   - name: "no-system-group-binding"
     description: "Ensure ClusterRoleBindings do not target system groups"
-    remediation: "Remove references to system groups (e.g., system:authenticated, system:unauthenticated) from ClusterRoleBinding subjects"
+    remediation: >-
+      Remove references to system groups (e.g., system:authenticated,
+      system:unauthenticated) from ClusterRoleBinding subjects
     template: "cel-expression"
     scope:
       objectKinds:
