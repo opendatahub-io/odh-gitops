@@ -1,10 +1,10 @@
-# Contributing to OpenShift AI GitOps Repository
+# Contributing to OpenDataHub GitOps Repository
 
-Thank you for your interest in contributing to the OpenShift AI GitOps repository! This document provides guidelines and instructions for contributing to this project.
+Thank you for your interest in contributing to the OpenDataHub GitOps repository! This document provides guidelines and instructions for contributing to this project.
 
 ## Table of Contents
 
-- [Contributing to OpenShift AI GitOps Repository](#contributing-to-openshift-ai-gitops-repository)
+- [Contributing to OpenDataHub GitOps Repository](#contributing-to-opendatahub-gitops-repository)
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
@@ -38,7 +38,7 @@ Thank you for your interest in contributing to the OpenShift AI GitOps repositor
 
 ## Add a New Dependency Operator
 
-When adding a new dependency operator required by OpenShift AI:
+When adding a new dependency operator required by OpenDataHub:
 
 ### Step 1: Create a New Operator Component
 

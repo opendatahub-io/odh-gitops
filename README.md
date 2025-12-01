@@ -1,10 +1,10 @@
-# Red Hat OpenShift AI - GitOps Repository
+# OpenDataHub - GitOps Repository
 
-This repository provides a GitOps-based approach to deploying and managing Red Hat OpenShift AI and its dependencies using Kustomize. It serves as a standardized, repeatable, and automated way to configure the complete OpenShift AI stack.
+This repository provides a GitOps-based approach to deploying and managing OpenDataHub and its dependencies using Kustomize. It serves as a standardized, repeatable, and automated way to configure the complete OpenDataHub stack.
 
 ## Table of Contents
 
-- [Red Hat OpenShift AI - GitOps Repository](#red-hat-openshift-ai---gitops-repository)
+- [OpenDataHub - GitOps Repository](#opendatahub---gitops-repository)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
     - [How the Structure Works](#how-the-structure-works)
@@ -27,7 +27,7 @@ This repository provides a GitOps-based approach to deploying and managing Red H
 
 ## Overview
 
-This repository addresses OpenShift AI dependencies that are treated as **administrator-owned resources**. It provides a template for deploying these prerequisites in a standardized way, simplifying the administrator's workflow by providing a single source of truth for the entire OpenShift AI stack.
+This repository addresses OpenDataHub dependencies that are treated as **administrator-owned resources**. It provides a template for deploying these prerequisites in a standardized way, simplifying the administrator's workflow by providing a single source of truth for the entire OpenDataHub stack.
 
 This repository works with GitOps tools (ArgoCD, Flux, etc.).
 
@@ -105,14 +105,14 @@ To add a new dependency, follow the [Contributing](CONTRIBUTING.md#add-a-new-dep
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/davidebianchi/rhoai-gitops.git
-cd rhoai-gitops
+git clone https://github.com/opendatahub-io/odh-gitops.git
+cd odh-gitops
 
 # 2. Modify as needed
 
 # 3. Follow the desired tool installation instructions,
 #    using the correct branch matching your desired
-#    OpenShift AI version (e.g. rhoai-3.0)
+#    OpenDataHub version (e.g. odh-3.0)
 ```
 
 ### Installation with ArgoCD
@@ -209,7 +209,7 @@ kubectl apply -k configurations/
 ### For Administrators
 
 1. **Fork or Clone** this repository as a starting point for your organization
-2. **Select the Branch** matching your target OpenShift AI version (e.g., `rhoai-3.0`)
+2. **Select the Branch** matching your target OpenDataHub version (e.g., `odh-3.0`)
 3. **Customize** the configurations for your specific environment
 4. **Test** thoroughly in a non-production environment
 5. **Maintain** your fork with updates and customizations
@@ -218,5 +218,5 @@ kubectl apply -k configurations/
 ## Release Strategy
 
 - **No Formal Releases**: This repository does not have official releases. Users are expected to clone or fork the repository and use it as a basis for their own configurations.
-- **Branch per OpenShift AI Version**: Each version of OpenShift AI has a dedicated branch (e.g., `rhoai-3.0`, `rhoai-3.1`) to ensure compatibility.
-- **Version Selection**: Always select the branch that corresponds to your target OpenShift AI version.
+- **Branch per OpenDataHub Version**: Each version of OpenDataHub has a dedicated branch (e.g., `odh-3.0`, `odh-3.1`) to ensure compatibility.
+- **Version Selection**: Always select the branch that corresponds to your target OpenDataHub version.
