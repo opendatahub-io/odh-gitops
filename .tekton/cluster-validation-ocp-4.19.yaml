@@ -24,7 +24,7 @@ spec:
         value: .tekton/pipelines/cluster-validation-pipeline.yaml
   params:
     - name: git-url
-      value: "{{repo_url}}"
+      value: "{{source_url}}"
     - name: revision
       value: "{{revision}}"
     - name: ocp-version
