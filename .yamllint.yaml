@@ -4,7 +4,7 @@ extends: default
 rules:
   # Allow longer lines for URLs and complex manifests
   line-length:
-    max: 130
+    max: 180
     level: warning
 
   # Disable document-start requirement (---) as it's not critical

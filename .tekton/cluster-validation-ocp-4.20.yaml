@@ -9,23 +9,25 @@ metadata:
     pipelines.appstudio.openshift.io/type: test
   annotations:
     # Disabled until OCP 4.20 support is confirmed
-    # pipelinesascode.tekton.dev/on-event: "[pull_request]"
-    # pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    # pipelinesascode.tekton.dev/on-cel-expression: |
+    #   event == "pull_request" &&
+    #   files.all.exists(file, !file.matches('^(\\.github/.*|\\.gitignore|\\.kube-linter\\.yaml|\\.yamllint\\.yaml|CONTRIBUTING\\.md|LICENSE|README\\.md|Makefile|.*\\.md)$'))
     # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
 spec:
   pipelineRef:
     resolver: git
     params:
       - name: url
-        value: "{{repo_url}}"
+        value: "{{source_url}}"
       - name: revision
         value: "{{revision}}"
       - name: pathInRepo
         value: .tekton/pipelines/cluster-validation-pipeline.yaml
   params:
     - name: git-url
-      value: "{{repo_url}}"
+      value: "{{source_url}}"
     - name: revision
       value: "{{revision}}"
     - name: ocp-version

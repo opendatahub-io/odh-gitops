@@ -21,13 +21,17 @@ endif
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
+PYTHONLOCALBIN ?= $(LOCALBIN)/.python
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
+$(PYTHONLOCALBIN):
+	mkdir -p $(PYTHONLOCALBIN)
 CLEANFILES += $(LOCALBIN)
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 KUBE_LINTER ?= $(LOCALBIN)/kube-linter
+YAMLLINT ?= $(LOCALBIN)/yamllint
 K8S_CLI ?= kubectl
 
 ## Tool Versions
@@ -50,8 +54,13 @@ $(KUBE_LINTER): $(LOCALBIN)
 	@chmod +x $(KUBE_LINTER)
 
 .PHONY: yamllint
-yamllint: ## Ensure yamllint is available.
-	@which yamllint > /dev/null || pip3 install yamllint==$(YAMLLINT_VERSION)
+yamllint: $(YAMLLINT) ## Download yamllint locally if necessary.
+$(YAMLLINT): $(PYTHONLOCALBIN)
+	@echo "Installing yamllint $(YAMLLINT_VERSION) to $(PYTHONLOCALBIN)..."
+	@python3 -m pip install --target=$(PYTHONLOCALBIN) --upgrade yamllint==$(YAMLLINT_VERSION) > /dev/null 2>&1
+	@echo '#!/bin/bash' > $(YAMLLINT)
+	@echo 'PYTHONPATH="$(PYTHONLOCALBIN):$$PYTHONPATH" python3 -m yamllint "$$@"' >> $(YAMLLINT)
+	@chmod +x $(YAMLLINT)
 
 .PHONY: tools
 tools: kustomize kube-linter yamllint ## Download all validation tools locally.
@@ -63,7 +72,7 @@ tools: kustomize kube-linter yamllint ## Download all validation tools locally.
 .PHONY: validate-yaml
 validate-yaml: yamllint ## Validate YAML syntax and formatting
 	@echo "Validating YAML syntax..."
-	@yamllint -c .yamllint.yaml . && echo " YAML validation passed"
+	@$(YAMLLINT) -c .yamllint.yaml . && echo " YAML validation passed"
 
 .PHONY: validate-kustomize
 validate-kustomize: kustomize ## Validate kustomize builds
@@ -75,8 +84,7 @@ validate-kustomize: kustomize ## Validate kustomize builds
 .PHONY: validate-lint
 validate-lint: kustomize kube-linter ## Validate best practices with kube-linter
 	@echo "Linting Kubernetes manifests..."
-	@$(KUSTOMIZE) build dependencies/operators/ | $(KUBE_LINTER) lint - || echo " Some linting issues found (non-blocking)"
-	@$(KUSTOMIZE) build components/ | $(KUBE_LINTER) lint - || echo " Some linting issues found (non-blocking)"
+	@$(KUSTOMIZE) build . | $(KUBE_LINTER) lint - || echo " Some linting issues found (non-blocking)"
 	@echo " Linting completed"
 
 .PHONY: validate-all

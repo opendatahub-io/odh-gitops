@@ -9,19 +9,11 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   validation:
     name: Static Validation
     runs-on: ubuntu-latest
-    outputs:
-      yaml-status: ${{ steps.yaml-check.outcome }}
-      yaml-details: ${{ steps.yaml-check.outputs.details }}
-      kustomize-status: ${{ steps.kustomize-check.outcome }}
-      kustomize-details: ${{ steps.kustomize-check.outputs.details }}
-      lint-status: ${{ steps.lint-check.outcome }}
-      lint-details: ${{ steps.lint-check.outputs.details }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,99 +25,102 @@ jobs:
         id: yaml-check
         continue-on-error: true
         run: |
-          OUTPUT=$(make validate-yaml 2>&1) || {
-            echo "details<<EOF" >> $GITHUB_OUTPUT
-            echo "$OUTPUT" | tail -20 >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 1
-          }
-          echo "details=Syntax and formatting validation passed" >> $GITHUB_OUTPUT
+          make validate-yaml 2>&1 | tee /tmp/yaml-output.txt
+          exit ${PIPESTATUS[0]}
 
       - name: Run Kustomize build validation
         id: kustomize-check
         continue-on-error: true
         run: |
-          OUTPUT=$(make validate-kustomize 2>&1) || {
-            echo "details<<EOF" >> $GITHUB_OUTPUT
-            echo "$OUTPUT" | tail -20 >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 1
-          }
-          echo "details=All kustomization layers built successfully" >> $GITHUB_OUTPUT
+          make validate-kustomize 2>&1 | tee /tmp/kustomize-output.txt
+          exit ${PIPESTATUS[0]}
 
       - name: Run best practices linting
         id: lint-check
         continue-on-error: true
         run: |
-          OUTPUT=$(make validate-lint 2>&1) || {
-            echo "details<<EOF" >> $GITHUB_OUTPUT
-            echo "$OUTPUT" | tail -20 >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 1
-          }
-          echo "details=Security and best practices checks passed" >> $GITHUB_OUTPUT
+          make validate-lint 2>&1 | tee /tmp/lint-output.txt
+          exit ${PIPESTATUS[0]}
 
-  validation-summary:
-    name: Validation Summary
-    runs-on: ubuntu-latest
-    needs: [validation]
-    if: always()
-    permissions:
-      pull-requests: write
-    steps:
-      - name: Check validation results
-        id: check
+      - name: Generate validation summary
+        if: always()
         run: |
-          YAML_STATUS="${{ needs.validation.outputs.yaml-status }}"
-          KUSTOMIZE_STATUS="${{ needs.validation.outputs.kustomize-status }}"
-          LINT_STATUS="${{ needs.validation.outputs.lint-status }}"
+          echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "$YAML_STATUS" == "success" && "$KUSTOMIZE_STATUS" == "success" && "$LINT_STATUS" == "success" ]]; then
-            echo "All static validations passed!"
-            echo "overall_status=success" >> $GITHUB_OUTPUT
+          # Overall status
+          if [[ "${{ steps.yaml-check.outcome }}" == "success" && "${{ steps.kustomize-check.outcome }}" == "success" && "${{ steps.lint-check.outcome }}" == "success" ]]; then
+            echo "✅ **All validations passed!**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Some validations failed"
-            echo "overall_status=failure" >> $GITHUB_OUTPUT
+            echo " **Some validations failed**" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Post PR comment with validation results
-        if: github.event_name == 'pull_request'
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          mode: recreate
-          comment-tag: tier1-validation
-          message: |
-            ## Tier 1 Validation Results (GitHub Actions)
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
 
-            ${{ (needs.validation.outputs.yaml-status == 'success' && needs.validation.outputs.kustomize-status == 'success' && needs.validation.outputs.lint-status == 'success') && '✅ All static validations passed!' || '❌ Some validations failed' }}
+          # YAML validation status
+          if [[ "${{ steps.yaml-check.outcome }}" == "success" ]]; then
+            echo "| YAML Lint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| YAML Lint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
 
-            | Check | Status | Details |
-            |-------|--------|---------|
-            | YAML Lint | ${{ needs.validation.outputs.yaml-status == 'success' && '✅ Passed' || '❌ Failed' }} | ${{ needs.validation.outputs.yaml-details }} |
-            | Kustomize Build | ${{ needs.validation.outputs.kustomize-status == 'success' && '✅ Passed' || '❌ Failed' }} | ${{ needs.validation.outputs.kustomize-details }} |
-            | Best Practices | ${{ needs.validation.outputs.lint-status == 'success' && '✅ Passed' || '❌ Failed' }} | ${{ needs.validation.outputs.lint-details }} |
+          # Kustomize validation status
+          if [[ "${{ steps.kustomize-check.outcome }}" == "success" ]]; then
+            echo "| Kustomize Build | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Kustomize Build | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
 
-            ${{ (needs.validation.outputs.yaml-status == 'success' && needs.validation.outputs.kustomize-status == 'success' && needs.validation.outputs.lint-status == 'success') && '**Tier 2 Validation**: Triggered Konflux integration tests on ephemeral OpenShift cluster (OCP 4.19)...' || '⚠️ **Tier 2 Validation**: Skipped (fix Tier 1 issues first)' }}
+          # Lint validation status
+          if [[ "${{ steps.lint-check.outcome }}" == "success" ]]; then
+            echo "| Best Practices | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Best Practices | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
 
-            <details>
-            <summary>View workflow run</summary>
+          # Show error details for failed checks
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.yaml-check.outcome }}" != "success" || "${{ steps.kustomize-check.outcome }}" != "success" || "${{ steps.lint-check.outcome }}" != "success" ]]; then
+            echo "### Error Details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
 
-            [Workflow run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            </details>
+            if [[ "${{ steps.yaml-check.outcome }}" != "success" && -f /tmp/yaml-output.txt ]]; then
+              echo "<details>" >> $GITHUB_STEP_SUMMARY
+              echo "<summary>YAML Lint Errors</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -50 /tmp/yaml-output.txt >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
 
-      - name: Fail workflow if validations failed
-        if: steps.check.outputs.overall_status == 'failure'
+            if [[ "${{ steps.kustomize-check.outcome }}" != "success" && -f /tmp/kustomize-output.txt ]]; then
+              echo "<details>" >> $GITHUB_STEP_SUMMARY
+              echo "<summary>Kustomize Build Errors</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -50 /tmp/kustomize-output.txt >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            if [[ "${{ steps.lint-check.outcome }}" != "success" && -f /tmp/lint-output.txt ]]; then
+              echo "<details>" >> $GITHUB_STEP_SUMMARY
+              echo "<summary>Best Practices Lint Errors</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -50 /tmp/lint-output.txt >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Fail if validations failed
+        if: steps.yaml-check.outcome != 'success' || steps.kustomize-check.outcome != 'success' || steps.lint-check.outcome != 'success'
         run: |
-          echo "One or more validations failed. See validation comment on PR for details."
+          echo "One or more validations failed. Check the summary above for details."
           exit 1
-
-      # TODO: Commented until konflux onboarding is done
-      # - name: Trigger Konflux cluster validation
-      #   if: |
-      #     github.event_name == 'pull_request' &&
-      #     steps.check.outputs.overall_status == 'success'
-      #   uses: thollander/actions-comment-pull-request@v3
-      #   with:
-      #     mode: recreate
-      #     comment-tag: trigger-tier2-validation
-      #     message: '/validate-dependencies'
