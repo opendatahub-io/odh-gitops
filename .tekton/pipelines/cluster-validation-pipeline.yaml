@@ -66,8 +66,7 @@ spec:
                 - name: revision
                   value: main
                 - name: pathInRepo
-                  value: >-
-                    stepactions/eaas-create-ephemeral-cluster-hypershift-aws/0.1/eaas-create-ephemeral-cluster-hypershift-aws.yaml
+                  value: stepactions/eaas-create-ephemeral-cluster-hypershift-aws/0.1/eaas-create-ephemeral-cluster-hypershift-aws.yaml
             params:
               - name: eaasSpaceSecretRef
                 value: $(params.eaas-space-secret-ref)

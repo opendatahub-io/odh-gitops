@@ -84,8 +84,7 @@ validate-kustomize: kustomize ## Validate kustomize builds
 .PHONY: validate-lint
 validate-lint: kustomize kube-linter ## Validate best practices with kube-linter
 	@echo "Linting Kubernetes manifests..."
-	@$(KUSTOMIZE) build dependencies/operators/ | $(KUBE_LINTER) lint - || echo " Some linting issues found (non-blocking)"
-	@$(KUSTOMIZE) build components/ | $(KUBE_LINTER) lint - || echo " Some linting issues found (non-blocking)"
+	@$(KUSTOMIZE) build . | $(KUBE_LINTER) lint - || echo " Some linting issues found (non-blocking)"
 	@echo " Linting completed"
 
 .PHONY: validate-all
