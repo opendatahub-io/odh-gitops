@@ -9,8 +9,6 @@ metadata:
     pipelines.appstudio.openshift.io/type: test
   annotations:
     # Disabled until OCP 4.20 support is confirmed
-    # pipelinesascode.tekton.dev/on-event: "[pull_request]"
-    # pipelinesascode.tekton.dev/on-target-branch: "[main]"
     # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
 spec:
