@@ -28,6 +28,7 @@ declare -A OPERATORS=(
     [leader-worker-set]="openshift-lws-operator name=openshift-lws-operator"
     [job-set]="openshift-jobset-operator name=jobset-operator"
     [tempo-product]="openshift-tempo-operator app.kubernetes.io/name=tempo-operator"
+    [openshift-custom-metrics-autoscaler-operator]="openshift-keda name=custom-metrics-autoscaler-operator"
 )
 
 
@@ -185,3 +186,20 @@ if ! wait_for_resource "openshift-tempo-operator" "pods" "app.kubernetes.io/part
     exit 1
 fi
 echo "✓ tempo-operator pods are running"
+
+# custom-metrics-autoscaler: Verify all KEDA component pods are running
+echo "Checking custom-metrics-autoscaler (KEDA) pods..."
+if ! wait_for_resource "openshift-keda" "pods" "app=keda-operator"; then
+    exit 1
+fi
+echo "✓ custom-metrics-autoscaler keda-operator pods are running"
+
+if ! wait_for_resource "openshift-keda" "pods" "app=keda-metrics-apiserver"; then
+    exit 1
+fi
+echo "✓ custom-metrics-autoscaler keda-metrics-apiserver pods are running"
+
+if ! wait_for_resource "openshift-keda" "pods" "app=keda-admission-webhooks"; then
+    exit 1
+fi
+echo "✓ custom-metrics-autoscaler keda-admission-webhooks pods are running"

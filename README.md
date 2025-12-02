@@ -49,6 +49,7 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **OpenTelemetry Product**          | OpenTelemetry product                       | `openshift-opentelemetry-operator` | Monitoring                   | |
 | **Leader Worker Set** | Deploy a LWS in OpenShift for distributed inference workflows | `openshift-lws-operator` | Model Server | Cert-Manager |
 | **Job Set Operator**               | Job management as a unit                    | `openshift-jobset-operator` | Trainer                      | |
+| **Custom Metrics Autoscaler** | Event-driven autoscaler based on KEDA | `openshift-keda` | Model Serving | |
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
 
 #### Operator Configuration Requirements
