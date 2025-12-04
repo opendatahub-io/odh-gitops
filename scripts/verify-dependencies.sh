@@ -30,6 +30,7 @@ declare -A OPERATORS=(
     [tempo-product]="openshift-tempo-operator app.kubernetes.io/name=tempo-operator"
     [openshift-custom-metrics-autoscaler-operator]="openshift-keda name=custom-metrics-autoscaler-operator"
     [rhcl-operator]="kuadrant-system app=kuadrant"
+    # optional mariadb-operator verifications are handled separately in custom checks section, since this operator is version-pinned
 )
 
 
@@ -132,6 +133,46 @@ wait_for_subscription_csv() {
     return $?
 }
 
+# Wait for a Subscription's CSV with a *specific version* to be installed
+# Usage: wait_for_version_pinned_subscription_csv <namespace> <subscription_name> <expected_csv> [timeout_seconds]
+# (<expected_csv> is the expected CSV version string, e.g. "mariadb-operator.v0.29.0")
+# Example: wait_for_version_pinned_subscription_csv "mariadb-operator" "mariadb-operator" "mariadb-operator.v0.29.0" 300
+wait_for_version_pinned_subscription_csv() {
+    local namespace=$1
+    local subscription_name=$2
+    local expected_csv=$3
+    local timeout=${4:-300}
+    local interval=5
+    local elapsed=0
+
+    echo "Waiting for Subscription ${subscription_name} in namespace ${namespace} to have a CSV with version ${expected_csv}..."
+
+    # Wait for the Subscription to have installedCSV
+    local installed_csv=$(oc get subscription ${subscription_name} -n ${namespace} -o jsonpath='{.status.installedCSV}')
+    while [[ -z "$installed_csv" ]]; do
+        if [[ $elapsed -ge $timeout ]]; then
+            echo "ERROR: ${subscription_name} subscription exists but no CSV installed after ${timeout}s"
+            return 1
+        fi
+
+        sleep $interval
+        elapsed=$((elapsed + interval))
+        installed_csv=$(oc get subscription ${subscription_name} -n ${namespace} -o jsonpath='{.status.installedCSV}')
+    done
+
+    if [[ "$installed_csv" != "$expected_csv" ]]; then
+        echo "ERROR: Expected ${expected_csv}, but found ${installed_csv}"
+        return 1
+    fi
+    echo "✓ ${subscription_name} version verified: ${installed_csv}"
+
+    if ! wait_for_csv_succeeded "${namespace}" "${installed_csv}" "${timeout}"; then
+        return 1
+    fi
+
+    return 0
+}
+
 # ==============================================================================
 # CSV VERIFICATION
 # ==============================================================================
@@ -230,6 +271,19 @@ if [[ -v "OPERATORS[rhcl-operator]" ]]; then
         exit 1
     fi
     echo "✓ rhcl-operator pods are running"
+fi
+
+# mariadb-operator is an optional and also a version-pinned dependency
+if oc get subscription mariadb-operator -n mariadb-operator &>/dev/null; then
+    echo "Checking mariadb-operator..."
+    if ! wait_for_version_pinned_subscription_csv "mariadb-operator" "mariadb-operator" "mariadb-operator.v0.29.0" 300; then
+        exit 1
+    fi
+
+    if ! wait_for_resource "mariadb-operator" "pods" "control-plane=controller-manager"; then
+        exit 1
+    fi
+    echo "✓ mariadb-operator pods are running"
 fi
 
 echo ""
