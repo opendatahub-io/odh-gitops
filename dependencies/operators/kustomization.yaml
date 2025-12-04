@@ -14,3 +14,5 @@ components:
   # TODO: The following operators need a manual configuration. It needs to be added if used llamastackoperator.
   # - ../../components/operators/nfd
   # - ../../components/operators/nvidia-gpu-operator
+  # MariaDB operator is an optional dependency for TrustyAI in Database mode, check README.md for more details
+  # - ../../components/operators/maria-db

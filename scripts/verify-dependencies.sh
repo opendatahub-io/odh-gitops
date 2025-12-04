@@ -111,22 +111,47 @@ wait_for_csv_succeeded() {
 }
 
 # Wait for a Subscription's CSV to be assigned and reach "Succeeded" phase
-# Usage: wait_for_subscription_csv <namespace> <subscription_name> [timeout_seconds]
+# Usage: wait_for_subscription_csv <namespace> <subscription_name> [timeout_seconds] [expected_csv]
 # Example: wait_for_subscription_csv "cert-manager-operator" "openshift-cert-manager-operator"
+# Example for specific CSV version: wait_for_subscription_csv "mariadb-operator" "mariadb-operator" 300 "mariadb-operator.v0.29.0"
 wait_for_subscription_csv() {
     local namespace=$1
     local subscription_name=$2
     local timeout=${3:-300}
+    local expected_csv=$4
     local interval=5
     local elapsed=0
 
-    echo "Waiting for Subscription ${subscription_name} in namespace ${namespace} to have a CSV..."
+    if [ -n "$expected_csv" ]; then
+        echo "Waiting for Subscription ${subscription_name} in namespace ${namespace} to have CSV ${expected_csv}..."
+    else
+        echo "Waiting for Subscription ${subscription_name} in namespace ${namespace} to have a CSV..."
+    fi
 
-    # First, wait for the subscription to have a currentCSV
+    # First, wait for the subscription to have a CSV
+    # use installedCSV when specific version is being checked, use currentCSV field otherwise
+    local csv_field
+    if [ -n "$expected_csv" ]; then
+        csv_field='{.status.installedCSV}'
+    else
+        csv_field='{.status.currentCSV}'
+    fi
+
     while true; do
-        local csv_name=$(oc get subscription ${subscription_name} -n ${namespace} -o jsonpath='{.status.currentCSV}' 2>/dev/null)
+        local csv_name=$(oc get subscription ${subscription_name} -n ${namespace} -o jsonpath="${csv_field}" 2>/dev/null)
 
         if [ -n "$csv_name" ]; then
+            if [ -n "$expected_csv" ] && [ "$csv_name" != "$expected_csv" ]; then
+                if [ $elapsed -ge $timeout ]; then
+                    echo "ERROR: Expected CSV ${expected_csv}, but found ${csv_name} after ${timeout}s"
+                    return 1
+                fi
+
+                sleep $interval
+                elapsed=$((elapsed + interval))
+                continue
+            fi
+            
             echo "✓ Found CSV: ${csv_name}"
             break
         fi
@@ -255,6 +280,20 @@ if [[ -v "VERIFIED_OPERATORS[rhcl-operator]" ]]; then
         exit 1
     fi
     echo "✓ rhcl-operator pods are running"
+fi
+
+# mariadb-operator is an optional and also a version-pinned dependency
+if subscription_exists "mariadb-operator" "mariadb-operator"; then
+    echo "Checking mariadb-operator..."
+    MARIADB_VERSION="${MARIADB_VERSION:-mariadb-operator.v0.29.0}" # due to TLS issues with newer MariaDB versions, the recommended version is v0.29
+    if ! wait_for_subscription_csv "mariadb-operator" "mariadb-operator" 300 "$MARIADB_VERSION"; then
+        exit 1
+    fi
+
+    if ! wait_for_resource "mariadb-operator" "pods" "control-plane=controller-manager"; then
+        exit 1
+    fi
+    echo "✓ mariadb-operator pods are running"
 fi
 
 echo ""

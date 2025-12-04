@@ -58,6 +58,7 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **Custom Metrics Autoscaler** | Event-driven autoscaler based on KEDA | `openshift-keda` | Model Serving | |
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
 | **Red Hat Connectivity Link** | Multicloud application connectivity and API management | `kuadrant-system` | Model Serving (KServe) | Leader Worker Set, Cert-Manager |
+| **MariaDB Operator** | MariaDB for OpenShift | `mariadb-operator` | TrustyAI (optional, only if using database mode) | |
 
 #### Operator Configuration Requirements
 
@@ -96,6 +97,35 @@ Additional configuration is needed to enable TLS for Authorino. This is done in 
    ```bash
    kubectl get authorino authorino -n <kuadrant-namespace> -o jsonpath='{.spec.listener.tls}'
    ```
+
+##### MariaDB Operator
+
+MariaDB operator is an optional dependency in case the user is planning to use TrustyAI with Database mode.
+As such, it is not listed by default among other dependencies in `dependencies/operators/kustomization.yaml`, and has specific installation steps.
+
+**Due to TLS issues with newer MariaDB versions, the recommended version is v0.29**
+
+###### Installation steps:
+
+1. Apply MariaDB Operator resources using:
+  ```bash
+  kubectl apply -k dependencies/operators/maria-db 
+  ```
+
+2. Get InstallPlan name for MariaDB Operator v0.29 using:
+  ```bash
+  kubectl get installplan -n mariadb-operator | grep v0.29 | sed 's/ .*//'
+  ```
+
+3. Approve the InstallPlan using (insert the previously-obtained InstallPlan name):
+  ``` bash
+  kubectl patch installplan <install-plan-name> -n mariadb-operator --type merge -p '{"spec":{"approved":true}}'
+  ```
+
+4. Wait for the MariaDB Operator installation to complete. Verify that the operator pod is running using:
+  ```bash
+  kubectl get pods -n mariadb-operator -l control-plane=controller-manager
+  ```
 
 #### Adding New Dependencies
 
