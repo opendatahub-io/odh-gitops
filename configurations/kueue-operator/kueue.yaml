@@ -13,3 +13,4 @@ spec:
         - RayCluster
         - RayJob
         - StatefulSet
+        - TrainJob
