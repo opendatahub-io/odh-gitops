@@ -1,5 +1,5 @@
 apiVersion: v2
-name: ODH and RHOAI Chart
+name: odh-rhoai-chart
 description: A Helm chart for installing ODH/RHOAI dependencies and component configurations
 type: application
 version: 0.1.0
