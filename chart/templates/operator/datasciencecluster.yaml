@@ -1,0 +1,20 @@
+{{- /* 
+DataScienceCluster configuration
+Sets managementState from component configuration
+*/ -}}
+{{- if include "rhoai-dependencies.crdExists" "datascienceclusters.datasciencecluster.opendatahub.io" }}
+apiVersion: datasciencecluster.opendatahub.io/v1
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+spec:
+  components:
+    kserve:
+      managementState: {{ .Values.components.kserve.managementState }}
+    kueue:
+      managementState: {{ .Values.components.kueue.managementState }}
+    datasciencepipelines:
+      managementState: {{ .Values.components.aipipelines.managementState }}
+{{- end }}

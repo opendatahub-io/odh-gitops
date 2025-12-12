@@ -11,7 +11,7 @@ metadata:
     # Disabled until OCP 4.20 support is confirmed
     # pipelinesascode.tekton.dev/on-cel-expression: |
     #   event == "pull_request" &&
-    #   files.all.exists(file, !file.matches('^(\\.github/.*|\\.gitignore|\\.kube-linter\\.yaml|\\.yamllint\\.yaml|CONTRIBUTING\\.md|LICENSE|README\\.md|Makefile|.*\\.md)$'))
+    #   files.all.exists(file, !file.matches('^(\\.github/.*|\\.gitignore|\\.kube-linter\\.yaml|\\.yamllint\\.yaml|CONTRIBUTING\\.md|LICENSE|README\\.md|Makefile|.*\\.md|chart/.*)$'))
     # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
