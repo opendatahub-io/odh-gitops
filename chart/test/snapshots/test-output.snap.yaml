@@ -26,6 +26,15 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: odh-rhoai-chart/templates/dependencies/kueue/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-kueue-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -90,6 +99,18 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-jobset-operator
+---
+# Source: odh-rhoai-chart/templates/dependencies/kueue/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-kueue-operator
+  namespace: openshift-kueue-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
 ---
 # Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -174,6 +195,22 @@ spec:
   channel: tech-preview-v0.1
   installPlanApproval: Automatic
   name: job-set
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+# Source: odh-rhoai-chart/templates/dependencies/kueue/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: kueue-operator
+  namespace: openshift-kueue-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable-v1.1
+  installPlanApproval: Automatic
+  name: kueue-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---

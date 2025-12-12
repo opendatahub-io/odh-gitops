@@ -51,10 +51,10 @@ components:
     managementState: Managed  # Managed | Removed
 
   kueue:
-    managementState: Removed  # Unmanaged | Removed
+    managementState: Unmanaged  # Unmanaged | Removed
 
   aipipelines:
-    managementState: Removed  # Managed | Removed
+    managementState: Managed  # Managed | Removed
 
 # =============================================================================
 # DEPENDENCIES - Operators required by components
