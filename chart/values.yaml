@@ -146,28 +146,28 @@ dependencies:
               - StatefulSet
 
   clusterObservability:
-    enabled: false
+    enabled: auto
     olm:
       channel: stable
       name: cluster-observability-operator
       namespace: openshift-cluster-observability-operator
 
   opentelemetry:
-    enabled: false
+    enabled: auto
     olm:
       channel: stable
       name: opentelemetry-product
       namespace: openshift-opentelemetry-operator
 
   tempo:
-    enabled: false
+    enabled: auto
     olm:
       channel: stable
       name: tempo-product
       namespace: openshift-tempo-operator
 
   customMetricsAutoscaler:
-    enabled: false
+    enabled: auto
     olm:
       channel: stable
       name: openshift-custom-metrics-autoscaler-operator

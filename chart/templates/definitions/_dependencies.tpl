@@ -12,6 +12,7 @@ kserve:
   - leaderWorkerSet
   - jobSet
   - rhcl
+  - customMetricsAutoscaler
 kueue:
   - kueue
 aipipelines: []
