@@ -1,0 +1,12 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: mariadb-operator
+  namespace: mariadb-operator
+spec:
+  channel: alpha
+  installPlanApproval: Manual
+  name: mariadb-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: mariadb-operator.v0.29.0 # due to TLS issues with newer MariaDB versions, the recommended version is v0.29
