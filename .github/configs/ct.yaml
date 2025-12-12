@@ -3,7 +3,7 @@ target-branch: main
 chart-dirs:
   - chart
 helm-extra-args: "--timeout 600s"
-validate-chart-schema: false
+validate-chart-schema: true
 validate-maintainers: false
 validate-yaml: true
 exclude-deprecated: true

@@ -80,6 +80,8 @@ dependencies:
       channel: stable-v1.0
       name: leader-worker-set
       namespace: openshift-lws-operator
+      targetNamespaces:
+        - openshift-lws-operator
     config:
       spec:
         managementState: Managed
@@ -92,6 +94,8 @@ dependencies:
       channel: tech-preview-v0.1
       name: job-set
       namespace: openshift-jobset-operator
+      targetNamespaces:
+        - openshift-jobset-operator
     config:
       spec:
         logLevel: Normal

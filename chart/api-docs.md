@@ -35,6 +35,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.jobSet.olm.channel | string | `"tech-preview-v0.1"` |  |
 | dependencies.jobSet.olm.name | string | `"job-set"` |  |
 | dependencies.jobSet.olm.namespace | string | `"openshift-jobset-operator"` |  |
+| dependencies.jobSet.olm.targetNamespaces[0] | string | `"openshift-jobset-operator"` |  |
 | dependencies.kueue.config.spec.config.integrations.frameworks[0] | string | `"Deployment"` |  |
 | dependencies.kueue.config.spec.config.integrations.frameworks[1] | string | `"Pod"` |  |
 | dependencies.kueue.config.spec.config.integrations.frameworks[2] | string | `"PyTorchJob"` |  |
@@ -53,6 +54,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.leaderWorkerSet.olm.channel | string | `"stable-v1.0"` |  |
 | dependencies.leaderWorkerSet.olm.name | string | `"leader-worker-set"` |  |
 | dependencies.leaderWorkerSet.olm.namespace | string | `"openshift-lws-operator"` |  |
+| dependencies.leaderWorkerSet.olm.targetNamespaces[0] | string | `"openshift-lws-operator"` |  |
 | dependencies.opentelemetry.enabled | bool | `false` |  |
 | dependencies.opentelemetry.olm.channel | string | `"stable"` |  |
 | dependencies.opentelemetry.olm.name | string | `"opentelemetry-product"` |  |

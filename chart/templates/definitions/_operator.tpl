@@ -21,9 +21,10 @@ metadata:
 {{- end }}
 
 {{/*
-Generate OperatorGroup for an operator (single namespace mode)
+Generate OperatorGroup for an operator
 Arguments (passed as dict):
   - namespace: namespace name
+  - targetNamespaces: list of target namespaces (optional, omit for AllNamespaces mode)
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.operatorgroup" -}}
@@ -36,6 +37,10 @@ metadata:
     {{- include "rhoai-dependencies.labels" .root | nindent 4 }}
 spec:
   upgradeStrategy: Default
+  {{- with .targetNamespaces }}
+  targetNamespaces:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
 
 {{/*
@@ -77,6 +82,7 @@ Arguments (passed as dict):
   - source: catalog source (optional)
   - sourceNamespace: catalog source namespace (optional)
   - installPlanApproval: install plan approval (optional)
+  - targetNamespaces: list of target namespaces for OperatorGroup (optional)
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.olm" -}}

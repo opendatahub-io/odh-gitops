@@ -67,6 +67,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+  targetNamespaces:
+    - openshift-jobset-operator
 ---
 # Source: ODH and RHOAI Chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -79,6 +81,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+  targetNamespaces:
+    - openshift-lws-operator
 ---
 # Source: ODH and RHOAI Chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1

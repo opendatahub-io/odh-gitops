@@ -199,6 +199,13 @@
           "type": "string",
           "enum": ["Automatic", "Manual"],
           "description": "Install plan approval (overrides global.olm.installPlanApproval)"
+        },
+        "targetNamespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Target namespaces for OperatorGroup (omit for AllNamespaces mode)"
         }
       },
       "required": ["channel", "name", "namespace"],
