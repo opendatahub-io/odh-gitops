@@ -1,0 +1,16 @@
+{{- $dep := .Values.dependencies.kueue -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "kueue" "dependency" $dep "components" .Values.components) -}}
+{{- if eq $shouldInstall "true" }}
+{{- if include "rhoai-dependencies.crdExists" "kueues.kueue.openshift.io" }}
+apiVersion: kueue.openshift.io/v1
+kind: Kueue
+metadata:
+  name: cluster
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+{{- with $dep.config.spec }}
+spec:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}

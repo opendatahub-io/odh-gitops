@@ -1,0 +1,17 @@
+{{- $dep := .Values.dependencies.leaderWorkerSet -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "leaderWorkerSet" "dependency" $dep "components" .Values.components) -}}
+{{- if eq $shouldInstall "true" }}
+{{- if include "rhoai-dependencies.crdExists" "leaderworkersetoperators.operator.openshift.io" }}
+apiVersion: operator.openshift.io/v1
+kind: LeaderWorkerSetOperator
+metadata:
+  name: cluster
+  namespace: {{ $dep.olm.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+{{- with $dep.config.spec }}
+spec:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}

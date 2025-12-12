@@ -1,0 +1,170 @@
+global:
+  # Installation type for dependencies (currently only olm is supported)
+  installationType: olm
+
+  # OLM settings
+  olm:
+    installPlanApproval: Automatic
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+
+  # Common labels applied to all resources
+  labels: {}
+
+# =============================================================================
+# OPERATOR - ODH or RHOAI operator installation
+# =============================================================================
+operator:
+  # Enable operator installation
+  enabled: true
+
+  # Operator type: odh or rhoai
+  type: rhoai
+
+  # ODH operator settings
+  odh:
+    olm:
+      channel: fast-3
+      name: opendatahub-operator
+      namespace: openshift-operators
+      source: community-operators
+
+  # RHOAI operator settings
+  rhoai:
+    olm:
+      channel: fast-3.x
+      name: rhods-operator
+      namespace: redhat-ods-operator
+      source: redhat-operators
+
+# =============================================================================
+# COMPONENTS - High-level features that auto-enable their dependencies
+# Components configure the DataScienceCluster (DSC) managementState.
+#
+# managementState values:
+#   Managed   - Component is managed by the operator, dependencies auto-enabled
+#   Removed   - Component is removed, dependencies not auto-enabled
+#   Unmanaged - Component is not managed (kueue only), dependencies auto-enabled
+# =============================================================================
+components:
+  kserve:
+    managementState: Managed  # Managed | Removed
+
+  kueue:
+    managementState: Removed  # Unmanaged | Removed
+
+  aipipelines:
+    managementState: Removed  # Managed | Removed
+
+# =============================================================================
+# DEPENDENCIES - Operators required by components
+#
+# Tri-state enabled:
+#   auto  - Install if required by an enabled component (default)
+#   true  - Always install
+#   false - Never install (user has it already or doesn't want it)
+#
+# config.spec: CR spec fields (user can add any fields supported by the CR)
+# =============================================================================
+dependencies:
+  certManager:
+    enabled: auto
+    olm:
+      channel: stable-v1
+      name: openshift-cert-manager-operator
+      namespace: cert-manager-operator
+
+  leaderWorkerSet:
+    enabled: auto
+    olm:
+      channel: stable-v1.0
+      name: leader-worker-set
+      namespace: openshift-lws-operator
+    config:
+      spec:
+        managementState: Managed
+        logLevel: Normal
+        operatorLogLevel: Normal
+
+  jobSet:
+    enabled: auto
+    olm:
+      channel: tech-preview-v0.1
+      name: job-set
+      namespace: openshift-jobset-operator
+    config:
+      spec:
+        logLevel: Normal
+        operatorLogLevel: Normal
+
+  rhcl:
+    enabled: auto
+    olm:
+      channel: stable
+      name: rhcl-operator
+      namespace: kuadrant-system
+    config:
+      # Enable Authorino TLS configuration
+      tlsEnabled: false
+      # Kuadrant CR spec (user can add any fields)
+      spec: {}
+      # Authorino CR spec (only created if tlsEnabled: true)
+      authorinoSpec:
+        replicas: 1
+        clusterWide: true
+        listener:
+          tls:
+            enabled: true
+            certSecretRef:
+              name: authorino-server-cert
+        oidcServer:
+          tls:
+            enabled: false
+
+  kueue:
+    enabled: auto
+    olm:
+      channel: stable-v1.1
+      name: kueue-operator
+      namespace: openshift-kueue-operator
+    config:
+      # Kueue CR spec (user can add any fields)
+      spec:
+        managementState: Managed
+        config:
+          integrations:
+            frameworks:
+              - Deployment
+              - Pod
+              - PyTorchJob
+              - RayCluster
+              - RayJob
+              - StatefulSet
+
+  clusterObservability:
+    enabled: false
+    olm:
+      channel: stable
+      name: cluster-observability-operator
+      namespace: openshift-cluster-observability-operator
+
+  opentelemetry:
+    enabled: false
+    olm:
+      channel: stable
+      name: opentelemetry-product
+      namespace: openshift-opentelemetry-operator
+
+  tempo:
+    enabled: false
+    olm:
+      channel: stable
+      name: tempo-product
+      namespace: openshift-tempo-operator
+
+  customMetricsAutoscaler:
+    enabled: false
+    olm:
+      channel: stable
+      name: openshift-custom-metrics-autoscaler-operator
+      namespace: openshift-keda

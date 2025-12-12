@@ -1,0 +1,316 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RHOAI Dependencies Helm Chart Values",
+  "description": "Configuration values for the RHOAI Dependencies Helm chart",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global settings applied to all resources",
+      "properties": {
+        "installationType": {
+          "type": "string",
+          "enum": ["olm"],
+          "default": "olm",
+          "description": "Installation type for dependencies (currently only olm is supported)"
+        },
+        "olm": {
+          "type": "object",
+          "description": "OLM settings for operator subscriptions",
+          "properties": {
+            "installPlanApproval": {
+              "type": "string",
+              "enum": ["Automatic", "Manual"],
+              "default": "Automatic",
+              "description": "Install plan approval mode for OLM subscriptions"
+            },
+            "source": {
+              "type": "string",
+              "default": "redhat-operators",
+              "description": "Default catalog source for OLM subscriptions"
+            },
+            "sourceNamespace": {
+              "type": "string",
+              "default": "openshift-marketplace",
+              "description": "Namespace of the catalog source"
+            }
+          },
+          "additionalProperties": false
+        },
+        "labels": {
+          "type": "object",
+          "description": "Common labels applied to all resources",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "operator": {
+      "type": "object",
+      "description": "ODH or RHOAI operator installation configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable operator installation"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["odh", "rhoai"],
+          "default": "rhoai",
+          "description": "Operator type to install: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)"
+        },
+        "odh": {
+          "$ref": "#/definitions/operatorConfig",
+          "description": "ODH operator settings"
+        },
+        "rhoai": {
+          "$ref": "#/definitions/operatorConfig",
+          "description": "RHOAI operator settings"
+        }
+      },
+      "required": ["enabled", "type"],
+      "additionalProperties": false
+    },
+    "components": {
+      "type": "object",
+      "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
+      "properties": {
+        "kserve": {
+          "$ref": "#/definitions/component"
+        },
+        "kueue": {
+          "$ref": "#/definitions/kueueComponent"
+        },
+        "aipipelines": {
+          "$ref": "#/definitions/component"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Operators required by components. Use tri-state 'enabled' field: auto (install if needed), true (always install), false (never install)",
+      "properties": {
+        "certManager": {
+          "$ref": "#/definitions/dependency"
+        },
+        "leaderWorkerSet": {
+          "$ref": "#/definitions/dependencyWithConfig"
+        },
+        "jobSet": {
+          "$ref": "#/definitions/dependencyWithConfig"
+        },
+        "rhcl": {
+          "$ref": "#/definitions/rhclDependency"
+        },
+        "kueue": {
+          "$ref": "#/definitions/dependencyWithConfig"
+        },
+        "clusterObservability": {
+          "$ref": "#/definitions/dependency"
+        },
+        "opentelemetry": {
+          "$ref": "#/definitions/dependency"
+        },
+        "tempo": {
+          "$ref": "#/definitions/dependency"
+        },
+        "customMetricsAutoscaler": {
+          "$ref": "#/definitions/dependency"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "operatorConfig": {
+      "type": "object",
+      "description": "Operator installation configuration",
+      "properties": {
+        "olm": {
+          "type": "object",
+          "description": "OLM settings for the operator",
+          "properties": {
+            "channel": {
+              "type": "string",
+              "description": "Subscription channel"
+            },
+            "name": {
+              "type": "string",
+              "description": "Operator name in the catalog"
+            },
+            "namespace": {
+              "type": "string",
+              "description": "Namespace where the operator will be installed"
+            },
+            "source": {
+              "type": "string",
+              "description": "Catalog source"
+            }
+          },
+          "required": ["channel", "name", "namespace", "source"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "triStateEnabled": {
+      "oneOf": [
+        {
+          "type": "boolean",
+          "description": "true = always install, false = never install"
+        },
+        {
+          "type": "string",
+          "enum": ["auto"],
+          "description": "auto = install if required by an enabled component"
+        }
+      ],
+      "default": "auto"
+    },
+    "olmConfig": {
+      "type": "object",
+      "description": "OLM-specific configuration for this dependency",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Subscription channel (e.g., stable-v1, stable)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Operator name in the catalog"
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Namespace where the operator will be installed"
+        },
+        "source": {
+          "type": "string",
+          "description": "Catalog source (overrides global.olm.source)"
+        },
+        "sourceNamespace": {
+          "type": "string",
+          "description": "Catalog source namespace (overrides global.olm.sourceNamespace)"
+        },
+        "installPlanApproval": {
+          "type": "string",
+          "enum": ["Automatic", "Manual"],
+          "description": "Install plan approval (overrides global.olm.installPlanApproval)"
+        }
+      },
+      "required": ["channel", "name", "namespace"],
+      "additionalProperties": false
+    },
+    "component": {
+      "type": "object",
+      "description": "Component configuration - configures DSC managementState and triggers automatic dependency installation",
+      "properties": {
+        "managementState": {
+          "type": "string",
+          "enum": ["Managed", "Removed"],
+          "default": "Removed",
+          "description": "Management state for this component in DSC. Managed/Unmanaged enables auto-dependencies, Removed does not."
+        }
+      },
+      "required": ["managementState"],
+      "additionalProperties": false
+    },
+    "kueueComponent": {
+      "type": "object",
+      "description": "Kueue component configuration - uses Unmanaged instead of Managed",
+      "properties": {
+        "managementState": {
+          "type": "string",
+          "enum": ["Unmanaged", "Removed"],
+          "default": "Removed",
+          "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
+        }
+      },
+      "required": ["managementState"],
+      "additionalProperties": false
+    },
+    "dependency": {
+      "type": "object",
+      "description": "Operator dependency configuration",
+      "properties": {
+        "enabled": {
+          "$ref": "#/definitions/triStateEnabled",
+          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "olm": {
+          "$ref": "#/definitions/olmConfig"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    },
+    "dependencyWithConfig": {
+      "type": "object",
+      "description": "Operator dependency with CR configuration",
+      "properties": {
+        "enabled": {
+          "$ref": "#/definitions/triStateEnabled",
+          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "olm": {
+          "$ref": "#/definitions/olmConfig"
+        },
+        "config": {
+          "type": "object",
+          "description": "CR configuration for this dependency",
+          "properties": {
+            "spec": {
+              "type": "object",
+              "description": "CR spec fields - user can add any fields supported by the CR",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    },
+    "rhclDependency": {
+      "type": "object",
+      "description": "RHCL operator dependency with Kuadrant and Authorino configuration",
+      "properties": {
+        "enabled": {
+          "$ref": "#/definitions/triStateEnabled",
+          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "olm": {
+          "$ref": "#/definitions/olmConfig"
+        },
+        "config": {
+          "type": "object",
+          "description": "RHCL configuration",
+          "properties": {
+            "tlsEnabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable Authorino TLS configuration"
+            },
+            "spec": {
+              "type": "object",
+              "description": "Kuadrant CR spec fields - user can add any fields",
+              "additionalProperties": true
+            },
+            "authorinoSpec": {
+              "type": "object",
+              "description": "Authorino CR spec fields (only used if tlsEnabled: true)",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
