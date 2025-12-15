@@ -38,6 +38,24 @@ done
 2. **Subsequent runs**: Once operators are ready and CRDs exist, CR configurations are created.
 3. **Later runs**: Idempotent - no changes if everything is already deployed.
 
+### Enable Authorino TLS
+
+To enable Authorino TLS, annotate the `authorino-authorino-authorization` service with `service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert`:
+
+```bash
+kubectl annotate svc/authorino-authorino-authorization \
+    service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+    -n kuadrant-system
+```
+
+Then, set `dependencies.rhcl.config.tlsEnabled` to `true`.
+
+Once this is done, upgrade the chart:
+
+```bash
+helm upgrade --install rhoai ./chart -n rhoai-system
+```
+
 ## Configuration
 
 ### Operator
@@ -209,12 +227,17 @@ To configure dependencies, refer to the [api docs](api-docs.md).
 
 ## ArgoCD Usage
 
-This chart works with ArgoCD. For the multi-apply pattern, you can either:
+This chart works with ArgoCD but requires specific configuration:
 
-1. **Use sync waves** to order dependencies before configurations
-2. **Run multiple syncs** - ArgoCD will eventually converge to the desired state
+### Why `skipCrdCheck: true` is required
 
-Example ArgoCD Application:
+ArgoCD renders Helm templates **without cluster access**, so the `lookup` function (used to check if CRDs exist) always returns empty results. You must set `global.skipCrdCheck: true` to render all CRs upfront.
+
+### Why `SkipDryRunOnMissingResource` is required
+
+ArgoCD performs dry-run validation before applying resources. CRs whose CRDs don't exist yet will fail validation. The `SkipDryRunOnMissingResource=true` sync option skips dry-run for these resources.
+
+### Example ArgoCD Application
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -229,9 +252,11 @@ spec:
     path: chart
     helm:
       values: |
+        global:
+          skipCrdCheck: true
         components:
           kserve:
-            enabled: true
+            managementState: Managed
   destination:
     server: https://kubernetes.default.svc
     namespace: rhoai-system
@@ -239,7 +264,23 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
 ```
+
+ArgoCD automatically retries failed resources, so after operators install their CRDs, subsequent syncs will successfully apply the CRs.
+
+### Enable Authorino TLS in ArgoCD
+
+To enable Authorino TLS, annotate the `authorino-authorino-authorization` service with `service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert`:
+
+```bash
+kubectl annotate svc/authorino-authorino-authorization \
+    service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+    -n kuadrant-system
+```
+
+Once the secret is created, set `dependencies.rhcl.config.tlsEnabled` to `true` in the ArgoCD application values.
 
 ## Troubleshooting
 
