@@ -1,8 +1,8 @@
-{{- /* 
+{{- /*
 DataScienceCluster configuration
 Sets managementState from component configuration
 */ -}}
-{{- if include "rhoai-dependencies.crdExists" "datascienceclusters.datasciencecluster.opendatahub.io" }}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "datascienceclusters.datasciencecluster.opendatahub.io" "root" $) }}
 apiVersion: datasciencecluster.opendatahub.io/v1
 kind: DataScienceCluster
 metadata:

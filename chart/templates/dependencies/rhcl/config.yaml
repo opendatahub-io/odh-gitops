@@ -1,7 +1,7 @@
 {{- $dep := .Values.dependencies.rhcl -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "rhcl" "dependency" $dep "components" .Values.components) -}}
 {{- if eq $shouldInstall "true" }}
-{{- if include "rhoai-dependencies.crdExists" "kuadrants.kuadrant.io" }}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "kuadrants.kuadrant.io" "root" $) }}
 apiVersion: kuadrant.io/v1beta1
 kind: Kuadrant
 metadata:

@@ -14,6 +14,11 @@
           "default": "olm",
           "description": "Installation type for dependencies (currently only olm is supported)"
         },
+        "skipCrdCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
+        },
         "olm": {
           "type": "object",
           "description": "OLM settings for operator subscriptions",

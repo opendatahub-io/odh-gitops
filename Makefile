@@ -184,29 +184,38 @@ done
 endef
 
 HELM_TMPL_CMD ?= helm template -f chart/values.yaml -f chart/test/testValues.yaml
-HELM_TMPL_OUT ?= .helm.template-output.yaml
-HELM_SNAPSHOT_OUT ?= chart/test/snapshots/test-output.snap.yaml
+HELM_SNAPSHOT_DIR ?= chart/test/snapshots
 HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677
 tmpl_debug ?=
 
+# Internal function to generate and normalize helm output
+# Usage: $(call helm-template,output-file,extra-args)
+define helm-template
+	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default $(2) ./chart > $(1)
+	@sed -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(1)
+	@rm $(1).bak
+endef
+
 ##@ Helm Chart utilities
-.PHONY: chart-snapshot
-chart-snapshot: ## Create a snapshot of the current chart
-	@echo "==> Updating snapshot template..."
-	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default ./chart > $(HELM_SNAPSHOT_OUT)
-	@sed -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(HELM_SNAPSHOT_OUT)
-	@rm $(HELM_SNAPSHOT_OUT).bak
+.PHONY: chart-snapshots
+chart-snapshots: ## Create snapshots for all chart configurations
+	@echo "==> Creating default snapshot..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/default.snap.yaml,)
+	@echo "==> Creating skipCrdCheck snapshot..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check.snap.yaml,--set global.skipCrdCheck=true)
+	@echo "==> Snapshots updated!"
 
 .PHONY: chart-test
-chart-test: ## Test the chart against the snapshot
-	@echo "==> Running tests..."
-	@echo "==> Generating Template from test values..."
-	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default ./chart > $(HELM_TMPL_OUT)
-	@sed -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(HELM_TMPL_OUT)
-	@rm $(HELM_TMPL_OUT).bak
-	diff $(HELM_TMPL_OUT) $(HELM_SNAPSHOT_OUT)
-	@rm $(HELM_TMPL_OUT)
-	@echo "==> Tests passed!"
+chart-test: ## Test chart against all snapshots
+	@echo "==> Testing default configuration..."
+	$(call helm-template,.helm-test-default.yaml,)
+	@diff .helm-test-default.yaml $(HELM_SNAPSHOT_DIR)/default.snap.yaml
+	@rm .helm-test-default.yaml
+	@echo "==> Testing skipCrdCheck configuration..."
+	$(call helm-template,.helm-test-skip-crd.yaml,--set global.skipCrdCheck=true)
+	@diff .helm-test-skip-crd.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check.snap.yaml
+	@rm .helm-test-skip-crd.yaml
+	@echo "==> All tests passed!"
 
 HELM_DOCS = $(shell pwd)/bin/helm-docs
 .PHONY: helm-docs-ensure

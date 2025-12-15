@@ -2,7 +2,7 @@
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "rhcl" "dependency" $dep "components" .Values.components) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if and $dep.config $dep.config.tlsEnabled }}
-{{- if include "rhoai-dependencies.crdExists" "authorinos.operator.authorino.kuadrant.io" }}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "authorinos.operator.authorino.kuadrant.io" "root" $) }}
 apiVersion: operator.authorino.kuadrant.io/v1beta1
 kind: Authorino
 metadata:

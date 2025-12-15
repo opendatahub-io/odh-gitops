@@ -125,15 +125,22 @@ false
 {{/*
 =============================================================================
 Check if CRD exists (for CR templates)
-Returns "true" if CRD exists, empty string otherwise
+Returns "true" if CRD exists or skipCrdCheck is enabled, empty string otherwise
 =============================================================================
-Arguments:
+Arguments (passed as dict):
   - crdName: full name of the CRD (e.g., "kueues.kueue.openshift.io")
+  - root: root context ($) to access .Values
 */}}
 {{- define "rhoai-dependencies.crdExists" -}}
-{{- $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" . -}}
-{{- if $crd -}}
+{{- $crdName := .crdName -}}
+{{- $root := .root -}}
+{{- if $root.Values.global.skipCrdCheck -}}
 true
+{{- else -}}
+{{- $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" $crdName -}}
+{{- if and $crd $crd.metadata -}}
+true
+{{- end -}}
 {{- end -}}
 {{- end }}
 

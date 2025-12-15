@@ -1,92 +1,51 @@
-# ODH and RHOAI Chart
+# odh-rhoai-chart
 
 ![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.2.0](https://img.shields.io/badge/AppVersion-3.2.0-informational?style=flat-square)
 
 A Helm chart for installing ODH/RHOAI dependencies and component configurations
 
-## Maintainers
-
-| Name | Email | Url |
-| ---- | ------ | --- |
-| AI Core Platform Team |  |  |
-
 ## Values
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| components.aipipelines.managementState | string | `"Removed"` |  |
-| components.kserve.managementState | string | `"Managed"` |  |
-| components.kueue.managementState | string | `"Removed"` |  |
-| dependencies.certManager.enabled | string | `"auto"` |  |
-| dependencies.certManager.olm.channel | string | `"stable-v1"` |  |
-| dependencies.certManager.olm.name | string | `"openshift-cert-manager-operator"` |  |
-| dependencies.certManager.olm.namespace | string | `"cert-manager-operator"` |  |
-| dependencies.clusterObservability.enabled | bool | `false` |  |
-| dependencies.clusterObservability.olm.channel | string | `"stable"` |  |
-| dependencies.clusterObservability.olm.name | string | `"cluster-observability-operator"` |  |
-| dependencies.clusterObservability.olm.namespace | string | `"openshift-cluster-observability-operator"` |  |
-| dependencies.customMetricsAutoscaler.enabled | bool | `false` |  |
-| dependencies.customMetricsAutoscaler.olm.channel | string | `"stable"` |  |
-| dependencies.customMetricsAutoscaler.olm.name | string | `"openshift-custom-metrics-autoscaler-operator"` |  |
-| dependencies.customMetricsAutoscaler.olm.namespace | string | `"openshift-keda"` |  |
-| dependencies.jobSet.config.spec.logLevel | string | `"Normal"` |  |
-| dependencies.jobSet.config.spec.operatorLogLevel | string | `"Normal"` |  |
-| dependencies.jobSet.enabled | string | `"auto"` |  |
-| dependencies.jobSet.olm.channel | string | `"tech-preview-v0.1"` |  |
-| dependencies.jobSet.olm.name | string | `"job-set"` |  |
-| dependencies.jobSet.olm.namespace | string | `"openshift-jobset-operator"` |  |
-| dependencies.jobSet.olm.targetNamespaces[0] | string | `"openshift-jobset-operator"` |  |
-| dependencies.kueue.config.spec.config.integrations.frameworks[0] | string | `"Deployment"` |  |
-| dependencies.kueue.config.spec.config.integrations.frameworks[1] | string | `"Pod"` |  |
-| dependencies.kueue.config.spec.config.integrations.frameworks[2] | string | `"PyTorchJob"` |  |
-| dependencies.kueue.config.spec.config.integrations.frameworks[3] | string | `"RayCluster"` |  |
-| dependencies.kueue.config.spec.config.integrations.frameworks[4] | string | `"RayJob"` |  |
-| dependencies.kueue.config.spec.config.integrations.frameworks[5] | string | `"StatefulSet"` |  |
-| dependencies.kueue.config.spec.managementState | string | `"Managed"` |  |
-| dependencies.kueue.enabled | string | `"auto"` |  |
-| dependencies.kueue.olm.channel | string | `"stable-v1.1"` |  |
-| dependencies.kueue.olm.name | string | `"kueue-operator"` |  |
-| dependencies.kueue.olm.namespace | string | `"openshift-kueue-operator"` |  |
-| dependencies.leaderWorkerSet.config.spec.logLevel | string | `"Normal"` |  |
-| dependencies.leaderWorkerSet.config.spec.managementState | string | `"Managed"` |  |
-| dependencies.leaderWorkerSet.config.spec.operatorLogLevel | string | `"Normal"` |  |
-| dependencies.leaderWorkerSet.enabled | string | `"auto"` |  |
-| dependencies.leaderWorkerSet.olm.channel | string | `"stable-v1.0"` |  |
-| dependencies.leaderWorkerSet.olm.name | string | `"leader-worker-set"` |  |
-| dependencies.leaderWorkerSet.olm.namespace | string | `"openshift-lws-operator"` |  |
-| dependencies.leaderWorkerSet.olm.targetNamespaces[0] | string | `"openshift-lws-operator"` |  |
-| dependencies.opentelemetry.enabled | bool | `false` |  |
-| dependencies.opentelemetry.olm.channel | string | `"stable"` |  |
-| dependencies.opentelemetry.olm.name | string | `"opentelemetry-product"` |  |
-| dependencies.opentelemetry.olm.namespace | string | `"openshift-opentelemetry-operator"` |  |
-| dependencies.rhcl.config.authorinoSpec.clusterWide | bool | `true` |  |
-| dependencies.rhcl.config.authorinoSpec.listener.tls.certSecretRef.name | string | `"authorino-server-cert"` |  |
-| dependencies.rhcl.config.authorinoSpec.listener.tls.enabled | bool | `true` |  |
-| dependencies.rhcl.config.authorinoSpec.oidcServer.tls.enabled | bool | `false` |  |
-| dependencies.rhcl.config.authorinoSpec.replicas | int | `1` |  |
-| dependencies.rhcl.config.spec | object | `{}` |  |
-| dependencies.rhcl.config.tlsEnabled | bool | `false` |  |
-| dependencies.rhcl.enabled | string | `"auto"` |  |
-| dependencies.rhcl.olm.channel | string | `"stable"` |  |
-| dependencies.rhcl.olm.name | string | `"rhcl-operator"` |  |
-| dependencies.rhcl.olm.namespace | string | `"kuadrant-system"` |  |
-| dependencies.tempo.enabled | bool | `false` |  |
-| dependencies.tempo.olm.channel | string | `"stable"` |  |
-| dependencies.tempo.olm.name | string | `"tempo-product"` |  |
-| dependencies.tempo.olm.namespace | string | `"openshift-tempo-operator"` |  |
-| global.installationType | string | `"olm"` |  |
-| global.labels | object | `{}` |  |
-| global.olm.installPlanApproval | string | `"Automatic"` |  |
-| global.olm.source | string | `"redhat-operators"` |  |
-| global.olm.sourceNamespace | string | `"openshift-marketplace"` |  |
-| operator.enabled | bool | `true` |  |
-| operator.odh.olm.channel | string | `"fast-3"` |  |
-| operator.odh.olm.name | string | `"opendatahub-operator"` |  |
-| operator.odh.olm.namespace | string | `"openshift-operators"` |  |
-| operator.odh.olm.source | string | `"community-operators"` |  |
-| operator.rhoai.olm.channel | string | `"fast-3.x"` |  |
-| operator.rhoai.olm.name | string | `"rhods-operator"` |  |
-| operator.rhoai.olm.namespace | string | `"redhat-ods-operator"` |  |
-| operator.rhoai.olm.source | string | `"redhat-operators"` |  |
-| operator.type | string | `"rhoai"` |  |
+| components.aipipelines | object | `{"managementState":"Managed"}` | AI Pipelines component |
+| components.aipipelines.managementState | string | `"Managed"` | Management state for AI Pipelines (Managed or Removed) |
+| components.kserve | object | `{"managementState":"Managed"}` | KServe model serving component |
+| components.kserve.managementState | string | `"Managed"` | Management state for KServe (Managed or Removed). Auto-enables: certManager, leaderWorkerSet, jobSet, rhcl |
+| components.kueue | object | `{"managementState":"Unmanaged"}` | Kueue job queuing component |
+| components.kueue.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator |
+| dependencies.certManager | object | `{"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
+| dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
+| dependencies.clusterObservability | object | `{"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
+| dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) |
+| dependencies.customMetricsAutoscaler | object | `{"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
+| dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |
+| dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"enabled":"auto","olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
+| dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec |
+| dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |
+| dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet"]}},"managementState":"Managed"}},"enabled":"auto","olm":{"channel":"stable-v1.1","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
+| dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
+| dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) |
+| dependencies.leaderWorkerSet | object | `{"config":{"spec":{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}},"enabled":"auto","olm":{"channel":"stable-v1.0","name":"leader-worker-set","namespace":"openshift-lws-operator","targetNamespaces":["openshift-lws-operator"]}}` | Leader Worker Set operator |
+| dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
+| dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
+| dependencies.opentelemetry | object | `{"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
+| dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
+| dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl.config.authorinoSpec | object | `{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1}` | Authorino CR spec (only created if tlsEnabled: true) |
+| dependencies.rhcl.config.spec | object | `{}` | Kuadrant CR spec (user can add any fields) |
+| dependencies.rhcl.config.tlsEnabled | bool | `false` | Enable Authorino TLS configuration |
+| dependencies.rhcl.enabled | string | `"auto"` | Enable rhcl: auto (if needed), true (always), false (never) |
+| dependencies.tempo | object | `{"enabled":"auto","olm":{"channel":"stable","name":"tempo-product","namespace":"openshift-tempo-operator"}}` | Tempo operator |
+| dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
+| global.installationType | string | `"olm"` | Installation type for dependencies (currently only olm is supported) |
+| global.labels | object | `{}` | Common labels applied to all resources |
+| global.olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
+| global.olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
+| global.olm.sourceNamespace | string | `"openshift-marketplace"` | Namespace of the catalog source |
+| global.skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times |
+| operator.enabled | bool | `true` | Enable operator installation |
+| operator.odh | object | `{"olm":{"channel":"fast-3","name":"opendatahub-operator","namespace":"openshift-operators","source":"community-operators"}}` | ODH operator settings |
+| operator.rhoai | object | `{"olm":{"channel":"fast-3.x","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
+| operator.type | string | `"rhoai"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
 
