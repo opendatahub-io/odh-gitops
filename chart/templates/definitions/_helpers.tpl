@@ -96,20 +96,59 @@ Arguments (passed as dict):
 
 {{/*
 =============================================================================
+Check if a dependency is required by another dependency that will be installed
+(Transitive dependency resolution)
+=============================================================================
+Arguments (passed as dict):
+  - dependencyName: name of the dependency to check
+  - dependencies: the dependencies configuration object
+  - components: the components configuration object
+*/}}
+{{- define "rhoai-dependencies.isRequiredByDependency" -}}
+{{- $dependencyName := .dependencyName -}}
+{{- $dependencies := .dependencies -}}
+{{- $components := .components -}}
+{{- $depDeps := include "rhoai-dependencies.dependencyDeps" . | fromYaml -}}
+{{- $required := false -}}
+{{- range $depName, $transDeps := $depDeps -}}
+  {{- if has $dependencyName $transDeps -}}
+    {{- /* Check if the parent dependency will be installed */ -}}
+    {{- $parentDep := index $dependencies $depName -}}
+    {{- if $parentDep -}}
+      {{- $parentEnabled := $parentDep.enabled | toString -}}
+      {{- if eq $parentEnabled "true" -}}
+        {{- $required = true -}}
+      {{- else if ne $parentEnabled "false" -}}
+        {{- /* Parent is auto - check if it's required by a component */ -}}
+        {{- if eq (include "rhoai-dependencies.isRequiredByComponent" (dict "dependencyName" $depName "components" $components)) "true" -}}
+          {{- $required = true -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $required -}}
+{{- end }}
+
+{{/*
+=============================================================================
 Determine if a dependency should be installed
 Tri-state logic:
   - enabled: true  → always install
   - enabled: false → never install
-  - enabled: auto  → install if required by any enabled component
+  - enabled: auto  → install if required by any enabled component OR
+                     required by another dependency that will be installed
 =============================================================================
 Arguments (passed as dict):
   - dependencyName: name of the dependency
   - dependency: the dependency configuration object
+  - dependencies: all dependencies configuration object
   - components: the components configuration object
 */}}
 {{- define "rhoai-dependencies.shouldInstall" -}}
 {{- $dependencyName := .dependencyName -}}
 {{- $dependency := .dependency -}}
+{{- $dependencies := .dependencies -}}
 {{- $components := .components -}}
 {{- $enabled := $dependency.enabled | toString -}}
 {{- if eq $enabled "true" -}}
@@ -117,8 +156,12 @@ true
 {{- else if eq $enabled "false" -}}
 false
 {{- else -}}
-{{- /* auto mode: check if required by any enabled component */ -}}
-{{- include "rhoai-dependencies.isRequiredByComponent" (dict "dependencyName" $dependencyName "components" $components) -}}
+{{- /* auto mode: check if required by component or by another dependency */ -}}
+{{- $requiredByComponent := include "rhoai-dependencies.isRequiredByComponent" (dict "dependencyName" $dependencyName "components" $components) -}}
+{{- $requiredByDependency := include "rhoai-dependencies.isRequiredByDependency" (dict "dependencyName" $dependencyName "dependencies" $dependencies "components" $components) -}}
+{{- if or (eq $requiredByComponent "true") (eq $requiredByDependency "true") -}}
+true
+{{- end -}}
 {{- end -}}
 {{- end }}
 
