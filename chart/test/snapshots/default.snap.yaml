@@ -57,7 +57,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: redhat-ods-operator
+  name: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -142,8 +142,8 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: redhat-ods-operator
-  namespace: redhat-ods-operator
+  name: opendatahub-operator-system
+  namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -250,14 +250,18 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: rhods-operator
-  namespace: redhat-ods-operator
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
-  channel: fast-3.x
+  channel: fast-3
   installPlanApproval: Automatic
-  name: rhods-operator
-  source: redhat-operators
+  name: opendatahub-operator
+  source: community-operators
   sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: DISABLE_DSC_CONFIG
+      value: "true"
