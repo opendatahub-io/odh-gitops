@@ -10,7 +10,16 @@ metadata:
   annotations:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" &&
-      files.all.exists(file, !file.matches('^(\\.github/.*|\\.gitignore|\\.kube-linter\\.yaml|\\.yamllint\\.yaml|CONTRIBUTING\\.md|LICENSE|README\\.md|Makefile|.*\\.md|chart/.*)$'))
+      files.all.exists(file,
+        !file.startsWith('.github/') &&
+        !file.startsWith('chart/') &&
+        file != '.gitignore' &&
+        file != '.kube-linter.yaml' &&
+        file != '.yamllint.yaml' &&
+        file != 'LICENSE' &&
+        file != 'Makefile' &&
+        !file.endsWith('.md')
+      )
     pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/cancel-in-progress: "true"

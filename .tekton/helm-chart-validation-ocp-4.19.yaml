@@ -10,7 +10,7 @@ metadata:
   annotations:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" &&
-      files.all.exists(file, file.matches('^chart/.*'))
+      files.all.exists(file, file.startsWith('chart/'))
     pipelinesascode.tekton.dev/on-comment: "^/validate-helm-chart"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
