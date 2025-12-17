@@ -6,7 +6,6 @@ apiVersion: operator.openshift.io/v1
 kind: LeaderWorkerSetOperator
 metadata:
   name: cluster
-  namespace: {{ $dep.olm.namespace }}
   labels:
     {{- include "rhoai-dependencies.labels" . | nindent 4 }}
 {{- with $dep.config.spec }}

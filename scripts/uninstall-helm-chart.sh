@@ -40,7 +40,7 @@ delete_if_exists() {
 
     if [ -n "$namespace" ]; then
         echo "Deleting ${resource_type}/${name} in ${namespace}..."
-        oc delete "$resource_type" "$name" -n "$namespace" --ignore-not-found --timeout=60s || true
+        oc delete "$resource_type" "$name" -n "$namespace" --ignore-not-found --timeout=60s
     else
         echo "Deleting ${resource_type}/${name}..."
         oc delete "$resource_type" "$name" --ignore-not-found --timeout=60s
@@ -54,7 +54,7 @@ delete_subscription_and_csv_and_namespace() {
 
     # Get CSV name before deleting the subscription
     local csv_name
-    csv_name=$(oc get subscription "${subscription_name}" -n "${namespace}" -o jsonpath='{.status.currentCSV}' 2>/dev/null || true)
+    csv_name=$(oc get subscription "${subscription_name}" -n "${namespace}" -o jsonpath='{.status.currentCSV}' 2>/dev/null)
 
     # Delete subscription
     oc delete subscription "${subscription_name}" -n "${namespace}" --ignore-not-found

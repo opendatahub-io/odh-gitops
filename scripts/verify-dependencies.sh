@@ -32,7 +32,7 @@ declare -A OPERATORS=(
     [rhcl-operator]="kuadrant-system app=kuadrant"
 
     [rhods-operator]="redhat-ods-operator name=rhods-operator"
-    [opendatahub-operator]="openshift-operators name=opendatahub-operator"
+    [opendatahub-operator]="opendatahub-operator-system name=opendatahub-operator"
 )
 
 

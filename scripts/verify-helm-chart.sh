@@ -3,15 +3,13 @@
 #
 # This script:
 #   1. Checks the Helm release exists
-#   2. Reuses verify-dependencies.sh for operator verification
-#   3. Checks DataScienceCluster status
+#   2. Checks DataScienceCluster status
 
 set -e
 
 NAMESPACE="${NAMESPACE:-opendatahub-gitops}"
 TIMEOUT="${TIMEOUT:-600}"  # 10 minutes default
 INTERVAL="${INTERVAL:-10}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== Verifying Helm Chart Installation ==="
 

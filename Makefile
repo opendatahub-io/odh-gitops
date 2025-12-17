@@ -247,7 +247,7 @@ helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 5: Install operator CRs ==="
 	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
 	@echo ""
-	@echo "=== Step 4: Verify installation ==="
+	@echo "=== Step 6: Verify installation ==="
 	$(MAKE) helm-verify
 
 .PHONY: helm-uninstall

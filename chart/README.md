@@ -18,7 +18,7 @@ This chart provides a flexible way to install the operators and configurations r
 helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace --set operator.enabled=false
 
 # Wait for operators to be ready, then run again to create CRs and also install the operator
-helm upgrade --install rhoai ./chart -n opendatahub-gitops -set operator.enabled=true
+helm upgrade --install rhoai ./chart -n opendatahub-gitops --set operator.enabled=true
 
 # Wait for operator to be ready, then run again to create the DSC
 helm upgrade --install rhoai ./chart -n opendatahub-gitops
