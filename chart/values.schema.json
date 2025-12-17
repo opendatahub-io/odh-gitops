@@ -135,6 +135,14 @@
       "type": "object",
       "description": "Operator installation configuration",
       "properties": {
+        "monitoringNamespace": {
+          "type": "string",
+          "description": "Namespace for monitoring components (used in DSCInitialization)"
+        },
+        "applicationsNamespace": {
+          "type": "string",
+          "description": "Namespace for applications (used in DSCInitialization)"
+        },
         "olm": {
           "type": "object",
           "description": "OLM settings for the operator",

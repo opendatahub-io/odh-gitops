@@ -25,18 +25,24 @@ operator:
   enabled: true
 
   # -- Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)
-  type: rhoai
+  type: odh
 
   # -- ODH operator settings
   odh:
+    monitoringNamespace: opendatahub
+    applicationsNamespace: opendatahub
+
     olm:
       channel: fast-3
       name: opendatahub-operator
-      namespace: openshift-operators
+      namespace: opendatahub-operator-system
       source: community-operators
 
   # -- RHOAI operator settings
   rhoai:
+    monitoringNamespace: redhat-ods-monitoring
+    applicationsNamespace: redhat-ods-applications
+
     olm:
       channel: fast-3.x
       name: rhods-operator

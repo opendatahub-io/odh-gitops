@@ -30,12 +30,23 @@ declare -A OPERATORS=(
     [tempo-product]="openshift-tempo-operator app.kubernetes.io/name=tempo-operator"
     [openshift-custom-metrics-autoscaler-operator]="openshift-keda name=custom-metrics-autoscaler-operator"
     [rhcl-operator]="kuadrant-system app=kuadrant"
+
+    [rhods-operator]="redhat-ods-operator name=rhods-operator"
+    [opendatahub-operator]="openshift-operators name=opendatahub-operator"
 )
 
 
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
+
+# Check if a subscription exists
+# Usage: subscription_exists <namespace> <subscription_name>
+subscription_exists() {
+    local namespace=$1
+    local subscription_name=$2
+    oc get subscription "${subscription_name}" -n "${namespace}" &>/dev/null
+}
 
 # Wait for Kubernetes resources to exist (retries every 5s)
 # Usage: wait_for_resource <namespace> <resource_type> <label> [timeout_seconds]
@@ -136,12 +147,21 @@ wait_for_subscription_csv() {
 # CSV VERIFICATION
 # ==============================================================================
 
+# Track which operators were actually verified (for custom checks)
+declare -A VERIFIED_OPERATORS=()
+
 echo ""
 echo "Step 1: Verifying operator CSVs..."
 echo ""
 
 for subscription_name in "${!OPERATORS[@]}"; do
     read -r namespace label_selector <<< "${OPERATORS[$subscription_name]}"
+
+    # Skip if subscription doesn't exist
+    if ! subscription_exists "${namespace}" "${subscription_name}"; then
+        echo "⏭️ Skipping ${subscription_name} (subscription not found in ${namespace})"
+        continue
+    fi
 
     echo "Waiting for ${subscription_name} to be ready..."
     if ! wait_for_subscription_csv "${namespace}" "${subscription_name}"; then
@@ -154,6 +174,9 @@ for subscription_name in "${!OPERATORS[@]}"; do
         exit 1
     fi
     echo "✓ ${subscription_name} pods are running"
+
+    # Mark as verified for custom checks
+    VERIFIED_OPERATORS[$subscription_name]=1
 done
 
 # ==============================================================================
@@ -165,7 +188,7 @@ echo "Step 2: Running custom verification checks..."
 echo ""
 
 # cert-manager: Verify pods are running (CSV success doesn't guarantee pod readiness)
-if [[ -v "OPERATORS[openshift-cert-manager-operator]" ]]; then
+if [[ -v "VERIFIED_OPERATORS[openshift-cert-manager-operator]" ]]; then
     echo "Checking cert-manager pods..."
     if ! wait_for_resource "cert-manager" "pods" "app.kubernetes.io/instance=cert-manager"; then
         exit 1
@@ -174,7 +197,7 @@ if [[ -v "OPERATORS[openshift-cert-manager-operator]" ]]; then
 fi
 
 # cluster-observability-operator: Verify pods are running
-if [[ -v "OPERATORS[cluster-observability-operator]" ]]; then
+if [[ -v "VERIFIED_OPERATORS[cluster-observability-operator]" ]]; then
     echo "Checking cluster-observability-operator pods..."
     if ! wait_for_resource "openshift-cluster-observability-operator" "pods" "app.kubernetes.io/part-of=observability-operator"; then
         exit 1
@@ -183,7 +206,7 @@ if [[ -v "OPERATORS[cluster-observability-operator]" ]]; then
 fi
 
 # tempo-operator: Verify pods are running
-if [[ -v "OPERATORS[tempo-product]" ]]; then
+if [[ -v "VERIFIED_OPERATORS[tempo-product]" ]]; then
     echo "Checking tempo-operator pods..."
     if ! wait_for_resource "openshift-tempo-operator" "pods" "app.kubernetes.io/part-of=tempo-operator"; then
         exit 1
@@ -192,7 +215,7 @@ if [[ -v "OPERATORS[tempo-product]" ]]; then
 fi
 
 # custom-metrics-autoscaler: Verify all KEDA component pods are running
-if [[ -v "OPERATORS[openshift-custom-metrics-autoscaler-operator]" ]]; then
+if [[ -v "VERIFIED_OPERATORS[openshift-custom-metrics-autoscaler-operator]" ]]; then
     echo "Checking custom-metrics-autoscaler (KEDA) pods..."
     if ! wait_for_resource "openshift-keda" "pods" "app=keda-operator"; then
         exit 1
@@ -211,7 +234,7 @@ if [[ -v "OPERATORS[openshift-custom-metrics-autoscaler-operator]" ]]; then
 fi
 
 # rhcl-operator: Verify pods are running
-if [[ -v "OPERATORS[rhcl-operator]" ]]; then
+if [[ -v "VERIFIED_OPERATORS[rhcl-operator]" ]]; then
     echo "Checking rhcl-operator pods..."
     # check kuadrant-console-plugin pods
     if ! wait_for_resource "kuadrant-system" "pods" "app=kuadrant-console-plugin"; then

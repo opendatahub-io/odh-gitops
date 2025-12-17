@@ -52,6 +52,7 @@ Arguments (passed as dict):
   - source: catalog source (optional, uses global default)
   - sourceNamespace: catalog source namespace (optional, uses global default)
   - installPlanApproval: install plan approval (optional, uses global default)
+  - config: configuration for the subscription (optional)
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.subscription" -}}
@@ -71,6 +72,10 @@ spec:
   name: {{ .name }}
   source: {{ $source }}
   sourceNamespace: {{ $sourceNamespace }}
+  {{- with .config }}
+  config:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
 
 {{/*

@@ -229,3 +229,27 @@ helm-docs: helm-docs-ensure ## Run helm-docs.
 .PHONY: helm-verify
 helm-verify: ## Verify helm chart installation and DSC components
 	NAMESPACE=opendatahub-gitops ./scripts/verify-helm-chart.sh
+
+helm-install-verify: ## Install helm chart and verify installation
+	@echo "=== Step 1: Install operators ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace --timeout 1m --set operator.enabled=false
+	@echo ""
+	@echo "=== Step 2: Wait for CRDs (dependency) ==="
+	@./scripts/wait-for-crds.sh
+	@echo ""
+	@echo "=== Step 3: Install CR and operator (second pass) ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops --timeout 1m --set operator.enabled=true
+	@echo ""
+	@echo "=== Step 4: Wait for CRDs (operator) ==="
+	@bash ./scripts/verify-dependencies.sh
+	@bash ./scripts/wait-for-crds.sh --operator
+	@echo ""
+	@echo "=== Step 5: Install operator CRs ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
+	@echo ""
+	@echo "=== Step 4: Verify installation ==="
+	$(MAKE) helm-verify
+
+.PHONY: helm-uninstall
+helm-uninstall: ## Uninstall helm chart and all dependencies
+	./scripts/uninstall-helm-chart.sh

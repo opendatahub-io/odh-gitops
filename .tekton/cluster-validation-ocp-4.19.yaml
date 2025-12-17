@@ -31,5 +31,7 @@ spec:
       value: "{{revision}}"
     - name: ocp-version
       value: "4.19.0"
+    - name: validation-type
+      value: "kustomize"
   taskRunTemplate:
     serviceAccountName: build-pipeline-cluster-validation-ocp-419

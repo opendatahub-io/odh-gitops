@@ -1,0 +1,44 @@
+{{- $operatorType := .Values.operator.type }}
+
+🎉 {{ $operatorType | upper }} Chart installed successfully!
+
+=== Installation Summary ===
+
+Operator: {{ $operatorType | upper }}
+Namespace: {{ .Release.Namespace }}
+
+=== Enabled Components ===
+{{- range $name, $comp := .Values.components }}
+  - {{ $name }}: {{ $comp.managementState }}
+{{- end }}
+
+=== Next Steps ===
+
+1. Wait for operators to be ready:
+   kubectl get csv -A | grep -E "(rhods|opendatahub|kueue|cert-manager)"
+
+2. If CRs were not created (first install), run again:
+   helm upgrade --install {{ .Release.Name }} ./chart -n {{ .Release.Namespace }}
+
+3. Check DataScienceCluster status:
+   kubectl get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
+
+{{- if not .Values.dependencies.rhcl.config.tlsEnabled }}
+
+=== Enable Authorino TLS (Optional) ===
+To enable TLS for Authorino:
+
+1. Annotate the service to create the TLS secret:
+   kubectl annotate svc/authorino-authorino-authorization \
+       service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+       -n kuadrant-system
+
+2. Set tlsEnabled to true and upgrade:
+   helm upgrade {{ .Release.Name }} ./chart -n {{ .Release.Namespace }} \
+       --set dependencies.rhcl.config.tlsEnabled=true
+{{- end }}
+
+=== Documentation ===
+For more information, see the chart README:
+https://github.com/opendatahub-io/odh-gitops/tree/main/chart
+
