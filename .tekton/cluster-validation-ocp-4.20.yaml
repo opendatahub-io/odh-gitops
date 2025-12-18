@@ -22,7 +22,6 @@ metadata:
     #     !file.endsWith('.md')
     #   )    # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
 spec:
   pipelineRef:
     resolver: git

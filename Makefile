@@ -44,6 +44,7 @@ YQ_VERSION ?= v4.49.2
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 
 KUADRANT_NS ?= kuadrant-system # (RHCL operator-related) should match the namespace in Kuadrant CR yaml (default is kuadrant-system)
+KUSTOMIZE_MODE ?= true # If false, patches the Authorino CR directly instead of updating the kustomization.yaml
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -140,9 +141,9 @@ remove-all-dependencies:
 	@echo "All dependencies removed successfully! ✓"
 
 .PHONY: prepare-authorino-tls
-prepare-authorino-tls: yq ## Prepare environment to enable TLS for Authorino by annotating the service, waiting for the TLS certificate secret to be generated, and updating the kustomization.yaml
+prepare-authorino-tls: yq ## Prepare environment to enable TLS for Authorino by annotating the service, waiting for the TLS certificate secret to be generated, and patching the Authorino CR.
 	@echo "Preparing environment to enable TLS for Authorino..."
-	@KUADRANT_NS=$(KUADRANT_NS) K8S_CLI=$(K8S_CLI) PATH="$(LOCALBIN):$$PATH" bash ./scripts/prepare-authorino-tls.sh
+	@KUADRANT_NS=$(KUADRANT_NS) K8S_CLI=$(K8S_CLI) KUSTOMIZE_MODE=$(KUSTOMIZE_MODE) bash ./scripts/prepare-authorino-tls.sh
 
 .PHONY: dry-run
 dry-run: kustomize ## Dry run kustomize directory as passed as argument
@@ -244,10 +245,13 @@ helm-install-verify: ## Install helm chart and verify installation
 	@bash ./scripts/verify-dependencies.sh
 	@bash ./scripts/wait-for-crds.sh --operator
 	@echo ""
-	@echo "=== Step 5: Install operator CRs ==="
+	@echo "=== Step 5: Enable Authorino TLS ==="
+	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
+	@echo ""
+	@echo "=== Step 6: Final helm upgrade ==="
 	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
 	@echo ""
-	@echo "=== Step 6: Verify installation ==="
+	@echo "=== Step 7: Verify installation ==="
 	$(MAKE) helm-verify
 
 .PHONY: helm-uninstall

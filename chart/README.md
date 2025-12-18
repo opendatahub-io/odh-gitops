@@ -45,21 +45,26 @@ done
 
 ### Enable Authorino TLS
 
-To enable Authorino TLS, annotate the `authorino-authorino-authorization` service with `service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert`:
+The Kuadrant operator creates the Authorino resource automatically. To enable TLS, use the provided script which:
+
+1. Annotates the Authorino service to trigger TLS certificate generation
+2. Waits for the TLS secret to be created
+3. Patches the Authorino CR to enable TLS
 
 ```bash
-kubectl annotate svc/authorino-authorino-authorization \
-    service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
-    -n kuadrant-system
+# Run the script to enable TLS
+KUSTOMIZE_MODE=false ./scripts/prepare-authorino-tls.sh
 ```
 
-Then, set `dependencies.rhcl.config.tlsEnabled` to `true`.
+The script can be customized with environment variables:
 
-Once this is done, upgrade the chart:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KUADRANT_NS` | `kuadrant-system` | Namespace where Kuadrant is installed |
+| `K8S_CLI` | `kubectl` | Kubernetes CLI to use (kubectl or oc) |
+| `KUSTOMIZE_MODE` | `true` | If false, patches the Authorino CR directly instead of updating the kustomization.yaml |
 
-```bash
-helm upgrade --install rhoai ./chart -n rhoai-system
-```
+> **Note**: The `dependencies.rhcl.config.tlsEnabled` Helm value is intended for ArgoCD use cases. For CLI use case, use the script above.
 
 ## Configuration
 
@@ -170,6 +175,8 @@ dependencies:
 
 ### Example: Enable RHCL with TLS
 
+To enable TLS for Authorino, first deploy with kserve enabled:
+
 ```yaml
 # values.yaml
 components:
@@ -180,13 +187,14 @@ dependencies:
   rhcl:
     enabled: auto
     config:
-      tlsEnabled: true
       # Kuadrant CR spec (optional)
       spec: {}
-      # Authorino CR spec (used when tlsEnabled: true)
-      authorinoSpec:
-        replicas: 2
-        clusterWide: true
+```
+
+Then run the TLS preparation script after the Kuadrant operator has created the Authorino resource:
+
+```bash
+./scripts/prepare-authorino-tls.sh
 ```
 
 ## Values Reference
@@ -277,7 +285,7 @@ ArgoCD automatically retries failed resources, so after operators install their 
 
 ### Enable Authorino TLS in ArgoCD
 
-To enable Authorino TLS, annotate the `authorino-authorino-authorization` service with `service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert`:
+Since the Kuadrant operator automatically creates the Authorino resource, enabling TLS requires a manual step:
 
 ```bash
 kubectl annotate svc/authorino-authorino-authorization \

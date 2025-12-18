@@ -23,20 +23,22 @@ Namespace: {{ .Release.Namespace }}
 3. Check DataScienceCluster status:
    kubectl get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
 
-{{- if not .Values.dependencies.rhcl.config.tlsEnabled }}
-
+{{- $rhclNs := .Values.dependencies.rhcl.olm.namespace }}
 === Enable Authorino TLS (Optional) ===
-To enable TLS for Authorino:
 
-1. Annotate the service to create the TLS secret:
+To enable TLS for Authorino, run the provided script:
+
+   KUSTOMIZE_MODE=false ./scripts/prepare-authorino-tls.sh
+
+Or manually:
+
+1. Annotate the service to trigger TLS certificate generation:
    kubectl annotate svc/authorino-authorino-authorization \
        service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
-       -n kuadrant-system
+       -n {{ $rhclNs }}
 
-2. Set tlsEnabled to true and upgrade:
-   helm upgrade {{ .Release.Name }} ./chart -n {{ .Release.Namespace }} \
-       --set dependencies.rhcl.config.tlsEnabled=true
-{{- end }}
+2. Patch the Authorino CR to enable TLS:
+   kubectl patch authorino/authorino -n {{ $rhclNs }} --type=merge -p '{"spec":{"clusterWide":true,"listener":{"tls":{"enabled":true,"certSecretRef":{"name":"authorino-server-cert"}}},"oidcServer":{"tls":{"enabled":false}}}}'
 
 === Documentation ===
 For more information, see the chart README:

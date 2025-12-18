@@ -88,8 +88,8 @@ delete_subscription_and_csv_and_namespace "opendatahub-operator" "opendatahub-op
 echo ""
 echo "=== Step 3: Removing Dependencies ==="
 
-oc delete --ignore-not-found resourceflavor default-flavor
 oc delete --ignore-not-found clusterqueue default
+oc delete --ignore-not-found resourceflavor default-flavor
 
 cd "${REPO_ROOT}"
 make remove-all-dependencies

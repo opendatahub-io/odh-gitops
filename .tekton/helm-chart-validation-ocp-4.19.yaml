@@ -13,7 +13,6 @@ metadata:
       files.all.exists(file, file.startsWith('chart/'))
     pipelinesascode.tekton.dev/on-comment: "^/validate-helm-chart"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
 spec:
   pipelineRef:
     resolver: git
