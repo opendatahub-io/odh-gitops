@@ -246,11 +246,12 @@ helm-install-verify: ## Install helm chart and verify installation
 	@bash ./scripts/wait-for-crds.sh --operator
 	@echo ""
 	@echo "=== Step 5: Enable Authorino TLS ==="
-	@oc get kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
+	@$(K8S_CLI) get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
 	@$(K8S_CLI) delete pod -l app=kuadrant -n kuadrant-system
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 6: Final helm upgrade ==="
+	@$(K8S_CLI) get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
 	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
 	@echo ""
 	@echo "=== Step 7: Verify installation ==="

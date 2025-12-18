@@ -20,7 +20,8 @@ metadata:
     #     file != 'LICENSE' &&
     #     file != 'Makefile' &&
     #     !file.endsWith('.md')
-    #   )    # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
+    #   )
+    # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
 spec:
   pipelineRef:

@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  name: helm-chart-validation-ocp419-pr{{ pull_request_number }}-{{ revision }}
+  name: validation-ocp419-pr{{ pull_request_number }}-{{ revision }}-helm-chart
   labels:
     appstudio.openshift.io/application: odh-gitops
     appstudio.openshift.io/component: helm-chart-validation-ocp-419
