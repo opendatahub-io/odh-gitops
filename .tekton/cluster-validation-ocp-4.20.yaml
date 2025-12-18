@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  name: cluster-validation-ocp420-pr{{ pull_request_number }}-{{ revision }}
+  name: cluster-validation-ocp420-pr{{ pull_request_number }}
   labels:
     appstudio.openshift.io/application: odh-gitops
     appstudio.openshift.io/component: cluster-validation-ocp-420

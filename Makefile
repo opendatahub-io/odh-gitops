@@ -191,7 +191,7 @@ endef
 
 HELM_TMPL_CMD ?= helm template -f chart/values.yaml -f chart/test/testValues.yaml
 HELM_SNAPSHOT_DIR ?= chart/test/snapshots
-HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677
+HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
 tmpl_debug ?=
 
 # Internal function to generate and normalize helm output
@@ -258,14 +258,11 @@ helm-install-verify: ## Install helm chart and verify installation
 	$(MAKE) helm-verify
 	@echo ""
 	@echo "=== Step 7: Enable Authorino TLS ==="
-	@$(K8S_CLI) get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
-	@echo ""
 	@$(K8S_CLI) delete pod -l app=kuadrant -n kuadrant-system
 	@echo ""
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 8: Final helm upgrade with wait condition ==="
-	@$(K8S_CLI) get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
 	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
 
 .PHONY: helm-uninstall
