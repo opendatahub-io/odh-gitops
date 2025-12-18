@@ -54,7 +54,7 @@ delete_subscription_and_csv_and_namespace() {
 
     # Get CSV name before deleting the subscription
     local csv_name
-    csv_name=$(oc get subscription "${subscription_name}" -n "${namespace}" -o jsonpath='{.status.currentCSV}' 2>/dev/null)
+    csv_name=$(oc get subscription "${subscription_name}" -n "${namespace}" -o jsonpath='{.status.currentCSV}' 2>/dev/null || true)
 
     # Delete subscription
     oc delete subscription "${subscription_name}" -n "${namespace}" --ignore-not-found
@@ -87,6 +87,9 @@ delete_subscription_and_csv_and_namespace "opendatahub-operator" "opendatahub-op
 
 echo ""
 echo "=== Step 3: Removing Dependencies ==="
+
+oc delete --ignore-not-found resourceflavor default-flavor
+oc delete --ignore-not-found clusterqueue default
 
 cd "${REPO_ROOT}"
 make remove-all-dependencies
