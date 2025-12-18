@@ -19,6 +19,11 @@ ifeq ($(ARCH),aarch64)
 	ARCH := arm64
 endif
 
+SED_COMMAND = sed
+ifeq ($(OS),darwin)
+	SED_COMMAND = gsed
+endif
+
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 PYTHONLOCALBIN ?= $(LOCALBIN)/.python
@@ -193,7 +198,7 @@ tmpl_debug ?=
 # Usage: $(call helm-template,output-file,extra-args)
 define helm-template
 	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default $(2) ./chart > $(1)
-	@sed -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(1)
+	@$(SED_COMMAND) -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(1)
 	@rm $(1).bak
 endef
 
@@ -231,31 +236,37 @@ helm-docs: helm-docs-ensure ## Run helm-docs.
 helm-verify: ## Verify helm chart installation and DSC components
 	NAMESPACE=opendatahub-gitops ./scripts/verify-helm-chart.sh
 
+.PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 1: Install operators ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace --timeout 1m --set operator.enabled=false
+	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace --set operator.enabled=false
 	@echo ""
 	@echo "=== Step 2: Wait for CRDs (dependency) ==="
 	@./scripts/wait-for-crds.sh
 	@echo ""
 	@echo "=== Step 3: Install CR and operator (second pass) ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops --timeout 1m --set operator.enabled=true
+	helm upgrade --install odh ./chart -n opendatahub-gitops --set operator.enabled=true
 	@echo ""
 	@echo "=== Step 4: Wait for CRDs (operator) ==="
 	@bash ./scripts/verify-dependencies.sh
 	@bash ./scripts/wait-for-crds.sh --operator
 	@echo ""
-	@echo "=== Step 5: Enable Authorino TLS ==="
+	@echo "=== Step 5: Enable DSC and DSCInitialization ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops
+	@echo ""
+	@echo "=== Step 6: Verify operator and DSC installation ==="
+	$(MAKE) helm-verify
+	@echo ""
+	@echo "=== Step 7: Enable Authorino TLS ==="
 	@$(K8S_CLI) get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
+	@echo ""
 	@$(K8S_CLI) delete pod -l app=kuadrant -n kuadrant-system
+	@echo ""
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
-	@echo "=== Step 6: Final helm upgrade ==="
+	@echo "=== Step 8: Final helm upgrade with wait condition ==="
 	@$(K8S_CLI) get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions}'
 	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
-	@echo ""
-	@echo "=== Step 7: Verify installation ==="
-	$(MAKE) helm-verify
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies

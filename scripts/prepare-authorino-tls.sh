@@ -11,7 +11,7 @@
 # Environment variables:
 #   KUADRANT_NS       - Namespace where Kuadrant is installed (default: kuadrant-system)
 #   K8S_CLI           - Kubernetes CLI to use (default: kubectl)
-#   KUSTOMIZE_MODE    - If true, updates kustomization.yaml instead of patching directly (default: false)
+#   KUSTOMIZE_MODE    - If true, updates kustomization.yaml instead of patching directly (default: true)
 
 set -e
 
