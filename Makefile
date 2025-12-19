@@ -22,6 +22,9 @@ endif
 SED_COMMAND = sed
 ifeq ($(OS),darwin)
 	SED_COMMAND = gsed
+	ifeq (,$(shell which gsed 2>/dev/null))
+$(error gsed is required on macOS but was not found. Please install it using: brew install gnu-sed)
+	endif
 endif
 
 ## Location to install dependencies to
