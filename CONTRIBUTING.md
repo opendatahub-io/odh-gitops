@@ -311,19 +311,13 @@ Add your component to `chart/values.schema.json` under the `components` section.
    helm lint ./chart
    ```
 
-2. **Template locally**:
-
-   ```bash
-   helm template ./chart --set global.skipCrdCheck=true
-   ```
-
-3. **Update snapshots**:
+2. **Update snapshots**:
 
    ```bash
    make chart-snapshots
    ```
 
-4. **Test on a cluster** (optional):
+3. **Test on a cluster** (optional):
 
    ```bash
    helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace
