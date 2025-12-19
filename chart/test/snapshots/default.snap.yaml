@@ -66,7 +66,7 @@ metadata:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: cert-manager-operator
+  name: openshift-cert-manager-operator
   namespace: cert-manager-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -78,7 +78,7 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: openshift-keda
+  name: openshift-custom-metrics-autoscaler-operator
   namespace: openshift-keda
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -90,7 +90,7 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: openshift-jobset-operator
+  name: job-set
   namespace: openshift-jobset-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -104,7 +104,7 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: openshift-kueue-operator
+  name: kueue-operator
   namespace: openshift-kueue-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -116,7 +116,7 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: openshift-lws-operator
+  name: leader-worker-set
   namespace: openshift-lws-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -130,7 +130,7 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: kuadrant-system
+  name: rhcl-operator
   namespace: kuadrant-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -142,7 +142,7 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: opendatahub-operator-system
+  name: opendatahub-operator
   namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
