@@ -31,7 +31,7 @@ Arguments (passed as dict):
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: {{ .namespace }}
+  name: {{ .name }}
   namespace: {{ .namespace }}
   labels:
     {{- include "rhoai-dependencies.labels" .root | nindent 4 }}

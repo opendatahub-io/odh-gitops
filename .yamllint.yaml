@@ -37,4 +37,4 @@ ignore: |
   scripts/
   .github/
   .claude/
-  chart
+  chart/
