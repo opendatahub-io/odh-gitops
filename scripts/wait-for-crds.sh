@@ -16,16 +16,11 @@ set -e
 TIMEOUT="${TIMEOUT:-300}"
 INTERVAL="${INTERVAL:-5}"
 
-# Dependency CRDs (created by dependency operators, needed for dependency CRs)
-DEPENDENCY_CRDS=(
+CRDS=(
     "kueues.kueue.openshift.io"
     "leaderworkersetoperators.operator.openshift.io"
     "jobsetoperators.operator.openshift.io"
     "kuadrants.kuadrant.io"
-)
-
-# Operator CRDs (created by ODH/RHOAI operator, needed for DSC/DSCI)
-OPERATOR_CRDS=(
     "datascienceclusters.datasciencecluster.opendatahub.io"
     "dscinitializations.dscinitialization.opendatahub.io"
 )
@@ -46,26 +41,6 @@ wait_for_crd() {
     echo "⚠️ CRD $crd_name not found after ${TIMEOUT}s (operator may not be installed)"
     return 0  # Don't fail - CRD might not be needed if operator not installed
 }
-
-# Parse arguments
-MODE="${1:-dependency}"  # default: dependency only
-
-case "$MODE" in
-    --all)
-        CRDS=("${DEPENDENCY_CRDS[@]}" "${OPERATOR_CRDS[@]}")
-        echo "Waiting for all CRDs (dependency + operator)..."
-        ;;
-    --operator)
-        CRDS=("${OPERATOR_CRDS[@]}")
-        echo "Waiting for operator CRDs..."
-        ;;
-    *)
-        CRDS=("${DEPENDENCY_CRDS[@]}")
-        echo "Waiting for dependency CRDs..."
-        ;;
-esac
-
-echo ""
 
 for crd in "${CRDS[@]}"; do
     wait_for_crd "$crd"
