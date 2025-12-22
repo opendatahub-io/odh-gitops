@@ -94,6 +94,9 @@
         },
         "feastoperator": {
           "$ref": "#/definitions/component"
+        },
+        "ray": {
+          "$ref": "#/definitions/component"
         }
       },
       "additionalProperties": false

@@ -19,4 +19,6 @@ spec:
       {{- .Values.components.kueue | toYaml | nindent 6 }}
     feastoperator:
       {{- .Values.components.feastoperator | toYaml | nindent 6 }}
+    ray:
+      {{- .Values.components.ray | toYaml | nindent 6 }}
 {{- end }}

@@ -18,6 +18,8 @@ kueue:
   - kueue
 aipipelines: []
 feastoperator: []
+ray:
+  - certManager
 {{- end }}
 
 {{/*

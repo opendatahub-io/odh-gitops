@@ -289,9 +289,9 @@ Add your component to `chart/templates/operator/datasciencecluster.yaml`:
 spec:
   components:
     kserve:
-      managementState: {{ .Values.components.kserve.managementState }}
+      {{- .Values.components.kserve | toYaml | nindent 6 }}
     yourComponent:
-      managementState: {{ .Values.components.yourComponent.managementState }}
+      {{- .Values.components.yourComponent | toYaml | nindent 6 }}
 ```
 
 #### Step 4: Update JSON Schema
@@ -317,10 +317,10 @@ Add your component to `chart/values.schema.json` under the `components` section.
    make chart-snapshots
    ```
 
-3. **Test on a cluster** (optional):
+3. **Test on a cluster**:
 
    ```bash
-   helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace
+   make helm-install-verify
    ```
 
 ## Testing Your Changes

@@ -80,6 +80,11 @@ components:
     # -- Management state for Feast Operator (Managed or Removed)
     managementState: Managed
 
+  # -- Ray component
+  ray:
+    # -- Management state for Ray (Managed or Removed)
+    managementState: Managed
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #
