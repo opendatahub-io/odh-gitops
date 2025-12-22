@@ -12,9 +12,9 @@ metadata:
 spec:
   components:
     aipipelines:
-      managementState: {{ .Values.components.aipipelines.managementState }}
+      {{- .Values.components.aipipelines | toYaml | nindent 6 }}
     kserve:
-      managementState: {{ .Values.components.kserve.managementState }}
+      {{- .Values.components.kserve | toYaml | nindent 6 }}
     kueue:
-      managementState: {{ .Values.components.kueue.managementState }}
+      {{- .Values.components.kueue | toYaml | nindent 6 }}
 {{- end }}

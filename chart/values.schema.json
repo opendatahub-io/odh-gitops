@@ -84,7 +84,7 @@
       "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
       "properties": {
         "kserve": {
-          "$ref": "#/definitions/component"
+          "$ref": "#/definitions/kserveComponent"
         },
         "kueue": {
           "$ref": "#/definitions/kueueComponent"
@@ -247,6 +247,40 @@
           "enum": ["Unmanaged", "Removed"],
           "default": "Removed",
           "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
+        }
+      },
+      "required": ["managementState"],
+      "additionalProperties": false
+    },
+    "kserveComponent": {
+      "type": "object",
+      "description": "Component configuration - configures DSC managementState and triggers automatic dependency installation",
+      "properties": {
+        "managementState": {
+          "type": "string",
+          "enum": ["Managed", "Removed"],
+          "default": "Removed",
+          "description": "Management state for this component in DSC. Managed enables auto-dependencies, Removed does not."
+        },
+        "rawDeploymentServiceConfig": {
+          "type": "string",
+          "enum": ["Headless", "Head"],
+          "default": "Headless",
+          "description": "Raw deployment service config for KServe. Headless does not enable auto-dependencies, Head does."
+        },
+        "nim": {
+          "type": "object",
+          "description": "NIM configuration for KServe",
+          "properties": {
+            "managementState": {
+              "type": "string",
+              "enum": ["Managed", "Removed"],
+              "default": "Managed",
+              "description": "Management state for NIM in DSC. Managed enables auto-dependencies, Removed does not."
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
         }
       },
       "required": ["managementState"],

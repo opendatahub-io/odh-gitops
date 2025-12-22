@@ -94,6 +94,7 @@ spec:
       managementState: Managed
     kserve:
       managementState: Managed
+      rawDeploymentServiceConfig: Headless
     kueue:
       managementState: Unmanaged
 ---
