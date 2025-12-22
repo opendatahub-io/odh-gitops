@@ -21,4 +21,6 @@ spec:
       {{- .Values.components.feastoperator | toYaml | nindent 6 }}
     ray:
       {{- .Values.components.ray | toYaml | nindent 6 }}
+    dashboard:
+      {{- .Values.components.dashboard | toYaml | nindent 6 }}
 {{- end }}

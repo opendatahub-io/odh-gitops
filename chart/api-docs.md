@@ -10,6 +10,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |-----|------|---------|-------------|
 | components.aipipelines | object | `{"managementState":"Managed"}` | AI Pipelines component |
 | components.aipipelines.managementState | string | `"Managed"` | Management state for AI Pipelines (Managed or Removed) |
+| components.dashboard | object | `{"managementState":"Managed"}` | Dashboard component |
+| components.dashboard.managementState | string | `"Managed"` | Management state for Dashboard (Managed or Removed) |
 | components.feastoperator | object | `{"managementState":"Managed"}` | Feast Operator component |
 | components.feastoperator.managementState | string | `"Managed"` | Management state for Feast Operator (Managed or Removed) |
 | components.kserve | object | `{"managementState":"Managed","nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}` | KServe model serving component |
@@ -27,15 +29,15 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) |
 | dependencies.customMetricsAutoscaler | object | `{"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |
-| dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"enabled":"auto","olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
+| dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"enabled":false,"olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
 | dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
-| dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |
+| dependencies.jobSet.enabled | bool | `false` | Enable job-set: auto (if needed), true (always), false (never) |
 | dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"enabled":"auto","olm":{"channel":"stable-v1.2","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
 | dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
 | dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) |
-| dependencies.leaderWorkerSet | object | `{"config":{"spec":{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}},"enabled":"auto","olm":{"channel":"stable-v1.0","name":"leader-worker-set","namespace":"openshift-lws-operator","targetNamespaces":["openshift-lws-operator"]}}` | Leader Worker Set operator |
+| dependencies.leaderWorkerSet | object | `{"config":{"spec":{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}},"enabled":true,"olm":{"channel":"stable-v1.0","name":"leader-worker-set","namespace":"openshift-lws-operator","targetNamespaces":["openshift-lws-operator"]}}` | Leader Worker Set operator |
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
-| dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
+| dependencies.leaderWorkerSet.enabled | bool | `true` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
 | dependencies.opentelemetry | object | `{"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
 | dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |

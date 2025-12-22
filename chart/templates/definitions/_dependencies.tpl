@@ -20,6 +20,7 @@ aipipelines: []
 feastoperator: []
 ray:
   - certManager
+dashboard: []
 {{- end }}
 
 {{/*

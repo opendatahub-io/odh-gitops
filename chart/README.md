@@ -86,16 +86,17 @@ High-level features that:
 
 | managementState | Dependencies auto-enabled | Available for |
 |-----------------|---------------------------|---------------|
-| `Managed` | Yes | kserve, aipipelines, feastoperator, ray |
+| `Managed` | Yes | aipipelines, dashboard, feastoperator, kserve, ray |
 | `Unmanaged` | Yes | kueue |
 | `Removed` | No | all |
 
 | Component | Description | Dependencies |
 |-----------|-------------|--------------|
+| `aipipelines` | AI Pipelines | - |
+| `dashboard` | Dashboard | - |
+| `feastoperator` | Feast feature store operator | - |
 | `kserve` | KServe model serving | certManager, leaderWorkerSet, jobSet, rhcl |
 | `kueue` | Kueue job queuing | kueue |
-| `aipipelines` | AI Pipelines | - |
-| `feastoperator` | Feast feature store operator | - |
 | `ray` | Ray distributed computing | certManager |
 
 ### Dependencies

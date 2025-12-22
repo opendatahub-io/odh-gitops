@@ -54,6 +54,21 @@ operator:
 # Components configure the DataScienceCluster (DSC) managementState.
 # managementState values: Managed (dependencies auto-enabled), Removed (no deps), Unmanaged (kueue only, deps auto-enabled)
 components:
+  # -- AI Pipelines component
+  aipipelines:
+    # -- Management state for AI Pipelines (Managed or Removed)
+    managementState: Managed
+
+  # -- Dashboard component
+  dashboard:
+    # -- Management state for Dashboard (Managed or Removed)
+    managementState: Managed
+
+  # -- Feast Operator component
+  feastoperator:
+    # -- Management state for Feast Operator (Managed or Removed)
+    managementState: Managed
+
   # -- KServe model serving component
   kserve:
     # -- Management state for KServe (Managed or Removed). Auto-enables: certManager, leaderWorkerSet, jobSet, rhcl
@@ -69,16 +84,6 @@ components:
   kueue:
     # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
     managementState: Unmanaged
-
-  # -- AI Pipelines component
-  aipipelines:
-    # -- Management state for AI Pipelines (Managed or Removed)
-    managementState: Managed
-
-  # -- Feast Operator component
-  feastoperator:
-    # -- Management state for Feast Operator (Managed or Removed)
-    managementState: Managed
 
   # -- Ray component
   ray:
@@ -108,7 +113,7 @@ dependencies:
   # -- Leader Worker Set operator
   leaderWorkerSet:
     # -- Enable leader-worker-set: auto (if needed), true (always), false (never)
-    enabled: auto
+    enabled: true
     olm:
       channel: stable-v1.0
       name: leader-worker-set
@@ -125,7 +130,7 @@ dependencies:
   # -- Job Set operator
   jobSet:
     # -- Enable job-set: auto (if needed), true (always), false (never)
-    enabled: auto
+    enabled: false
     olm:
       channel: tech-preview-v0.1
       name: job-set

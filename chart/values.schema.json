@@ -97,6 +97,9 @@
         },
         "ray": {
           "$ref": "#/definitions/component"
+        },
+        "dashboard": {
+          "$ref": "#/definitions/component"
         }
       },
       "additionalProperties": false

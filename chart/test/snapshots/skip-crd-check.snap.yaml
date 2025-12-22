@@ -103,6 +103,8 @@ spec:
       managementState: Managed
     ray:
       managementState: Managed
+    dashboard:
+      managementState: Managed
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
