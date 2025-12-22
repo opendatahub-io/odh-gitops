@@ -91,6 +91,9 @@
         },
         "aipipelines": {
           "$ref": "#/definitions/component"
+        },
+        "feastoperator": {
+          "$ref": "#/definitions/component"
         }
       },
       "additionalProperties": false

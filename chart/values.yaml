@@ -75,6 +75,11 @@ components:
     # -- Management state for AI Pipelines (Managed or Removed)
     managementState: Managed
 
+  # -- Feast Operator component
+  feastoperator:
+    # -- Management state for Feast Operator (Managed or Removed)
+    managementState: Managed
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #

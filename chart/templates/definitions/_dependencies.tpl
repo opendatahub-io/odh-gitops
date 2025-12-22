@@ -17,6 +17,7 @@ kueue:
   - certManager
   - kueue
 aipipelines: []
+feastoperator: []
 {{- end }}
 
 {{/*

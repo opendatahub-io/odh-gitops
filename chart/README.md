@@ -86,7 +86,7 @@ High-level features that:
 
 | managementState | Dependencies auto-enabled | Available for |
 |-----------------|---------------------------|---------------|
-| `Managed` | Yes | kserve, aipipelines |
+| `Managed` | Yes | kserve, aipipelines, feastoperator |
 | `Unmanaged` | Yes | kueue |
 | `Removed` | No | all |
 
@@ -95,6 +95,7 @@ High-level features that:
 | `kserve` | KServe model serving | certManager, leaderWorkerSet, jobSet, rhcl |
 | `kueue` | Kueue job queuing | kueue |
 | `aipipelines` | AI Pipelines | - |
+| `feastoperator` | Feast feature store operator | - |
 
 ### Dependencies
 
@@ -218,11 +219,14 @@ Components configure the DataScienceCluster (DSC) and trigger automatic dependen
 components:
   kserve:
     managementState: Managed  # Managed | Removed
-  
+
   kueue:
     managementState: Removed  # Unmanaged | Removed
-  
+
   aipipelines:
+    managementState: Removed  # Managed | Removed
+
+  feastoperator:
     managementState: Removed  # Managed | Removed
 ```
 

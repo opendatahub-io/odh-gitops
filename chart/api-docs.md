@@ -10,6 +10,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |-----|------|---------|-------------|
 | components.aipipelines | object | `{"managementState":"Managed"}` | AI Pipelines component |
 | components.aipipelines.managementState | string | `"Managed"` | Management state for AI Pipelines (Managed or Removed) |
+| components.feastoperator | object | `{"managementState":"Managed"}` | Feast Operator component |
+| components.feastoperator.managementState | string | `"Managed"` | Management state for Feast Operator (Managed or Removed) |
 | components.kserve | object | `{"managementState":"Managed","nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}` | KServe model serving component |
 | components.kserve.managementState | string | `"Managed"` | Management state for KServe (Managed or Removed). Auto-enables: certManager, leaderWorkerSet, jobSet, rhcl |
 | components.kserve.nim | object | `{"managementState":"Managed"}` | Enables NVIDIA NIM integration. |

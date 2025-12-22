@@ -17,4 +17,6 @@ spec:
       {{- .Values.components.kserve | toYaml | nindent 6 }}
     kueue:
       {{- .Values.components.kueue | toYaml | nindent 6 }}
+    feastoperator:
+      {{- .Values.components.feastoperator | toYaml | nindent 6 }}
 {{- end }}
