@@ -331,7 +331,7 @@ Always test your changes before submitting a PR.
 
 1. **Validate Kustomize Build**:
 
-  Run `make validate` to validate the kustomization files.
+  Run `make validate-all` to validate the kustomization files.
 
 2. **Check for YAML Errors**:
 
