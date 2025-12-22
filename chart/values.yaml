@@ -32,6 +32,12 @@ operator:
     monitoringNamespace: opendatahub
     applicationsNamespace: opendatahub
 
+    # -- Default values for components when using ODH
+    # @ignored
+    componentDefaults:
+      modelregistry:
+        registriesNamespace: odh-model-registry
+
     olm:
       channel: fast-3
       name: opendatahub-operator
@@ -42,6 +48,12 @@ operator:
   rhoai:
     monitoringNamespace: redhat-ods-monitoring
     applicationsNamespace: redhat-ods-applications
+
+    # -- Default values for components when using RHOAI
+    # @ignored
+    componentDefaults:
+      modelregistry:
+        registriesNamespace: rhoai-model-registries
 
     olm:
       channel: fast-3.x
@@ -79,6 +91,13 @@ components:
   feastoperator:
     # -- Management state for Feast Operator (Managed or Removed)
     managementState: Managed
+
+  # -- Model Registry component
+  modelregistry:
+    # -- Management state for Model Registry (Managed or Removed)
+    managementState: Managed
+    # -- Registries namespace for Model Registry. Defaults to odh-model-registry for ODH and rhoai-model-registries for RHOAI
+    registriesNamespace:
 
 # =============================================================================
 # DEPENDENCIES - Operators required by components

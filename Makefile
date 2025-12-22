@@ -210,8 +210,10 @@ endef
 chart-snapshots: ## Create snapshots for all chart configurations
 	@echo "==> Creating default snapshot..."
 	$(call helm-template,$(HELM_SNAPSHOT_DIR)/default.snap.yaml,)
-	@echo "==> Creating skipCrdCheck snapshot..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check.snap.yaml,--set global.skipCrdCheck=true)
+	@echo "==> Creating skipCrdCheck snapshot for ODH..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
+	@echo "==> Creating skipCrdCheck snapshot for RHOAI..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
 	@echo "==> Snapshots updated!"
 
 .PHONY: chart-test
@@ -220,10 +222,14 @@ chart-test: ## Test chart against all snapshots
 	$(call helm-template,.helm-test-default.yaml,)
 	@diff .helm-test-default.yaml $(HELM_SNAPSHOT_DIR)/default.snap.yaml
 	@rm .helm-test-default.yaml
-	@echo "==> Testing skipCrdCheck configuration..."
-	$(call helm-template,.helm-test-skip-crd.yaml,--set global.skipCrdCheck=true)
-	@diff .helm-test-skip-crd.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check.snap.yaml
+	@echo "==> Testing skipCrdCheck ODH configuration..."
+	$(call helm-template,.helm-test-skip-crd-odh.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
+	@diff .helm-test-skip-crd-odh.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml
 	@rm .helm-test-skip-crd.yaml
+	@echo "==> Testing skipCrdCheck RHOAI configuration..."
+	$(call helm-template,.helm-test-skip-crd-rhoai.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
+	@diff .helm-test-skip-crd-rhoai.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml
+	@rm .helm-test-skip-crd-rhoai.yaml
 	@echo "==> All tests passed!"
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs

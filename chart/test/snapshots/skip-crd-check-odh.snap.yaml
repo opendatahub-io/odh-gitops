@@ -101,6 +101,9 @@ spec:
       managementState: Unmanaged
     feastoperator:
       managementState: Managed
+    modelregistry:
+      managementState: Managed
+      registriesNamespace: odh-model-registry
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1

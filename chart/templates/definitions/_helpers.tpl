@@ -187,3 +187,23 @@ true
 {{- end -}}
 {{- end }}
 
+{{/*
+=============================================================================
+Merge component config with operator-type defaults
+Component values override defaults. Allows arbitrary fields without explicit mapping.
+=============================================================================
+Arguments (passed as dict):
+  - componentName: name of the component (e.g., "modelregistry")
+  - component: the component configuration from .Values.components
+  - root: root context ($)
+*/}}
+{{- define "rhoai-dependencies.componentConfig" -}}
+{{- $operatorType := .root.Values.operator.type -}}
+{{- $operatorConfig := index .root.Values.operator $operatorType -}}
+{{- $defaults := dict -}}
+{{- if and $operatorConfig.componentDefaults (index $operatorConfig.componentDefaults .componentName) -}}
+  {{- $defaults = index $operatorConfig.componentDefaults .componentName -}}
+{{- end -}}
+{{- merge .component $defaults | toYaml -}}
+{{- end }}
+

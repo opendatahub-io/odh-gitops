@@ -46,4 +46,3 @@ opentelemetry: []
 tempo:
   - opentelemetry
 {{- end }}
-

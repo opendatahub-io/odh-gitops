@@ -19,6 +19,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.kserve.rawDeploymentServiceConfig | string | `"Headless"` | Raw deployment service config for KServe (Headless or Headed) |
 | components.kueue | object | `{"managementState":"Unmanaged"}` | Kueue job queuing component |
 | components.kueue.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator |
+| components.modelregistry | object | `{"managementState":"Managed","registriesNamespace":null}` | Model Registry component |
+| components.modelregistry.managementState | string | `"Managed"` | Management state for Model Registry (Managed or Removed) |
+| components.modelregistry.registriesNamespace | string | `nil` | Registries namespace for Model Registry. Defaults to odh-model-registry for ODH and rhoai-model-registries for RHOAI |
 | dependencies.certManager | object | `{"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
 | dependencies.clusterObservability | object | `{"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |

@@ -94,6 +94,9 @@
         },
         "feastoperator": {
           "$ref": "#/definitions/component"
+        },
+        "modelregistry": {
+          "$ref": "#/definitions/modelregistryComponent"
         }
       },
       "additionalProperties": false
@@ -175,6 +178,24 @@
           },
           "required": ["channel", "name", "namespace", "source"],
           "additionalProperties": false
+        },
+        "componentDefaults": {
+          "type": "object",
+          "description": "Default values for components when using this operator type",
+          "properties": {
+            "modelregistry": {
+              "type": "object",
+              "description": "Default values for modelregistry component",
+              "properties": {
+                "registriesNamespace": {
+                  "type": "string",
+                  "description": "Default namespace for model registries"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
         }
       },
       "additionalProperties": false
@@ -288,6 +309,21 @@
       },
       "required": ["managementState"],
       "additionalProperties": false
+    },
+    "modelregistryComponent": {
+      "type": "object",
+      "description": "Model Registry component configuration. Supports additional fields that are merged with operator-type defaults.",
+      "properties": {
+        "managementState": {
+          "$ref": "#/definitions/defaultManagementState"
+        },
+        "registriesNamespace": {
+          "type": ["string", "null"],
+          "description": "Namespace for model registries. Defaults to operator.[type].componentDefaults.modelregistry.registriesNamespace if not set."
+        }
+      },
+      "required": ["managementState"],
+      "additionalProperties": true
     },
     "dependency": {
       "type": "object",
