@@ -131,6 +131,12 @@
     }
   },
   "definitions": {
+    "defaultManagementState": {
+      "type": "string",
+      "enum": ["Managed", "Removed"],
+      "default": "Removed",
+      "description": "Management state for component in DSC. Managed enables components and auto dependencies management, Removed does not."
+    },
     "operatorConfig": {
       "type": "object",
       "description": "Operator installation configuration",
@@ -229,10 +235,7 @@
       "description": "Component configuration - configures DSC managementState and triggers automatic dependency installation",
       "properties": {
         "managementState": {
-          "type": "string",
-          "enum": ["Managed", "Removed"],
-          "default": "Removed",
-          "description": "Management state for this component in DSC. Managed enables auto-dependencies, Removed does not."
+          "$ref": "#/definitions/defaultManagementState"
         }
       },
       "required": ["managementState"],
@@ -257,35 +260,27 @@
       "description": "Component configuration - configures DSC managementState and triggers automatic dependency installation",
       "properties": {
         "managementState": {
-          "type": "string",
-          "enum": ["Managed", "Removed"],
-          "default": "Removed",
-          "description": "Management state for this component in DSC. Managed enables auto-dependencies, Removed does not."
+          "$ref": "#/definitions/defaultManagementState"
         },
         "rawDeploymentServiceConfig": {
           "type": "string",
           "enum": ["Headless", "Headed"],
           "default": "Headless",
-          "description": "Raw deployment service config for KServe. Headless does not enable auto-dependencies, Head does."
+          "description": "Configures the type of service that is created for InferenceServices using RawDeployment."
         },
         "nim": {
-          "oneOf": [
-            { "type": "null" },
-            {
-              "type": "object",
-              "description": "NIM configuration for KServe",
-              "properties": {
-                "managementState": {
-                  "type": "string",
-                  "enum": ["Managed", "Removed"],
-                  "default": "Managed",
-                  "description": "Management state for NIM in DSC. Managed enables auto-dependencies, Removed does not."
-                }
-              },
-              "required": ["managementState"],
-              "additionalProperties": false
+          "type": "object",
+          "description": "NIM configuration for KServe",
+          "properties": {
+            "managementState": {
+              "type": "string",
+              "enum": ["Managed", "Removed"],
+              "default": "Managed",
+              "description": "Management state for NIM in DSC."
             }
-          ]
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
         }
       },
       "required": ["managementState"],
