@@ -153,7 +153,7 @@ dependencies:
     # -- Enable kueue: auto (if needed), true (always), false (never)
     enabled: auto
     olm:
-      channel: stable-v1.1
+      channel: stable-v1.2
       name: kueue-operator
       namespace: openshift-kueue-operator
     config:
@@ -169,6 +169,7 @@ dependencies:
               - RayCluster
               - RayJob
               - StatefulSet
+              - TrainJob
 
   # -- Cluster Observability operator
   clusterObservability:
