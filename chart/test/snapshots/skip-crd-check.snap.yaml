@@ -92,6 +92,8 @@ spec:
   components:
     aipipelines:
       managementState: Managed
+    dashboard:
+      managementState: Managed
     kserve:
       managementState: Managed
       nim:
@@ -103,7 +105,7 @@ spec:
       managementState: Managed
     ray:
       managementState: Managed
-    dashboard:
+    trainer:
       managementState: Managed
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml

@@ -7,6 +7,9 @@ are automatically enabled (unless explicitly disabled).
 =============================================================================
 */}}
 {{- define "rhoai-dependencies.componentDeps" -}}
+aipipelines: []
+dashboard: []
+feastoperator: []
 kserve:
   - certManager
   - leaderWorkerSet
@@ -16,11 +19,11 @@ kserve:
 kueue:
   - certManager
   - kueue
-aipipelines: []
-feastoperator: []
 ray:
   - certManager
-dashboard: []
+trainer:
+  - certManager
+  - jobSet
 {{- end }}
 
 {{/*

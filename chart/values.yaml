@@ -90,6 +90,11 @@ components:
     # -- Management state for Ray (Managed or Removed)
     managementState: Managed
 
+  # -- Trainer component
+  trainer:
+    # -- Management state for Trainer (Managed or Removed)
+    managementState: Managed
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #
@@ -113,7 +118,7 @@ dependencies:
   # -- Leader Worker Set operator
   leaderWorkerSet:
     # -- Enable leader-worker-set: auto (if needed), true (always), false (never)
-    enabled: true
+    enabled: auto
     olm:
       channel: stable-v1.0
       name: leader-worker-set
@@ -130,7 +135,7 @@ dependencies:
   # -- Job Set operator
   jobSet:
     # -- Enable job-set: auto (if needed), true (always), false (never)
-    enabled: false
+    enabled: auto
     olm:
       channel: tech-preview-v0.1
       name: job-set

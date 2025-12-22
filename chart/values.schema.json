@@ -83,22 +83,25 @@
       "type": "object",
       "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
       "properties": {
+        "aipipelines": {
+          "$ref": "#/definitions/component"
+        },
+        "dashboard": {
+          "$ref": "#/definitions/component"
+        },
+        "feastoperator": {
+          "$ref": "#/definitions/component"
+        },
         "kserve": {
           "$ref": "#/definitions/kserveComponent"
         },
         "kueue": {
           "$ref": "#/definitions/kueueComponent"
         },
-        "aipipelines": {
-          "$ref": "#/definitions/component"
-        },
-        "feastoperator": {
-          "$ref": "#/definitions/component"
-        },
         "ray": {
           "$ref": "#/definitions/component"
         },
-        "dashboard": {
+        "trainer": {
           "$ref": "#/definitions/component"
         }
       },
