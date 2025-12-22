@@ -58,10 +58,12 @@ components:
   kserve:
     # -- Management state for KServe (Managed or Removed). Auto-enables: certManager, leaderWorkerSet, jobSet, rhcl
     managementState: Managed
-    # -- Raw deployment service config for KServe (Headless or Head)
+    # -- Raw deployment service config for KServe (Headless or Headed)
     rawDeploymentServiceConfig: Headless
-    # -- Configures and enables NVIDIA NIM integration
-    nim: null
+    # -- Enables NVIDIA NIM integration.
+    nim:
+      # -- Management state for NIM (Managed or Removed)
+      managementState: Managed
 
   # -- Kueue job queuing component
   kueue:

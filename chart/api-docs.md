@@ -10,8 +10,11 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |-----|------|---------|-------------|
 | components.aipipelines | object | `{"managementState":"Managed"}` | AI Pipelines component |
 | components.aipipelines.managementState | string | `"Managed"` | Management state for AI Pipelines (Managed or Removed) |
-| components.kserve | object | `{"managementState":"Managed"}` | KServe model serving component |
+| components.kserve | object | `{"managementState":"Managed","nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}` | KServe model serving component |
 | components.kserve.managementState | string | `"Managed"` | Management state for KServe (Managed or Removed). Auto-enables: certManager, leaderWorkerSet, jobSet, rhcl |
+| components.kserve.nim | object | `{"managementState":"Managed"}` | Enables NVIDIA NIM integration. |
+| components.kserve.nim.managementState | string | `"Managed"` | Management state for NIM (Managed or Removed) |
+| components.kserve.rawDeploymentServiceConfig | string | `"Headless"` | Raw deployment service config for KServe (Headless or Headed) |
 | components.kueue | object | `{"managementState":"Unmanaged"}` | Kueue job queuing component |
 | components.kueue.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator |
 | dependencies.certManager | object | `{"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |

@@ -226,9 +226,10 @@ chart-test: ## Test chart against all snapshots
 	@rm .helm-test-skip-crd.yaml
 	@echo "==> All tests passed!"
 
-HELM_DOCS = $(shell pwd)/bin/helm-docs
+HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure
-helm-docs-ensure: ##Download helm-docs locally if necessary.
+helm-docs-ensure: $(HELM_DOCS) ## Download helm-docs locally if necessary.
+$(HELM_DOCS): $(LOCALBIN)
 	$(call go-install-tool,$(HELM_DOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,$(HELM_DOCS_VERSION))
 
 .PHONY: helm-docs
