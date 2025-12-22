@@ -32,7 +32,8 @@ kueue:
   - certManager
 leaderWorkerSet:
   - certManager
-jobSet: []
+jobSet:
+  - certManager
 rhcl:
   - certManager
   - leaderWorkerSet
