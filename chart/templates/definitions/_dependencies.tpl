@@ -38,8 +38,10 @@ rhcl:
   - leaderWorkerSet
 certManager: []
 customMetricsAutoscaler: []
-clusterObservability: []
+clusterObservability:
+  - opentelemetry
 opentelemetry: []
-tempo: []
+tempo:
+  - opentelemetry
 {{- end }}
 
