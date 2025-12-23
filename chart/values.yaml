@@ -143,6 +143,15 @@ components:
       rhoai:
         workbenchNamespace: rhods-notebooks
 
+  # -- LlamaStack Operator component
+  llamastackoperator:
+    # -- Dependencies required by LlamaStack Operator
+    dependencies: {}
+    # -- DSC configuration for LlamaStack Operator
+    dsc:
+      # -- Management state for LlamaStack Operator (Managed or Removed)
+      managementState: Removed
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #
