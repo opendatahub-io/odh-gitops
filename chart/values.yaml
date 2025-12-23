@@ -205,6 +205,13 @@ components:
     # -- DSC configuration for MLflow Operator
     dsc:
       # -- Management state for MLflow Operator (Managed or Removed)
+  # -- LlamaStack Operator component
+  llamastackoperator:
+    # -- Dependencies required by LlamaStack Operator
+    dependencies: {}
+    # -- DSC configuration for LlamaStack Operator
+    dsc:
+      # -- Management state for LlamaStack Operator (Managed or Removed)
       managementState: Removed
 
 # =============================================================================

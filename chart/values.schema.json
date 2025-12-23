@@ -118,6 +118,9 @@
         },
         "workbenches": {
           "$ref": "#/definitions/workbenchesComponent"
+        },
+        "llamastackoperator": {
+          "$ref": "#/definitions/component"
         }
       },
       "additionalProperties": false

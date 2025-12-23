@@ -33,6 +33,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.mlflowoperator.dependencies | object | `{}` | Dependencies required by MLflow Operator |
 | components.mlflowoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for MLflow Operator |
 | components.mlflowoperator.dsc.managementState | string | `"Removed"` | Management state for MLflow Operator (Managed or Removed) |
+| components.llamastackoperator | object | `{"dependencies":{},"dsc":{"managementState":"Removed"}}` | LlamaStack Operator component |
+| components.llamastackoperator.dependencies | object | `{}` | Dependencies required by LlamaStack Operator |
+| components.llamastackoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for LlamaStack Operator |
+| components.llamastackoperator.dsc.managementState | string | `"Removed"` | Management state for LlamaStack Operator (Managed or Removed) |
 | components.modelregistry | object | `{"defaults":{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":null}}` | Model Registry component |
 | components.modelregistry.defaults | object | `{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.modelregistry.dependencies | object | `{}` | Dependencies required by Model Registry |

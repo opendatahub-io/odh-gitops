@@ -35,4 +35,6 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trustyai "root" $) | nindent 6 }}
     workbenches:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.workbenches "root" $) | nindent 6 }}
+    llamastackoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.llamastackoperator "root" $) | nindent 6 }}
 {{- end }}
