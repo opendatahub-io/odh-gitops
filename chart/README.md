@@ -90,14 +90,14 @@ High-level features that:
 | `Unmanaged` | Yes | kueue |
 | `Removed` | No | all |
 
-| Component | Description | Dependencies |
-|-----------|-------------|--------------|
-| `kserve` | KServe model serving | certManager, leaderWorkerSet, jobSet, rhcl |
-| `kueue` | Kueue job queuing | kueue |
-| `aipipelines` | AI Pipelines | - |
-| `feastoperator` | Feast feature store operator | - |
-| `workbenches` | Workbenches | - |
-| `modelregistry` | Model Registry | - |
+| Component | Description | Default State | Dependencies |
+|-----------|-------------|---------------|--------------|
+| `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
+| `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
+| `aipipelines` | AI Pipelines | Managed | - |
+| `feastoperator` | Feast feature store operator | Managed | - |
+| `workbenches` | Workbenches | Managed | - |
+| `modelregistry` | Model Registry | Managed | - |
 
 ### Dependencies
 
@@ -109,21 +109,34 @@ Operators that can be installed. Use tri-state `enabled` field:
 | `true` | Always install |
 | `false` | Never install (user has it already) |
 
+| Dependency | Description | Own Dependencies |
+|------------|-------------|------------------|
+| `certManager` | Cert Manager operator | - |
+| `leaderWorkerSet` | Leader Worker Set operator | certManager |
+| `jobSet` | Job Set operator | - |
+| `rhcl` | RHCL (Kuadrant) operator | certManager, leaderWorkerSet |
+| `kueue` | Kueue operator | certManager |
+| `customMetricsAutoscaler` | Custom Metrics Autoscaler (KEDA) | - |
+| `clusterObservability` | Cluster Observability operator | opentelemetry |
+| `opentelemetry` | OpenTelemetry operator | - |
+| `tempo` | Tempo operator | opentelemetry |
+
 ### Example: Enable kserve
 
 ```yaml
 # values.yaml
 components:
   kserve:
+    # Dependencies are enabled by default, only specify to override
+    # dependencies:
+    #   certManager: true
+    #   leaderWorkerSet: true
+    #   jobSet: true
+    #   rhcl: true
+    #   customMetricsAutoscaler: true
     dsc:
       managementState: Managed
-    dependencies:
-      certManager: true
-      leaderWorkerSet: true
-      jobSet: true
-      rhcl: true
-      customMetricsAutoscaler: true
-# Dependencies certManager, leaderWorkerSet, jobSet, rhcl
+# Dependencies certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler
 # will be auto-installed because kserve is Managed
 ```
 
@@ -230,21 +243,81 @@ Components configure the DataScienceCluster (DSC) and trigger automatic dependen
 ```yaml
 components:
   kserve:
+    dependencies:
+      certManager: true       # explicitly enable (same as default)
+      customMetricsAutoscaler: false  # disable this dependency for kserve
     dsc:
       managementState: Managed  # Managed | Removed
-  
+      rawDeploymentServiceConfig: Headless  # Headless | Headed
+      nim:
+        managementState: Managed  # NVIDIA NIM integration
+
   kueue:
     dsc:
-      managementState: Removed  # Unmanaged | Removed
-  
+      managementState: Unmanaged  # Unmanaged | Removed
+
   aipipelines:
     dsc:
-      managementState: Removed  # Managed | Removed
+      managementState: Managed  # Managed | Removed
 
-  # other components
+  modelregistry:
+    dsc:
+      managementState: Managed
+      registriesNamespace: my-custom-namespace  # overrides operator-type default
+
+  workbenches:
+    dsc:
+      managementState: Managed
+      workbenchNamespace: my-workbench-ns  # overrides operator-type default
 ```
 
 When `managementState` is `Managed` or `Unmanaged`, the component's dependencies are auto-enabled. When `Removed`, they are not.
+
+Components with operator-type-specific defaults (like `modelregistry` and `workbenches`) will use appropriate namespace values based on whether you're using `odh` or `rhoai` operator type, unless explicitly overridden.
+
+#### How Component Dependencies Work
+
+Each component has a `dependencies` map with **boolean toggles** that control which operators the component will trigger for installation. Dependencies can be required or optional - set them to `false` if you don't need a specific feature.
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Enable this dependency for the component (default for listed deps) |
+| `false` | Disable this dependency - won't be installed for this component |
+
+This is different from the top-level `dependencies.<name>.enabled` field which uses tri-state (`auto`/`true`/`false`).
+
+**The dependency resolution flow:**
+
+1. Component is active (managementState = `Managed` or `Unmanaged`)
+2. Component's `dependencies.<dep>` is `true` (or not set, using default)
+3. Top-level `dependencies.<dep>.enabled` is `auto` or `true`
+4. → Dependency operator gets installed
+
+**Example**: Disable an optional dependency you don't need:
+
+```yaml
+components:
+  kserve:
+    dependencies:
+      customMetricsAutoscaler: false  # don't need autoscaling, skip KEDA
+    dsc:
+      managementState: Managed
+# certManager, leaderWorkerSet, jobSet, rhcl will still be auto-installed
+# customMetricsAutoscaler will NOT be installed (unless another component needs it)
+```
+
+**Example**: You already have cert-manager pre-installed:
+
+```yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+
+dependencies:
+  certManager:
+    enabled: false  # skip installation, I already have it
+```
 
 ### Dependencies
 
