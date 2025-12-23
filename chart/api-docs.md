@@ -31,6 +31,12 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.modelregistry.dsc | object | `{"managementState":"Managed","registriesNamespace":null}` | DSC configuration for Model Registry |
 | components.modelregistry.dsc.managementState | string | `"Managed"` | Management state for Model Registry (Managed or Removed) |
 | components.modelregistry.dsc.registriesNamespace | string | `nil` | Registries namespace for Model Registry (overrides defaults) |
+| components.workbenches | object | `{"defaults":{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}},"dependencies":{},"dsc":{"managementState":"Managed","workbenchNamespace":"opendatahub"}}` | Workbenches component |
+| components.workbenches.defaults | object | `{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}}` | Operator-type-specific defaults for dsc fields |
+| components.workbenches.dependencies | object | `{}` | Dependencies required by Workbenches |
+| components.workbenches.dsc | object | `{"managementState":"Managed","workbenchNamespace":"opendatahub"}` | DSC configuration for Workbenches |
+| components.workbenches.dsc.managementState | string | `"Managed"` | Management state for Workbenches (Managed or Removed) |
+| components.workbenches.dsc.workbenchNamespace | string | `"opendatahub"` | Workbench namespace for Workbenches (overrides defaults) |
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |

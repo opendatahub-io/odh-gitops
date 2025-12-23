@@ -97,6 +97,9 @@
         },
         "modelregistry": {
           "$ref": "#/definitions/modelregistryComponent"
+        },
+        "workbenches": {
+          "$ref": "#/definitions/workbenchesComponent"
         }
       },
       "additionalProperties": false
@@ -371,6 +374,35 @@
             "registriesNamespace": {
               "type": ["string", "null"],
               "description": "Namespace for model registries. Overrides defaults if set."
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "workbenchesComponent": {
+      "type": "object",
+      "description": "Workbenches component configuration with dependencies and DSC configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Workbenches",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "workbenchNamespace": {
+              "type": ["string", "null"],
+              "description": "Namespace for workbenches. Overrides defaults if set."
             }
           },
           "required": ["managementState"],

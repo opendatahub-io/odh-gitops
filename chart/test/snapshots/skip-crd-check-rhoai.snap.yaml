@@ -104,6 +104,9 @@ spec:
     modelregistry:
       managementState: Managed
       registriesNamespace: rhoai-model-registries
+    workbenches:
+      managementState: Managed
+      workbenchNamespace: rhods-notebooks
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1

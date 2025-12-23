@@ -21,4 +21,6 @@ spec:
       {{- .Values.components.feastoperator.dsc | toYaml | nindent 6 }}
     modelregistry:
       {{- include "rhoai-dependencies.componentConfig" (dict "componentName" "modelregistry" "component" .Values.components.modelregistry "root" $) | nindent 6 }}
+    workbenches:
+      {{- include "rhoai-dependencies.componentConfig" (dict "componentName" "workbenches" "component" .Values.components.workbenches "root" $) | nindent 6 }}
 {{- end }}
