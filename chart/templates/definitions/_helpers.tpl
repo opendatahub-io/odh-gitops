@@ -71,6 +71,7 @@ true
 =============================================================================
 Check if a dependency is required by any active component
 A component is active if managementState is Managed or Unmanaged
+Reads from components.<name>.dependencies.<depName> in values.yaml
 =============================================================================
 Arguments (passed as dict):
   - dependencyName: name of the dependency to check
@@ -79,13 +80,13 @@ Arguments (passed as dict):
 {{- define "rhoai-dependencies.isRequiredByComponent" -}}
 {{- $dependencyName := .dependencyName -}}
 {{- $components := .components -}}
-{{- $deps := include "rhoai-dependencies.componentDeps" . | fromYaml -}}
 {{- $required := false -}}
-{{- range $compName, $compDeps := $deps -}}
-  {{- $comp := index $components $compName -}}
-  {{- if and $comp $comp.managementState -}}
-    {{- if include "rhoai-dependencies.isComponentActive" $comp.managementState -}}
-      {{- if has $dependencyName $compDeps -}}
+{{- range $compName, $comp := $components -}}
+  {{- if and $comp $comp.dsc $comp.dsc.managementState -}}
+    {{- if include "rhoai-dependencies.isComponentActive" $comp.dsc.managementState -}}
+      {{- $compDeps := $comp.dependencies | default dict -}}
+      {{- $depEnabled := index $compDeps $dependencyName -}}
+      {{- if eq ($depEnabled | toString) "true" -}}
         {{- $required = true -}}
       {{- end -}}
     {{- end -}}
@@ -98,6 +99,7 @@ Arguments (passed as dict):
 =============================================================================
 Check if a dependency is required by another dependency that will be installed
 (Transitive dependency resolution)
+Reads from dependencies.<name>.dependencies.<depName> in values.yaml
 =============================================================================
 Arguments (passed as dict):
   - dependencyName: name of the dependency to check
@@ -108,21 +110,19 @@ Arguments (passed as dict):
 {{- $dependencyName := .dependencyName -}}
 {{- $dependencies := .dependencies -}}
 {{- $components := .components -}}
-{{- $depDeps := include "rhoai-dependencies.dependencyDeps" . | fromYaml -}}
 {{- $required := false -}}
-{{- range $depName, $transDeps := $depDeps -}}
-  {{- if has $dependencyName $transDeps -}}
+{{- range $depName, $dep := $dependencies -}}
+  {{- $depDeps := $dep.dependencies | default dict -}}
+  {{- $needsThis := index $depDeps $dependencyName -}}
+  {{- if eq ($needsThis | toString) "true" -}}
     {{- /* Check if the parent dependency will be installed */ -}}
-    {{- $parentDep := index $dependencies $depName -}}
-    {{- if $parentDep -}}
-      {{- $parentEnabled := $parentDep.enabled | toString -}}
-      {{- if eq $parentEnabled "true" -}}
+    {{- $parentEnabled := $dep.enabled | toString -}}
+    {{- if eq $parentEnabled "true" -}}
+      {{- $required = true -}}
+    {{- else if ne $parentEnabled "false" -}}
+      {{- /* Parent is auto - check if it's required by a component */ -}}
+      {{- if eq (include "rhoai-dependencies.isRequiredByComponent" (dict "dependencyName" $depName "components" $components)) "true" -}}
         {{- $required = true -}}
-      {{- else if ne $parentEnabled "false" -}}
-        {{- /* Parent is auto - check if it's required by a component */ -}}
-        {{- if eq (include "rhoai-dependencies.isRequiredByComponent" (dict "dependencyName" $depName "components" $components)) "true" -}}
-          {{- $required = true -}}
-        {{- end -}}
       {{- end -}}
     {{- end -}}
   {{- end -}}
@@ -185,5 +185,24 @@ true
 true
 {{- end -}}
 {{- end -}}
+{{- end }}
+
+{{/*
+=============================================================================
+Merge component dsc config with operator-type defaults
+Component dsc values override defaults from component.defaults.<operatorType>.
+=============================================================================
+Arguments (passed as dict):
+  - component: the component configuration from .Values.components
+  - root: root context ($)
+*/}}
+{{- define "rhoai-dependencies.componentDSCConfig" -}}
+{{- $operatorType := .root.Values.operator.type -}}
+{{- $dsc := .component.dsc | default dict -}}
+{{- $defaults := dict -}}
+{{- if and .component.defaults (index .component.defaults $operatorType) -}}
+  {{- $defaults = index .component.defaults $operatorType -}}
+{{- end -}}
+{{- merge $dsc $defaults | toYaml -}}
 {{- end }}
 

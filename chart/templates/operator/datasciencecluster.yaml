@@ -12,19 +12,23 @@ metadata:
 spec:
   components:
     aipipelines:
-      {{- .Values.components.aipipelines | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.aipipelines "root" $) | nindent 6 }}
     dashboard:
-      {{- .Values.components.dashboard | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.dashboard "root" $) | nindent 6 }}
     feastoperator:
-      {{- .Values.components.feastoperator | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.feastoperator "root" $) | nindent 6 }}
     kserve:
-      {{- .Values.components.kserve | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kserve "root" $) | nindent 6 }}
     kueue:
-      {{- .Values.components.kueue | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kueue "root" $) | nindent 6 }}
+    modelregistry:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.modelregistry "root" $) | nindent 6 }}
     ray:
-      {{- .Values.components.ray | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.ray "root" $) | nindent 6 }}
+    workbenches:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.workbenches "root" $) | nindent 6 }}
     trainer:
-      {{- .Values.components.trainer | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trainer "root" $) | nindent 6 }}
     trustyai:
-      {{- .Values.components.trustyai | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trustyai "root" $) | nindent 6 }}
 {{- end }}

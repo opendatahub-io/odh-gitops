@@ -23,16 +23,14 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
   - [Contributing to the Helm Chart](#contributing-to-the-helm-chart)
     - [Adding a New Dependency to the Helm Chart](#adding-a-new-dependency-to-the-helm-chart)
       - [Step 1: Add Values Configuration](#step-1-add-values-configuration)
-      - [Step 2: Update Dependency Mappings](#step-2-update-dependency-mappings)
-      - [Step 3: Create Dependency Templates](#step-3-create-dependency-templates)
-      - [Step 4: Update JSON Schema](#step-4-update-json-schema)
-      - [Step 5: Update Documentation](#step-5-update-documentation)
+      - [Step 2: Create Dependency Templates](#step-2-create-dependency-templates)
+      - [Step 3: Update JSON Schema](#step-3-update-json-schema)
+      - [Step 4: Update Documentation](#step-4-update-documentation)
     - [Adding a New Component to the Helm Chart](#adding-a-new-component-to-the-helm-chart)
       - [Step 1: Add Component Configuration](#step-1-add-component-configuration)
-      - [Step 2: Update Component → Dependency Mapping](#step-2-update-component--dependency-mapping)
-      - [Step 3: Update DataScienceCluster Template](#step-3-update-datasciencecluster-template)
-      - [Step 4: Update JSON Schema](#step-4-update-json-schema-1)
-      - [Step 5: Update Documentation](#step-5-update-documentation-1)
+      - [Step 2: Update DataScienceCluster Template](#step-2-update-datasciencecluster-template)
+      - [Step 3: Update JSON Schema](#step-3-update-json-schema-1)
+      - [Step 4: Update Documentation](#step-4-update-documentation-1)
     - [Testing Helm Chart Changes](#testing-helm-chart-changes)
   - [Testing Your Changes](#testing-your-changes)
     - [Local Validation](#local-validation)
@@ -168,44 +166,35 @@ When adding a new dependency operator, follow these steps:
 
 #### Step 1: Add Values Configuration
 
-Add your dependency to `chart/values.yaml` under the `dependencies` section:
+Add your dependency to `chart/values.yaml` under the `dependencies` section.
+
+Structure:
+
+- `enabled`: Tri-state value - `auto` (install if needed by a component), `true` (always install), `false` (never install)
+- `dependencies`: Other dependencies this dependency requires (for transitive deps)
+- `olm`: OLM subscription configuration
+- `config` (optional): CR spec fields - user can add any fields supported by the CR
 
 ```yaml
 dependencies:
   yourOperator:
     # -- Enable your-operator: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by your-operator
+    dependencies:
+      certManager: true
     olm:
       channel: stable
       name: your-operator
       namespace: your-operator-namespace
-    config: # optional
+      targetNamespaces: [] # optional, for OperatorGroups with specific target namespaces
+    config: # optional
       # -- YourOperator CR spec (user can add any fields supported by the CR)
-      spec: {}
+      spec:
+        managementState: Managed
 ```
 
-#### Step 2: Update Dependency Mappings
-
-If your dependency is required by a component or another dependency, update `chart/templates/definitions/_dependencies.tpl`:
-
-```yaml
-# Component → Dependency mapping
-{{- define "rhoai-dependencies.componentDeps" -}}
-kserve:
-  - certManager
-  - yourOperator  # Add if kserve requires it
-...
-{{- end }}
-
-# Dependency → Dependency mapping (transitive dependencies)
-{{- define "rhoai-dependencies.dependencyDeps" -}}
-yourOperator:
-  - certManager   # List dependencies your operator requires
-...
-{{- end }}
-```
-
-#### Step 3: Create Dependency Templates
+#### Step 2: Create Dependency Templates
 
 Create a new directory `chart/templates/dependencies/your-operator/` with:
 
@@ -241,11 +230,11 @@ spec:
 {{- end }}
 ```
 
-#### Step 4: Update JSON Schema
+#### Step 3: Update JSON Schema
 
 Add your dependency to [`chart/values.schema.json`](./chart/values.schema.json) to enable validation.
 
-#### Step 5: Update Documentation
+#### Step 4: Update Documentation
 
 Run `make helm-docs` to regenerate `chart/api-docs.md`.
 
@@ -255,33 +244,34 @@ Components are high-level features (like kserve, kueue, aipipelines) that config
 
 #### Step 1: Add Component Configuration
 
-Add your component to `chart/values.yaml` under the `components` section:
+Add your component to `chart/values.yaml` under the `components` section.
+
+Structure:
+
+- `dependencies`: Dependencies required (or optional) your component requires
+- `dsc`: Configuration that goes into the DataScienceCluster CR
+- `defaults` (optional): Operator-type-specific defaults for dsc fields (odh or rhoai)
 
 ```yaml
 components:
   # -- Your component description
   yourComponent:
-    # -- Management state for YourComponent (Managed or Removed)
-    managementState: Managed
+    # -- Dependencies required by YourComponent
+    dependencies:
+      certManager: true
+    # -- DSC configuration for YourComponent
+    dsc:
+      # -- Management state for YourComponent (Managed or Removed)
+      managementState: Managed
+    # -- Operator-type-specific defaults for dsc fields
+    defaults:
+      odh:
+        someField: odh-value
+      rhoai:
+        someField: rhoai-value
 ```
 
-#### Step 2: Update Component → Dependency Mapping
-
-Add the component's dependencies to `chart/templates/definitions/_dependencies.tpl`:
-
-```yaml
-{{- define "rhoai-dependencies.componentDeps" -}}
-kserve:
-  - certManager
-  - leaderWorkerSet
-  ...
-yourComponent:
-  - certManager       # List all dependencies your component requires
-  - yourOperator
-{{- end }}
-```
-
-#### Step 3: Update DataScienceCluster Template
+#### Step 2: Update DataScienceCluster Template
 
 Add your component to `chart/templates/operator/datasciencecluster.yaml`:
 
@@ -289,16 +279,16 @@ Add your component to `chart/templates/operator/datasciencecluster.yaml`:
 spec:
   components:
     kserve:
-      {{- .Values.components.kserve | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kserve "root" $) | nindent 6 }}
     yourComponent:
-      {{- .Values.components.yourComponent | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.yourComponent "root" $) | nindent 6 }}
 ```
 
-#### Step 4: Update JSON Schema
+#### Step 3: Update JSON Schema
 
 Add your component to `chart/values.schema.json` under the `components` section.
 
-#### Step 5: Update Documentation
+#### Step 4: Update Documentation
 
 1. Update `chart/README.md` with component information
 2. Run `make helm-docs` to regenerate `chart/api-docs.md`
