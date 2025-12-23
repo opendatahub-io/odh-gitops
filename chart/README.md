@@ -227,7 +227,7 @@ components:
     managementState: Removed  # Managed | Removed
 
   feastoperator:
-    managementState: Removed  # Managed | Removed
+    managementState: Managed  # Managed | Removed
 ```
 
 When `managementState` is `Managed` or `Unmanaged`, the component's dependencies are auto-enabled. When `Removed`, they are not.
