@@ -95,6 +95,9 @@
         "feastoperator": {
           "$ref": "#/definitions/component"
         },
+        "mlflowoperator": {
+          "$ref": "#/definitions/component"
+        },
         "modelregistry": {
           "$ref": "#/definitions/modelregistryComponent"
         },

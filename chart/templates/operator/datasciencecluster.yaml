@@ -19,6 +19,8 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kueue "root" $) | nindent 6 }}
     feastoperator:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.feastoperator "root" $) | nindent 6 }}
+    mlflowoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.mlflowoperator "root" $) | nindent 6 }}
     modelregistry:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.modelregistry "root" $) | nindent 6 }}
     workbenches:
