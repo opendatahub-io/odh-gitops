@@ -178,23 +178,34 @@
           },
           "required": ["channel", "name", "namespace", "source"],
           "additionalProperties": false
-        },
-        "componentDefaults": {
+        }
+      },
+      "additionalProperties": false
+    },
+    "dependencyDeps": {
+      "type": "object",
+      "description": "Boolean map of dependencies required by this dependency",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "componentDeps": {
+      "type": "object",
+      "description": "Boolean map of dependencies required by this component",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "operatorTypeDefaults": {
+      "type": "object",
+      "description": "Operator-type-specific defaults for dsc fields",
+      "properties": {
+        "odh": {
           "type": "object",
-          "description": "Default values for components when using this operator type",
-          "properties": {
-            "modelregistry": {
-              "type": "object",
-              "description": "Default values for modelregistry component",
-              "properties": {
-                "registriesNamespace": {
-                  "type": "string",
-                  "description": "Default namespace for model registries"
-                }
-              },
-              "additionalProperties": true
-            }
-          },
+          "additionalProperties": true
+        },
+        "rhoai": {
+          "type": "object",
           "additionalProperties": true
         }
       },
@@ -256,74 +267,121 @@
     },
     "component": {
       "type": "object",
-      "description": "Component configuration - configures DSC managementState and triggers automatic dependency installation",
+      "description": "Component configuration with dependencies and DSC configuration",
       "properties": {
-        "managementState": {
-          "$ref": "#/definitions/defaultManagementState"
-        }
-      },
-      "required": ["managementState"],
-      "additionalProperties": false
-    },
-    "kueueComponent": {
-      "type": "object",
-      "description": "Kueue component configuration - uses Unmanaged instead of Managed",
-      "properties": {
-        "managementState": {
-          "type": "string",
-          "enum": ["Unmanaged", "Removed"],
-          "default": "Removed",
-          "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
-        }
-      },
-      "required": ["managementState"],
-      "additionalProperties": false
-    },
-    "kserveComponent": {
-      "type": "object",
-      "description": "Component configuration - configures DSC managementState and triggers automatic dependency installation",
-      "properties": {
-        "managementState": {
-          "$ref": "#/definitions/defaultManagementState"
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
         },
-        "rawDeploymentServiceConfig": {
-          "type": "string",
-          "enum": ["Headless", "Headed"],
-          "default": "Headless",
-          "description": "Configures the type of service that is created for InferenceServices using RawDeployment."
-        },
-        "nim": {
+        "dsc": {
           "type": "object",
-          "description": "NIM configuration for KServe",
+          "description": "DSC configuration for this component",
           "properties": {
             "managementState": {
-              "type": "string",
-              "enum": ["Managed", "Removed"],
-              "default": "Managed",
-              "description": "Management state for NIM in DSC."
+              "$ref": "#/definitions/defaultManagementState"
             }
           },
           "required": ["managementState"],
           "additionalProperties": false
         }
       },
-      "required": ["managementState"],
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "kueueComponent": {
+      "type": "object",
+      "description": "Kueue component configuration - uses Unmanaged instead of Managed",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for kueue",
+          "properties": {
+            "managementState": {
+              "type": "string",
+              "enum": ["Unmanaged", "Removed"],
+              "default": "Removed",
+              "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "kserveComponent": {
+      "type": "object",
+      "description": "KServe component configuration with dependencies and DSC configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for KServe",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "rawDeploymentServiceConfig": {
+              "type": "string",
+              "enum": ["Headless", "Headed"],
+              "default": "Headless",
+              "description": "Configures the type of service that is created for InferenceServices using RawDeployment."
+            },
+            "nim": {
+              "type": "object",
+              "description": "NIM configuration for KServe",
+              "properties": {
+                "managementState": {
+                  "type": "string",
+                  "enum": ["Managed", "Removed"],
+                  "default": "Managed",
+                  "description": "Management state for NIM in DSC."
+                }
+              },
+              "required": ["managementState"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["dsc"],
       "additionalProperties": false
     },
     "modelregistryComponent": {
       "type": "object",
-      "description": "Model Registry component configuration. Supports additional fields that are merged with operator-type defaults.",
+      "description": "Model Registry component configuration with operator-type defaults.",
       "properties": {
-        "managementState": {
-          "$ref": "#/definitions/defaultManagementState"
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
         },
-        "registriesNamespace": {
-          "type": ["string", "null"],
-          "description": "Namespace for model registries. Defaults to operator.[type].componentDefaults.modelregistry.registriesNamespace if not set."
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Model Registry",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "registriesNamespace": {
+              "type": ["string", "null"],
+              "description": "Namespace for model registries. Overrides defaults if set."
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
         }
       },
-      "required": ["managementState"],
-      "additionalProperties": true
+      "required": ["dsc"],
+      "additionalProperties": false
     },
     "dependency": {
       "type": "object",
@@ -332,6 +390,9 @@
         "enabled": {
           "$ref": "#/definitions/triStateEnabled",
           "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "dependencies": {
+          "$ref": "#/definitions/dependencyDeps"
         },
         "olm": {
           "$ref": "#/definitions/olmConfig"
@@ -347,6 +408,9 @@
         "enabled": {
           "$ref": "#/definitions/triStateEnabled",
           "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "dependencies": {
+          "$ref": "#/definitions/dependencyDeps"
         },
         "olm": {
           "$ref": "#/definitions/olmConfig"
@@ -374,6 +438,9 @@
         "enabled": {
           "$ref": "#/definitions/triStateEnabled",
           "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "dependencies": {
+          "$ref": "#/definitions/dependencyDeps"
         },
         "olm": {
           "$ref": "#/definitions/olmConfig"

@@ -113,8 +113,14 @@ Operators that can be installed. Use tri-state `enabled` field:
 # values.yaml
 components:
   kserve:
-    managementState: Managed
-
+    dsc:
+      managementState: Managed
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      jobSet: true
+      rhcl: true
+      customMetricsAutoscaler: true
 # Dependencies certManager, leaderWorkerSet, jobSet, rhcl
 # will be auto-installed because kserve is Managed
 ```
@@ -125,7 +131,8 @@ components:
 # values.yaml
 components:
   kserve:
-    managementState: Managed
+    dsc:
+      managementState: Managed
 
 dependencies:
   certManager:
@@ -138,7 +145,8 @@ dependencies:
 # values.yaml
 components:
   kserve:
-    managementState: Removed
+    dsc:
+      managementState: Managed
 
 dependencies:
   certManager:
@@ -151,7 +159,8 @@ dependencies:
 # values.yaml
 components:
   kueue:
-    managementState: Unmanaged
+    dsc:
+      managementState: Unmanaged
 
 dependencies:
   kueue:
@@ -176,7 +185,8 @@ To enable TLS for Authorino, first deploy with kserve enabled:
 # values.yaml
 components:
   kserve:
-    managementState: Managed
+    dsc:
+      managementState: Managed
 
 dependencies:
   rhcl:
@@ -218,16 +228,18 @@ Components configure the DataScienceCluster (DSC) and trigger automatic dependen
 ```yaml
 components:
   kserve:
-    managementState: Managed  # Managed | Removed
-
+    dsc:
+      managementState: Managed  # Managed | Removed
+  
   kueue:
-    managementState: Removed  # Unmanaged | Removed
-
+    dsc:
+      managementState: Removed  # Unmanaged | Removed
+  
   aipipelines:
-    managementState: Removed  # Managed | Removed
+    dsc:
+      managementState: Removed  # Managed | Removed
 
-  feastoperator:
-    managementState: Managed  # Managed | Removed
+  # other components
 ```
 
 When `managementState` is `Managed` or `Unmanaged`, the component's dependencies are auto-enabled. When `Removed`, they are not.

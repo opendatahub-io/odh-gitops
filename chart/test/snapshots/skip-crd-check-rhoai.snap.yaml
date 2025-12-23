@@ -99,6 +99,8 @@ spec:
       rawDeploymentServiceConfig: Headless
     kueue:
       managementState: Unmanaged
+    feastoperator:
+      managementState: Managed
     modelregistry:
       managementState: Managed
       registriesNamespace: rhoai-model-registries

@@ -32,12 +32,6 @@ operator:
     monitoringNamespace: opendatahub
     applicationsNamespace: opendatahub
 
-    # -- Default values for components when using ODH
-    # @ignored
-    componentDefaults:
-      modelregistry:
-        registriesNamespace: odh-model-registry
-
     olm:
       channel: fast-3
       name: opendatahub-operator
@@ -49,12 +43,6 @@ operator:
     monitoringNamespace: redhat-ods-monitoring
     applicationsNamespace: redhat-ods-applications
 
-    # -- Default values for components when using RHOAI
-    # @ignored
-    componentDefaults:
-      modelregistry:
-        registriesNamespace: rhoai-model-registries
-
     olm:
       channel: fast-3.x
       name: rhods-operator
@@ -65,39 +53,78 @@ operator:
 # COMPONENTS - High-level features that auto-enable their dependencies
 # Components configure the DataScienceCluster (DSC) managementState.
 # managementState values: Managed (dependencies auto-enabled), Removed (no deps), Unmanaged (kueue only, deps auto-enabled)
+#
+# Structure:
+#   dependencies: Boolean toggles for which dependencies this component needs
+#   dsc: Configuration that goes into the DataScienceCluster CR
+#   defaults: (optional) Operator-type-specific defaults for dsc fields
+# =============================================================================
 components:
   # -- KServe model serving component
   kserve:
-    # -- Management state for KServe (Managed or Removed). Auto-enables: certManager, leaderWorkerSet, jobSet, rhcl
-    managementState: Managed
-    # -- Raw deployment service config for KServe (Headless or Headed)
-    rawDeploymentServiceConfig: Headless
-    # -- Enables NVIDIA NIM integration.
-    nim:
-      # -- Management state for NIM (Managed or Removed)
+    # -- Dependencies required by KServe (set to false to disable)
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      jobSet: true
+      rhcl: true
+      customMetricsAutoscaler: true
+    # -- DSC configuration for KServe
+    dsc:
+      # -- Management state for KServe (Managed or Removed)
       managementState: Managed
+      # -- Raw deployment service config for KServe (Headless or Headed)
+      rawDeploymentServiceConfig: Headless
+      # -- Enables NVIDIA NIM integration
+      nim:
+        # -- Management state for NIM (Managed or Removed)
+        managementState: Managed
 
   # -- Kueue job queuing component
   kueue:
-    # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
-    managementState: Unmanaged
+    # -- Dependencies required by Kueue
+    dependencies:
+      certManager: true
+      kueue: true
+    # -- DSC configuration for Kueue
+    dsc:
+      # -- Management state for Kueue (Unmanaged or Removed)
+      managementState: Unmanaged
 
   # -- AI Pipelines component
   aipipelines:
-    # -- Management state for AI Pipelines (Managed or Removed)
-    managementState: Managed
+    # -- Dependencies required by AI Pipelines
+    dependencies: {}
+    # -- DSC configuration for AI Pipelines
+    dsc:
+      # -- Management state for AI Pipelines (Managed or Removed)
+      managementState: Managed
 
   # -- Feast Operator component
   feastoperator:
-    # -- Management state for Feast Operator (Managed or Removed)
-    managementState: Managed
+    # -- Dependencies required by Feast Operator
+    dependencies: {}
+    # -- DSC configuration for Feast Operator
+    dsc:
+      # -- Management state for Feast Operator (Managed or Removed)
+      managementState: Managed
 
   # -- Model Registry component
   modelregistry:
-    # -- Management state for Model Registry (Managed or Removed)
-    managementState: Managed
-    # -- Registries namespace for Model Registry. Defaults to odh-model-registry for ODH and rhoai-model-registries for RHOAI
-    registriesNamespace:
+    # -- Dependencies required by Model Registry
+    dependencies: {}
+    # -- DSC configuration for Model Registry
+    dsc:
+      # -- Management state for Model Registry (Managed or Removed)
+      managementState: Managed
+      # -- Registries namespace for Model Registry (overrides defaults)
+      registriesNamespace:
+    # -- Operator-type-specific defaults for dsc fields
+    defaults:
+      odh:
+        registriesNamespace: odh-model-registry
+      rhoai:
+        registriesNamespace: rhoai-model-registries
 
 # =============================================================================
 # DEPENDENCIES - Operators required by components
@@ -107,6 +134,7 @@ components:
 #   true  - Always install
 #   false - Never install (user has it already or doesn't want it)
 #
+# dependencies: Other dependencies this dependency requires (for transitive deps)
 # config.spec: CR spec fields (user can add any fields supported by the CR)
 # =============================================================================
 dependencies:
@@ -114,6 +142,8 @@ dependencies:
   certManager:
     # -- Enable cert-manager: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by cert-manager
+    dependencies: {}
     olm:
       channel: stable-v1
       name: openshift-cert-manager-operator
@@ -123,6 +153,9 @@ dependencies:
   leaderWorkerSet:
     # -- Enable leader-worker-set: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by leader-worker-set
+    dependencies:
+      certManager: true
     olm:
       channel: stable-v1.0
       name: leader-worker-set
@@ -140,6 +173,8 @@ dependencies:
   jobSet:
     # -- Enable job-set: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by job-set
+    dependencies: {}
     olm:
       channel: tech-preview-v0.1
       name: job-set
@@ -156,6 +191,10 @@ dependencies:
   rhcl:
     # -- Enable rhcl: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by rhcl
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
     olm:
       channel: stable
       name: rhcl-operator
@@ -182,6 +221,9 @@ dependencies:
   kueue:
     # -- Enable kueue: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by kueue
+    dependencies:
+      certManager: true
     olm:
       channel: stable-v1.2
       name: kueue-operator
@@ -205,6 +247,9 @@ dependencies:
   clusterObservability:
     # -- Enable cluster-observability: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by cluster-observability
+    dependencies:
+      opentelemetry: true
     olm:
       channel: stable
       name: cluster-observability-operator
@@ -214,6 +259,8 @@ dependencies:
   opentelemetry:
     # -- Enable opentelemetry: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by opentelemetry
+    dependencies: {}
     olm:
       channel: stable
       name: opentelemetry-product
@@ -223,6 +270,9 @@ dependencies:
   tempo:
     # -- Enable tempo: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by tempo
+    dependencies:
+      opentelemetry: true
     olm:
       channel: stable
       name: tempo-product
@@ -232,6 +282,8 @@ dependencies:
   customMetricsAutoscaler:
     # -- Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by custom-metrics-autoscaler
+    dependencies: {}
     olm:
       channel: stable
       name: openshift-custom-metrics-autoscaler-operator

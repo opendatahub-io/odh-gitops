@@ -12,13 +12,13 @@ metadata:
 spec:
   components:
     aipipelines:
-      {{- .Values.components.aipipelines | toYaml | nindent 6 }}
+      {{- .Values.components.aipipelines.dsc | toYaml | nindent 6 }}
     kserve:
-      {{- .Values.components.kserve | toYaml | nindent 6 }}
+      {{- .Values.components.kserve.dsc | toYaml | nindent 6 }}
     kueue:
-      {{- .Values.components.kueue | toYaml | nindent 6 }}
+      {{- .Values.components.kueue.dsc | toYaml | nindent 6 }}
     feastoperator:
-      {{- .Values.components.feastoperator | toYaml | nindent 6 }}
+      {{- .Values.components.feastoperator.dsc | toYaml | nindent 6 }}
     modelregistry:
       {{- include "rhoai-dependencies.componentConfig" (dict "componentName" "modelregistry" "component" .Values.components.modelregistry "root" $) | nindent 6 }}
 {{- end }}
