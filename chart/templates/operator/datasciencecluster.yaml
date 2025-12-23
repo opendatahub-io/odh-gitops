@@ -25,4 +25,6 @@ spec:
       {{- .Values.components.ray | toYaml | nindent 6 }}
     trainer:
       {{- .Values.components.trainer | toYaml | nindent 6 }}
+    trustyai:
+      {{- .Values.components.trustyai | toYaml | nindent 6 }}
 {{- end }}

@@ -103,6 +103,9 @@
         },
         "trainer": {
           "$ref": "#/definitions/component"
+        },
+        "trustyai": {
+          "$ref": "#/definitions/trustyaiComponent"
         }
       },
       "additionalProperties": false
@@ -324,6 +327,45 @@
         }
       },
       "required": ["managementState"],
+      "additionalProperties": false
+    },
+    "trustyaiComponent": {
+      "type": "object",
+      "description": "TrustyAI component configuration",
+      "properties": {
+        "managementState": {
+          "$ref": "#/definitions/defaultManagementState"
+        },
+        "eval": {
+          "type": "object",
+          "description": "Evaluation configuration for TrustyAI",
+          "properties": {
+            "lmeval": {
+              "type": "object",
+              "description": "LMEval configuration for TrustyAI",
+              "properties": {
+                "permitCodeExecution": {
+                  "type": "string",
+                  "enum": ["allow", "deny"],
+                  "default": "deny",
+                  "description": "Permit code execution"
+                },
+                "permitOnline": {
+                  "type": "string",
+                  "enum": ["allow", "deny"],
+                  "default": "deny",
+                  "description": "Permit online evaluation"
+                }
+              },
+              "required": ["permitCodeExecution", "permitOnline"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["lmeval"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["managementState", "eval"],
       "additionalProperties": false
     },
     "dependency": {

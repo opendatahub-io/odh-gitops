@@ -99,6 +99,16 @@ components:
     # -- Management state for Trainer (Managed or Removed)
     managementState: Managed
 
+  # -- TrustyAI component
+  trustyai:
+    # -- Management state for TrustyAI (Managed or Removed)
+    managementState: Managed
+    # -- Evaluation configuration for TrustyAI evaluations
+    eval:
+      lmeval:
+        permitCodeExecution: deny
+        permitOnline: deny
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #
