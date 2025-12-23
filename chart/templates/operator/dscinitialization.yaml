@@ -2,8 +2,7 @@
 DSCInitialization configuration
 */ -}}
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "dscinitializations.dscinitialization.opendatahub.io" "root" $) }}
-{{- $operatorType := .Values.operator.type -}}
-{{- $operatorConfig := index .Values.operator $operatorType -}}
+{{- $operatorConfig := .Values.operator -}}
 apiVersion: dscinitialization.opendatahub.io/v2
 kind: DSCInitialization
 metadata:

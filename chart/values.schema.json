@@ -4,6 +4,10 @@
   "description": "Configuration values for the RHOAI Dependencies Helm chart",
   "type": "object",
   "properties": {
+    "displayName": {
+      "type": "string",
+      "description": "Display name for the chart"
+    },
     "global": {
       "type": "object",
       "description": "Global settings applied to all resources",
@@ -61,22 +65,19 @@
           "default": true,
           "description": "Enable operator installation"
         },
-        "type": {
+        "monitoringNamespace": {
           "type": "string",
-          "enum": ["odh", "rhoai"],
-          "default": "rhoai",
-          "description": "Operator type to install: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)"
+          "description": "Namespace for monitoring components (used in DSCInitialization)"
         },
-        "odh": {
-          "$ref": "#/definitions/operatorConfig",
-          "description": "ODH operator settings"
+        "applicationsNamespace": {
+          "type": "string",
+          "description": "Namespace for applications (used in DSCInitialization)"
         },
-        "rhoai": {
-          "$ref": "#/definitions/operatorConfig",
-          "description": "RHOAI operator settings"
+        "olm": {
+          "$ref": "#/definitions/olmConfig"
         }
       },
-      "required": ["enabled", "type"],
+      "required": ["enabled"],
       "additionalProperties": false
     },
     "components": {
@@ -146,41 +147,31 @@
       "default": "Removed",
       "description": "Management state for component in DSC. Managed enables components and auto dependencies management, Removed does not."
     },
-    "operatorConfig": {
+    "dependencyDeps": {
       "type": "object",
-      "description": "Operator installation configuration",
+      "description": "Boolean map of dependencies required by this dependency",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "componentDeps": {
+      "type": "object",
+      "description": "Boolean map of dependencies required by this component",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "operatorTypeDefaults": {
+      "type": "object",
+      "description": "Operator-type-specific defaults for dsc fields",
       "properties": {
-        "monitoringNamespace": {
-          "type": "string",
-          "description": "Namespace for monitoring components (used in DSCInitialization)"
-        },
-        "applicationsNamespace": {
-          "type": "string",
-          "description": "Namespace for applications (used in DSCInitialization)"
-        },
-        "olm": {
+        "odh": {
           "type": "object",
-          "description": "OLM settings for the operator",
-          "properties": {
-            "channel": {
-              "type": "string",
-              "description": "Subscription channel"
-            },
-            "name": {
-              "type": "string",
-              "description": "Operator name in the catalog"
-            },
-            "namespace": {
-              "type": "string",
-              "description": "Namespace where the operator will be installed"
-            },
-            "source": {
-              "type": "string",
-              "description": "Catalog source"
-            }
-          },
-          "required": ["channel", "name", "namespace", "source"],
-          "additionalProperties": false
+          "additionalProperties": true
+        },
+        "rhoai": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "additionalProperties": false

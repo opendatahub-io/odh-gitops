@@ -1,10 +1,8 @@
-{{- $operatorType := .Values.operator.type }}
-
-🎉 {{ $operatorType | upper }} Chart installed successfully!
+🎉 {{ .Values.displayName }} Chart installed successfully!
 
 === Installation Summary ===
 
-Operator: {{ $operatorType | upper }}
+Operator: {{ .Values.displayName }}
 Namespace: {{ .Release.Namespace }}
 
 === Enabled Components ===

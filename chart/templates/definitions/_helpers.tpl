@@ -197,12 +197,7 @@ Arguments (passed as dict):
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.componentDSCConfig" -}}
-{{- $operatorType := .root.Values.operator.type -}}
 {{- $dsc := .component.dsc | default dict -}}
-{{- $defaults := dict -}}
-{{- if and .component.defaults (index .component.defaults $operatorType) -}}
-  {{- $defaults = index .component.defaults $operatorType -}}
-{{- end -}}
-{{- merge $dsc $defaults | toYaml -}}
+{{- merge $dsc | toYaml -}}
 {{- end }}
 

@@ -1,3 +1,5 @@
+displayName: OpenDataHub
+
 global:
   # -- Installation type for dependencies (currently only olm is supported)
   installationType: olm
@@ -24,30 +26,14 @@ operator:
   # -- Enable operator installation
   enabled: true
 
-  # -- Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)
-  type: odh
+  monitoringNamespace: opendatahub
+  applicationsNamespace: opendatahub
 
-  # -- ODH operator settings
-  odh:
-    monitoringNamespace: opendatahub
-    applicationsNamespace: opendatahub
-
-    olm:
-      channel: fast-3
-      name: opendatahub-operator
-      namespace: opendatahub-operator-system
-      source: community-operators
-
-  # -- RHOAI operator settings
-  rhoai:
-    monitoringNamespace: redhat-ods-monitoring
-    applicationsNamespace: redhat-ods-applications
-
-    olm:
-      channel: fast-3.x
-      name: rhods-operator
-      namespace: redhat-ods-operator
-      source: redhat-operators
+  olm:
+    channel: fast-3
+    name: opendatahub-operator
+    namespace: opendatahub-operator-system
+    source: community-operators
 
 # =============================================================================
 # COMPONENTS - High-level features that auto-enable their dependencies
@@ -118,13 +104,7 @@ components:
       # -- Management state for Model Registry (Managed or Removed)
       managementState: Managed
       # -- Registries namespace for Model Registry (overrides defaults)
-      registriesNamespace:
-    # -- Operator-type-specific defaults for dsc fields
-    defaults:
-      odh:
-        registriesNamespace: odh-model-registry
-      rhoai:
-        registriesNamespace: rhoai-model-registries
+      registriesNamespace: odh-model-registry
 
   # -- Workbenches component
   workbenches:
@@ -135,13 +115,7 @@ components:
       # -- Management state for Workbenches (Managed or Removed)
       managementState: Managed
       # -- Workbench namespace for Workbenches (overrides defaults)
-      workbenchNamespace:
-    # -- Operator-type-specific defaults for dsc fields
-    defaults:
-      odh:
-        workbenchNamespace: opendatahub
-      rhoai:
-        workbenchNamespace: rhods-notebooks
+      workbenchNamespace: opendatahub
 
 # =============================================================================
 # DEPENDENCIES - Operators required by components

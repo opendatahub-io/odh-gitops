@@ -27,18 +27,16 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.kueue.dependencies | object | `{"certManager":true,"kueue":true}` | Dependencies required by Kueue |
 | components.kueue.dsc | object | `{"managementState":"Unmanaged"}` | DSC configuration for Kueue |
 | components.kueue.dsc.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed) |
-| components.modelregistry | object | `{"defaults":{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":null}}` | Model Registry component |
-| components.modelregistry.defaults | object | `{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
+| components.modelregistry | object | `{"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":"odh-model-registry"}}` | Model Registry component |
 | components.modelregistry.dependencies | object | `{}` | Dependencies required by Model Registry |
-| components.modelregistry.dsc | object | `{"managementState":"Managed","registriesNamespace":null}` | DSC configuration for Model Registry |
+| components.modelregistry.dsc | object | `{"managementState":"Managed","registriesNamespace":"odh-model-registry"}` | DSC configuration for Model Registry |
 | components.modelregistry.dsc.managementState | string | `"Managed"` | Management state for Model Registry (Managed or Removed) |
-| components.modelregistry.dsc.registriesNamespace | string | `nil` | Registries namespace for Model Registry (overrides defaults) |
-| components.workbenches | object | `{"defaults":{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}},"dependencies":{},"dsc":{"managementState":"Managed","workbenchNamespace":null}}` | Workbenches component |
-| components.workbenches.defaults | object | `{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}}` | Operator-type-specific defaults for dsc fields |
+| components.modelregistry.dsc.registriesNamespace | string | `"odh-model-registry"` | Registries namespace for Model Registry (overrides defaults) |
+| components.workbenches | object | `{"dependencies":{},"dsc":{"managementState":"Managed","workbenchNamespace":"opendatahub"}}` | Workbenches component |
 | components.workbenches.dependencies | object | `{}` | Dependencies required by Workbenches |
-| components.workbenches.dsc | object | `{"managementState":"Managed","workbenchNamespace":null}` | DSC configuration for Workbenches |
+| components.workbenches.dsc | object | `{"managementState":"Managed","workbenchNamespace":"opendatahub"}` | DSC configuration for Workbenches |
 | components.workbenches.dsc.managementState | string | `"Managed"` | Management state for Workbenches (Managed or Removed) |
-| components.workbenches.dsc.workbenchNamespace | string | `nil` | Workbench namespace for Workbenches (overrides defaults) |
+| components.workbenches.dsc.workbenchNamespace | string | `"opendatahub"` | Workbench namespace for Workbenches (overrides defaults) |
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
@@ -72,14 +70,18 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.tempo | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"tempo-product","namespace":"openshift-tempo-operator"}}` | Tempo operator |
 | dependencies.tempo.dependencies | object | `{"opentelemetry":true}` | Dependencies required by tempo |
 | dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
+| displayName | string | `"OpenDataHub"` |  |
 | global.installationType | string | `"olm"` | Installation type for dependencies (currently only olm is supported) |
 | global.labels | object | `{}` | Common labels applied to all resources |
 | global.olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
 | global.olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
 | global.olm.sourceNamespace | string | `"openshift-marketplace"` | Namespace of the catalog source |
 | global.skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times |
+| operator.applicationsNamespace | string | `"opendatahub"` |  |
 | operator.enabled | bool | `true` | Enable operator installation |
-| operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
-| operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"fast-3.x","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
-| operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
+| operator.monitoringNamespace | string | `"opendatahub"` |  |
+| operator.olm.channel | string | `"fast-3"` |  |
+| operator.olm.name | string | `"opendatahub-operator"` |  |
+| operator.olm.namespace | string | `"opendatahub-operator-system"` |  |
+| operator.olm.source | string | `"community-operators"` |  |
 

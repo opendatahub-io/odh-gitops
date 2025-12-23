@@ -1,0 +1,20 @@
+displayName: OpenshiftAI
+
+operator:
+  monitoringNamespace: redhat-ods-monitoring
+  applicationsNamespace: redhat-ods-applications
+
+  olm:
+    channel: fast-3.x
+    name: rhods-operator
+    namespace: redhat-ods-operator
+    source: redhat-operators
+
+components:
+  modelregistry:
+    dsc:
+      registriesNamespace: rhoai-model-registries
+
+  workbenches:
+    dsc:
+      workbenchNamespace: rhods-notebooks
