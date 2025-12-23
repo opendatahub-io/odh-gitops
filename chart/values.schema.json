@@ -155,6 +155,12 @@
         },
         "customMetricsAutoscaler": {
           "$ref": "#/definitions/dependency"
+        },
+        "nfd": {
+          "$ref": "#/definitions/dependencyWithConfig"
+        },
+        "gpuOperator": {
+          "$ref": "#/definitions/dependencyWithConfig"
         }
       },
       "additionalProperties": false

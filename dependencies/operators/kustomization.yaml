@@ -11,3 +11,5 @@ components:
   - ../../components/operators/tempo-product
   - ../../components/operators/openshift-custom-metrics-autoscaler
   - ../../components/operators/rhcl-operator
+  - ../../components/operators/nfd
+  - ../../components/operators/gpu-operator

@@ -104,6 +104,7 @@ High-level features that:
 | `trainingoperator` | Kubeflow Training Operator | Removed | - |
 | `trustyai` | TrustyAI | Managed | - |
 | `workbenches` | Workbenches | Managed | - |
+| `llamastackoperator` | LlamaStack Operator (see [prerequisites](#llamastackoperator-prerequisites)) | Removed | nfd, gpuOperator |
 
 ### Dependencies
 
@@ -126,6 +127,8 @@ Operators that can be installed. Use tri-state `enabled` field:
 | `clusterObservability` | Cluster Observability operator | opentelemetry |
 | `opentelemetry` | OpenTelemetry operator | - |
 | `tempo` | Tempo operator | opentelemetry |
+| `nfd` | Node Feature Discovery (required for GPU support) | - |
+| `gpuOperator` | NVIDIA GPU Operator (required for GPU support) | nfd |
 
 ### Example: Enable kserve
 
@@ -222,6 +225,31 @@ Then run the TLS preparation script after the Kuadrant operator has created the 
 ```bash
 ./scripts/prepare-authorino-tls.sh
 ```
+
+### LlamaStackOperator Prerequisites
+
+The `llamastackoperator` component has additional infrastructure requirements:
+
+**Required:**
+- OpenShift 4.19 or newer (RHOAI 3.0+)
+- Cluster administrator privileges
+- OpenShift CLI (oc) installed
+- Red Hat OpenShift AI Operator or ODH Operator installed
+- DataScienceCluster custom resource
+- GPU-enabled infrastructure (e.g., `g4dn.xlarge` on AWS, or nodes with NVIDIA GPUs)
+
+**GPU Support (Auto-installed):**
+
+When `llamastackoperator` is enabled with `managementState: Managed`, the following GPU dependencies are automatically installed:
+
+- **Node Feature Discovery (NFD) Operator**: Detects hardware features on cluster nodes
+- **NVIDIA GPU Operator**: Manages NVIDIA GPU drivers and device plugins
+
+These dependencies use the tri-state `enabled` field (default: `auto`) and will be automatically enabled when LlamaStackOperator is active.
+
+**Post-Installation Steps:**
+
+After the Helm chart completes installation of GPU operators, manual steps are required to enable GPU detection in the dashboard. See the [Post-Installation GPU Enablement](#post-installation-gpu-enablement) section below.
 
 ## Values Reference
 
@@ -328,6 +356,96 @@ dependencies:
 ### Dependencies
 
 To configure dependencies, refer to the [api docs](api-docs.md).
+
+## Post-Installation GPU Enablement
+
+After the Helm chart installs the NFD and GPU operators, **manual steps are required** to enable GPU detection in the ODH/RHOAI dashboard.
+
+### Why These Steps Are Needed
+
+The ODH/RHOAI dashboard caches GPU availability status. After installing GPU operators, you must:
+1. Delete the cached migration status ConfigMap
+2. Restart the dashboard to detect the new GPU accelerators
+
+### When to Run These Steps
+
+Run these commands **after** the Helm chart completes and the GPU operator is ready:
+
+```bash
+# Wait for GPU operator to be ready
+kubectl wait --for=condition=ready pod -l app=nvidia-driver-daemonset -n nvidia-gpu-operator --timeout=600s
+```
+
+### For Open Data Hub (ODH)
+
+```bash
+# Delete the migration ConfigMap (if exists)
+oc delete configmap migration-gpu-status -n opendatahub --ignore-not-found
+
+# Restart the dashboard
+oc rollout restart deployment/odh-dashboard -n opendatahub
+
+# Wait for dashboard to be ready
+oc rollout status deployment/odh-dashboard -n opendatahub
+```
+
+### For Red Hat OpenShift AI (RHOAI)
+
+```bash
+# Delete the migration ConfigMap
+oc delete configmap migration-gpu-status -n redhat-ods-applications --ignore-not-found
+
+# Restart the dashboard
+oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
+
+# Wait for dashboard to be ready
+oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
+```
+
+### Verification
+
+Verify that GPUs are detected on your nodes:
+
+```bash
+# Check GPU resources on nodes
+oc describe nodes | grep -A 5 "Allocated resources" | grep nvidia.com/gpu
+
+# Should show output like:
+# nvidia.com/gpu: 1
+
+# Or check a specific node
+oc describe node <node-name> | grep nvidia.com/gpu
+```
+
+You should see `nvidia.com/gpu` resources allocated on GPU-enabled nodes.
+
+### Advanced: Discovering Vendor-Recommended Defaults
+
+Operator CSVs include example configurations in their metadata. You can extract these vendor-recommended defaults to customize your dependency configurations:
+
+**For NVIDIA GPU Operator (ClusterPolicy):**
+
+```bash
+# Get the installed CSV name
+CSV_NAME=$(oc get csv -n nvidia-gpu-operator -o jsonpath='{.items[?(@.spec.displayName=="NVIDIA GPU Operator")].metadata.name}')
+
+# Extract the ClusterPolicy example
+oc get csv -n nvidia-gpu-operator $CSV_NAME \
+  -ojsonpath='{.metadata.annotations.alm-examples}' | jq .[0] > clusterpolicy-example.json
+```
+
+**For Node Feature Discovery (NodeFeatureDiscovery):**
+
+```bash
+# Get the installed CSV name
+CSV_NAME=$(oc get csv -n openshift-nfd -o jsonpath='{.items[?(@.spec.displayName=="Node Feature Discovery Operator")].metadata.name}')
+
+# Extract the NodeFeatureDiscovery example
+oc get csv -n openshift-nfd $CSV_NAME \
+  -ojsonpath='{.metadata.annotations.alm-examples}' | jq .[0] > nodefeaturediscovery-example.json
+```
+
+You can then use these examples as a starting point for customizing the `config.spec` values in your Helm values.
 
 ## ArgoCD Usage
 

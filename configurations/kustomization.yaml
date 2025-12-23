@@ -6,3 +6,5 @@ resources:
   - job-set-operator
   - leader-worker-set
   - rhcl-operator
+  - nfd
+  - gpu-operator

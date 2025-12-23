@@ -33,10 +33,6 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.mlflowoperator.dependencies | object | `{}` | Dependencies required by MLflow Operator |
 | components.mlflowoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for MLflow Operator |
 | components.mlflowoperator.dsc.managementState | string | `"Removed"` | Management state for MLflow Operator (Managed or Removed) |
-| components.llamastackoperator | object | `{"dependencies":{},"dsc":{"managementState":"Removed"}}` | LlamaStack Operator component |
-| components.llamastackoperator.dependencies | object | `{}` | Dependencies required by LlamaStack Operator |
-| components.llamastackoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for LlamaStack Operator |
-| components.llamastackoperator.dsc.managementState | string | `"Removed"` | Management state for LlamaStack Operator (Managed or Removed) |
 | components.modelregistry | object | `{"defaults":{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":null}}` | Model Registry component |
 | components.modelregistry.defaults | object | `{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.modelregistry.dependencies | object | `{}` | Dependencies required by Model Registry |
@@ -87,6 +83,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
 | dependencies.leaderWorkerSet.dependencies | object | `{"certManager":true}` | Dependencies required by leader-worker-set |
 | dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
+| dependencies.nfd | object | `{"config":{"spec":{}},"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","source":"redhat-operators","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
+| dependencies.nfd.config.spec | object | `{}` | NodeFeatureDiscovery CR spec (user can add any fields) |
+| dependencies.nfd.dependencies | object | `{}` | Dependencies required by NFD |
+| dependencies.nfd.enabled | string | `"auto"` | Enable NFD: auto (if needed), true (always), false (never) |
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |

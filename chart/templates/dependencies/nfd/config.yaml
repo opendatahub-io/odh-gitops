@@ -1,0 +1,17 @@
+{{- $dep := .Values.dependencies.nfd -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "nfd" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- if eq $shouldInstall "true" }}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "nodefeaturediscoveries.nfd.openshift.io" "root" $) }}
+apiVersion: nfd.openshift.io/v1
+kind: NodeFeatureDiscovery
+metadata:
+  name: nfd-instance
+  namespace: {{ $dep.olm.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+{{- with $dep.config.spec }}
+spec:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
