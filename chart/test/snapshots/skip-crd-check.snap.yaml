@@ -91,6 +91,8 @@ metadata:
 spec:
   components:
     aipipelines:
+      argoWorkflowsControllers:
+        managementState: Managed
       managementState: Managed
     dashboard:
       managementState: Managed

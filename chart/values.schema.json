@@ -84,7 +84,7 @@
       "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
       "properties": {
         "aipipelines": {
-          "$ref": "#/definitions/component"
+          "$ref": "#/definitions/aipipelinesComponent"
         },
         "dashboard": {
           "$ref": "#/definitions/component"
@@ -248,6 +248,26 @@
       "properties": {
         "managementState": {
           "$ref": "#/definitions/defaultManagementState"
+        }
+      },
+      "required": ["managementState"],
+      "additionalProperties": false
+    },
+    "aipipelinesComponent": {
+      "type": "object",
+      "description": "AIPipelines component configuration",
+      "properties": {
+        "managementState": {
+          "$ref": "#/definitions/defaultManagementState"
+        },
+        "argoWorkflowsControllers": {
+          "type": "object",
+          "description": "Argo Workflows Controllers configuration",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            }
+          }
         }
       },
       "required": ["managementState"],

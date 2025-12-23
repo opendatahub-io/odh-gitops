@@ -58,6 +58,8 @@ components:
   aipipelines:
     # -- Management state for AI Pipelines (Managed or Removed)
     managementState: Managed
+    # argoWorkflowsControllers:
+    #   managementState: Managed
 
   # -- Dashboard component
   dashboard:
