@@ -282,9 +282,17 @@
           "enum": ["Unmanaged", "Removed"],
           "default": "Removed",
           "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
+        },
+        "defaultLocalQueueName": {
+          "type": "string",
+          "description": "Default local queue name"
+        },
+        "defaultClusterQueueName": {
+          "type": "string",
+          "description": "Default cluster queue name"
         }
       },
-      "required": ["managementState"],
+      "required": ["managementState", "defaultLocalQueueName", "defaultClusterQueueName"],
       "additionalProperties": false
     },
     "kserveComponent": {

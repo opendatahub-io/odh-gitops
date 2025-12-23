@@ -91,8 +91,6 @@ metadata:
 spec:
   components:
     aipipelines:
-      argoWorkflowsControllers:
-        managementState: Managed
       managementState: Managed
     dashboard:
       managementState: Managed
@@ -102,6 +100,8 @@ spec:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
     kueue:
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
       managementState: Unmanaged
     feastoperator:
       managementState: Managed

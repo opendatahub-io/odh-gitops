@@ -86,6 +86,8 @@ components:
   kueue:
     # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
     managementState: Unmanaged
+    defaultLocalQueueName: default
+    defaultClusterQueueName: default
 
   # -- Ray component
   ray:
