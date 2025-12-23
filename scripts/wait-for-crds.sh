@@ -21,6 +21,8 @@ CRDS=(
     "leaderworkersetoperators.operator.openshift.io"
     "jobsetoperators.operator.openshift.io"
     "kuadrants.kuadrant.io"
+    "nodefeaturediscoveries.nfd.openshift.io"
+    "clusterpolicies.nvidia.com"
     "datascienceclusters.datasciencecluster.opendatahub.io"
     "dscinitializations.dscinitialization.opendatahub.io"
 )

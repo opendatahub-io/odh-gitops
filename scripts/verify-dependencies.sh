@@ -30,6 +30,8 @@ declare -A OPERATORS=(
     [tempo-product]="openshift-tempo-operator app.kubernetes.io/name=tempo-operator"
     [openshift-custom-metrics-autoscaler-operator]="openshift-keda name=custom-metrics-autoscaler-operator"
     [rhcl-operator]="kuadrant-system app=kuadrant"
+    [nfd]="openshift-nfd control-plane=controller-manager"
+    [gpu-operator-certified]="nvidia-gpu-operator app=gpu-operator"
 
     [rhods-operator]="redhat-ods-operator name=rhods-operator"
     [opendatahub-operator]="opendatahub-operator-system name=opendatahub-operator"
