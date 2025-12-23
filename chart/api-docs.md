@@ -10,10 +10,15 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |-----|------|---------|-------------|
 | components.aipipelines | object | `{"dependencies":{},"dsc":{"managementState":"Managed"}}` | AI Pipelines component |
 | components.aipipelines.dependencies | object | `{}` | Dependencies required by AI Pipelines |
+<<<<<<< HEAD
 | components.aipipelines.dsc.managementState | string | `"Managed"` | Management state for AI Pipelines (Managed or Removed) |
 | components.dashboard | object | `{"dependencies":{},"dsc":{"managementState":"Managed"}}` | Dashboard component |
 | components.dashboard.dependencies | object | `{}` | Dependencies required by Dashboard |
 | components.dashboard.dsc.managementState | string | `"Managed"` | Management state for Dashboard (Managed or Removed) |
+=======
+| components.aipipelines.dsc | object | `{"managementState":"Managed"}` | DSC configuration for AI Pipelines |
+| components.aipipelines.dsc.managementState | string | `"Managed"` | Management state for AI Pipelines (Managed or Removed) |
+>>>>>>> main
 | components.feastoperator | object | `{"dependencies":{},"dsc":{"managementState":"Managed"}}` | Feast Operator component |
 | components.feastoperator.dependencies | object | `{}` | Dependencies required by Feast Operator |
 | components.feastoperator.dsc | object | `{"managementState":"Managed"}` | DSC configuration for Feast Operator |
@@ -25,16 +30,24 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.kserve.dsc.nim | object | `{"managementState":"Managed"}` | Enables NVIDIA NIM integration |
 | components.kserve.dsc.nim.managementState | string | `"Managed"` | Management state for NIM (Managed or Removed) |
 | components.kserve.dsc.rawDeploymentServiceConfig | string | `"Headless"` | Raw deployment service config for KServe (Headless or Headed) |
+<<<<<<< HEAD
 | components.kueue | object | `{"dependencies":{"certManager":true,"kueue":true},"dsc":{"defaultClusterQueueName":"default","defaultLocalQueueName":"default","managementState":"Unmanaged"}}` | Kueue job queuing component |
 | components.kueue.dependencies | object | `{"certManager":true,"kueue":true}` | Dependencies required by Kueue |
 | components.kueue.dsc | object | `{"defaultClusterQueueName":"default","defaultLocalQueueName":"default","managementState":"Unmanaged"}` | DSC configuration for Kueue |
 | components.kueue.dsc.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator |
+=======
+| components.kueue | object | `{"dependencies":{"certManager":true,"kueue":true},"dsc":{"managementState":"Unmanaged"}}` | Kueue job queuing component |
+| components.kueue.dependencies | object | `{"certManager":true,"kueue":true}` | Dependencies required by Kueue |
+| components.kueue.dsc | object | `{"managementState":"Unmanaged"}` | DSC configuration for Kueue |
+| components.kueue.dsc.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed) |
+>>>>>>> main
 | components.modelregistry | object | `{"defaults":{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":null}}` | Model Registry component |
 | components.modelregistry.defaults | object | `{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.modelregistry.dependencies | object | `{}` | Dependencies required by Model Registry |
 | components.modelregistry.dsc | object | `{"managementState":"Managed","registriesNamespace":null}` | DSC configuration for Model Registry |
 | components.modelregistry.dsc.managementState | string | `"Managed"` | Management state for Model Registry (Managed or Removed) |
 | components.modelregistry.dsc.registriesNamespace | string | `nil` | Registries namespace for Model Registry (overrides defaults) |
+<<<<<<< HEAD
 | components.ray | object | `{"dependencies":{"certManager":true},"dsc":{"managementState":"Managed"}}` | Ray component |
 | components.ray.dependencies | object | `{"certManager":true}` | Dependencies required by Ray |
 | components.ray.dsc | object | `{"managementState":"Managed"}` | DSC configuration for Ray |
@@ -48,6 +61,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.trustyai.dsc | object | `{"eval":{"lmeval":{"permitCodeExecution":"deny","permitOnline":"deny"}},"managementState":"Managed"}` | DSC configuration for TrustyAI |
 | components.trustyai.dsc.eval | object | `{"lmeval":{"permitCodeExecution":"deny","permitOnline":"deny"}}` | Evaluation configuration for TrustyAI evaluations |
 | components.trustyai.dsc.managementState | string | `"Managed"` | Management state for TrustyAI (Managed or Removed) |
+=======
+>>>>>>> main
 | components.workbenches | object | `{"defaults":{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}},"dependencies":{},"dsc":{"managementState":"Managed","workbenchNamespace":null}}` | Workbenches component |
 | components.workbenches.defaults | object | `{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}}` | Operator-type-specific defaults for dsc fields |
 | components.workbenches.dependencies | object | `{}` | Dependencies required by Workbenches |
@@ -63,9 +78,15 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.customMetricsAutoscaler | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.dependencies | object | `{}` | Dependencies required by custom-metrics-autoscaler |
 | dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |
+<<<<<<< HEAD
 | dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
 | dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
 | dependencies.jobSet.dependencies | object | `{"certManager":true}` | Dependencies required by job-set |
+=======
+| dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"dependencies":{},"enabled":"auto","olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
+| dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
+| dependencies.jobSet.dependencies | object | `{}` | Dependencies required by job-set |
+>>>>>>> main
 | dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |
 | dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.2","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
 | dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
