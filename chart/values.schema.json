@@ -328,12 +328,12 @@
                 }
               }
             },
-            "defaults": {
-              "$ref": "#/definitions/operatorTypeDefaults"
-            }
           },
           "required": ["managementState"],
           "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
         }
       },
       "required": ["dsc"],
