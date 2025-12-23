@@ -84,20 +84,24 @@ High-level features that:
 1. Configure the DataScienceCluster (DSC) `managementState`
 2. Automatically enable their required dependencies when active (Managed or Unmanaged)
 
-| managementState | Dependencies auto-enabled | Available for |
-|-----------------|---------------------------|---------------|
-| `Managed` | Yes | kserve, aipipelines, workbenches, modelregistry, feastoperator |
-| `Unmanaged` | Yes | kueue |
-| `Removed` | No | all |
+| managementState | Dependencies auto-enabled |
+|-----------------|---------------------------|
+| `Managed` | Yes |
+| `Unmanaged` | Yes |
+| `Removed` | No |
 
-| Component | Description | Default State | Dependencies |
-|-----------|-------------|---------------|--------------|
-| `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
-| `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
-| `aipipelines` | AI Pipelines | Managed | - |
-| `feastoperator` | Feast feature store operator | Managed | - |
-| `workbenches` | Workbenches | Managed | - |
-| `modelregistry` | Model Registry | Managed | - |
+| Component | Description | Dependencies |
+|-----------|-------------|--------------|
+| `aipipelines` | AI Pipelines | - |
+| `dashboard` | Dashboard | - |
+| `feastoperator` | Feast feature store operator | - |
+| `kserve` | KServe model serving | certManager, leaderWorkerSet, jobSet, rhcl |
+| `kueue` | Kueue job queuing | kueue |
+| `modelregistry` | Model Registry | - |
+| `ray` | Ray distributed computing | certManager |
+| `trainer` | Trainer | - |
+| `trustyai` | TrustyAI | - |
+| `workbenches` | Workbenches | - |
 
 ### Dependencies
 
