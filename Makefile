@@ -258,7 +258,8 @@ helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
 	helm upgrade --install odh ./chart -n opendatahub-gitops
 	@echo ""
-	@echo "=== Step 4: Verify operator and DSC installation ==="
+	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
+	oc scale deployment dashboard -n opendatahub --replicas=1
 	$(MAKE) helm-verify
 	@echo ""
 	@echo "=== Step 5: Enable Authorino TLS ==="
