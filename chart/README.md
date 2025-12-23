@@ -98,7 +98,6 @@ High-level features that:
 | `feastoperator` | Feast feature store operator | - |
 | `workbenches` | Workbenches | - |
 | `modelregistry` | Model Registry | - |
-| `ray` | Ray distributed computing | certManager |
 
 ### Dependencies
 
