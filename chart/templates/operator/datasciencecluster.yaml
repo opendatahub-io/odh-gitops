@@ -12,15 +12,15 @@ metadata:
 spec:
   components:
     aipipelines:
-      {{- .Values.components.aipipelines.dsc | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.aipipelines "root" $) | nindent 6 }}
     kserve:
-      {{- .Values.components.kserve.dsc | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kserve "root" $) | nindent 6 }}
     kueue:
-      {{- .Values.components.kueue.dsc | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kueue "root" $) | nindent 6 }}
     feastoperator:
-      {{- .Values.components.feastoperator.dsc | toYaml | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.feastoperator "root" $) | nindent 6 }}
     modelregistry:
-      {{- include "rhoai-dependencies.componentConfig" (dict "componentName" "modelregistry" "component" .Values.components.modelregistry "root" $) | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.modelregistry "root" $) | nindent 6 }}
     workbenches:
-      {{- include "rhoai-dependencies.componentConfig" (dict "componentName" "workbenches" "component" .Values.components.workbenches "root" $) | nindent 6 }}
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.workbenches "root" $) | nindent 6 }}
 {{- end }}

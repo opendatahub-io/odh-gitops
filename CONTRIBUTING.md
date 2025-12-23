@@ -167,22 +167,31 @@ When adding a new dependency operator, follow these steps:
 #### Step 1: Add Values Configuration
 
 Add your dependency to `chart/values.yaml` under the `dependencies` section.
-In the `dependencies` field, add the dependencies required (or optional) your operator requires.
+
+Structure:
+
+- `enabled`: Tri-state value - `auto` (install if needed by a component), `true` (always install), `false` (never install)
+- `dependencies`: Other dependencies this dependency requires (for transitive deps)
+- `olm`: OLM subscription configuration
+- `config` (optional): CR spec fields - user can add any fields supported by the CR
 
 ```yaml
 dependencies:
   yourOperator:
     # -- Enable your-operator: auto (if needed), true (always), false (never)
     enabled: auto
+    # -- Dependencies required by your-operator
     dependencies:
       certManager: true
     olm:
       channel: stable
       name: your-operator
       namespace: your-operator-namespace
-    config: # optional
+      targetNamespaces: [] # optional, for OperatorGroups with specific target namespaces
+    config: # optional
       # -- YourOperator CR spec (user can add any fields supported by the CR)
-      spec: {}
+      spec:
+        managementState: Managed
 ```
 
 #### Step 2: Create Dependency Templates
@@ -236,22 +245,30 @@ Components are high-level features (like kserve, kueue, aipipelines) that config
 #### Step 1: Add Component Configuration
 
 Add your component to `chart/values.yaml` under the `components` section.
-In the `dsc` field, add the DSC configuration for your component.
-In the `dependencies` field, add the dependencies required (or optional) your component requires.
-In the `defaults` field, add the defaults for your component, if the default depends on the operator type (ODH or RHOAI).
+
+Structure:
+
+- `dependencies`: Dependencies required (or optional) your component requires
+- `dsc`: Configuration that goes into the DataScienceCluster CR
+- `defaults` (optional): Operator-type-specific defaults for dsc fields (odh or rhoai)
 
 ```yaml
 components:
   # -- Your component description
   yourComponent:
+    # -- Dependencies required by YourComponent
+    dependencies:
+      certManager: true
+    # -- DSC configuration for YourComponent
     dsc:
       # -- Management state for YourComponent (Managed or Removed)
       managementState: Managed
+    # -- Operator-type-specific defaults for dsc fields
     defaults:
-      odh: {}
-      rhoai: {}
-    dependencies:
-      certManager: true
+      odh:
+        someField: odh-value
+      rhoai:
+        someField: rhoai-value
 ```
 
 #### Step 2: Update DataScienceCluster Template
@@ -262,9 +279,9 @@ Add your component to `chart/templates/operator/datasciencecluster.yaml`:
 spec:
   components:
     kserve:
-      managementState: {{ .Values.components.kserve.managementState }}
+      managementState: {{ .Values.components.kserve.dsc.managementState }}
     yourComponent:
-      managementState: {{ .Values.components.yourComponent.managementState }}
+      managementState: {{ .Values.components.yourComponent.dsc.managementState }}
 ```
 
 #### Step 3: Update JSON Schema

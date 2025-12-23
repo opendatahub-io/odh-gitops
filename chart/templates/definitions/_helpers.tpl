@@ -193,11 +193,10 @@ Merge component dsc config with operator-type defaults
 Component dsc values override defaults from component.defaults.<operatorType>.
 =============================================================================
 Arguments (passed as dict):
-  - componentName: name of the component (e.g., "modelregistry")
   - component: the component configuration from .Values.components
   - root: root context ($)
 */}}
-{{- define "rhoai-dependencies.componentConfig" -}}
+{{- define "rhoai-dependencies.componentDSCConfig" -}}
 {{- $operatorType := .root.Values.operator.type -}}
 {{- $dsc := .component.dsc | default dict -}}
 {{- $defaults := dict -}}
