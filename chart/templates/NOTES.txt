@@ -10,7 +10,7 @@ Namespace: {{ .Release.Namespace }}
 === Enabled Components ===
 
 {{- range $name, $comp := .Values.components }}
-  - {{ $name }}: {{ $comp.managementState }}
+  - {{ $name }}: {{ $comp.dsc.managementState }}
 {{- end }}
 
 === Enabled Dependencies ===
