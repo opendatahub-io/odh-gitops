@@ -110,9 +110,6 @@ spec:
       registriesNamespace: rhoai-model-registries
     ray:
       managementState: Managed
-    workbenches:
-      managementState: Managed
-      workbenchNamespace: rhods-notebooks
     trainer:
       managementState: Managed
     trustyai:
@@ -121,6 +118,9 @@ spec:
           permitCodeExecution: deny
           permitOnline: deny
       managementState: Managed
+    workbenches:
+      managementState: Managed
+      workbenchNamespace: rhods-notebooks
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1

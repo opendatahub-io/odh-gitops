@@ -147,23 +147,6 @@ components:
       # -- Management state for Ray (Managed or Removed)
       managementState: Managed
 
-  # -- Workbenches component
-  workbenches:
-    # -- Dependencies required by Workbenches
-    dependencies: {}
-    # -- DSC configuration for Workbenches
-    dsc:
-      # -- Management state for Workbenches (Managed or Removed)
-      managementState: Managed
-      # -- Workbench namespace for Workbenches (overrides defaults)
-      workbenchNamespace:
-    # -- Operator-type-specific defaults for dsc fields
-    defaults:
-      odh:
-        workbenchNamespace: opendatahub
-      rhoai:
-        workbenchNamespace: rhods-notebooks
-
   # -- Trainer component
   trainer:
     # -- Dependencies required by Trainer
@@ -188,6 +171,23 @@ components:
         lmeval:
           permitCodeExecution: deny
           permitOnline: deny
+
+  # -- Workbenches component
+  workbenches:
+    # -- Dependencies required by Workbenches
+    dependencies: {}
+    # -- DSC configuration for Workbenches
+    dsc:
+      # -- Management state for Workbenches (Managed or Removed)
+      managementState: Managed
+      # -- Workbench namespace for Workbenches (overrides defaults)
+      workbenchNamespace:
+    # -- Operator-type-specific defaults for dsc fields
+    defaults:
+      odh:
+        workbenchNamespace: opendatahub
+      rhoai:
+        workbenchNamespace: rhods-notebooks
 
 # =============================================================================
 # DEPENDENCIES - Operators required by components

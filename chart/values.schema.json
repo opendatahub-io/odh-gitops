@@ -104,14 +104,14 @@
         "ray": {
           "$ref": "#/definitions/component"
         },
-        "workbenches": {
-          "$ref": "#/definitions/workbenchesComponent"
-        },
         "trainer": {
           "$ref": "#/definitions/component"
         },
         "trustyai": {
           "$ref": "#/definitions/trustyaiComponent"
+        },
+        "workbenches": {
+          "$ref": "#/definitions/workbenchesComponent"
         }
       },
       "additionalProperties": false
@@ -327,7 +327,7 @@
                   "$ref": "#/definitions/defaultManagementState"
                 }
               }
-            },
+            }
           },
           "required": ["managementState"],
           "additionalProperties": false
