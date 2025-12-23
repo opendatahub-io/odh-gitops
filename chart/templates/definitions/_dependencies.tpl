@@ -24,6 +24,7 @@ ray:
 trainer:
   - certManager
   - jobSet
+trustyai: []
 {{- end }}
 
 {{/*

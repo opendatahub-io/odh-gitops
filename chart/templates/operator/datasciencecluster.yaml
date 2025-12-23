@@ -15,12 +15,12 @@ spec:
       {{- .Values.components.aipipelines | toYaml | nindent 6 }}
     dashboard:
       {{- .Values.components.dashboard | toYaml | nindent 6 }}
+    feastoperator:
+      {{- .Values.components.feastoperator | toYaml | nindent 6 }}
     kserve:
       {{- .Values.components.kserve | toYaml | nindent 6 }}
     kueue:
       {{- .Values.components.kueue | toYaml | nindent 6 }}
-    feastoperator:
-      {{- .Values.components.feastoperator | toYaml | nindent 6 }}
     ray:
       {{- .Values.components.ray | toYaml | nindent 6 }}
     trainer:
