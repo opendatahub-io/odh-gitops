@@ -262,6 +262,8 @@ helm-install-verify: ## Install helm chart and verify installation
 	@echo "Waiting for odh-dashboard deployment to exist..."
 	@while ! $(K8S_CLI) get deployment odh-dashboard -n opendatahub >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
 	$(K8S_CLI) scale deployment odh-dashboard -n opendatahub --replicas=1
+	$(K8S_CLI) set resources deployment -n opendatahub odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
+	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
 	$(MAKE) helm-verify
 	@echo ""
 	@echo "=== Step 5: Enable Authorino TLS ==="
