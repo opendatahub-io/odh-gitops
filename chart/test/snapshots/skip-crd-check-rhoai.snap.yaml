@@ -101,6 +101,8 @@ spec:
       managementState: Unmanaged
     feastoperator:
       managementState: Managed
+    mlflowoperator:
+      managementState: Removed
     modelregistry:
       managementState: Managed
       registriesNamespace: rhoai-model-registries

@@ -86,7 +86,7 @@ High-level features that:
 
 | managementState | Dependencies auto-enabled | Available for |
 |-----------------|---------------------------|---------------|
-| `Managed` | Yes | kserve, aipipelines, workbenches, modelregistry, feastoperator |
+| `Managed` | Yes | kserve, aipipelines, workbenches, modelregistry, feastoperator, mlflowoperator |
 | `Unmanaged` | Yes | kueue |
 | `Removed` | No | all |
 
@@ -96,6 +96,7 @@ High-level features that:
 | `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
 | `aipipelines` | AI Pipelines | Managed | - |
 | `feastoperator` | Feast feature store operator | Managed | - |
+| `mlflowoperator` | MLflow tracking and model registry | Removed | - |
 | `workbenches` | Workbenches | Managed | - |
 | `modelregistry` | Model Registry | Managed | - |
 
