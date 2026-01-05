@@ -97,6 +97,7 @@ High-level features that:
 | `feastoperator` | Feast feature store operator | - |
 | `kserve` | KServe model serving | certManager, leaderWorkerSet, jobSet, rhcl |
 | `kueue` | Kueue job queuing | kueue |
+| `mlflowoperator` | MLflow tracking and model registry | Removed | - |
 | `modelregistry` | Model Registry | - |
 | `ray` | Ray distributed computing | certManager |
 | `trainer` | Trainer | - |

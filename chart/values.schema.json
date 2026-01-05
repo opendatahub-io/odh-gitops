@@ -98,6 +98,9 @@
         "kueue": {
           "$ref": "#/definitions/kueueComponent"
         },
+        "mlflowoperator": {
+          "$ref": "#/definitions/component"
+        },
         "modelregistry": {
           "$ref": "#/definitions/modelregistryComponent"
         },

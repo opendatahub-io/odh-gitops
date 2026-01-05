@@ -105,6 +105,8 @@ spec:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
       managementState: Unmanaged
+    mlflowoperator:
+      managementState: Removed
     modelregistry:
       managementState: Managed
       registriesNamespace: odh-model-registry

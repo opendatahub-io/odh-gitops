@@ -189,6 +189,15 @@ components:
       rhoai:
         workbenchNamespace: rhods-notebooks
 
+  # -- MLflow Operator component
+  mlflowoperator:
+    # -- Dependencies required by MLflow Operator
+    dependencies: {}
+    # -- DSC configuration for MLflow Operator
+    dsc:
+      # -- Management state for MLflow Operator (Managed or Removed)
+      managementState: Removed
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #
