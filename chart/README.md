@@ -90,19 +90,19 @@ High-level features that:
 | `Unmanaged` | Yes |
 | `Removed` | No |
 
-| Component | Description | Dependencies |
-|-----------|-------------|--------------|
-| `aipipelines` | AI Pipelines | - |
-| `dashboard` | Dashboard | - |
-| `feastoperator` | Feast feature store operator | - |
-| `kserve` | KServe model serving | certManager, leaderWorkerSet, jobSet, rhcl |
-| `kueue` | Kueue job queuing | kueue |
+| Component | Description | Default State | Dependencies |
+|-----------|-------------|---------------|--------------|
+| `aipipelines` | AI Pipelines | Managed | - |
+| `dashboard` | Dashboard | Managed | - |
+| `feastoperator` | Feast feature store operator | Managed | - |
+| `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
+| `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
 | `mlflowoperator` | MLflow tracking and model registry | Removed | - |
-| `modelregistry` | Model Registry | - |
-| `ray` | Ray distributed computing | certManager |
-| `trainer` | Trainer | - |
-| `trustyai` | TrustyAI | - |
-| `workbenches` | Workbenches | - |
+| `modelregistry` | Model Registry | Managed | - |
+| `ray` | Ray distributed computing | Managed | certManager |
+| `trainer` | Trainer | Managed | certManager, jobSet |
+| `trustyai` | TrustyAI | Managed | - |
+| `workbenches` | Workbenches | Managed | - |
 
 ### Dependencies
 
