@@ -29,6 +29,8 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.ray "root" $) | nindent 6 }}
     trainer:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trainer "root" $) | nindent 6 }}
+    trainingoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trainingoperator "root" $) | nindent 6 }}
     trustyai:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trustyai "root" $) | nindent 6 }}
     workbenches:

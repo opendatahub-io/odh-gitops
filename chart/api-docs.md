@@ -47,6 +47,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.trainer.dependencies | object | `{"certManager":true,"jobSet":true}` | Dependencies required by Trainer |
 | components.trainer.dsc | object | `{"managementState":"Managed"}` | DSC configuration for Trainer |
 | components.trainer.dsc.managementState | string | `"Managed"` | Management state for Trainer (Managed or Removed) |
+| components.trainingoperator | object | `{"dependencies":{},"dsc":{"managementState":"Removed"}}` | Kubeflow Training Operator component |
+| components.trainingoperator.dependencies | object | `{}` | Dependencies required by Kubeflow Training Operator |
+| components.trainingoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for Kubeflow Training Operator |
+| components.trainingoperator.dsc.managementState | string | `"Removed"` | Management state for Kubeflow Training Operator (Managed or Removed) |
 | components.trustyai | object | `{"dependencies":{},"dsc":{"eval":{"lmeval":{"permitCodeExecution":"deny","permitOnline":"deny"}},"managementState":"Managed"}}` | TrustyAI component |
 | components.trustyai.dependencies | object | `{}` | Dependencies required by TrustyAI |
 | components.trustyai.dsc | object | `{"eval":{"lmeval":{"permitCodeExecution":"deny","permitOnline":"deny"}},"managementState":"Managed"}` | DSC configuration for TrustyAI |

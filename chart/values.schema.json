@@ -110,6 +110,9 @@
         "trainer": {
           "$ref": "#/definitions/component"
         },
+        "trainingoperator": {
+          "$ref": "#/definitions/component"
+        },
         "trustyai": {
           "$ref": "#/definitions/trustyaiComponent"
         },

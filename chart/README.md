@@ -101,6 +101,7 @@ High-level features that:
 | `modelregistry` | Model Registry | Managed | - |
 | `ray` | Ray distributed computing | Managed | certManager |
 | `trainer` | Trainer | Managed | certManager, jobSet |
+| `trainingoperator` | Kubeflow Training Operator | Removed | - |
 | `trustyai` | TrustyAI | Managed | - |
 | `workbenches` | Workbenches | Managed | - |
 

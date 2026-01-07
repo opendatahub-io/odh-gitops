@@ -158,6 +158,15 @@ components:
       # -- Management state for Trainer (Managed or Removed)
       managementState: Managed
 
+  # -- Kubeflow Training Operator component
+  trainingoperator:
+    # -- Dependencies required by Kubeflow Training Operator
+    dependencies: {}
+    # -- DSC configuration for Kubeflow Training Operator
+    dsc:
+      # -- Management state for Kubeflow Training Operator (Managed or Removed)
+      managementState: Removed
+
   # -- TrustyAI component
   trustyai:
     # -- Dependencies required by TrustyAI
