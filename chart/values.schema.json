@@ -83,23 +83,35 @@
       "type": "object",
       "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
       "properties": {
+        "aipipelines": {
+          "$ref": "#/definitions/aipipelinesComponent"
+        },
+        "dashboard": {
+          "$ref": "#/definitions/component"
+        },
+        "feastoperator": {
+          "$ref": "#/definitions/component"
+        },
         "kserve": {
           "$ref": "#/definitions/kserveComponent"
         },
         "kueue": {
           "$ref": "#/definitions/kueueComponent"
         },
-        "aipipelines": {
-          "$ref": "#/definitions/component"
-        },
-        "feastoperator": {
-          "$ref": "#/definitions/component"
-        },
         "mlflowoperator": {
           "$ref": "#/definitions/component"
         },
         "modelregistry": {
           "$ref": "#/definitions/modelregistryComponent"
+        },
+        "ray": {
+          "$ref": "#/definitions/component"
+        },
+        "trainer": {
+          "$ref": "#/definitions/component"
+        },
+        "trustyai": {
+          "$ref": "#/definitions/trustyaiComponent"
         },
         "workbenches": {
           "$ref": "#/definitions/workbenchesComponent"
@@ -288,6 +300,43 @@
           },
           "required": ["managementState"],
           "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "aipipelinesComponent": {
+      "type": "object",
+      "description": "AIPipelines component configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for AIPipelines",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "argoWorkflowsControllers": {
+              "type": "object",
+              "description": "Argo Workflows Controllers configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              }
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
         }
       },
       "required": ["dsc"],
@@ -302,17 +351,28 @@
         },
         "dsc": {
           "type": "object",
-          "description": "DSC configuration for kueue",
+          "description": "DSC configuration for Kueue",
           "properties": {
             "managementState": {
               "type": "string",
               "enum": ["Unmanaged", "Removed"],
               "default": "Removed",
               "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
+            },
+            "defaultLocalQueueName": {
+              "type": "string",
+              "description": "Default local queue name"
+            },
+            "defaultClusterQueueName": {
+              "type": "string",
+              "description": "Default cluster queue name"
             }
           },
-          "required": ["managementState"],
+          "required": ["managementState", "defaultLocalQueueName", "defaultClusterQueueName"],
           "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
         }
       },
       "required": ["dsc"],
@@ -406,6 +466,59 @@
             "workbenchNamespace": {
               "type": ["string", "null"],
               "description": "Namespace for workbenches. Overrides defaults if set."
+            }
+          },
+          "required": ["managementState"],
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "trustyaiComponent": {
+      "type": "object",
+      "description": "TrustyAI component configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for TrustyAI",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "eval": {
+              "type": "object",
+              "description": "Evaluation configuration for TrustyAI",
+              "properties": {
+                "lmeval": {
+                  "type": "object",
+                  "description": "LMEval configuration for TrustyAI",
+                  "properties": {
+                    "permitCodeExecution": {
+                      "type": "string",
+                      "enum": ["allow", "deny"],
+                      "default": "deny",
+                      "description": "Permit code execution"
+                    },
+                    "permitOnline": {
+                      "type": "string",
+                      "enum": ["allow", "deny"],
+                      "default": "deny",
+                      "description": "Permit online evaluation"
+                    }
+                  },
+                  "required": ["permitCodeExecution", "permitOnline"],
+                  "additionalProperties": false
+                }
+              },
+              "required": ["lmeval"],
+              "additionalProperties": false
             }
           },
           "required": ["managementState"],

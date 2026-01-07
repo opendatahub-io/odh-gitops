@@ -84,21 +84,25 @@ High-level features that:
 1. Configure the DataScienceCluster (DSC) `managementState`
 2. Automatically enable their required dependencies when active (Managed or Unmanaged)
 
-| managementState | Dependencies auto-enabled | Available for |
-|-----------------|---------------------------|---------------|
-| `Managed` | Yes | kserve, aipipelines, workbenches, modelregistry, feastoperator, mlflowoperator |
-| `Unmanaged` | Yes | kueue |
-| `Removed` | No | all |
+| managementState | Dependencies auto-enabled |
+|-----------------|---------------------------|
+| `Managed` | Yes |
+| `Unmanaged` | Yes |
+| `Removed` | No |
 
 | Component | Description | Default State | Dependencies |
 |-----------|-------------|---------------|--------------|
+| `aipipelines` | AI Pipelines | Managed | - |
+| `dashboard` | Dashboard | Managed | - |
+| `feastoperator` | Feast feature store operator | Managed | - |
 | `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
 | `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
-| `aipipelines` | AI Pipelines | Managed | - |
-| `feastoperator` | Feast feature store operator | Managed | - |
 | `mlflowoperator` | MLflow tracking and model registry | Removed | - |
-| `workbenches` | Workbenches | Managed | - |
 | `modelregistry` | Model Registry | Managed | - |
+| `ray` | Ray distributed computing | Managed | certManager |
+| `trainer` | Trainer | Managed | certManager, jobSet |
+| `trustyai` | TrustyAI | Managed | - |
+| `workbenches` | Workbenches | Managed | - |
 
 ### Dependencies
 

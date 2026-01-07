@@ -60,6 +60,33 @@ operator:
 #   defaults: (optional) Operator-type-specific defaults for dsc fields
 # =============================================================================
 components:
+  # -- AI Pipelines component
+  aipipelines:
+    # -- Dependencies required by AI Pipelines
+    dependencies: {}
+    dsc:
+      # -- Management state for AI Pipelines (Managed or Removed)
+      managementState: Managed
+      # argoWorkflowsControllers:
+      #   managementState: Managed
+
+  # -- Dashboard component
+  dashboard:
+    # -- Dependencies required by Dashboard
+    dependencies: {}
+    dsc:
+      # -- Management state for Dashboard (Managed or Removed)
+      managementState: Managed
+
+  # -- Feast Operator component
+  feastoperator:
+    # -- Dependencies required by Feast Operator
+    dependencies: {}
+    # -- DSC configuration for Feast Operator
+    dsc:
+      # -- Management state for Feast Operator (Managed or Removed)
+      managementState: Managed
+
   # -- KServe model serving component
   kserve:
     # -- Dependencies required by KServe (set to false to disable)
@@ -88,26 +115,10 @@ components:
       kueue: true
     # -- DSC configuration for Kueue
     dsc:
-      # -- Management state for Kueue (Unmanaged or Removed)
+      # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
       managementState: Unmanaged
-
-  # -- AI Pipelines component
-  aipipelines:
-    # -- Dependencies required by AI Pipelines
-    dependencies: {}
-    # -- DSC configuration for AI Pipelines
-    dsc:
-      # -- Management state for AI Pipelines (Managed or Removed)
-      managementState: Managed
-
-  # -- Feast Operator component
-  feastoperator:
-    # -- Dependencies required by Feast Operator
-    dependencies: {}
-    # -- DSC configuration for Feast Operator
-    dsc:
-      # -- Management state for Feast Operator (Managed or Removed)
-      managementState: Managed
+      defaultLocalQueueName: default
+      defaultClusterQueueName: default
 
   # -- Model Registry component
   modelregistry:
@@ -125,6 +136,41 @@ components:
         registriesNamespace: odh-model-registry
       rhoai:
         registriesNamespace: rhoai-model-registries
+
+  # -- Ray component
+  ray:
+    # -- Dependencies required by Ray
+    dependencies:
+      certManager: true
+    # -- DSC configuration for Ray
+    dsc:
+      # -- Management state for Ray (Managed or Removed)
+      managementState: Managed
+
+  # -- Trainer component
+  trainer:
+    # -- Dependencies required by Trainer
+    dependencies:
+      certManager: true
+      jobSet: true
+    # -- DSC configuration for Trainer
+    dsc:
+      # -- Management state for Trainer (Managed or Removed)
+      managementState: Managed
+
+  # -- TrustyAI component
+  trustyai:
+    # -- Dependencies required by TrustyAI
+    dependencies: {}
+    # -- DSC configuration for TrustyAI
+    dsc:
+      # -- Management state for TrustyAI (Managed or Removed)
+      managementState: Managed
+      # -- Evaluation configuration for TrustyAI evaluations
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
 
   # -- Workbenches component
   workbenches:
@@ -200,7 +246,8 @@ dependencies:
     # -- Enable job-set: auto (if needed), true (always), false (never)
     enabled: auto
     # -- Dependencies required by job-set
-    dependencies: {}
+    dependencies:
+      certManager: true
     olm:
       channel: tech-preview-v0.1
       name: job-set

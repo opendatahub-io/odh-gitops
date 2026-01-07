@@ -8,8 +8,18 @@ Operator: {{ $operatorType | upper }}
 Namespace: {{ .Release.Namespace }}
 
 === Enabled Components ===
+
 {{- range $name, $comp := .Values.components }}
-  - {{ $name }}: {{ $comp.managementState }}
+  - {{ $name }}: {{ $comp.dsc.managementState }}
+{{- end }}
+
+=== Enabled Dependencies ===
+
+{{- range $name, $dep := .Values.dependencies }}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" $name "dependency" $dep "dependencies" $.Values.dependencies "components" $.Values.components) }}
+{{- if eq $shouldInstall "true" }}
+  - {{ $name }}
+{{- end }}
 {{- end }}
 
 === Next Steps ===

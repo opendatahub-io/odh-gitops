@@ -92,20 +92,34 @@ spec:
   components:
     aipipelines:
       managementState: Managed
+    dashboard:
+      managementState: Managed
+    feastoperator:
+      managementState: Managed
     kserve:
       managementState: Managed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
     kueue:
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
       managementState: Unmanaged
-    feastoperator:
-      managementState: Managed
     mlflowoperator:
       managementState: Removed
     modelregistry:
       managementState: Managed
       registriesNamespace: odh-model-registry
+    ray:
+      managementState: Managed
+    trainer:
+      managementState: Managed
+    trustyai:
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
+      managementState: Managed
     workbenches:
       managementState: Managed
       workbenchNamespace: opendatahub
