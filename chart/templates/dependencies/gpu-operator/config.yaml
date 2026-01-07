@@ -1,5 +1,5 @@
-{{- $dep := .Values.dependencies.gpuOperator -}}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "gpuOperator" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- $dep := .Values.dependencies.nvidiaGPUOperator -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "nvidiaGPUOperator" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "clusterpolicies.nvidia.com" "root" $) }}
 apiVersion: nvidia.com/v1

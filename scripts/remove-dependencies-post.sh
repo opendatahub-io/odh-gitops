@@ -25,13 +25,9 @@ oc delete --ignore-not-found crd kuadrants.kuadrant.io
 oc delete --ignore-not-found crd authpolicies.kuadrant.io dnshealthcheckprobes.kuadrant.io dnspolicies.kuadrant.io dnsrecords.kuadrant.io limitadors.limitador.kuadrant.io oidcpolicies.extensions.kuadrant.io planpolicies.extensions.kuadrant.io ratelimitpolicies.kuadrant.io telemetrypolicies.extensions.kuadrant.io tlspolicies.kuadrant.io tokenratelimitpolicies.kuadrant.io
 
 # Remove NFD
-oc delete --ignore-not-found subscription -n openshift-nfd nfd
-oc delete --ignore-not-found deployment -n openshift-nfd -l operators.coreos.com/nfd.openshift-nfd
 oc delete --ignore-not-found crd nodefeaturediscoveries.nfd.openshift.io nodefeaturerules.nfd.k8s-sigs.io nodefeatures.nfd.k8s-sigs.io nodefeaturegroups.nfd.k8s-sigs.io noderesourcetopologies.topology.node.k8s.io
 oc delete --ignore-not-found namespace openshift-nfd
 
 # Remove GPU operator
-oc delete --ignore-not-found subscription -n nvidia-gpu-operator gpu-operator-certified
-oc delete --ignore-not-found deployment -n nvidia-gpu-operator -l operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator
 oc delete --ignore-not-found crd clusterpolicies.nvidia.com nvidiadrivers.nvidia.com
 oc delete --ignore-not-found namespace nvidia-gpu-operator

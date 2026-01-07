@@ -29,6 +29,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.kueue.dependencies | object | `{"certManager":true,"kueue":true}` | Dependencies required by Kueue |
 | components.kueue.dsc | object | `{"defaultClusterQueueName":"default","defaultLocalQueueName":"default","managementState":"Unmanaged"}` | DSC configuration for Kueue |
 | components.kueue.dsc.managementState | string | `"Unmanaged"` | Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator |
+| components.llamastackoperator | object | `{"dependencies":{"nfd":true,"nvidiaGPUOperator":true},"dsc":{"managementState":"Removed"}}` | LlamaStack Operator component |
+| components.llamastackoperator.dependencies | object | `{"nfd":true,"nvidiaGPUOperator":true}` | Dependencies required by LlamaStack Operator |
+| components.llamastackoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for LlamaStack Operator |
+| components.llamastackoperator.dsc.managementState | string | `"Removed"` | Management state for LlamaStack Operator (Managed or Removed) |
 | components.mlflowoperator | object | `{"dependencies":{},"dsc":{"managementState":"Removed"}}` | MLflow Operator component |
 | components.mlflowoperator.dependencies | object | `{}` | Dependencies required by MLflow Operator |
 | components.mlflowoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for MLflow Operator |
@@ -83,10 +87,14 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
 | dependencies.leaderWorkerSet.dependencies | object | `{"certManager":true}` | Dependencies required by leader-worker-set |
 | dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
-| dependencies.nfd | object | `{"config":{"spec":{}},"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","source":"redhat-operators","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
-| dependencies.nfd.config.spec | object | `{}` | NodeFeatureDiscovery CR spec (user can add any fields) |
+| dependencies.nfd | object | `{"config":{"spec":{"operand":{"image":"registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.19","imagePullPolicy":"Always"}}},"dependencies":{},"enabled":false,"olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
+| dependencies.nfd.config.spec | object | `{"operand":{"image":"registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.19","imagePullPolicy":"Always"}}` | NodeFeatureDiscovery CR spec (user can add any fields) |
 | dependencies.nfd.dependencies | object | `{}` | Dependencies required by NFD |
-| dependencies.nfd.enabled | string | `"auto"` | Enable NFD: auto (if needed), true (always), false (never) |
+| dependencies.nfd.enabled | bool | `false` | Enable NFD: auto (if needed), true (always), false (never) |
+| dependencies.nvidiaGPUOperator | object | `{"config":{"spec":{"daemonsets":{"priorityClassName":"system-node-critical","tolerations":[{"effect":"NoSchedule","key":"nvidia.com/gpu","operator":"Exists"}],"updateStrategy":"RollingUpdate"},"dcgm":{"enabled":true},"dcgmExporter":{"enabled":true},"devicePlugin":{"enabled":true},"driver":{"enabled":true,"image":"driver","repository":"nvcr.io/nvidia","version":"580.65.06"},"gfd":{"enabled":true},"migManager":{"enabled":true},"nodeStatusExporter":{"enabled":true},"operator":{"defaultRuntime":"crio"},"toolkit":{"enabled":true}}},"dependencies":{"nfd":true},"enabled":false,"olm":{"channel":"v25.10","name":"gpu-operator-certified","namespace":"nvidia-gpu-operator","source":"certified-operators","targetNamespaces":["nvidia-gpu-operator"]}}` | NVIDIA GPU operator (required for GPU support) |
+| dependencies.nvidiaGPUOperator.config.spec | object | `{"daemonsets":{"priorityClassName":"system-node-critical","tolerations":[{"effect":"NoSchedule","key":"nvidia.com/gpu","operator":"Exists"}],"updateStrategy":"RollingUpdate"},"dcgm":{"enabled":true},"dcgmExporter":{"enabled":true},"devicePlugin":{"enabled":true},"driver":{"enabled":true,"image":"driver","repository":"nvcr.io/nvidia","version":"580.65.06"},"gfd":{"enabled":true},"migManager":{"enabled":true},"nodeStatusExporter":{"enabled":true},"operator":{"defaultRuntime":"crio"},"toolkit":{"enabled":true}}` | ClusterPolicy CR spec (user can add any fields) |
+| dependencies.nvidiaGPUOperator.dependencies | object | `{"nfd":true}` | Dependencies required by GPU operator |
+| dependencies.nvidiaGPUOperator.enabled | bool | `false` | Enable GPU operator: auto (if needed), true (always), false (never) |
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |

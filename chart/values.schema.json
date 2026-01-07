@@ -159,7 +159,7 @@
         "nfd": {
           "$ref": "#/definitions/dependencyWithConfig"
         },
-        "gpuOperator": {
+        "nvidiaGPUOperator": {
           "$ref": "#/definitions/dependencyWithConfig"
         }
       },
