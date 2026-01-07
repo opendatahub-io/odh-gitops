@@ -97,6 +97,7 @@ High-level features that:
 | `feastoperator` | Feast feature store operator | Managed | - |
 | `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
 | `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
+| `llamastackoperator` | LlamaStack Operator (see [prerequisites](#llamastackoperator-prerequisites)) | Removed | nfd, nvidiaGPUOperator |
 | `mlflowoperator` | MLflow tracking and model registry | Removed | - |
 | `modelregistry` | Model Registry | Managed | - |
 | `ray` | Ray distributed computing | Managed | certManager |
@@ -104,7 +105,6 @@ High-level features that:
 | `trainingoperator` | Kubeflow Training Operator | Removed | - |
 | `trustyai` | TrustyAI | Managed | - |
 | `workbenches` | Workbenches | Managed | - |
-| `llamastackoperator` | LlamaStack Operator (see [prerequisites](#llamastackoperator-prerequisites)) | Removed | nfd, gpuOperator |
 
 ### Dependencies
 
@@ -128,7 +128,7 @@ Operators that can be installed. Use tri-state `enabled` field:
 | `opentelemetry` | OpenTelemetry operator | - |
 | `tempo` | Tempo operator | opentelemetry |
 | `nfd` | Node Feature Discovery (required for GPU support) | - |
-| `gpuOperator` | NVIDIA GPU Operator (required for GPU support) | nfd |
+| `nvidiaGPUOperator` | NVIDIA GPU Operator (required for GPU support) | nfd |
 
 ### Example: Enable kserve
 

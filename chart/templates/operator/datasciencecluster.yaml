@@ -21,6 +21,8 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kserve "root" $) | nindent 6 }}
     kueue:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kueue "root" $) | nindent 6 }}
+    llamastackoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.llamastackoperator "root" $) | nindent 6 }}
     mlflowoperator:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.mlflowoperator "root" $) | nindent 6 }}
     modelregistry:
@@ -35,6 +37,4 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trustyai "root" $) | nindent 6 }}
     workbenches:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.workbenches "root" $) | nindent 6 }}
-    llamastackoperator:
-      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.llamastackoperator "root" $) | nindent 6 }}
 {{- end }}

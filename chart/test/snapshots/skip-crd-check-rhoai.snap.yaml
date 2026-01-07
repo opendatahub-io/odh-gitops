@@ -105,6 +105,8 @@ spec:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
       managementState: Unmanaged
+    llamastackoperator:
+      managementState: Removed
     mlflowoperator:
       managementState: Removed
     modelregistry:
@@ -125,8 +127,6 @@ spec:
     workbenches:
       managementState: Managed
       workbenchNamespace: rhods-notebooks
-    llamastackoperator:
-      managementState: Removed
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1

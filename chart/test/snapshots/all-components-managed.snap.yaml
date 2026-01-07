@@ -17,15 +17,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai-chart/templates/dependencies/gpu-operator/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nvidia-gpu-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
----
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -62,6 +53,15 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nvidia-gpu-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -79,44 +79,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
----
-# Source: odh-rhoai-chart/templates/dependencies/gpu-operator/config.yaml
-apiVersion: nvidia.com/v1
-kind: ClusterPolicy
-metadata:
-  name: gpu-cluster-policy
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  daemonsets:
-    priorityClassName: system-node-critical
-    tolerations:
-    - effect: NoSchedule
-      key: nvidia.com/gpu
-      operator: Exists
-    updateStrategy: RollingUpdate
-  dcgm:
-    enabled: true
-  dcgmExporter:
-    enabled: true
-  devicePlugin:
-    enabled: true
-  driver:
-    enabled: true
-    image: driver
-    repository: nvcr.io/nvidia
-    version: 580.65.06
-  gfd:
-    enabled: true
-  migManager:
-    enabled: true
-  nodeStatusExporter:
-    enabled: true
-  operator:
-    defaultRuntime: crio
-  toolkit:
-    enabled: true
 ---
 # Source: odh-rhoai-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -161,6 +123,8 @@ spec:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
       managementState: Unmanaged
+    llamastackoperator:
+      managementState: Managed
     mlflowoperator:
       managementState: Managed
     modelregistry:
@@ -179,8 +143,6 @@ spec:
     workbenches:
       managementState: Managed
       workbenchNamespace: opendatahub
-    llamastackoperator:
-      managementState: Managed
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
@@ -238,20 +200,6 @@ spec:
   managementState: Managed
   operatorLogLevel: Normal
 ---
-# Source: odh-rhoai-chart/templates/dependencies/nfd/config.yaml
-apiVersion: nfd.openshift.io/v1
-kind: NodeFeatureDiscovery
-metadata:
-  name: nfd-instance
-  namespace: openshift-nfd
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  operand:
-    image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.19
-    imagePullPolicy: Always
----
 # Source: odh-rhoai-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -275,20 +223,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
----
-# Source: odh-rhoai-chart/templates/dependencies/gpu-operator/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: gpu-operator-certified
-  namespace: nvidia-gpu-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-  targetNamespaces:
-    - nvidia-gpu-operator
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -344,6 +278,20 @@ spec:
   targetNamespaces:
     - openshift-nfd
 ---
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+  targetNamespaces:
+    - nvidia-gpu-operator
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -398,22 +346,6 @@ spec:
   installPlanApproval: Automatic
   name: openshift-custom-metrics-autoscaler-operator
   source: redhat-operators
-  sourceNamespace: openshift-marketplace
----
-# Source: odh-rhoai-chart/templates/dependencies/gpu-operator/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: gpu-operator-certified
-  namespace: nvidia-gpu-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: v25.10
-  installPlanApproval: Automatic
-  name: gpu-operator-certified
-  source: certified-operators
   sourceNamespace: openshift-marketplace
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
@@ -478,6 +410,22 @@ spec:
   installPlanApproval: Automatic
   name: nfd
   source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: v25.10
+  installPlanApproval: Automatic
+  name: gpu-operator-certified
+  source: certified-operators
   sourceNamespace: openshift-marketplace
 ---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
