@@ -1,0 +1,412 @@
+# RHOAI Dependencies Helm Chart
+
+A Helm chart for installing ODH/RHOAI dependencies and component configurations on OpenShift.
+
+## Overview
+
+This chart provides a flexible way to install the operators and configurations required by OpenShift AI (RHOAI) and Open Data Hub (ODH). It supports:
+
+- **Component-based installation**: Enable high-level components (kserve, kueue, aipipelines, ...) and their dependencies are automatically installed
+- **Tri-state dependency management**: Dependencies can be `auto` (install if needed), `true` (always install), or `false` (skip - user has it already)
+- **OLM installation**: Operators are installed via Operator Lifecycle Manager (OLM)
+- **Idempotent installation**: Run the same command multiple times until all resources are applied
+
+## Quick Start
+
+```bash
+# Install dependencies with default settings. We need to install the dependencies before the operator is installed.
+helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace
+
+# Wait for CRDs to be created, then run again to create CRs
+helm upgrade --install rhoai ./chart -n opendatahub-gitops
+```
+
+## Installation Flow
+
+Due to CRD dependencies (operators create CRDs that are needed for CR resources), installation requires multiple runs:
+
+```bash
+for i in {1..5}; do
+  helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace
+  sleep 60
+done
+```
+
+**What happens:**
+1. **First run**: Operators are installed via OLM (Namespace, OperatorGroup, Subscription). CRs are skipped because CRDs don't exist yet.
+2. **Subsequent runs**: Once operators are ready and CRDs exist, CR configurations are created.
+3. **Later runs**: Idempotent - no changes if everything is already deployed.
+
+### Enable Authorino TLS
+
+The Kuadrant operator creates the Authorino resource automatically. To enable TLS, use the provided script which:
+
+1. Annotates the Authorino service to trigger TLS certificate generation
+2. Waits for the TLS secret to be created
+3. Patches the Authorino CR to enable TLS
+
+```bash
+# Run the script to enable TLS
+KUSTOMIZE_MODE=false ./scripts/prepare-authorino-tls.sh
+```
+
+The script can be customized with environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KUADRANT_NS` | `kuadrant-system` | Namespace where Kuadrant is installed |
+| `K8S_CLI` | `kubectl` | Kubernetes CLI to use (kubectl or oc) |
+| `KUSTOMIZE_MODE` | `true` | If false, patches the Authorino CR directly instead of updating the kustomization.yaml |
+
+> **Note**: The `dependencies.rhcl.config.tlsEnabled` Helm value is intended for ArgoCD use cases. For CLI use case, use the script above.
+
+## Configuration
+
+### Operator
+
+Choose between ODH (Open Data Hub) or RHOAI (Red Hat OpenShift AI) operator:
+
+```yaml
+operator:
+  enabled: true
+  type: rhoai  # odh | rhoai
+```
+
+| Type | Operator | Namespace | Source |
+|------|----------|-----------|--------|
+| `odh` | opendatahub-operator | openshift-operators | community-operators |
+| `rhoai` | rhods-operator | redhat-ods-operator | redhat-operators |
+
+### Components
+
+High-level features that:
+
+1. Configure the DataScienceCluster (DSC) `managementState`
+2. Automatically enable their required dependencies when active (Managed or Unmanaged)
+
+| managementState | Dependencies auto-enabled |
+|-----------------|---------------------------|
+| `Managed` | Yes |
+| `Unmanaged` | Yes |
+| `Removed` | No |
+
+| Component | Description | Default State | Dependencies |
+|-----------|-------------|---------------|--------------|
+| `aipipelines` | AI Pipelines | Managed | - |
+| `dashboard` | Dashboard | Managed | - |
+| `feastoperator` | Feast feature store operator | Managed | - |
+| `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
+| `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
+| `mlflowoperator` | MLflow tracking and model registry | Removed | - |
+| `modelregistry` | Model Registry | Managed | - |
+| `ray` | Ray distributed computing | Managed | certManager |
+| `trainer` | Trainer | Managed | certManager, jobSet |
+| `trustyai` | TrustyAI | Managed | - |
+| `workbenches` | Workbenches | Managed | - |
+
+### Dependencies
+
+Operators that can be installed. Use tri-state `enabled` field:
+
+| Value | Behavior |
+|-------|----------|
+| `auto` | Install if required by an enabled component (default) |
+| `true` | Always install |
+| `false` | Never install (user has it already) |
+
+| Dependency | Description | Own Dependencies |
+|------------|-------------|------------------|
+| `certManager` | Cert Manager operator | - |
+| `leaderWorkerSet` | Leader Worker Set operator | certManager |
+| `jobSet` | Job Set operator | - |
+| `rhcl` | RHCL (Kuadrant) operator | certManager, leaderWorkerSet |
+| `kueue` | Kueue operator | certManager |
+| `customMetricsAutoscaler` | Custom Metrics Autoscaler (KEDA) | - |
+| `clusterObservability` | Cluster Observability operator | opentelemetry |
+| `opentelemetry` | OpenTelemetry operator | - |
+| `tempo` | Tempo operator | opentelemetry |
+
+### Example: Enable kserve
+
+```yaml
+# values.yaml
+components:
+  kserve:
+    # Dependencies are enabled by default, only specify to override
+    # dependencies:
+    #   certManager: true
+    #   leaderWorkerSet: true
+    #   jobSet: true
+    #   rhcl: true
+    #   customMetricsAutoscaler: true
+    dsc:
+      managementState: Managed
+# Dependencies certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler
+# will be auto-installed because kserve is Managed
+```
+
+### Example: Skip a dependency you already have
+
+```yaml
+# values.yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+
+dependencies:
+  certManager:
+    enabled: false  # I already have cert-manager installed
+```
+
+### Example: Install a dependency without a component
+
+```yaml
+# values.yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+
+dependencies:
+  certManager:
+    enabled: true  # Force install even though no component needs it
+```
+
+### Example: Enable kueue with custom spec
+
+```yaml
+# values.yaml
+components:
+  kueue:
+    dsc:
+      managementState: Unmanaged
+
+dependencies:
+  kueue:
+    enabled: auto
+    config:
+      # spec accepts any fields supported by the Kueue CR
+      spec:
+        managementState: Managed
+        config:
+          integrations:
+            frameworks:
+              - Deployment
+              - Pod
+              - PyTorchJob
+```
+
+### Example: Enable RHCL with TLS
+
+To enable TLS for Authorino, first deploy with kserve enabled:
+
+```yaml
+# values.yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+
+dependencies:
+  rhcl:
+    enabled: auto
+    config:
+      # Kuadrant CR spec (optional)
+      spec: {}
+```
+
+Then run the TLS preparation script after the Kuadrant operator has created the Authorino resource:
+
+```bash
+./scripts/prepare-authorino-tls.sh
+```
+
+## Values Reference
+
+### Global Settings
+
+```yaml
+global:
+  # Installation type (currently only olm is supported)
+  installationType: olm
+  
+  # OLM settings
+  olm:
+    installPlanApproval: Automatic
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+  
+  # Common labels for all resources
+  labels: {}
+```
+
+### Components
+
+Components configure the DataScienceCluster (DSC) and trigger automatic dependency installation.
+
+```yaml
+components:
+  kserve:
+    dependencies:
+      certManager: true       # explicitly enable (same as default)
+      customMetricsAutoscaler: false  # disable this dependency for kserve
+    dsc:
+      managementState: Managed  # Managed | Removed
+      rawDeploymentServiceConfig: Headless  # Headless | Headed
+      nim:
+        managementState: Managed  # NVIDIA NIM integration
+
+  kueue:
+    dsc:
+      managementState: Unmanaged  # Unmanaged | Removed
+
+  aipipelines:
+    dsc:
+      managementState: Managed  # Managed | Removed
+
+  modelregistry:
+    dsc:
+      managementState: Managed
+      registriesNamespace: my-custom-namespace  # overrides operator-type default
+
+  workbenches:
+    dsc:
+      managementState: Managed
+      workbenchNamespace: my-workbench-ns  # overrides operator-type default
+```
+
+When `managementState` is `Managed` or `Unmanaged`, the component's dependencies are auto-enabled. When `Removed`, they are not.
+
+Components with operator-type-specific defaults (like `modelregistry` and `workbenches`) will use appropriate namespace values based on whether you're using `odh` or `rhoai` operator type, unless explicitly overridden.
+
+#### How Component Dependencies Work
+
+Each component has a `dependencies` map with **boolean toggles** that control which operators the component will trigger for installation. Dependencies can be required or optional - set them to `false` if you don't need a specific feature.
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Enable this dependency for the component (default for listed deps) |
+| `false` | Disable this dependency - won't be installed for this component |
+
+This is different from the top-level `dependencies.<name>.enabled` field which uses tri-state (`auto`/`true`/`false`).
+
+**The dependency resolution flow:**
+
+1. Component is active (managementState = `Managed` or `Unmanaged`)
+2. Component's `dependencies.<dep>` is `true` (or not set, using default)
+3. Top-level `dependencies.<dep>.enabled` is `auto` or `true`
+4. → Dependency operator gets installed
+
+**Example**: Disable an optional dependency you don't need:
+
+```yaml
+components:
+  kserve:
+    dependencies:
+      customMetricsAutoscaler: false  # don't need autoscaling, skip KEDA
+    dsc:
+      managementState: Managed
+# certManager, leaderWorkerSet, jobSet, rhcl will still be auto-installed
+# customMetricsAutoscaler will NOT be installed (unless another component needs it)
+```
+
+**Example**: You already have cert-manager pre-installed:
+
+```yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+
+dependencies:
+  certManager:
+    enabled: false  # skip installation, I already have it
+```
+
+### Dependencies
+
+To configure dependencies, refer to the [api docs](api-docs.md).
+
+## ArgoCD Usage
+
+This chart works with ArgoCD but requires specific configuration:
+
+### Why `skipCrdCheck: true` is required
+
+ArgoCD renders Helm templates **without cluster access**, so the `lookup` function (used to check if CRDs exist) always returns empty results. You must set `global.skipCrdCheck: true` to render all CRs upfront.
+
+### Why `SkipDryRunOnMissingResource` is required
+
+ArgoCD performs dry-run validation before applying resources. CRs whose CRDs don't exist yet will fail validation. The `SkipDryRunOnMissingResource=true` sync option skips dry-run for these resources.
+
+### Example ArgoCD Application
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rhoai-dependencies
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/odh-gitops
+    targetRevision: main
+    path: chart
+    helm:
+      values: |
+        global:
+          skipCrdCheck: true
+        components:
+          kserve:
+            managementState: Managed
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rhoai-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
+```
+
+ArgoCD automatically retries failed resources, so after operators install their CRDs, subsequent syncs will successfully apply the CRs.
+
+### Enable Authorino TLS in ArgoCD
+
+Since the Kuadrant operator automatically creates the Authorino resource, enabling TLS requires a manual step:
+
+```bash
+kubectl annotate svc/authorino-authorino-authorization \
+    service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+    -n kuadrant-system
+```
+
+Once the secret is created, set `dependencies.rhcl.config.tlsEnabled` to `true` in the ArgoCD application values.
+
+## Troubleshooting
+
+### CRs not being created
+
+If CR resources (Kueue, Kuadrant, etc.) are not being created:
+
+1. Check if the operator is installed and ready:
+   ```bash
+   kubectl get csv -A | grep kueue
+   ```
+
+2. Check if the CRD exists:
+   ```bash
+   kubectl get crd kueues.kueue.openshift.io
+   ```
+
+3. Run `helm upgrade` again - CRs are skipped until CRDs exist.
+
+### Dependency not being installed
+
+If a dependency is not being installed:
+
+1. Check if the component that requires it is enabled
+2. Check if the dependency is explicitly set to `false`
+3. Verify the dependency is in the component's dependency map

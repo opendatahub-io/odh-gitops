@@ -2,25 +2,16 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  name: cluster-validation-ocp419-pr{{ pull_request_number }}
+  name: helm-ocp419-pr{{ pull_request_number }}
   labels:
     appstudio.openshift.io/application: odh-gitops
-    appstudio.openshift.io/component: cluster-validation-ocp-419
+    appstudio.openshift.io/component: helm-chart-validation-ocp-419
     pipelines.appstudio.openshift.io/type: test
   annotations:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" &&
-      files.all.exists(file,
-        !file.startsWith('.github/') &&
-        !file.startsWith('chart/') &&
-        file != '.gitignore' &&
-        file != '.kube-linter.yaml' &&
-        file != '.yamllint.yaml' &&
-        file != 'LICENSE' &&
-        file != 'Makefile' &&
-        !file.endsWith('.md')
-      )
-    pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
+      files.all.exists(file, file.startsWith('chart/'))
+    pipelinesascode.tekton.dev/on-comment: "^/validate-helm-chart"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
 spec:
   pipelineRef:
@@ -40,6 +31,6 @@ spec:
     - name: ocp-version
       value: "4.19.0"
     - name: validation-type
-      value: "kustomize"
+      value: "helm"
   taskRunTemplate:
-    serviceAccountName: build-pipeline-cluster-validation-ocp-419
+    serviceAccountName: build-pipeline-helm-chart-validation-ocp-419

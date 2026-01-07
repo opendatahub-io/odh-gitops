@@ -1,0 +1,11 @@
+apiVersion: v2
+name: odh-rhoai-chart
+description: A Helm chart for installing ODH/RHOAI dependencies and component configurations
+type: application
+version: 0.1.0
+appVersion: "3.2.0"
+keywords:
+  - openshift
+  - rhoai
+  - odh
+  - ai

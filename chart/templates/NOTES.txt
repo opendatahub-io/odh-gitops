@@ -1,0 +1,54 @@
+{{- $operatorType := .Values.operator.type }}
+
+🎉 {{ $operatorType | upper }} Chart installed successfully!
+
+=== Installation Summary ===
+
+Operator: {{ $operatorType | upper }}
+Namespace: {{ .Release.Namespace }}
+
+=== Enabled Components ===
+
+{{- range $name, $comp := .Values.components }}
+  - {{ $name }}: {{ $comp.dsc.managementState }}
+{{- end }}
+
+=== Enabled Dependencies ===
+
+{{- range $name, $dep := .Values.dependencies }}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" $name "dependency" $dep "dependencies" $.Values.dependencies "components" $.Values.components) }}
+{{- if eq $shouldInstall "true" }}
+  - {{ $name }}
+{{- end }}
+{{- end }}
+
+=== Next Steps ===
+
+1. Wait for operators to be ready:
+   kubectl get csv -A | grep -E "(rhods|opendatahub|kueue|cert-manager)"
+
+2. If CRs were not created (first install), run again:
+   helm upgrade --install {{ .Release.Name }} ./chart -n {{ .Release.Namespace }}
+
+3. Check DataScienceCluster status:
+   kubectl get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
+
+{{- if or (eq .Values.dependencies.rhcl.enabled "true") (eq .Values.dependencies.rhcl.enabled "auto") }}
+{{- $rhclNs := .Values.dependencies.rhcl.olm.namespace }}
+=== Enable Authorino TLS (Optional) ===
+
+To enable TLS for Authorino:
+
+1. Annotate the service to trigger TLS certificate generation:
+   kubectl annotate svc/authorino-authorino-authorization \
+       service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+       -n {{ $rhclNs }}
+
+2. Patch the Authorino CR to enable TLS:
+   kubectl patch authorino/authorino -n {{ $rhclNs }} --type=merge -p '{"spec":{"clusterWide":true,"listener":{"tls":{"enabled":true,"certSecretRef":{"name":"authorino-server-cert"}}},"oidcServer":{"tls":{"enabled":false}}}}'
+{{- end }}
+
+=== Documentation ===
+For more information, see the chart README:
+https://github.com/opendatahub-io/odh-gitops/tree/main/chart
+

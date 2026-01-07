@@ -2,17 +2,22 @@
 
 # prepare-authorino-tls.sh - Prepare environment to enable TLS for Authorino
 #
-# Annotates the Authorino service to trigger TLS certificate generation,
-# waits for the TLS certificate secret to be generated, and updates the
-# RHCL kustomization.yaml to include the TLS configuration for Authorino.
+# This script:
+# 1. Waits for the Authorino service to be created
+# 2. Annotates the service to trigger TLS certificate generation
+# 3. Waits for the TLS certificate secret to be generated
+# 4. Either patches the Authorino CR directly or updates kustomization.yaml (default)
 #
-# After running this script, reapply the configuration using kubectl (or oc):
-#   kubectl apply -k configurations/rhcl-operator
+# Environment variables:
+#   KUADRANT_NS       - Namespace where Kuadrant is installed (default: kuadrant-system)
+#   K8S_CLI           - Kubernetes CLI to use (default: kubectl)
+#   KUSTOMIZE_MODE    - If true, updates kustomization.yaml instead of patching directly (default: true)
 
 set -e
 
 KUADRANT_NS="${KUADRANT_NS:-kuadrant-system}"
 K8S_CLI="${K8S_CLI:-kubectl}"
+KUSTOMIZE_MODE="${KUSTOMIZE_MODE:-true}"
 
 AUTHORINO_NAME="authorino"
 SERVICE_NAME="${AUTHORINO_NAME}-authorino-authorization"
@@ -53,26 +58,54 @@ fi
 
 echo "TLS certificate secret created successfully!"
 
-KUSTOMIZATION_FILE="configurations/rhcl-operator/kustomization.yaml"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-KUSTOMIZATION_PATH="${REPO_ROOT}/${KUSTOMIZATION_FILE}"
-echo ""
-echo "Updating ${KUSTOMIZATION_FILE} to include TLS configuration for Authorino..."
+if [ "$KUSTOMIZE_MODE" = "true" ]; then
+    # Kustomize mode: update kustomization.yaml instead of patching directly
+    KUSTOMIZATION_FILE="configurations/rhcl-operator/kustomization.yaml"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+    KUSTOMIZATION_PATH="${REPO_ROOT}/${KUSTOMIZATION_FILE}"
+    echo ""
+    echo "Updating ${KUSTOMIZATION_FILE} to include TLS configuration for Authorino..."
 
-if [ -f "$KUSTOMIZATION_PATH" ]; then
-    if ! grep -q "tls-enabled/authorino-tls.yaml" "$KUSTOMIZATION_PATH"; then
-        yq -i '.resources += ["tls-enabled/authorino-tls.yaml"]' "$KUSTOMIZATION_PATH"
-        echo "File ${KUSTOMIZATION_FILE} updated successfully!"
+    if [ -f "$KUSTOMIZATION_PATH" ]; then
+        if ! grep -q "tls-enabled/authorino-tls.yaml" "$KUSTOMIZATION_PATH"; then
+            yq -i '.resources += ["tls-enabled/authorino-tls.yaml"]' "$KUSTOMIZATION_PATH"
+            echo "File ${KUSTOMIZATION_FILE} updated successfully!"
+        else
+            echo "TLS configuration already included in ${KUSTOMIZATION_FILE}"
+        fi
     else
-        echo "TLS configuration already included in ${KUSTOMIZATION_FILE}"
+        echo "ERROR: Expected ${KUSTOMIZATION_FILE} file not found."
+        exit 1
     fi
-else
-    echo "ERROR: Expected ${KUSTOMIZATION_FILE} file not found."
-    exit 1
-fi
 
-echo ""
-echo "Environment preparation for TLS completed. The RHCL kustomization.yaml has been updated to include the Authorino TLS configuration."
-echo "To apply the updated configuration, run:"
-echo "  ${K8S_CLI} apply -k configurations/rhcl-operator"
+    echo ""
+    echo "Environment preparation for TLS completed. The RHCL kustomization.yaml has been updated to include the Authorino TLS configuration."
+    echo "To apply the updated configuration, run:"
+    echo "  ${K8S_CLI} apply -k configurations/rhcl-operator"
+else
+    # Patch Authorino CR directly
+    echo ""
+    echo "Patching Authorino CR to enable TLS..."
+    ${K8S_CLI} patch authorino/${AUTHORINO_NAME} -n ${KUADRANT_NS} --type=merge -p '{
+      "spec": {
+        "clusterWide": true,
+        "listener": {
+          "tls": {
+            "enabled": true,
+            "certSecretRef": {
+              "name": "'"${SECRET_NAME}"'"
+            }
+          }
+        },
+        "oidcServer": {
+          "tls": {
+            "enabled": false
+          }
+        }
+      }
+    }'
+    echo "Authorino CR patched successfully!"
+    echo ""
+    echo "Environment preparation for TLS completed."
+fi

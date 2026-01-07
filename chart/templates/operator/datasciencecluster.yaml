@@ -1,0 +1,36 @@
+{{- /*
+DataScienceCluster configuration
+Sets managementState from component configuration
+*/ -}}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "datascienceclusters.datasciencecluster.opendatahub.io" "root" $) }}
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+spec:
+  components:
+    aipipelines:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.aipipelines "root" $) | nindent 6 }}
+    dashboard:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.dashboard "root" $) | nindent 6 }}
+    feastoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.feastoperator "root" $) | nindent 6 }}
+    kserve:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kserve "root" $) | nindent 6 }}
+    kueue:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kueue "root" $) | nindent 6 }}
+    mlflowoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.mlflowoperator "root" $) | nindent 6 }}
+    modelregistry:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.modelregistry "root" $) | nindent 6 }}
+    ray:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.ray "root" $) | nindent 6 }}
+    trainer:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trainer "root" $) | nindent 6 }}
+    trustyai:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trustyai "root" $) | nindent 6 }}
+    workbenches:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.workbenches "root" $) | nindent 6 }}
+{{- end }}

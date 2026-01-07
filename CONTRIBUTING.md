@@ -8,7 +8,7 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
-  - [Add a New Dependency Operator](#add-a-new-dependency-operator)
+  - [Add a New Kustomize Dependency Operator](#add-a-new-kustomize-dependency-operator)
     - [Step 1: Create a New Operator Component](#step-1-create-a-new-operator-component)
     - [Step 2: Create Required Manifests](#step-2-create-required-manifests)
     - [Step 3: Create Dependency Operator Directory](#step-3-create-dependency-operator-directory)
@@ -20,6 +20,18 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
       - [Remove Dependencies Script](#remove-dependencies-script)
     - [Step 8: Document the Operator](#step-8-document-the-operator)
     - [Step 9: Test Your Changes](#step-9-test-your-changes)
+  - [Contributing to the Helm Chart](#contributing-to-the-helm-chart)
+    - [Adding a New Dependency to the Helm Chart](#adding-a-new-dependency-to-the-helm-chart)
+      - [Step 1: Add Values Configuration](#step-1-add-values-configuration)
+      - [Step 2: Create Dependency Templates](#step-2-create-dependency-templates)
+      - [Step 3: Update JSON Schema](#step-3-update-json-schema)
+      - [Step 4: Update Documentation](#step-4-update-documentation)
+    - [Adding a New Component to the Helm Chart](#adding-a-new-component-to-the-helm-chart)
+      - [Step 1: Add Component Configuration](#step-1-add-component-configuration)
+      - [Step 2: Update DataScienceCluster Template](#step-2-update-datasciencecluster-template)
+      - [Step 3: Update JSON Schema](#step-3-update-json-schema-1)
+      - [Step 4: Update Documentation](#step-4-update-documentation-1)
+    - [Testing Helm Chart Changes](#testing-helm-chart-changes)
   - [Testing Your Changes](#testing-your-changes)
     - [Local Validation](#local-validation)
   - [Pull Requests](#pull-requests)
@@ -36,7 +48,7 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
 - Access to an OpenShift cluster (for testing)
 - Kustomize v5 or later
 
-## Add a New Dependency Operator
+## Add a New Kustomize Dependency Operator
 
 When adding a new dependency operator required by OpenDataHub:
 
@@ -144,6 +156,163 @@ Add documentation about your operator:
 
 See [Testing Your Changes](#testing-your-changes) section below.
 
+## Contributing to the Helm Chart
+
+The repository includes a Helm chart (`chart/`) that provides an alternative installation method alongside Kustomize. When adding or modifying dependencies, you should also update the Helm chart.
+
+### Adding a New Dependency to the Helm Chart
+
+When adding a new dependency operator, follow these steps:
+
+#### Step 1: Add Values Configuration
+
+Add your dependency to `chart/values.yaml` under the `dependencies` section.
+
+Structure:
+
+- `enabled`: Tri-state value - `auto` (install if needed by a component), `true` (always install), `false` (never install)
+- `dependencies`: Other dependencies this dependency requires (for transitive deps)
+- `olm`: OLM subscription configuration
+- `config` (optional): CR spec fields - user can add any fields supported by the CR
+
+```yaml
+dependencies:
+  yourOperator:
+    # -- Enable your-operator: auto (if needed), true (always), false (never)
+    enabled: auto
+    # -- Dependencies required by your-operator
+    dependencies:
+      certManager: true
+    olm:
+      channel: stable
+      name: your-operator
+      namespace: your-operator-namespace
+      targetNamespaces: [] # optional, for OperatorGroups with specific target namespaces
+    config: # optional
+      # -- YourOperator CR spec (user can add any fields supported by the CR)
+      spec:
+        managementState: Managed
+```
+
+#### Step 2: Create Dependency Templates
+
+Create a new directory `chart/templates/dependencies/your-operator/` with:
+
+**operator.yaml** - OLM installation:
+
+```yaml
+{{- $dep := .Values.dependencies.yourOperator -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "yourOperator" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- if eq $shouldInstall "true" }}
+{{- $installType := include "rhoai-dependencies.installationType" (dict "dependency" $dep "global" .Values.global) -}}
+{{- if eq $installType "olm" }}
+{{ include "rhoai-dependencies.operator.olm" (dict "name" $dep.olm.name "namespace" $dep.olm.namespace "channel" $dep.olm.channel "root" $) }}
+{{- end }}
+{{- end }}
+```
+
+**config.yaml** (optional) - CR configuration:
+
+```yaml
+{{- $dep := .Values.dependencies.yourOperator -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "yourOperator" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- if and (eq $shouldInstall "true") (include "rhoai-dependencies.crdExists" (dict "crdName" "yourresources.your.domain.io" "root" $)) }}
+apiVersion: your.domain.io/v1
+kind: YourResource
+metadata:
+  name: cluster
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+{{- with $dep.config.spec }}
+spec:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+```
+
+#### Step 3: Update JSON Schema
+
+Add your dependency to [`chart/values.schema.json`](./chart/values.schema.json) to enable validation.
+
+#### Step 4: Update Documentation
+
+Run `make helm-docs` to regenerate `chart/api-docs.md`.
+
+### Adding a New Component to the Helm Chart
+
+Components are high-level features (like kserve, kueue, aipipelines) that configure the DataScienceCluster and auto-enable their required dependencies.
+
+#### Step 1: Add Component Configuration
+
+Add your component to `chart/values.yaml` under the `components` section.
+
+Structure:
+
+- `dependencies`: Dependencies required (or optional) your component requires
+- `dsc`: Configuration that goes into the DataScienceCluster CR
+- `defaults` (optional): Operator-type-specific defaults for dsc fields (odh or rhoai)
+
+```yaml
+components:
+  # -- Your component description
+  yourComponent:
+    # -- Dependencies required by YourComponent
+    dependencies:
+      certManager: true
+    # -- DSC configuration for YourComponent
+    dsc:
+      # -- Management state for YourComponent (Managed or Removed)
+      managementState: Managed
+    # -- Operator-type-specific defaults for dsc fields
+    defaults:
+      odh:
+        someField: odh-value
+      rhoai:
+        someField: rhoai-value
+```
+
+#### Step 2: Update DataScienceCluster Template
+
+Add your component to `chart/templates/operator/datasciencecluster.yaml`:
+
+```yaml
+spec:
+  components:
+    kserve:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.kserve "root" $) | nindent 6 }}
+    yourComponent:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.yourComponent "root" $) | nindent 6 }}
+```
+
+#### Step 3: Update JSON Schema
+
+Add your component to `chart/values.schema.json` under the `components` section.
+
+#### Step 4: Update Documentation
+
+1. Update `chart/README.md` with component information
+2. Run `make helm-docs` to regenerate `chart/api-docs.md`
+
+### Testing Helm Chart Changes
+
+1. **Lint the chart**:
+
+   ```bash
+   helm lint ./chart
+   ```
+
+2. **Update snapshots**:
+
+   ```bash
+   make chart-snapshots
+   ```
+
+3. **Test on a cluster**:
+
+   ```bash
+   make helm-install-verify
+   ```
+
 ## Testing Your Changes
 
 Always test your changes before submitting a PR.
@@ -152,7 +321,7 @@ Always test your changes before submitting a PR.
 
 1. **Validate Kustomize Build**:
 
-  Run `make validate` to validate the kustomization files.
+  Run `make validate-all` to validate the kustomization files.
 
 2. **Check for YAML Errors**:
 

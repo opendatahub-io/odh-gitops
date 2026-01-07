@@ -19,6 +19,14 @@ ifeq ($(ARCH),aarch64)
 	ARCH := arm64
 endif
 
+SED_COMMAND = sed
+ifeq ($(OS),darwin)
+	SED_COMMAND = gsed
+	ifeq (,$(shell which gsed 2>/dev/null))
+$(error gsed is required on macOS but was not found. Please install it using: brew install gnu-sed)
+	endif
+endif
+
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 PYTHONLOCALBIN ?= $(LOCALBIN)/.python
@@ -44,6 +52,7 @@ YQ_VERSION ?= v4.49.2
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 
 KUADRANT_NS ?= kuadrant-system # (RHCL operator-related) should match the namespace in Kuadrant CR yaml (default is kuadrant-system)
+KUSTOMIZE_MODE ?= true # If false, patches the Authorino CR directly instead of updating the kustomization.yaml
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -140,9 +149,9 @@ remove-all-dependencies:
 	@echo "All dependencies removed successfully! ✓"
 
 .PHONY: prepare-authorino-tls
-prepare-authorino-tls: yq ## Prepare environment to enable TLS for Authorino by annotating the service, waiting for the TLS certificate secret to be generated, and updating the kustomization.yaml
+prepare-authorino-tls: yq ## Prepare environment to enable TLS for Authorino by annotating the service, waiting for the TLS certificate secret to be generated, and patching the Authorino CR.
 	@echo "Preparing environment to enable TLS for Authorino..."
-	@KUADRANT_NS=$(KUADRANT_NS) K8S_CLI=$(K8S_CLI) PATH="$(LOCALBIN):$$PATH" bash ./scripts/prepare-authorino-tls.sh
+	@KUADRANT_NS=$(KUADRANT_NS) K8S_CLI=$(K8S_CLI) KUSTOMIZE_MODE=$(KUSTOMIZE_MODE) bash ./scripts/prepare-authorino-tls.sh
 
 .PHONY: dry-run
 dry-run: kustomize ## Dry run kustomize directory as passed as argument
@@ -182,3 +191,89 @@ fi
 	$(KUSTOMIZE) build $$dir > /dev/null && echo "  ✓ $$rel_dir" || (echo "  ✗ $$rel_dir FAILED" && exit 1); \
 done
 endef
+
+HELM_TMPL_CMD ?= helm template -f chart/values.yaml -f chart/test/testValues.yaml
+HELM_SNAPSHOT_DIR ?= chart/test/snapshots
+HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
+tmpl_debug ?=
+
+# Internal function to generate and normalize helm output
+# Usage: $(call helm-template,output-file,extra-args)
+define helm-template
+	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default $(2) ./chart > $(1)
+	@$(SED_COMMAND) -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(1)
+	@rm $(1).bak
+endef
+
+##@ Helm Chart utilities
+.PHONY: chart-snapshots
+chart-snapshots: ## Create snapshots for all chart configurations
+	@echo "==> Creating default snapshot..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/default.snap.yaml,)
+	@echo "==> Creating skipCrdCheck snapshot for ODH..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
+	@echo "==> Creating skipCrdCheck snapshot for RHOAI..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
+	@echo "==> Snapshots updated!"
+
+.PHONY: chart-test
+chart-test: ## Test chart against all snapshots
+	@echo "==> Testing default configuration..."
+	$(call helm-template,.helm-test-default.yaml,)
+	@diff .helm-test-default.yaml $(HELM_SNAPSHOT_DIR)/default.snap.yaml
+	@rm .helm-test-default.yaml
+	@echo "==> Testing skipCrdCheck ODH configuration..."
+	$(call helm-template,.helm-test-skip-crd-odh.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
+	@diff .helm-test-skip-crd-odh.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml
+	@rm .helm-test-skip-crd-odh.yaml
+	@echo "==> Testing skipCrdCheck RHOAI configuration..."
+	$(call helm-template,.helm-test-skip-crd-rhoai.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
+	@diff .helm-test-skip-crd-rhoai.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml
+	@rm .helm-test-skip-crd-rhoai.yaml
+	@echo "==> All tests passed!"
+
+HELM_DOCS ?= $(LOCALBIN)/helm-docs
+.PHONY: helm-docs-ensure
+helm-docs-ensure: $(HELM_DOCS) ## Download helm-docs locally if necessary.
+$(HELM_DOCS): $(LOCALBIN)
+	$(call go-install-tool,$(HELM_DOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,$(HELM_DOCS_VERSION))
+
+.PHONY: helm-docs
+helm-docs: helm-docs-ensure ## Run helm-docs.
+	$(HELM_DOCS) --chart-search-root $(shell pwd)/chart -o api-docs.md
+
+.PHONY: helm-verify
+helm-verify: ## Verify helm chart installation and DSC components
+	NAMESPACE=opendatahub-gitops ./scripts/verify-helm-chart.sh
+
+.PHONY: helm-install-verify
+helm-install-verify: ## Install helm chart and verify installation
+	@echo "=== Step 1: Install operators ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace
+	@echo ""
+	@echo "=== Step 2: Wait for CRDs (dependency) ==="
+	@./scripts/wait-for-crds.sh
+	@bash ./scripts/verify-dependencies.sh
+	@echo ""
+	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops
+	@echo ""
+	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
+	@echo "Waiting for odh-dashboard deployment to exist..."
+	@while ! $(K8S_CLI) get deployment odh-dashboard -n opendatahub >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
+	$(K8S_CLI) scale deployment odh-dashboard -n opendatahub --replicas=1
+	$(K8S_CLI) set resources deployment -n opendatahub odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
+	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
+	$(MAKE) helm-verify
+	@echo ""
+	@echo "=== Step 5: Enable Authorino TLS ==="
+	@$(K8S_CLI) delete pod -l app=kuadrant -n kuadrant-system
+	@echo ""
+	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
+	@echo ""
+	@echo "=== Step 6: Final helm upgrade with wait condition ==="
+	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
+
+.PHONY: helm-uninstall
+helm-uninstall: ## Uninstall helm chart and all dependencies
+	./scripts/uninstall-helm-chart.sh

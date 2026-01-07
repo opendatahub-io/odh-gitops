@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  name: cluster-validation-ocp420-pr{{ pull_request_number }}-{{ revision }}
+  name: cluster-validation-ocp420-pr{{ pull_request_number }}
   labels:
     appstudio.openshift.io/application: odh-gitops
     appstudio.openshift.io/component: cluster-validation-ocp-420
@@ -11,10 +11,18 @@ metadata:
     # Disabled until OCP 4.20 support is confirmed
     # pipelinesascode.tekton.dev/on-cel-expression: |
     #   event == "pull_request" &&
-    #   files.all.exists(file, !file.matches('^(\\.github/.*|\\.gitignore|\\.kube-linter\\.yaml|\\.yamllint\\.yaml|CONTRIBUTING\\.md|LICENSE|README\\.md|Makefile|.*\\.md)$'))
+    #   files.all.exists(file,
+    #     !file.startsWith('.github/') &&
+    #     !file.startsWith('chart/') &&
+    #     file != '.gitignore' &&
+    #     file != '.kube-linter.yaml' &&
+    #     file != '.yamllint.yaml' &&
+    #     file != 'LICENSE' &&
+    #     file != 'Makefile' &&
+    #     !file.endsWith('.md')
+    #   )
     # pipelinesascode.tekton.dev/on-comment: "^/validate-dependencies"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
 spec:
   pipelineRef:
     resolver: git
@@ -32,5 +40,7 @@ spec:
       value: "{{revision}}"
     - name: ocp-version
       value: "4.20.0"
+    - name: validation-type
+      value: "kustomize"
   taskRunTemplate:
     serviceAccountName: build-pipeline-cluster-validation-ocp-420
