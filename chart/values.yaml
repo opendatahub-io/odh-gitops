@@ -100,12 +100,20 @@ components:
     dsc:
       # -- Management state for KServe (Managed or Removed)
       managementState: Managed
-      # -- Raw deployment service config for KServe (Headless or Headed)
-      rawDeploymentServiceConfig: Headless
+      # -- Models as Service configuration
+      modelsAsService:
+        # -- Management state for Models as Service (Managed or Removed)
+        managementState: Removed
+        # -- Reference to the global Gateway where models should be published to when exposed as services
+        # gateway:
+        #   namespace:
+        #   name:
       # -- Enables NVIDIA NIM integration
       nim:
         # -- Management state for NIM (Managed or Removed)
         managementState: Managed
+      # -- Raw deployment service config for KServe (Headless or Headed)
+      rawDeploymentServiceConfig: Headless
 
   # -- Kueue job queuing component
   kueue:
