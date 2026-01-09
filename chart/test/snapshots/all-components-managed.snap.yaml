@@ -134,6 +134,8 @@ spec:
       managementState: Managed
     trainer:
       managementState: Managed
+    trainingoperator:
+      managementState: Removed
     trustyai:
       eval:
         lmeval:

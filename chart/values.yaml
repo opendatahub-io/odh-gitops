@@ -394,14 +394,14 @@ dependencies:
       namespace: openshift-nfd
       targetNamespaces:
         - openshift-nfd
-    config:
-      # -- NodeFeatureDiscovery CR spec (user must configure based on their requirements)
-      # -- See https://docs.openshift.com/container-platform/latest/hardware_enablement/psap-node-feature-discovery-operator.html
-      spec: {}
-      # Example configuration (uncomment and modify as needed):
-      #   operand:
-      #     image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.19
-      #     imagePullPolicy: Always
+    # config:
+    #   # -- NodeFeatureDiscovery CR spec (user must configure based on their requirements)
+    #   # -- See https://docs.openshift.com/container-platform/latest/hardware_enablement/psap-node-feature-discovery-operator.html
+    #   spec:
+    #     # Example configuration (uncomment and modify as needed):
+    #     operand:
+    #       image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.19
+    #       imagePullPolicy: Always
 
   # -- NVIDIA GPU operator (required for GPU support)
   nvidiaGPUOperator:
@@ -417,36 +417,36 @@ dependencies:
       source: certified-operators
       targetNamespaces:
         - nvidia-gpu-operator
-    config:
-      # -- ClusterPolicy CR spec (user must configure based on their requirements)
-      # -- See https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/index.html
-      spec: {}
-      # Example configuration (uncomment and modify as needed):
-      #   operator:
-      #     defaultRuntime: crio
-      #   daemonsets:
-      #     priorityClassName: system-node-critical
-      #     tolerations:
-      #       - key: nvidia.com/gpu
-      #         operator: Exists
-      #         effect: NoSchedule
-      #     updateStrategy: RollingUpdate
-      #   driver:
-      #     enabled: true
-      #     repository: nvcr.io/nvidia
-      #     image: driver
-      #     version: "580.65.06"
-      #   toolkit:
-      #     enabled: true
-      #   devicePlugin:
-      #     enabled: true
-      #   dcgm:
-      #     enabled: true
-      #   dcgmExporter:
-      #     enabled: true
-      #   gfd:
-      #     enabled: true
-      #   migManager:
-      #     enabled: true
-      #   nodeStatusExporter:
-      #     enabled: true
+    # config:
+    #   # -- ClusterPolicy CR spec (user must configure based on their requirements)
+    #   # -- See https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/index.html
+    #   spec:
+    #     # Example configuration (uncomment and modify as needed):
+    #     operator:
+    #       defaultRuntime: crio
+    #     daemonsets:
+    #       priorityClassName: system-node-critical
+    #       tolerations:
+    #         - key: nvidia.com/gpu
+    #           operator: Exists
+    #           effect: NoSchedule
+    #       updateStrategy: RollingUpdate
+    #     driver:
+    #       enabled: true
+    #       repository: nvcr.io/nvidia
+    #       image: driver
+    #       version: "580.65.06"
+    #     toolkit:
+    #       enabled: true
+    #     devicePlugin:
+    #       enabled: true
+    #     dcgm:
+    #       enabled: true
+    #     dcgmExporter:
+    #       enabled: true
+    #     gfd:
+    #       enabled: true
+    #     migManager:
+    #       enabled: true
+    #     nodeStatusExporter:
+    #       enabled: true

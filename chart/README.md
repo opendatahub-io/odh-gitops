@@ -97,7 +97,7 @@ High-level features that:
 | `feastoperator` | Feast feature store operator | Managed | - |
 | `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
 | `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
-| `llamastackoperator` | LlamaStack Operator (see [prerequisites](#llamastackoperator-prerequisites)) | Removed | nfd, nvidiaGPUOperator |
+| `llamastackoperator` | LlamaStack Operator | Removed | nfd, nvidiaGPUOperator |
 | `mlflowoperator` | MLflow tracking and model registry | Removed | - |
 | `modelregistry` | Model Registry | Managed | - |
 | `ray` | Ray distributed computing | Managed | certManager |

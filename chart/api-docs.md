@@ -87,12 +87,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
 | dependencies.leaderWorkerSet.dependencies | object | `{"certManager":true}` | Dependencies required by leader-worker-set |
 | dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
-| dependencies.nfd | object | `{"config":{"spec":{}},"dependencies":{},"enabled":false,"olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
-| dependencies.nfd.config.spec | object | `{}` | See https://docs.openshift.com/container-platform/latest/hardware_enablement/psap-node-feature-discovery-operator.html |
+| dependencies.nfd | object | `{"dependencies":{},"enabled":false,"olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
 | dependencies.nfd.dependencies | object | `{}` | Dependencies required by NFD |
 | dependencies.nfd.enabled | bool | `false` | Enable NFD: auto (if needed), true (always), false (never) |
-| dependencies.nvidiaGPUOperator | object | `{"config":{"spec":{}},"dependencies":{"nfd":true},"enabled":false,"olm":{"channel":"v25.10","name":"gpu-operator-certified","namespace":"nvidia-gpu-operator","source":"certified-operators","targetNamespaces":["nvidia-gpu-operator"]}}` | NVIDIA GPU operator (required for GPU support) |
-| dependencies.nvidiaGPUOperator.config.spec | object | `{}` | See https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/index.html |
+| dependencies.nvidiaGPUOperator | object | `{"dependencies":{"nfd":true},"enabled":false,"olm":{"channel":"v25.10","name":"gpu-operator-certified","namespace":"nvidia-gpu-operator","source":"certified-operators","targetNamespaces":["nvidia-gpu-operator"]}}` | NVIDIA GPU operator (required for GPU support) |
 | dependencies.nvidiaGPUOperator.dependencies | object | `{"nfd":true}` | Dependencies required by GPU operator |
 | dependencies.nvidiaGPUOperator.enabled | bool | `false` | Enable GPU operator: auto (if needed), true (always), false (never) |
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
