@@ -18,6 +18,14 @@ spec:
       type: string
       default: "kustomize"
       description: "Type of validation to run: kustomize or helm"
+    - name: olm-catalog-image
+      type: string
+      default: ""
+      description: "Optional OLM catalog image to install (e.g. quay.io/rhoai/rhoai-fbc-fragment:rhoai-3.2)"
+    - name: olm-channel
+      type: string
+      default: ""
+      description: "Optional OLM channel to use for operator subscription (e.g. fast, stable)"
   tasks:
     - name: provision-eaas-space
       taskRef:
@@ -51,6 +59,10 @@ spec:
           - name: eaas-space-secret-ref
             type: string
           - name: validation-type
+            type: string
+          - name: olm-catalog-image
+            type: string
+          - name: olm-channel
             type: string
         results:
           - name: clusterName
@@ -140,6 +152,10 @@ spec:
                 value: $(steps.create-cluster.results.clusterName)
               - name: VALIDATION_TYPE
                 value: $(params.validation-type)
+              - name: OLM_CATALOG_IMAGE
+                value: $(params.olm-catalog-image)
+              - name: OLM_CHANNEL
+                value: $(params.olm-channel)
             volumeMounts:
               - name: credentials
                 mountPath: /credentials
@@ -151,6 +167,59 @@ spec:
 
               echo "=== Running ${VALIDATION_TYPE} validation on OCP ${OCP_VERSION} ==="
 
+              # Install custom OLM catalog if specified
+              if [ -n "${OLM_CATALOG_IMAGE}" ]; then
+                echo ""
+                echo "=== Installing custom OLM catalog ==="
+                echo "Catalog image: ${OLM_CATALOG_IMAGE}"
+
+                cat <<EOF | oc apply -f -
+              apiVersion: operators.coreos.com/v1alpha1
+              kind: CatalogSource
+              metadata:
+                name: custom-catalog
+                namespace: openshift-marketplace
+              spec:
+                sourceType: grpc
+                image: ${OLM_CATALOG_IMAGE}
+                displayName: Custom Catalog
+                publisher: Custom
+                updateStrategy:
+                  registryPoll:
+                    interval: 30m
+              EOF
+
+                echo "Waiting for catalog source to be ready..."
+                # Wait for the catalog pod to be created and running
+                for i in {1..30}; do
+                  POD_STATUS=$(oc get pods -n openshift-marketplace -l olm.catalogSource=custom-catalog -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "NotFound")
+                  if [ "${POD_STATUS}" = "Running" ]; then
+                    echo "Catalog pod is running"
+                    break
+                  fi
+                  echo "Waiting for catalog pod... (attempt ${i}/30, status: ${POD_STATUS})"
+                  if [ "${POD_STATUS}" = "ImagePullBackOff" ] || [ "${POD_STATUS}" = "ErrImagePull" ]; then
+                    echo "ERROR: Failed to pull catalog image. Check if the image exists and credentials are configured."
+                    oc get pods -n openshift-marketplace -l olm.catalogSource=custom-catalog -o yaml
+                    exit 1
+                  fi
+                  sleep 10
+                done
+
+                echo "✅ Custom OLM catalog installed"
+              fi
+
+              # Build additional helm args if custom catalog or channel is specified
+              HELM_EXTRA_ARGS=""
+              if [ -n "${OLM_CATALOG_IMAGE}" ]; then
+                HELM_EXTRA_ARGS="--set operator.odh.olm.source=custom-catalog"
+                echo "Using custom catalog for operators: custom-catalog"
+              fi
+              if [ -n "${OLM_CHANNEL}" ]; then
+                HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS} --set operator.odh.olm.channel=${OLM_CHANNEL}"
+                echo "Using OLM channel: ${OLM_CHANNEL}"
+              fi
+
               if [ "${VALIDATION_TYPE}" = "helm" ]; then
                 # Install helm if not available
                 if ! command -v helm &> /dev/null; then
@@ -161,7 +230,7 @@ spec:
                 # Install the chart (first run - operators only)
                 echo ""
                 echo "=== Install and verify Helm chart ==="
-                make helm-install-verify
+                make helm-install-verify HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS}"
 
               else
                 # Kustomize validation (default)
@@ -188,3 +257,7 @@ spec:
           value: $(tasks.provision-eaas-space.results.secretRef)
         - name: validation-type
           value: $(params.validation-type)
+        - name: olm-catalog-image
+          value: $(params.olm-catalog-image)
+        - name: olm-channel
+          value: $(params.olm-channel)
