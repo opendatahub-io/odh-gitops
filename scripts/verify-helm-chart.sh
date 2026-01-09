@@ -10,6 +10,7 @@ set -e
 NAMESPACE="${NAMESPACE:-opendatahub-gitops}"
 TIMEOUT="${TIMEOUT:-600}"  # 10 minutes default
 INTERVAL="${INTERVAL:-10}"
+OPERATOR_TYPE="${OPERATOR_TYPE:-odh}"  # odh or rhoai
 
 echo "=== Verifying Helm Chart Installation ==="
 
@@ -21,12 +22,12 @@ fi
 echo "✅ helm CLI found: $(helm version --short)"
 
 # Check if helm release exists
-echo "Checking Helm release..."
-if ! helm list -n "${NAMESPACE}" 2>/dev/null | grep -q rhoai; then
-    echo "❌ Helm release 'rhoai' not found in namespace ${NAMESPACE}"
+echo "Checking Helm release for operator type: ${OPERATOR_TYPE}..."
+if ! helm list -n "${NAMESPACE}" 2>/dev/null | grep -q odh; then
+    echo "❌ Helm release 'odh' not found in namespace ${NAMESPACE}"
     exit 1
 fi
-echo "✅ Helm release found"
+echo "✅ Helm release 'odh' found"
 
 # Check DSC status
 echo ""

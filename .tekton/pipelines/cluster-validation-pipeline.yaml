@@ -26,6 +26,10 @@ spec:
       type: string
       default: ""
       description: "Optional OLM channel to use for operator subscription (e.g. fast, stable)"
+    - name: operator-type
+      type: string
+      default: "odh"
+      description: "Operator type to install: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)"
   tasks:
     - name: provision-eaas-space
       taskRef:
@@ -63,6 +67,8 @@ spec:
           - name: olm-catalog-image
             type: string
           - name: olm-channel
+            type: string
+          - name: operator-type
             type: string
         results:
           - name: clusterName
@@ -156,6 +162,8 @@ spec:
                 value: $(params.olm-catalog-image)
               - name: OLM_CHANNEL
                 value: $(params.olm-channel)
+              - name: OPERATOR_TYPE
+                value: $(params.operator-type)
             volumeMounts:
               - name: credentials
                 mountPath: /credentials
@@ -209,14 +217,15 @@ spec:
                 echo "✅ Custom OLM catalog installed"
               fi
 
-              # Build additional helm args if custom catalog or channel is specified
-              HELM_EXTRA_ARGS=""
+              # Build additional helm args
+              HELM_EXTRA_ARGS="--set operator.type=${OPERATOR_TYPE}"
+              echo "Using operator type: ${OPERATOR_TYPE}"
               if [ -n "${OLM_CATALOG_IMAGE}" ]; then
-                HELM_EXTRA_ARGS="--set operator.odh.olm.source=custom-catalog"
+                HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS} --set operator.${OPERATOR_TYPE}.olm.source=custom-catalog"
                 echo "Using custom catalog for operators: custom-catalog"
               fi
               if [ -n "${OLM_CHANNEL}" ]; then
-                HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS} --set operator.odh.olm.channel=${OLM_CHANNEL}"
+                HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS} --set operator.${OPERATOR_TYPE}.olm.channel=${OLM_CHANNEL}"
                 echo "Using OLM channel: ${OLM_CHANNEL}"
               fi
 
@@ -230,7 +239,7 @@ spec:
                 # Install the chart (first run - operators only)
                 echo ""
                 echo "=== Install and verify Helm chart ==="
-                make helm-install-verify HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS}"
+                make helm-install-verify HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS}" OPERATOR_TYPE="${OPERATOR_TYPE}"
 
               else
                 # Kustomize validation (default)
@@ -261,3 +270,5 @@ spec:
           value: $(params.olm-catalog-image)
         - name: olm-channel
           value: $(params.olm-channel)
+        - name: operator-type
+          value: $(params.operator-type)
