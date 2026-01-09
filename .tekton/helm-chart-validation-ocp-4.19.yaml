@@ -36,5 +36,7 @@ spec:
       value: "quay.io/opendatahub/opendatahub-operator-catalog:pr-3035"
     - name: olm-channel
       value: "fast"
+    - name: operator-type
+      value: "odh"
   taskRunTemplate:
     serviceAccountName: build-pipeline-helm-chart-validation-ocp-419

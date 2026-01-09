@@ -248,9 +248,19 @@ $(HELM_DOCS): $(LOCALBIN)
 helm-docs: helm-docs-ensure ## Run helm-docs.
 	$(HELM_DOCS) --chart-search-root $(shell pwd)/chart -o api-docs.md
 
+# Operator type for helm installation (odh or rhoai)
+OPERATOR_TYPE ?= odh
+
+# Applications namespace based on operator type
+ifeq ($(OPERATOR_TYPE),rhoai)
+	APPLICATIONS_NAMESPACE := redhat-ods-applications
+else
+	APPLICATIONS_NAMESPACE := opendatahub
+endif
+
 .PHONY: helm-verify
 helm-verify: ## Verify helm chart installation and DSC components
-	NAMESPACE=opendatahub-gitops ./scripts/verify-helm-chart.sh
+	NAMESPACE=opendatahub-gitops OPERATOR_TYPE=$(OPERATOR_TYPE) ./scripts/verify-helm-chart.sh
 
 # Extra arguments to pass to helm commands (e.g., --set global.olm.source=custom-catalog)
 HELM_EXTRA_ARGS ?=
@@ -268,10 +278,10 @@ helm-install-verify: ## Install helm chart and verify installation
 	helm upgrade --install odh ./chart -n opendatahub-gitops $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
-	@echo "Waiting for odh-dashboard deployment to exist..."
-	@while ! $(K8S_CLI) get deployment odh-dashboard -n opendatahub >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
-	$(K8S_CLI) scale deployment odh-dashboard -n opendatahub --replicas=1
-	$(K8S_CLI) set resources deployment -n opendatahub odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
+	@echo "Waiting for odh-dashboard deployment to exist in namespace $(APPLICATIONS_NAMESPACE)..."
+	@while ! $(K8S_CLI) get deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
+	$(K8S_CLI) scale deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) --replicas=1
+	$(K8S_CLI) set resources deployment -n $(APPLICATIONS_NAMESPACE) odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
 	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
 	$(MAKE) helm-verify
 	@echo ""
