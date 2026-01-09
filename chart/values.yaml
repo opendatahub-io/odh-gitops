@@ -385,7 +385,7 @@ dependencies:
   # -- Node Feature Discovery operator (required for GPU support)
   nfd:
     # -- Enable NFD: auto (if needed), true (always), false (never)
-    enabled: false
+    enabled: auto
     # -- Dependencies required by NFD
     dependencies: {}
     olm:
@@ -406,7 +406,7 @@ dependencies:
   # -- NVIDIA GPU operator (required for GPU support)
   nvidiaGPUOperator:
     # -- Enable GPU operator: auto (if needed), true (always), false (never)
-    enabled: false
+    enabled: auto
     # -- Dependencies required by GPU operator
     dependencies:
       nfd: true
