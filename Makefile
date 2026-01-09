@@ -252,17 +252,20 @@ helm-docs: helm-docs-ensure ## Run helm-docs.
 helm-verify: ## Verify helm chart installation and DSC components
 	NAMESPACE=opendatahub-gitops ./scripts/verify-helm-chart.sh
 
+# Extra arguments to pass to helm commands (e.g., --set global.olm.source=custom-catalog)
+HELM_EXTRA_ARGS ?=
+
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 1: Install operators ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace
+	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 2: Wait for CRDs (dependency) ==="
 	@./scripts/wait-for-crds.sh
 	@bash ./scripts/verify-dependencies.sh
 	@echo ""
 	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops
+	helm upgrade --install odh ./chart -n opendatahub-gitops $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
 	@echo "Waiting for odh-dashboard deployment to exist..."
@@ -278,8 +281,7 @@ helm-install-verify: ## Install helm chart and verify installation
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 6: Final helm upgrade with wait condition ==="
-	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
-	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
+	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m $(HELM_EXTRA_ARGS)
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies
