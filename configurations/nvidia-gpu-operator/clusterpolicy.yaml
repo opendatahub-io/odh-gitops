@@ -1,0 +1,34 @@
+# Example configuration (modify as needed)
+apiVersion: nvidia.com/v1
+kind: ClusterPolicy
+metadata:
+  name: gpu-cluster-policy
+spec:
+  operator:
+    defaultRuntime: crio
+  daemonsets:
+    priorityClassName: system-node-critical
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+    updateStrategy: RollingUpdate
+  driver:
+    enabled: true
+    repository: nvcr.io/nvidia
+    image: driver
+    version: "580.65.06"
+  toolkit:
+    enabled: true
+  devicePlugin:
+    enabled: true
+  dcgm:
+    enabled: true
+  dcgmExporter:
+    enabled: true
+  gfd:
+    enabled: true
+  migManager:
+    enabled: true
+  nodeStatusExporter:
+    enabled: true

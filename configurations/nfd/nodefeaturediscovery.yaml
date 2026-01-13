@@ -1,0 +1,10 @@
+# Example configuration (modify as needed)
+apiVersion: nfd.openshift.io/v1
+kind: NodeFeatureDiscovery
+metadata:
+  name: nfd-instance
+  namespace: openshift-nfd
+spec:
+  operand:
+    image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.19
+    imagePullPolicy: Always
