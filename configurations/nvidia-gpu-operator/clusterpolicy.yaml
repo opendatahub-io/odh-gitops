@@ -1,4 +1,4 @@
-# Example configuration (modify as needed)
+# TODO: this configuration needs to be modified based on the requirements of the cluster
 apiVersion: nvidia.com/v1
 kind: ClusterPolicy
 metadata:
