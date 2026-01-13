@@ -97,6 +97,7 @@ High-level features that:
 | `feastoperator` | Feast feature store operator | Managed | - |
 | `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
 | `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
+| `llamastackoperator` | LlamaStack Operator | Removed | nfd, nvidiaGPUOperator |
 | `mlflowoperator` | MLflow tracking and model registry | Removed | - |
 | `modelregistry` | Model Registry | Managed | - |
 | `ray` | Ray distributed computing | Managed | certManager |
@@ -126,6 +127,8 @@ Operators that can be installed. Use tri-state `enabled` field:
 | `clusterObservability` | Cluster Observability operator | opentelemetry |
 | `opentelemetry` | OpenTelemetry operator | - |
 | `tempo` | Tempo operator | opentelemetry |
+| `nfd` | Node Feature Discovery (required for GPU support) | - |
+| `nvidiaGPUOperator` | NVIDIA GPU Operator (required for GPU support) | nfd |
 
 ### Example: Enable kserve
 

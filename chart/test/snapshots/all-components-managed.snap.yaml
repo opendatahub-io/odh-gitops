@@ -44,6 +44,24 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-nfd
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nvidia-gpu-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -57,7 +75,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: redhat-ods-operator
+  name: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -73,9 +91,9 @@ metadata:
 spec:
   monitoring:
     managementState: "Managed"
-    namespace: redhat-ods-monitoring
+    namespace: opendatahub
     metrics: {}
-  applicationsNamespace: redhat-ods-applications
+  applicationsNamespace: opendatahub
   trustedCABundle:
     managementState: "Managed"
     customCABundle: ""
@@ -106,12 +124,12 @@ spec:
       defaultLocalQueueName: default
       managementState: Unmanaged
     llamastackoperator:
-      managementState: Removed
+      managementState: Managed
     mlflowoperator:
-      managementState: Removed
+      managementState: Managed
     modelregistry:
       managementState: Managed
-      registriesNamespace: rhoai-model-registries
+      registriesNamespace: odh-model-registry
     ray:
       managementState: Managed
     trainer:
@@ -126,7 +144,7 @@ spec:
       managementState: Managed
     workbenches:
       managementState: Managed
-      workbenchNamespace: rhods-notebooks
+      workbenchNamespace: opendatahub
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
@@ -248,6 +266,34 @@ spec:
   targetNamespaces:
     - openshift-lws-operator
 ---
+# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: nfd
+  namespace: openshift-nfd
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+  targetNamespaces:
+    - openshift-nfd
+---
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+  targetNamespaces:
+    - nvidia-gpu-operator
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -264,8 +310,8 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: rhods-operator
-  namespace: redhat-ods-operator
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -352,6 +398,38 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: nfd
+  namespace: openshift-nfd
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: nfd
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: v25.10
+  installPlanApproval: Automatic
+  name: gpu-operator-certified
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -372,16 +450,16 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: rhods-operator
-  namespace: redhat-ods-operator
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
-  channel: fast-3.x
+  channel: fast-3
   installPlanApproval: Automatic
-  name: rhods-operator
-  source: redhat-operators
+  name: opendatahub-operator
+  source: community-operators
   sourceNamespace: openshift-marketplace
   config:
     env:

@@ -118,6 +118,9 @@
         },
         "workbenches": {
           "$ref": "#/definitions/workbenchesComponent"
+        },
+        "llamastackoperator": {
+          "$ref": "#/definitions/component"
         }
       },
       "additionalProperties": false
@@ -152,6 +155,12 @@
         },
         "customMetricsAutoscaler": {
           "$ref": "#/definitions/dependency"
+        },
+        "nfd": {
+          "$ref": "#/definitions/dependencyWithConfig"
+        },
+        "nvidiaGPUOperator": {
+          "$ref": "#/definitions/dependencyWithConfig"
         }
       },
       "additionalProperties": false

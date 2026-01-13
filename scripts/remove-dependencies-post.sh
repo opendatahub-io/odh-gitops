@@ -23,3 +23,11 @@ oc delete --ignore-not-found crd leaderworkersetoperators.operator.openshift.io
 oc delete --ignore-not-found crd authorinos.operator.authorino.kuadrant.io authconfigs.authorino.kuadrant.io
 oc delete --ignore-not-found crd kuadrants.kuadrant.io
 oc delete --ignore-not-found crd authpolicies.kuadrant.io dnshealthcheckprobes.kuadrant.io dnspolicies.kuadrant.io dnsrecords.kuadrant.io limitadors.limitador.kuadrant.io oidcpolicies.extensions.kuadrant.io planpolicies.extensions.kuadrant.io ratelimitpolicies.kuadrant.io telemetrypolicies.extensions.kuadrant.io tlspolicies.kuadrant.io tokenratelimitpolicies.kuadrant.io
+
+# Remove NFD
+oc delete --ignore-not-found crd nodefeaturediscoveries.nfd.openshift.io nodefeaturerules.nfd.k8s-sigs.io nodefeatures.nfd.k8s-sigs.io nodefeaturegroups.nfd.k8s-sigs.io noderesourcetopologies.topology.node.k8s.io
+oc delete --ignore-not-found namespace openshift-nfd
+
+# Remove GPU operator
+oc delete --ignore-not-found crd clusterpolicies.nvidia.com nvidiadrivers.nvidia.com
+oc delete --ignore-not-found namespace nvidia-gpu-operator

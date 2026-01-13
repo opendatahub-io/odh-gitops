@@ -1,0 +1,16 @@
+{{- $dep := .Values.dependencies.nvidiaGPUOperator -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "nvidiaGPUOperator" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- if eq $shouldInstall "true" }}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "clusterpolicies.nvidia.com" "root" $) }}
+{{- if and $dep.config $dep.config.spec }}
+apiVersion: nvidia.com/v1
+kind: ClusterPolicy
+metadata:
+  name: gpu-cluster-policy
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+spec:
+  {{- toYaml $dep.config.spec | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -214,6 +214,8 @@ chart-snapshots: ## Create snapshots for all chart configurations
 	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
 	@echo "==> Creating skipCrdCheck snapshot for RHOAI..."
 	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
+	@echo "==> Creating all-components-managed snapshot..."
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set dependencies.nfd.enabled=true --set dependencies.nvidiaGPUOperator.enabled=true)
 	@echo "==> Snapshots updated!"
 
 .PHONY: chart-test
@@ -230,6 +232,10 @@ chart-test: ## Test chart against all snapshots
 	$(call helm-template,.helm-test-skip-crd-rhoai.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
 	@diff .helm-test-skip-crd-rhoai.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml
 	@rm .helm-test-skip-crd-rhoai.yaml
+	@echo "==> Testing all-components-managed configuration..."
+	$(call helm-template,.helm-test-all-components-managed.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set dependencies.nfd.enabled=true --set dependencies.nvidiaGPUOperator.enabled=true)
+	@diff .helm-test-all-components-managed.yaml $(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml
+	@rm .helm-test-all-components-managed.yaml
 	@echo "==> All tests passed!"
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
