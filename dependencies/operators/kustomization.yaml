@@ -11,5 +11,6 @@ components:
   - ../../components/operators/tempo-product
   - ../../components/operators/openshift-custom-metrics-autoscaler
   - ../../components/operators/rhcl-operator
-  - ../../components/operators/nfd
-  - ../../components/operators/gpu-operator
+  # TODO: The following operators need a manual configuration. It needs to be added if used llamastackoperator.
+  # - ../../components/operators/nfd
+  # - ../../components/operators/nvidia-gpu-operator
