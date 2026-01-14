@@ -33,7 +33,7 @@ spec:
     - name: validation-type
       value: "helm"
     - name: olm-catalog-image
-      value: "quay.io/opendatahub/opendatahub-operator-catalog:pr-3035"
+      value: "quay.io/opendatahub/opendatahub-operator-catalog:latest"
     - name: olm-channel
       value: "fast"
     - name: operator-type
