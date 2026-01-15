@@ -16,7 +16,7 @@ Namespace: {{ .Release.Namespace }}
 === Enabled Dependencies ===
 
 {{- range $name, $dep := .Values.dependencies }}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" $name "dependency" $dep "dependencies" $.Values.dependencies "components" $.Values.components) }}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" $name "dependency" $dep "dependencies" $.Values.dependencies "components" $.Values.components "services" $.Values.services) }}
 {{- if eq $shouldInstall "true" }}
   - {{ $name }}
 {{- end }}
