@@ -13,6 +13,14 @@ Namespace: {{ .Release.Namespace }}
   - {{ $name }}: {{ $comp.dsc.managementState }}
 {{- end }}
 
+=== Enabled Services ===
+
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.dsci }}
+  - {{ $name }}: {{ $svc.dsci.managementState }}
+{{- end }}
+{{- end }}
+
 === Enabled Dependencies ===
 
 {{- range $name, $dep := .Values.dependencies }}
