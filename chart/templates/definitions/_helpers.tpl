@@ -69,6 +69,36 @@ true
 
 {{/*
 =============================================================================
+Common helper: Check if a dependency is required by any active item
+An item is active if managementState is Managed or Unmanaged
+=============================================================================
+Arguments (passed as dict):
+  - dependencyName: name of the dependency to check
+  - items: the collection to iterate (components or services)
+  - stateKey: the key containing managementState ("dsc" or "dsci")
+*/}}
+{{- define "rhoai-dependencies.isRequiredByItems" -}}
+{{- $dependencyName := .dependencyName -}}
+{{- $items := .items -}}
+{{- $stateKey := .stateKey -}}
+{{- $required := false -}}
+{{- range $name, $item := $items -}}
+  {{- $stateObj := index $item $stateKey -}}
+  {{- if and $item $stateObj $stateObj.managementState -}}
+    {{- if include "rhoai-dependencies.isComponentActive" $stateObj.managementState -}}
+      {{- $itemDeps := $item.dependencies | default dict -}}
+      {{- $depEnabled := index $itemDeps $dependencyName -}}
+      {{- if eq ($depEnabled | toString) "true" -}}
+        {{- $required = true -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $required -}}
+{{- end }}
+
+{{/*
+=============================================================================
 Check if a dependency is required by any active component
 A component is active if managementState is Managed or Unmanaged
 Reads from components.<name>.dependencies.<depName> in values.yaml
@@ -78,21 +108,21 @@ Arguments (passed as dict):
   - components: the components configuration object
 */}}
 {{- define "rhoai-dependencies.isRequiredByComponent" -}}
-{{- $dependencyName := .dependencyName -}}
-{{- $components := .components -}}
-{{- $required := false -}}
-{{- range $compName, $comp := $components -}}
-  {{- if and $comp $comp.dsc $comp.dsc.managementState -}}
-    {{- if include "rhoai-dependencies.isComponentActive" $comp.dsc.managementState -}}
-      {{- $compDeps := $comp.dependencies | default dict -}}
-      {{- $depEnabled := index $compDeps $dependencyName -}}
-      {{- if eq ($depEnabled | toString) "true" -}}
-        {{- $required = true -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
-{{- end -}}
-{{- $required -}}
+{{- include "rhoai-dependencies.isRequiredByItems" (dict "dependencyName" .dependencyName "items" .components "stateKey" "dsc") -}}
+{{- end }}
+
+{{/*
+=============================================================================
+Check if a dependency is required by any active service
+A service is active if managementState is Managed or Unmanaged
+Reads from services.<name>.dependencies.<depName> in values.yaml
+=============================================================================
+Arguments (passed as dict):
+  - dependencyName: name of the dependency to check
+  - services: the services configuration object
+*/}}
+{{- define "rhoai-dependencies.isRequiredByService" -}}
+{{- include "rhoai-dependencies.isRequiredByItems" (dict "dependencyName" .dependencyName "items" .services "stateKey" "dsci") -}}
 {{- end }}
 
 {{/*
@@ -137,19 +167,22 @@ Tri-state logic:
   - enabled: true  → always install
   - enabled: false → never install
   - enabled: auto  → install if required by any enabled component OR
-                     required by another dependency that will be installed
+                     required by another dependency that will be installed OR
+                     required by any enabled service
 =============================================================================
 Arguments (passed as dict):
   - dependencyName: name of the dependency
   - dependency: the dependency configuration object
   - dependencies: all dependencies configuration object
   - components: the components configuration object
+  - services: the services configuration object
 */}}
 {{- define "rhoai-dependencies.shouldInstall" -}}
 {{- $dependencyName := .dependencyName -}}
 {{- $dependency := .dependency -}}
 {{- $dependencies := .dependencies -}}
 {{- $components := .components -}}
+{{- $services := .services -}}
 {{- $enabled := $dependency.enabled | toString -}}
 {{- if eq $enabled "true" -}}
 true
@@ -159,7 +192,8 @@ false
 {{- /* auto mode: check if required by component or by another dependency */ -}}
 {{- $requiredByComponent := include "rhoai-dependencies.isRequiredByComponent" (dict "dependencyName" $dependencyName "components" $components) -}}
 {{- $requiredByDependency := include "rhoai-dependencies.isRequiredByDependency" (dict "dependencyName" $dependencyName "dependencies" $dependencies "components" $components) -}}
-{{- if or (eq $requiredByComponent "true") (eq $requiredByDependency "true") -}}
+{{- $requiredByService := include "rhoai-dependencies.isRequiredByService" (dict "dependencyName" $dependencyName "services" $services) -}}
+{{- if or (eq $requiredByComponent "true") (eq $requiredByDependency "true") (eq $requiredByService "true") -}}
 true
 {{- end -}}
 {{- end -}}

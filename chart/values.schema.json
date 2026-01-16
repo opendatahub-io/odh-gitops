@@ -79,6 +79,20 @@
       "required": ["enabled", "type"],
       "additionalProperties": false
     },
+    "trustedCABundle": {
+      "type": "object",
+      "description": "Trusted CA bundle configuration",
+      "properties": {
+        "managementState": {
+          "$ref": "#/definitions/defaultManagementState"
+        },
+        "customCABundle": {
+          "type": "string",
+          "description": "Custom CA bundle"
+        }
+      },
+      "additionalProperties": false
+    },
     "components": {
       "type": "object",
       "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
@@ -121,6 +135,26 @@
         },
         "llamastackoperator": {
           "$ref": "#/definitions/component"
+        }
+      },
+      "additionalProperties": false
+    },
+    "services": {
+      "type": "object",
+      "description": "Services configuration",
+      "properties": {
+        "monitoring": {
+          "type": "object",
+          "description": "Monitoring service configuration",
+          "properties": {
+            "dependencies": {
+              "$ref": "#/definitions/serviceDeps"
+            },
+            "dsci": {
+              "$ref": "#/definitions/monitoringConfig"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -222,6 +256,13 @@
     "componentDeps": {
       "type": "object",
       "description": "Boolean map of dependencies required by this component",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "serviceDeps": {
+      "type": "object",
+      "description": "Boolean map of dependencies required by this service",
       "additionalProperties": {
         "type": "boolean"
       }
@@ -629,6 +670,32 @@
         }
       },
       "required": ["enabled"],
+      "additionalProperties": false
+    },
+    "monitoringConfig": {
+      "type": "object",
+      "description": "Monitoring configuration",
+      "properties": {
+        "managementState": {
+          "$ref": "#/definitions/defaultManagementState"
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Metrics configuration"
+        },
+        "traces": {
+          "type": "object",
+          "description": "Traces configuration"
+        },
+        "alerting": {
+          "type": "object",
+          "description": "Alerting configuration"
+        },
+        "collectorReplicas": {
+          "type": "integer",
+          "description": "Collector replicas"
+        }
+      },
       "additionalProperties": false
     }
   },

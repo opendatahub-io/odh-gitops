@@ -1,5 +1,5 @@
 {{- $dep := .Values.dependencies.nfd -}}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "nfd" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "nfd" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components "services" .Values.services) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "nodefeaturediscoveries.nfd.openshift.io" "root" $) }}
 {{- if and $dep.config $dep.config.spec }}

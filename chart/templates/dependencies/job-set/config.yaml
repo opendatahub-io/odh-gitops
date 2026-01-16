@@ -1,5 +1,5 @@
 {{- $dep := .Values.dependencies.jobSet -}}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "jobSet" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "jobSet" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components "services" .Values.services) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "jobsetoperators.operator.openshift.io" "root" $) }}
 apiVersion: operator.openshift.io/v1
