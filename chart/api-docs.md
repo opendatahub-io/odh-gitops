@@ -18,10 +18,12 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.feastoperator.dependencies | object | `{}` | Dependencies required by Feast Operator |
 | components.feastoperator.dsc | object | `{"managementState":"Managed"}` | DSC configuration for Feast Operator |
 | components.feastoperator.dsc.managementState | string | `"Managed"` | Management state for Feast Operator (Managed or Removed) |
-| components.kserve | object | `{"dependencies":{"certManager":true,"customMetricsAutoscaler":true,"jobSet":true,"leaderWorkerSet":true,"rhcl":true},"dsc":{"managementState":"Managed","nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}}` | KServe model serving component |
+| components.kserve | object | `{"dependencies":{"certManager":true,"customMetricsAutoscaler":true,"jobSet":true,"leaderWorkerSet":true,"rhcl":true},"dsc":{"managementState":"Managed","modelsAsService":{"managementState":"Removed"},"nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}}` | KServe model serving component |
 | components.kserve.dependencies | object | `{"certManager":true,"customMetricsAutoscaler":true,"jobSet":true,"leaderWorkerSet":true,"rhcl":true}` | Dependencies required by KServe (set to false to disable) |
-| components.kserve.dsc | object | `{"managementState":"Managed","nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}` | DSC configuration for KServe |
+| components.kserve.dsc | object | `{"managementState":"Managed","modelsAsService":{"managementState":"Removed"},"nim":{"managementState":"Managed"},"rawDeploymentServiceConfig":"Headless"}` | DSC configuration for KServe |
 | components.kserve.dsc.managementState | string | `"Managed"` | Management state for KServe (Managed or Removed) |
+| components.kserve.dsc.modelsAsService | object | `{"managementState":"Removed"}` | Models as Service configuration |
+| components.kserve.dsc.modelsAsService.managementState | string | `"Removed"` | Management state for Models as Service (Managed or Removed) |
 | components.kserve.dsc.nim | object | `{"managementState":"Managed"}` | Enables NVIDIA NIM integration |
 | components.kserve.dsc.nim.managementState | string | `"Managed"` | Management state for NIM (Managed or Removed) |
 | components.kserve.dsc.rawDeploymentServiceConfig | string | `"Headless"` | Raw deployment service config for KServe (Headless or Headed) |

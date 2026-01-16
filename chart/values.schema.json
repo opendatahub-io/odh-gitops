@@ -415,14 +415,20 @@
               "description": "NIM configuration for KServe",
               "properties": {
                 "managementState": {
-                  "type": "string",
-                  "enum": ["Managed", "Removed"],
-                  "default": "Managed",
-                  "description": "Management state for NIM in DSC."
+                  "$ref": "#/definitions/defaultManagementState"
                 }
               },
               "required": ["managementState"],
               "additionalProperties": false
+            },
+            "modelsAsService": {
+              "type": "object",
+              "description": "Models as Service configuration for KServe",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              }
             }
           },
           "required": ["managementState"],
