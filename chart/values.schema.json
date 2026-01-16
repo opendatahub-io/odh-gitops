@@ -427,22 +427,6 @@
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"
-                },
-                "gateway": {
-                  "type": "object",
-                  "description": "Gateway configuration for Models as Service",
-                  "properties": {
-                    "namespace": {
-                      "type": "string",
-                      "description": "Namespace of the gateway"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the gateway"
-                    }
-                  },
-                  "required": ["namespace", "name"],
-                  "additionalProperties": false
                 }
               }
             }
