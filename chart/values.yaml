@@ -49,8 +49,11 @@ operator:
       namespace: redhat-ods-operator
       source: redhat-operators
 
+# -- Trusted CA bundle configuration
 trustedCABundle:
+  # -- Management state for trusted CA bundle (Managed or Removed)
   managementState: Managed
+  # -- A custom CA bundle that will be available for all components in the Data Science Cluster (DSC).
   customCABundle: ""
 
 services:

@@ -103,8 +103,8 @@ spec:
     namespace: redhat-ods-monitoring
   applicationsNamespace: redhat-ods-applications
   trustedCABundle:
-    managementState: "Managed"
-    customCABundle: ""
+    managementState: Managed
+    customCABundle:
 ---
 # Source: odh-rhoai-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2

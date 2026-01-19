@@ -116,6 +116,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"fast-3.x","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
 | services.monitoring | object | `{"dependencies":{"clusterObservability":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":"Managed","metrics":{},"traces":{}}}` | Monitoring service configuration |
-| trustedCABundle.customCABundle | string | `""` |  |
-| trustedCABundle.managementState | string | `"Managed"` |  |
+| trustedCABundle | object | `{"customCABundle":"","managementState":"Managed"}` | Trusted CA bundle configuration |
+| trustedCABundle.customCABundle | string | `""` | A custom CA bundle that will be available for all components in the Data Science Cluster (DSC). |
+| trustedCABundle.managementState | string | `"Managed"` | Management state for trusted CA bundle (Managed or Removed) |
 

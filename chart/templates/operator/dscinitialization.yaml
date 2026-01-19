@@ -22,6 +22,6 @@ spec:
     {{- end }}
   applicationsNamespace: {{ $operatorConfig.applicationsNamespace }}
   trustedCABundle:
-    managementState: "Managed"
-    customCABundle: ""
+    managementState: {{ .Values.trustedCABundle.managementState }}
+    customCABundle: {{ .Values.trustedCABundle.customCABundle }}
 {{- end }}
