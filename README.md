@@ -10,8 +10,6 @@ This repository provides a GitOps-based approach to deploying and managing OpenD
     - [How the Structure Works](#how-the-structure-works)
     - [Dependencies](#dependencies)
       - [Operator Configuration Requirements](#operator-configuration-requirements)
-        - [Tempo Operator](#tempo-operator)
-          - [Configuration Steps:](#configuration-steps)
         - [Red Hat Connectivity Link operator](#red-hat-connectivity-link-operator)
           - [Stage 1: Deploy base configuration](#stage-1-deploy-base-configuration)
           - [Stage 2: Enable TLS](#stage-2-enable-tls)
@@ -58,6 +56,8 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **Custom Metrics Autoscaler** | Event-driven autoscaler based on KEDA | `openshift-keda` | Model Serving | |
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
 | **Red Hat Connectivity Link** | Multicloud application connectivity and API management | `kuadrant-system` | Model Serving (KServe) | Leader Worker Set, Cert-Manager |
+| **Node Feature Discovery** | Node feature discovery | `openshift-nfd` | GPU Support | |
+| **NVIDIA GPU Operator** | NVIDIA GPU operator | `nvidia-gpu-operator` | GPU Support | Node Feature Discovery |
 
 #### Operator Configuration Requirements
 
