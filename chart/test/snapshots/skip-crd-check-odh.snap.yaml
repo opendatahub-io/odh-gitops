@@ -8,6 +8,15 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: odh-rhoai-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-cluster-observability-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -44,11 +53,29 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: kuadrant-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: odh-rhoai-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-tempo-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -72,13 +99,12 @@ metadata:
   name: default-dsci
 spec:
   monitoring:
-    managementState: "Managed"
+    managementState: Managed
     namespace: opendatahub
-    metrics: {}
   applicationsNamespace: opendatahub
   trustedCABundle:
-    managementState: "Managed"
-    customCABundle: ""
+    managementState: Managed
+    customCABundle:
 ---
 # Source: odh-rhoai-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
@@ -196,6 +222,18 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
+# Source: odh-rhoai-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+---
 # Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -248,12 +286,36 @@ spec:
   targetNamespaces:
     - openshift-lws-operator
 ---
+# Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: rhcl-operator
   namespace: kuadrant-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+---
+# Source: odh-rhoai-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -285,6 +347,22 @@ spec:
   channel: stable-v1
   installPlanApproval: Automatic
   name: openshift-cert-manager-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+# Source: odh-rhoai-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
@@ -352,6 +430,22 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+# Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: opentelemetry-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
 # Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -365,6 +459,22 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   name: rhcl-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+# Source: odh-rhoai-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: tempo-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---

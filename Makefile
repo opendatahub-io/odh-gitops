@@ -278,6 +278,7 @@ helm-install-verify: ## Install helm chart and verify installation
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 6: Final helm upgrade with wait condition ==="
+	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
 	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
 
 .PHONY: helm-uninstall

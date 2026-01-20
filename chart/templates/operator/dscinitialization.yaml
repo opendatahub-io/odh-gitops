@@ -12,11 +12,16 @@ metadata:
   name: default-dsci
 spec:
   monitoring:
-    managementState: "Managed"
+    managementState: {{ .Values.services.monitoring.dsci.managementState }}
     namespace: {{ $operatorConfig.monitoringNamespace }}
-    metrics: {}
+  {{- range $key, $value := .Values.services.monitoring.dsci }}
+    {{- if and (ne $key "managementState") (not (empty $value)) }}
+      {{ $key }}:
+        {{- $value | toYaml | nindent 6 }}
+      {{- end }}
+    {{- end }}
   applicationsNamespace: {{ $operatorConfig.applicationsNamespace }}
   trustedCABundle:
-    managementState: "Managed"
-    customCABundle: ""
+    managementState: {{ .Values.trustedCABundle.managementState }}
+    customCABundle: {{ .Values.trustedCABundle.customCABundle }}
 {{- end }}

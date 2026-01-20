@@ -1,5 +1,5 @@
 {{- $dep := .Values.dependencies.kueue -}}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "kueue" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components) -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "kueue" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components "services" .Values.services) -}}
 {{- if eq $shouldInstall "true" }}
 {{- $installType := include "rhoai-dependencies.installationType" (dict "dependency" $dep "global" .Values.global) -}}
 {{- if eq $installType "olm" }}
