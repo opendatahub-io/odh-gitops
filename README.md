@@ -58,8 +58,8 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **Custom Metrics Autoscaler** | Event-driven autoscaler based on KEDA | `openshift-keda` | Model Serving | |
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
 | **Red Hat Connectivity Link** | Multicloud application connectivity and API management | `kuadrant-system` | Model Serving (KServe) | Leader Worker Set, Cert-Manager |
-| **Node Feature Discovery** | Detects hardware features and capabilities of nodes | `openshift-nfd` | llamastackoperator | |
-| **NVIDIA GPU Operator** | Enables GPU-accelerated workloads on NVIDIA hardware | `nvidia-gpu-operator` | llamastackoperator | Node Feature Discovery |
+| **Node Feature Discovery** | Detects hardware features and capabilities of nodes | `openshift-nfd` | LlamaStack Operator | |
+| **NVIDIA GPU Operator** | Enables GPU-accelerated workloads on NVIDIA hardware | `nvidia-gpu-operator` | LlamaStack Operator | Node Feature Discovery |
 
 #### Operator Configuration Requirements
 
