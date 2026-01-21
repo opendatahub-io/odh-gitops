@@ -134,7 +134,7 @@ cd odh-gitops
 
 - ArgoCD installed
 - Cluster admin permissions
-- The ArgoCD instance needs permissions to handle cluster configuration. Follow [this documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.9/html/declarative_cluster_configuration/configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations#gitops-additional-permissions-for-cluster-config_configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations). Additional permissions needed are:
+- The ArgoCD instance needs permissions to handle cluster configuration. Follow [this documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.19/html/declarative_cluster_configuration/configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations#gitops-additional-permissions-for-cluster-config_configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations). Additional permissions needed are:
   - all actions on kueues.kueue.openshift.io
   - all actions on kuadrants.kuadrant.io
 
