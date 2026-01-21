@@ -47,7 +47,7 @@ The repository is designed to be applied in **layers**, providing flexibility in
 
 ### Dependencies
 
-| Operator                           | Purpose                                     | Namespace | Required By                  | Operators Required |
+| Operator                           | Purpose                                     | Namespace | Used By                  | Operators Required |
 |------------------------------------|---------------------------------------------|-----------|------------------------------|-------------|
 | **Cert-Manager**                   | Certificate management and TLS provisioning | `cert-manager-operator` | Model Serving (Kueue, Ray)   | |
 | **Kueue**                          | Job queue for distributed workloads         | `openshift-kueue-operator` | Model Serving (Ray), Trainer | Cert-Manager |
@@ -59,7 +59,7 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
 | **Red Hat Connectivity Link** | Multicloud application connectivity and API management | `kuadrant-system` | Model Serving (KServe) | Leader Worker Set, Cert-Manager |
 | **Node Feature Discovery** | Detects hardware features and capabilities of nodes | `openshift-nfd` | LlamaStack Operator | |
-| **NVIDIA GPU Operator** | Enables GPU-accelerated workloads on NVIDIA hardware | `nvidia-gpu-operator` | LlamaStack Operator | Node Feature Discovery |
+| **NVIDIA GPU Operator** | Enables GPU-accelerated workloads on NVIDIA hardware | `nvidia-gpu-operator` | Model Serving, LlamaStack Operator | Node Feature Discovery |
 
 #### Operator Configuration Requirements
 
