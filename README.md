@@ -19,6 +19,8 @@ This repository provides a GitOps-based approach to deploying and managing OpenD
   - [Installation Methods](#installation-methods)
     - [Installation instructions](#installation-instructions)
     - [Installation with ArgoCD](#installation-with-argocd)
+      - [Prerequisites](#prerequisites-1)
+      - [Installation instructions](#installation-instructions-1)
       - [Install All Dependencies](#install-all-dependencies)
       - [Install Specific Dependencies](#install-specific-dependencies)
     - [Installation with CLI](#installation-with-cli)
@@ -127,6 +129,16 @@ cd odh-gitops
 ```
 
 ### Installation with ArgoCD
+
+#### Prerequisites
+
+- ArgoCD installed
+- Cluster admin permissions
+- The ArgoCD instance needs permissions to handle cluster configuration. Follow [this documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.9/html/declarative_cluster_configuration/configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations#gitops-additional-permissions-for-cluster-config_configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations). Additional permissions needed are:
+  - all actions on kueues.kueue.openshift.io
+  - all actions on kuadrants.kuadrant.io
+
+#### Installation instructions
 
 To install the repository with ArgoCD, create a new ArgoCD application and point it to the repository with the desired branch.
 To ensure it will work, since it uses custom resources whose definitions are installed by the operators by OLM in a second step, you need to skip dry run on missing resources in the Application resource.
