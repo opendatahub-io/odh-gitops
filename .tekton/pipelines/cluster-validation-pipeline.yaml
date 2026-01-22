@@ -199,20 +199,30 @@ spec:
 
                 echo "Waiting for catalog source to be ready..."
                 # Wait for the catalog pod to be created and running
+                CATALOG_READY=false
                 for i in {1..30}; do
                   POD_STATUS=$(oc get pods -n openshift-marketplace -l olm.catalogSource=custom-catalog -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "NotFound")
                   if [ "${POD_STATUS}" = "Running" ]; then
                     echo "Catalog pod is running"
+                    CATALOG_READY=true
                     break
                   fi
                   echo "Waiting for catalog pod... (attempt ${i}/30, status: ${POD_STATUS})"
-                  if [ "${POD_STATUS}" = "ImagePullBackOff" ] || [ "${POD_STATUS}" = "ErrImagePull" ]; then
+                  # Check container waiting reasons for image pull errors
+                  WAITING_REASON=$(oc get pods -n openshift-marketplace -l olm.catalogSource=custom-catalog -o jsonpath='{.items[0].status.containerStatuses[*].state.waiting.reason}' 2>/dev/null || echo "")
+                  if [ "${WAITING_REASON}" = "ImagePullBackOff" ] || [ "${WAITING_REASON}" = "ErrImagePull" ]; then
                     echo "ERROR: Failed to pull catalog image. Check if the image exists and credentials are configured."
                     oc get pods -n openshift-marketplace -l olm.catalogSource=custom-catalog -o yaml
                     exit 1
                   fi
                   sleep 10
                 done
+
+                if [ "${CATALOG_READY}" != "true" ]; then
+                  echo "ERROR: Catalog pod did not become ready within timeout."
+                  oc get pods -n openshift-marketplace -l olm.catalogSource=custom-catalog -o yaml
+                  exit 1
+                fi
 
                 echo "✅ Custom OLM catalog installed"
               fi

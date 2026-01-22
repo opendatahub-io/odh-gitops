@@ -474,9 +474,21 @@
           },
           "required": ["managementState"],
           "additionalProperties": false
+        },
+        "modelsAsService": {
+          "type": "object",
+          "description": "Models as Service configuration for KServe",
+          "properties": {
+            "gateway": {
+              "$ref": "#/definitions/gatewayConfig"
+            },
+            "gatewayClass": {
+              "$ref": "#/definitions/gatewayClassConfig"
+            }
+          }
         }
       },
-      "required": ["dsc"],
+      "required": ["dsc", "modelsAsService", "dependencies"],
       "additionalProperties": false
     },
     "modelregistryComponent": {
@@ -702,6 +714,60 @@
           "description": "Collector replicas"
         }
       },
+      "additionalProperties": false
+    },
+    "gatewayConfig": {
+      "type": "object",
+      "description": "Gateway configuration",
+      "properties": {
+        "create": {
+          "$ref": "#/definitions/triStateEnabled"
+        },
+        "name": {
+          "type": "string",
+          "description": "Gateway name"
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Gateway namespace"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Gateway annotations",
+          "additionalProperties": true
+        },
+        "spec": {
+          "type": "object",
+          "description": "Gateway spec",
+          "additionalProperties": true
+        }
+      },
+      "required": ["create", "name", "namespace", "spec"],
+      "additionalProperties": false
+    },
+    "gatewayClassConfig": {
+      "type": "object",
+      "description": "Gateway Class configuration",
+      "properties": {
+        "create": {
+          "$ref": "#/definitions/triStateEnabled"
+        },
+        "name": {
+          "type": "string",
+          "description": "Gateway Class name"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Gateway Class annotations",
+          "additionalProperties": true
+        },
+        "spec": {
+          "type": "object",
+          "description": "Gateway Class spec",
+          "additionalProperties": true
+        }
+      },
+      "required": ["create", "name"],
       "additionalProperties": false
     }
   },

@@ -143,7 +143,7 @@ spec:
     kserve:
       managementState: Managed
       modelsAsService:
-        managementState: Removed
+        managementState: Managed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
@@ -163,7 +163,7 @@ spec:
     trainer:
       managementState: Managed
     trainingoperator:
-      managementState: Removed
+      managementState: Managed
     trustyai:
       eval:
         lmeval:
@@ -173,6 +173,39 @@ spec:
     workbenches:
       managementState: Managed
       workbenchNamespace: opendatahub
+---
+# Source: odh-rhoai-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: maas-default-gateway
+  namespace: openshift-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    opendatahub.io/managed: "false"
+    security.opendatahub.io/authorino-tls-bootstrap: "true"
+spec:
+  gatewayClassName: maas-gateway-class
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    name: https
+    port: 443
+    protocol: HTTPS
+---
+# Source: odh-rhoai-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: maas-gateway-class
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  controllerName: openshift.io/gateway-controller/v1
 ---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
