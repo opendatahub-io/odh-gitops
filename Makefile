@@ -215,7 +215,7 @@ chart-snapshots: ## Create snapshots for all chart configurations
 	@echo "==> Creating skipCrdCheck snapshot for RHOAI..."
 	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
 	@echo "==> Creating all-components-managed snapshot..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set dependencies.nfd.enabled=true --set dependencies.nvidiaGPUOperator.enabled=true)
+	$(call helm-template,$(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set components.trainingoperator.dsc.managementState=Managed --set components.kserve.dsc.modelsAsService.managementState=Managed)
 	@echo "==> Snapshots updated!"
 
 .PHONY: chart-test
@@ -233,7 +233,7 @@ chart-test: ## Test chart against all snapshots
 	@diff .helm-test-skip-crd-rhoai.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml
 	@rm .helm-test-skip-crd-rhoai.yaml
 	@echo "==> Testing all-components-managed configuration..."
-	$(call helm-template,.helm-test-all-components-managed.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set dependencies.nfd.enabled=true --set dependencies.nvidiaGPUOperator.enabled=true)
+	$(call helm-template,.helm-test-all-components-managed.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set components.trainingoperator.dsc.managementState=Managed --set components.kserve.dsc.modelsAsService.managementState=Managed)
 	@diff .helm-test-all-components-managed.yaml $(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml
 	@rm .helm-test-all-components-managed.yaml
 	@echo "==> All tests passed!"
@@ -248,27 +248,40 @@ $(HELM_DOCS): $(LOCALBIN)
 helm-docs: helm-docs-ensure ## Run helm-docs.
 	$(HELM_DOCS) --chart-search-root $(shell pwd)/chart -o api-docs.md
 
+# Operator type for helm installation (odh or rhoai)
+OPERATOR_TYPE ?= odh
+
+# Applications namespace based on operator type
+ifeq ($(OPERATOR_TYPE),rhoai)
+	APPLICATIONS_NAMESPACE := redhat-ods-applications
+else
+	APPLICATIONS_NAMESPACE := opendatahub
+endif
+
 .PHONY: helm-verify
 helm-verify: ## Verify helm chart installation and DSC components
-	NAMESPACE=opendatahub-gitops ./scripts/verify-helm-chart.sh
+	NAMESPACE=opendatahub-gitops OPERATOR_TYPE=$(OPERATOR_TYPE) ./scripts/verify-helm-chart.sh
+
+# Extra arguments to pass to helm commands (e.g., --set global.olm.source=custom-catalog)
+HELM_EXTRA_ARGS ?=
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 1: Install operators ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace
+	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 2: Wait for CRDs (dependency) ==="
 	@./scripts/wait-for-crds.sh
 	@bash ./scripts/verify-dependencies.sh
 	@echo ""
 	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops
+	helm upgrade --install odh ./chart -n opendatahub-gitops $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
-	@echo "Waiting for odh-dashboard deployment to exist..."
-	@while ! $(K8S_CLI) get deployment odh-dashboard -n opendatahub >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
-	$(K8S_CLI) scale deployment odh-dashboard -n opendatahub --replicas=1
-	$(K8S_CLI) set resources deployment -n opendatahub odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
+	@echo "Waiting for odh-dashboard deployment to exist in namespace $(APPLICATIONS_NAMESPACE)..."
+	@while ! $(K8S_CLI) get deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
+	$(K8S_CLI) scale deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) --replicas=1
+	$(K8S_CLI) set resources deployment -n $(APPLICATIONS_NAMESPACE) odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
 	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
 	$(MAKE) helm-verify
 	@echo ""
@@ -278,8 +291,7 @@ helm-install-verify: ## Install helm chart and verify installation
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 6: Final helm upgrade with wait condition ==="
-	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
-	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m
+	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m $(HELM_EXTRA_ARGS)
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies

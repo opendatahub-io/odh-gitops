@@ -33,7 +33,8 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
       - [Step 4: Update Documentation](#step-4-update-documentation-1)
     - [Testing Helm Chart Changes](#testing-helm-chart-changes)
   - [Testing Your Changes](#testing-your-changes)
-    - [Local Validation](#local-validation)
+    - [Kustomize Validation](#kustomize-validation)
+    - [Helm Validation](#helm-validation)
   - [Pull Requests](#pull-requests)
     - [Workflow](#workflow)
     - [Open a Pull Request](#open-a-pull-request)
@@ -317,7 +318,7 @@ Add your component to `chart/values.schema.json` under the `components` section.
 
 Always test your changes before submitting a PR.
 
-### Local Validation
+### Kustomize Validation
 
 1. **Validate Kustomize Build**:
 
@@ -330,6 +331,45 @@ Always test your changes before submitting a PR.
    ```
 
 3. **Validate Installation on a Real Cluster**: Test the operator installation on an actual OpenShift cluster to ensure it works as expected.
+
+### Helm Validation
+
+1. **Lint the chart**:
+
+   ```bash
+   helm lint ./chart
+   ```
+
+2. **Update snapshots**:
+
+   ```bash
+   make chart-snapshots
+   ```
+
+3. **Update documentation**:
+
+   ```bash
+   make helm-docs
+   ```
+
+4. **Optional: deploy OpenDataHub Operator Catalog**:
+
+   ```bash
+   bash ./scripts/install-catalog-source.sh
+   ```
+
+5. **Test on a cluster**:
+
+   ```bash
+   make helm-install-verify
+   ```
+
+   If you want to use the custom catalog from step 4, run:
+
+   ```bash
+   make helm-install-verify HELM_EXTRA_ARGS="--set operator.odh.olm.source=opendatahub-catalog-test --set operator.odh.olm.channel=fast"
+   ```
+
 
 ## Pull Requests
 
