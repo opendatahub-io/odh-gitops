@@ -134,14 +134,14 @@ components:
       # -- Gateway Class configuration for the LLMInferenceService.
       gatewayClass:
         # -- Flag to create the Gateway Class (auto, true, false). If auto, it will be created if Models as Service is Managed.
-        create: auto
+        create: false
         name: maas-gateway-class
         spec:
           controllerName: "openshift.io/gateway-controller/v1"
       # -- Gateway configuration for the LLMInferenceService.
       gateway:
         # -- Flag to create the Gateway (auto, true, false). If auto, it will be created if Models as Service is Managed.
-        create: auto
+        create: false
         name: maas-default-gateway
         namespace: openshift-ingress
         annotations:
@@ -166,6 +166,13 @@ components:
                   #     values:
                   #     - openshift-ingress
                   #     - ...
+              # tls: # Uncomment this to enable TLS termination for the Gateway.
+              #   certificateRefs:
+              #   - group: ''
+              #     kind: Secret
+              #     name: <SECRET_NAME>
+              #   mode: Terminate
+
 
   # -- Kueue job queuing component
   kueue:

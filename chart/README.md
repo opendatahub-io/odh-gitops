@@ -60,6 +60,51 @@ The script can be customized with environment variables:
 
 > **Note**: The `dependencies.rhcl.config.tlsEnabled` Helm value is intended for ArgoCD use cases. For CLI use case, use the script above.
 
+### Enable Models as Service
+
+To enable Models as Service, Gateway and GatewayClass are needed. Them could be created manually or with the chart.
+To create them with the chart, you need to manually set the gateway hostname, and the certificate secret name.
+By default, the Gateway creation is disabled. To enable it, you need to set the `components.kserve.modelsAsService.gateway.create`
+and `components.kserve.modelsAsService.gatewayClass.create` to `true`.
+
+For example, it is possible to enable Models as Service with the following values,
+configuring correctly the `<HOSTNAME>`, `<SECRET_NAME>` and correctly define the `allowedRoutes`:
+
+```yaml
+# values.yaml
+components:
+  kserve:
+    modelsAsService:
+      gatewayClass:
+        create: true
+      gateway:
+        create: true
+        spec:
+          gatewayClassName: maas-gateway-class
+          listeners:
+            - name: https
+              port: 443
+              # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
+              protocol: HTTPS
+              allowedRoutes:
+                namespaces:
+                  # The following is an example of how to restrict the namespaces to the interested ones.
+                  from: Selector
+                  selector:
+                    matchExpressions:
+                    - key: kubernetes.io/metadata.name
+                      operator: In
+                      values:
+                      - openshift-ingress
+                      - <LLM_INFERENCE_SERVICE_NAMESPACE>
+              tls:
+                certificateRefs:
+                - group: ''
+                  kind: Secret
+                  name: <SECRET_NAME>
+                mode: Terminate
+```
+
 ## Configuration
 
 ### Operator
