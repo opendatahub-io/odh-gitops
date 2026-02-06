@@ -1,0 +1,34 @@
+{{- $kserve := .Values.components.kserve | default dict -}}
+{{- $kserveDsc := $kserve.dsc | default dict -}}
+{{- $maas := $kserve.modelsAsService | default dict -}}
+{{- $gateway := $maas.gateway | default dict -}}
+{{- $isMaaSEnabled := and (eq $kserveDsc.modelsAsService.managementState "Managed") (eq $kserveDsc.managementState "Managed") -}}
+{{- $gatewayClass := $maas.gatewayClass | default dict -}}
+{{- if or (eq ($gatewayClass.create | toString) "true") (and $isMaaSEnabled (eq ($gatewayClass.create | toString) "auto")) -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ $gatewayClass.name }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  {{- with $gatewayClass.annotations }}
+    annotations:
+      {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- toYaml $gatewayClass.spec | nindent 2 }}
+{{- end }}
+---
+{{- if or (eq ($gateway.create | toString) "true") (and $isMaaSEnabled (eq ($gateway.create | toString) "auto")) -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gateway.name }}
+  namespace: {{ $gateway.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $gateway.annotations | nindent 4 }}
+spec:
+  {{- toYaml $gateway.spec | nindent 2 }}
+{{- end }}

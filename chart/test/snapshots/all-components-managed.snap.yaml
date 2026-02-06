@@ -142,6 +142,8 @@ spec:
       managementState: Managed
     kserve:
       managementState: Managed
+      modelsAsService:
+        managementState: Managed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
@@ -161,7 +163,7 @@ spec:
     trainer:
       managementState: Managed
     trainingoperator:
-      managementState: Removed
+      managementState: Managed
     trustyai:
       eval:
         lmeval:

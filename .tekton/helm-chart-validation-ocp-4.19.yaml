@@ -32,5 +32,13 @@ spec:
       value: "4.19.0"
     - name: validation-type
       value: "helm"
+    - name: olm-catalog-image
+      value: "quay.io/opendatahub/opendatahub-operator-catalog:latest"
+    - name: olm-channel
+      value: "fast"
+    - name: operator-type
+      value: "odh"
+    - name: instance-type
+      value: "m5.2xlarge"
   taskRunTemplate:
     serviceAccountName: build-pipeline-helm-chart-validation-ocp-419

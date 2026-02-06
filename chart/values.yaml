@@ -120,12 +120,59 @@ components:
     dsc:
       # -- Management state for KServe (Managed or Removed)
       managementState: Managed
-      # -- Raw deployment service config for KServe (Headless or Headed)
-      rawDeploymentServiceConfig: Headless
+      # -- Models as Service configuration
+      modelsAsService:
+        # -- Management state for Models as Service (Managed or Removed)
+        managementState: Removed
       # -- Enables NVIDIA NIM integration
       nim:
         # -- Management state for NIM (Managed or Removed)
         managementState: Managed
+      # -- Raw deployment service config for KServe (Headless or Headed)
+      rawDeploymentServiceConfig: Headless
+    modelsAsService:
+      # -- Gateway Class configuration for the LLMInferenceService.
+      gatewayClass:
+        # -- Flag to create the Gateway Class (auto, true, false). If auto, it will be created if Models as Service is Managed.
+        create: false
+        name: maas-gateway-class
+        spec:
+          controllerName: "openshift.io/gateway-controller/v1"
+      # -- Gateway configuration for the LLMInferenceService.
+      gateway:
+        # -- Flag to create the Gateway (auto, true, false). If auto, it will be created if Models as Service is Managed.
+        create: false
+        name: maas-default-gateway
+        namespace: openshift-ingress
+        annotations:
+          security.opendatahub.io/authorino-tls-bootstrap: "true"
+          opendatahub.io/managed: "false"
+        spec:
+          gatewayClassName: maas-gateway-class
+          listeners:
+            - name: https
+              port: 443
+              # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
+              protocol: HTTPS
+              allowedRoutes:
+                namespaces:
+                  from: All
+                  # The following is an example of how to restrict the namespaces to the interested ones.
+                  # from: Selector
+                  # selector:
+                  #   matchExpressions:
+                  #   - key: kubernetes.io/metadata.name
+                  #     operator: In
+                  #     values:
+                  #     - openshift-ingress
+                  #     - ...
+              # tls: # Uncomment this to enable TLS termination for the Gateway.
+              #   certificateRefs:
+              #   - group: ''
+              #     kind: Secret
+              #     name: <SECRET_NAME>
+              #   mode: Terminate
+
 
   # -- Kueue job queuing component
   kueue:
