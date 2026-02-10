@@ -1,0 +1,13 @@
+{{- /*
+ODH/RHOAI Operator Installation
+Installs either Open Data Hub or Red Hat OpenShift AI operator via OLM
+*/ -}}
+{{- if .Values.operator.enabled }}
+{{- if eq (include "rhoai-dependencies.isOlmMode" $) "true" }}
+{{- $operatorType := .Values.operator.type -}}
+{{- $operatorConfig := index .Values.operator $operatorType -}}
+{{- $config := dict "env" (list (dict "name" "DISABLE_DSC_CONFIG" "value" "true")) -}}
+{{ include "rhoai-dependencies.operator.olm" (dict "name" $operatorConfig.olm.name "namespace" $operatorConfig.olm.namespace "channel" $operatorConfig.olm.channel "source" $operatorConfig.olm.source "config" $config "root" $) }}
+{{- end }}
+{{- end }}
+
