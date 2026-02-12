@@ -1,0 +1,6 @@
+apiVersion: v2
+name: odh-operator
+description: Open Data Hub Operator Helm chart (non-OLM installation)
+type: application
+version: 0.1.0
+appVersion: "3.4.0-ea.1"

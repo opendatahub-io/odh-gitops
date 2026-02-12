@@ -1,0 +1,28 @@
+{{- if .Values.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: connection-isvc.opendatahub.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: opendatahub-operator-controller-manager-service
+        namespace: {{ include "odh-operator.namespace" . }}
+        path: /platform-connection-isvc
+        port: 443
+    failurePolicy: Fail
+    name: connection-isvc.opendatahub.io
+    rules:
+      - apiGroups:
+          - serving.kserve.io
+        apiVersions:
+          - v1beta1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - inferenceservices
+    sideEffects: NoneOnDryRun
+{{- end }}

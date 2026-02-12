@@ -1,0 +1,28 @@
+{{- if .Values.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: dashboard-hardwareprofile-validator.opendatahub.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: opendatahub-operator-controller-manager-service
+        namespace: {{ include "odh-operator.namespace" . }}
+        path: /validate-dashboard-hardwareprofile
+        port: 443
+    failurePolicy: Fail
+    name: dashboard-hardwareprofile-validator.opendatahub.io
+    rules:
+      - apiGroups:
+          - dashboard.opendatahub.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - hardwareprofiles
+    sideEffects: None
+{{- end }}

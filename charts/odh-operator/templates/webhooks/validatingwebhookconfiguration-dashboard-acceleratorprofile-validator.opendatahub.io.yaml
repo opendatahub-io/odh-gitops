@@ -1,0 +1,28 @@
+{{- if .Values.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: dashboard-acceleratorprofile-validator.opendatahub.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: opendatahub-operator-controller-manager-service
+        namespace: {{ include "odh-operator.namespace" . }}
+        path: /validate-dashboard-acceleratorprofile
+        port: 443
+    failurePolicy: Fail
+    name: dashboard-acceleratorprofile-validator.opendatahub.io
+    rules:
+      - apiGroups:
+          - dashboard.opendatahub.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - acceleratorprofiles
+    sideEffects: None
+{{- end }}

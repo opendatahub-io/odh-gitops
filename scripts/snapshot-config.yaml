@@ -1,0 +1,40 @@
+# Snapshot configuration for all Helm charts
+# Each chart defines its snapshots with optional --set flags
+#
+# Usage:
+#   make chart-snapshots                    # Generate all snapshots
+#   make chart-snapshots CHART_NAME=<name>  # Generate for specific chart
+#   make chart-test                         # Test all snapshots
+#   make chart-test CHART_NAME=<name>       # Test specific chart
+
+charts:
+  odh-rhoai:
+    # Optional: additional values file for testing (relative to chart path)
+    testValuesFile: test/testValues.yaml
+    snapshots:
+      - name: default
+        # No additional flags for default
+
+      - name: skip-crd-check-odh
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=odh
+
+      - name: skip-crd-check-rhoai
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+
+      - name: all-components-managed
+        setFlags:
+          - skipCrdCheck=true
+          - components.mlflowoperator.dsc.managementState=Managed
+          - components.llamastackoperator.dsc.managementState=Managed
+          - components.trainingoperator.dsc.managementState=Managed
+          - components.kserve.dsc.modelsAsService.managementState=Managed
+
+  odh-operator:
+    testValuesFile: test/testValues.yaml
+    snapshots:
+      - name: default
+        # No additional flags for default

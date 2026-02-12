@@ -1,0 +1,17 @@
+# Enable/disable all resource creation
+enabled: true
+
+# Install CRDs or not using the chart
+installCRDs: true
+
+# Common labels applied to all resources
+labels: {}
+
+# Operator namespace
+namespace: opendatahub-operator-system
+
+# Image pull secrets for private registries (list of secret names)
+imagePullSecrets: []
+# Example:
+# imagePullSecrets:
+#   - my-registry-secret

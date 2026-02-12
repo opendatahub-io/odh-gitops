@@ -1,0 +1,28 @@
+{{- if .Values.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: connection-notebook.opendatahub.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: opendatahub-operator-controller-manager-service
+        namespace: {{ include "odh-operator.namespace" . }}
+        path: /platform-connection-notebook
+        port: 443
+    failurePolicy: Fail
+    name: connection-notebook.opendatahub.io
+    rules:
+      - apiGroups:
+          - kubeflow.org
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - notebooks
+    sideEffects: None
+{{- end }}

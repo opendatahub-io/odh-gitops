@@ -196,54 +196,20 @@ endef
 # Charts directory containing all helm charts
 CHARTS_DIR ?= charts
 # Default chart to operate on (umbrella chart)
-CHART_NAME ?= odh-rhoai
-CHART_PATH ?= $(CHARTS_DIR)/$(CHART_NAME)
+CHART_NAME ?=
+CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),odh-rhoai)
 
-HELM_TMPL_CMD ?= helm template -f $(CHART_PATH)/values.yaml -f $(CHART_PATH)/test/testValues.yaml
-HELM_SNAPSHOT_DIR ?= $(CHART_PATH)/test/snapshots
+# Snapshot configuration (in scripts directory)
+SNAPSHOT_CONFIG ?= scripts/snapshot-config.yaml
 HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
-tmpl_debug ?=
-
-# Internal function to generate and normalize helm output
-# Usage: $(call helm-template,output-file,extra-args)
-define helm-template
-	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default $(2) ./$(CHART_PATH) > $(1)
-	@$(SED_COMMAND) -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(1)
-	@rm $(1).bak
-endef
-
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
-chart-snapshots: ## Create snapshots for all chart configurations
-	@echo "==> Creating default snapshot..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/default.snap.yaml,)
-	@echo "==> Creating skipCrdCheck snapshot for ODH..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml,--set skipCrdCheck=true --set operator.type=odh)
-	@echo "==> Creating skipCrdCheck snapshot for RHOAI..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml,--set skipCrdCheck=true --set operator.type=rhoai)
-	@echo "==> Creating all-components-managed snapshot..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml,--set skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set components.trainingoperator.dsc.managementState=Managed --set components.kserve.dsc.modelsAsService.managementState=Managed)
-	@echo "==> Snapshots updated!"
+chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
+	@./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 .PHONY: chart-test
-chart-test: ## Test chart against all snapshots
-	@echo "==> Testing default configuration..."
-	$(call helm-template,.helm-test-default.yaml,)
-	@diff .helm-test-default.yaml $(HELM_SNAPSHOT_DIR)/default.snap.yaml
-	@rm .helm-test-default.yaml
-	@echo "==> Testing skipCrdCheck ODH configuration..."
-	$(call helm-template,.helm-test-skip-crd-odh.yaml,--set skipCrdCheck=true --set operator.type=odh)
-	@diff .helm-test-skip-crd-odh.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml
-	@rm .helm-test-skip-crd-odh.yaml
-	@echo "==> Testing skipCrdCheck RHOAI configuration..."
-	$(call helm-template,.helm-test-skip-crd-rhoai.yaml,--set skipCrdCheck=true --set operator.type=rhoai)
-	@diff .helm-test-skip-crd-rhoai.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml
-	@rm .helm-test-skip-crd-rhoai.yaml
-	@echo "==> Testing all-components-managed configuration..."
-	$(call helm-template,.helm-test-all-components-managed.yaml,--set skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set components.trainingoperator.dsc.managementState=Managed --set components.kserve.dsc.modelsAsService.managementState=Managed)
-	@diff .helm-test-all-components-managed.yaml $(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml
-	@rm .helm-test-all-components-managed.yaml
-	@echo "==> All tests passed!"
+chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
+	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure

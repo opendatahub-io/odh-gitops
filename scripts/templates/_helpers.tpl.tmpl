@@ -1,0 +1,43 @@
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "CHART_NAME.name" -}}
+{{- .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "CHART_NAME.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "CHART_NAME.labels" -}}
+helm.sh/chart: {{ include "CHART_NAME.chart" . }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.labels }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
+
+{{/*
+Operator namespace
+*/}}
+{{- define "CHART_NAME.namespace" -}}
+{{- .Values.namespace }}
+{{- end }}
+
+{{/*
+Image pull secrets
+*/}}
+{{- define "CHART_NAME.imagePullSecrets" -}}
+{{- with .Values.imagePullSecrets -}}
+imagePullSecrets:
+{{- range . }}
+  - name: {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
