@@ -12,7 +12,7 @@
 #   -h, --help          Show this help message
 #
 # Configuration:
-#   Reads snapshot definitions from charts/snapshot-config.yaml
+#   Reads snapshot definitions from scripts/snapshot-config.yaml
 #
 # Requirements: helm, yq (bin/yq), gsed (macOS) or sed (Linux)
 #
@@ -63,7 +63,7 @@ Options:
   -h, --help          Show this help message
 
 Configuration:
-  Reads snapshot definitions from charts/snapshot-config.yaml
+  Reads snapshot definitions from scripts/snapshot-config.yaml
 
 Examples:
   # Generate snapshots for all charts
@@ -148,7 +148,7 @@ get_snapshot_name() {
     "${YQ}" eval ".charts.${chart_name}.snapshots[${index}].name" "${CONFIG_FILE}"
 }
 
-# Get snapshot set flags by index (returns empty if no flags)
+# Get snapshot set flags by index (returns empty string if no flags)
 get_snapshot_flags() {
     local chart_name="$1"
     local index="$2"

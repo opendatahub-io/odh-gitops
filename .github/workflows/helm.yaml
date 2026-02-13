@@ -2,7 +2,7 @@ name: Helm Chart Validation
 on:
   pull_request:
     paths:
-      - 'chart/**'
+      - 'charts/**'
   workflow_dispatch:
 
 jobs:
@@ -13,8 +13,11 @@ jobs:
         with:
           fetch-depth: 0
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
-      - name: Linting Chart
-        run: helm lint ./chart
+      - name: Linting Charts
+        run: |
+          for chart in charts/*/; do
+            helm lint "$chart"
+          done
       - name: Setup Chart Linting
         id: lint
         uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
@@ -27,21 +30,17 @@ jobs:
           fi
 
       - name: Run chart-testing (lint)
-        run: ct lint --debug --charts chart --config ./.github/configs/ct.yaml --lint-conf ./.github/configs/lintconf.yaml
+        run: ct lint --debug --chart-dirs charts --config ./.github/configs/ct.yaml --lint-conf ./.github/configs/lintconf.yaml
       - name: Run chart snapshot tests
         run: make chart-test
 
       - name: Use golang
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
-      - name: Set up helm-docs
-        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@f5b3ede7b103eec1ac7f89e5ac37b5fbc5a795ce
       - name: Generate docs and check for changes
-        id: helm-docs
         run: |
-          helm-docs -d | diff chart/api-docs.md -
-          if [ $? -ne 0 ]; then
+          make helm-docs
+          if ! git diff --exit-code charts/*/api-docs.md; then
             echo -e '\033[0;31mDocumentation outdated! (Run make helm-docs locally and commit)\033[0m ❌'
-            diff chart/api-docs.md -
             exit 1
           else
             echo -e '\033[0;32mDocumentation up to date\033[0m ✔'

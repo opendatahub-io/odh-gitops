@@ -218,8 +218,8 @@ $(HELM_DOCS): $(LOCALBIN)
 	$(call go-install-tool,$(HELM_DOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,$(HELM_DOCS_VERSION))
 
 .PHONY: helm-docs
-helm-docs: helm-docs-ensure ## Run helm-docs.
-	$(HELM_DOCS) --chart-search-root $(shell pwd)/$(CHART_PATH) -o api-docs.md
+helm-docs: helm-docs-ensure ## Run helm-docs for all charts.
+	$(HELM_DOCS) --chart-search-root $(shell pwd)/$(CHARTS_DIR) -o api-docs.md
 
 # Operator type for helm installation (odh or rhoai)
 OPERATOR_TYPE ?= odh

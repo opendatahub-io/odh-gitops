@@ -111,10 +111,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.tempo | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"tempo-product","namespace":"openshift-tempo-operator"}}` | Tempo operator |
 | dependencies.tempo.dependencies | object | `{"opentelemetry":true}` | Dependencies required by tempo |
 | dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
-| global.labels | object | `{}` | Common labels applied to all resources |
-| global.olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
-| global.olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
-| global.olm.sourceNamespace | string | `"openshift-marketplace"` | Namespace of the catalog source |
+| labels | object | `{}` | Common labels applied to all resources |
+| olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
+| olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
+| olm.sourceNamespace | string | `"openshift-marketplace"` | Namespace of the catalog source |
 | operator.enabled | bool | `true` | Enable operator installation |
 | operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"fast-3.x","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
