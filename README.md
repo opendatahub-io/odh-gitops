@@ -13,6 +13,8 @@ This repository provides a GitOps-based approach to deploying and managing OpenD
         - [Red Hat Connectivity Link operator](#red-hat-connectivity-link-operator)
           - [Stage 1: Deploy base configuration](#stage-1-deploy-base-configuration)
           - [Stage 2: Enable TLS](#stage-2-enable-tls)
+        - [MariaDB Operator](#mariadb-operator)
+          - [Installation steps:](#installation-steps)
       - [Adding New Dependencies](#adding-new-dependencies)
   - [Quick Start](#quick-start)
     - [Prerequisites](#prerequisites)
@@ -30,6 +32,7 @@ This repository provides a GitOps-based approach to deploying and managing OpenD
   - [Usage Guidelines](#usage-guidelines)
     - [For Administrators](#for-administrators)
   - [Release Strategy](#release-strategy)
+    - [Release Workflow](#release-workflow)
 
 ## Overview
 
@@ -271,5 +274,15 @@ kubectl apply -k configurations/
 ## Release Strategy
 
 - **No Formal Releases**: This repository does not have official releases. Users are expected to clone or fork the repository and use it as a basis for their own configurations.
-- **Branch per OpenDataHub Version**: Each version of OpenDataHub has a dedicated branch (e.g., `odh-3.0`, `odh-3.1`) to ensure compatibility.
-- **Version Selection**: Always select the branch that corresponds to your target OpenDataHub version.
+- **Branch per OpenDataHub and RHOAI Version**: Each minor version of OpenDataHub/RHOAI has a dedicated branch (e.g., `odh-3.x`, `rhoai-3.x`). This will simplify the fix or updates of the specific minor version.
+- **Tag**: Each z-stream release has a dedicated tag (e.g., `odh-3.0.0`, `rhoai-3.0.0`) to ensure compatibility.
+- **Version Selection**: Always select the branch that corresponds to your target OpenDataHub/RHOAI version.
+
+### Release Workflow
+
+The release workflow is as follows:
+
+1. On the day of the code freeze, the release branch is created from the main branch.
+2. Changes in main can be cherry-picked into the release branch if needed.
+3. Since the chart depends on the OLM channel, if a new version uses a different OLM channel, the chart will need to be updated after the OLM is released.
+4. The GA date, once the release is done, the repository will be tagged with the corresponding tag.
