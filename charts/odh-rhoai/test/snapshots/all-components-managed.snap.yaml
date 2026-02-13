@@ -1,5 +1,5 @@
 ---
-# Source: odh-rhoai/templates/dependencies/cert-manager/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -8,7 +8,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/cluster-observability/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -17,7 +17,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/custom-metrics-autoscaler/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -26,7 +26,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/job-set/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -35,7 +35,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/kueue/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -44,7 +44,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/leader-worker-set/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -53,7 +53,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/nfd/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -62,7 +62,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/nvidia-gpu-operator/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -71,7 +71,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/opentelemetry/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -80,7 +80,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/rhcl/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -89,7 +89,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/tempo/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -98,7 +98,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/operator/operator.yaml
+# Source: odh-rhoai-chart/templates/operator/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -107,7 +107,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/operator/dscinitialization.yaml
+# Source: odh-rhoai-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
 kind: DSCInitialization
 metadata:
@@ -124,7 +124,7 @@ spec:
     managementState: Managed
     customCABundle: ""
 ---
-# Source: odh-rhoai/templates/operator/datasciencecluster.yaml
+# Source: odh-rhoai-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
 kind: DataScienceCluster
 metadata:
@@ -174,7 +174,7 @@ spec:
       managementState: Managed
       workbenchNamespace: opendatahub
 ---
-# Source: odh-rhoai/templates/dependencies/job-set/config.yaml
+# Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
 kind: JobSetOperator
 metadata:
@@ -186,7 +186,7 @@ spec:
   logLevel: Normal
   operatorLogLevel: Normal
 ---
-# Source: odh-rhoai/templates/dependencies/rhcl/config.yaml
+# Source: odh-rhoai-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
 kind: Kuadrant
 metadata:
@@ -196,7 +196,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai/templates/dependencies/kueue/config.yaml
+# Source: odh-rhoai-chart/templates/dependencies/kueue/config.yaml
 apiVersion: kueue.openshift.io/v1
 kind: Kueue
 metadata:
@@ -217,7 +217,7 @@ spec:
       - TrainJob
   managementState: Managed
 ---
-# Source: odh-rhoai/templates/dependencies/leader-worker-set/config.yaml
+# Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/config.yaml
 apiVersion: operator.openshift.io/v1
 kind: LeaderWorkerSetOperator
 metadata:
@@ -230,7 +230,7 @@ spec:
   managementState: Managed
   operatorLogLevel: Normal
 ---
-# Source: odh-rhoai/templates/dependencies/cert-manager/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -242,7 +242,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/cluster-observability/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -254,7 +254,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/custom-metrics-autoscaler/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -266,7 +266,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/job-set/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -280,7 +280,7 @@ spec:
   targetNamespaces:
     - openshift-jobset-operator
 ---
-# Source: odh-rhoai/templates/dependencies/kueue/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -292,7 +292,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/leader-worker-set/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -306,7 +306,7 @@ spec:
   targetNamespaces:
     - openshift-lws-operator
 ---
-# Source: odh-rhoai/templates/dependencies/nfd/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -320,7 +320,7 @@ spec:
   targetNamespaces:
     - openshift-nfd
 ---
-# Source: odh-rhoai/templates/dependencies/nvidia-gpu-operator/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -334,7 +334,7 @@ spec:
   targetNamespaces:
     - nvidia-gpu-operator
 ---
-# Source: odh-rhoai/templates/dependencies/opentelemetry/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -346,7 +346,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/rhcl/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -358,7 +358,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/tempo/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -370,7 +370,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/operator/operator.yaml
+# Source: odh-rhoai-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -382,7 +382,7 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai/templates/dependencies/cert-manager/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -398,7 +398,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/cluster-observability/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -414,7 +414,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/custom-metrics-autoscaler/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -430,7 +430,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/job-set/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -446,7 +446,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/kueue/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -462,7 +462,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/leader-worker-set/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -478,7 +478,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/nfd/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -494,7 +494,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/nvidia-gpu-operator/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -510,7 +510,7 @@ spec:
   source: certified-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/opentelemetry/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -526,7 +526,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/rhcl/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -542,7 +542,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/dependencies/tempo/operator.yaml
+# Source: odh-rhoai-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -558,7 +558,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: odh-rhoai/templates/operator/operator.yaml
+# Source: odh-rhoai-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
