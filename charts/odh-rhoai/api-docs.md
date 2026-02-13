@@ -121,7 +121,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
 | services.monitoring | object | `{"dependencies":{"clusterObservability":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":"Managed","metrics":{},"traces":{}}}` | Monitoring service configuration |
 | skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD. |
-| tags.olm | bool | `true` | When false, uses Helm chart dependencies for installation. |
+| tags.install-with-helm-dependencies | bool | `false` | Default is false (use OLM Subscriptions when available). |
 | trustedCABundle | object | `{"customCABundle":"","managementState":"Managed"}` | Trusted CA bundle configuration |
 | trustedCABundle.customCABundle | string | `""` | A custom CA bundle that will be available for all components in the Data Science Cluster (DSC). |
 | trustedCABundle.managementState | string | `"Managed"` | Management state for trusted CA bundle (Managed or Removed) |

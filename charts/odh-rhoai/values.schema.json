@@ -8,10 +8,10 @@
       "type": "object",
       "description": "Installation type selection via Helm tags",
       "properties": {
-        "olm": {
+        "install-with-helm-dependencies": {
           "type": "boolean",
-          "default": true,
-          "description": "Enable OLM installation mode (default). When true, uses OLM Subscriptions. When false, uses Helm chart dependencies for installation."
+          "default": false,
+          "description": "Install operators using Helm chart dependencies instead of OLM. Set to true when OLM is not available in the cluster."
         }
       },
       "additionalProperties": false

@@ -243,11 +243,11 @@ Arguments (passed as dict):
 {{/*
 =============================================================================
 Check if OLM installation mode is enabled
-Returns "true" if tags.olm is true (default), empty string otherwise
+Returns "true" if tags.install-with-helm-dependencies is false (default), empty string otherwise
 =============================================================================
 */}}
 {{- define "rhoai-dependencies.isOlmMode" -}}
-{{- if .Values.tags.olm -}}
+{{- if not (index .Values.tags "install-with-helm-dependencies") -}}
 true
 {{- end -}}
 {{- end }}

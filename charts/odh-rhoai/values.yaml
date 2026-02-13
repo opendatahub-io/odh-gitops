@@ -2,9 +2,10 @@
 # TAGS - Installation type selection
 # =============================================================================
 tags:
-  # -- Enable OLM installation mode (default). When true, uses OLM Subscriptions.
-  # -- When false, uses Helm chart dependencies for installation.
-  olm: true
+  # -- Install operators using Helm chart dependencies instead of OLM.
+  # -- Set to true when OLM is not available in the cluster.
+  # -- Default is false (use OLM Subscriptions when available).
+  install-with-helm-dependencies: false
 
 # -- Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD.
 skipCrdCheck: false
