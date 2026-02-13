@@ -192,51 +192,24 @@ fi
 done
 endef
 
-HELM_TMPL_CMD ?= helm template -f chart/values.yaml -f chart/test/testValues.yaml
-HELM_SNAPSHOT_DIR ?= chart/test/snapshots
+## Helm Chart Configuration
+# Charts directory containing all helm charts
+CHARTS_DIR ?= charts
+# Default chart to operate on (umbrella chart)
+CHART_NAME ?=
+CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),odh-rhoai)
+
+# Snapshot configuration (in scripts directory)
+SNAPSHOT_CONFIG ?= scripts/snapshot-config.yaml
 HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
-tmpl_debug ?=
-
-# Internal function to generate and normalize helm output
-# Usage: $(call helm-template,output-file,extra-args)
-define helm-template
-	$(HELM_TMPL_CMD) $(tmpl_debug) --name-template="release-test" -n default $(2) ./chart > $(1)
-	@$(SED_COMMAND) -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" $(1)
-	@rm $(1).bak
-endef
-
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
-chart-snapshots: ## Create snapshots for all chart configurations
-	@echo "==> Creating default snapshot..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/default.snap.yaml,)
-	@echo "==> Creating skipCrdCheck snapshot for ODH..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
-	@echo "==> Creating skipCrdCheck snapshot for RHOAI..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
-	@echo "==> Creating all-components-managed snapshot..."
-	$(call helm-template,$(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set components.trainingoperator.dsc.managementState=Managed --set components.kserve.dsc.modelsAsService.managementState=Managed)
-	@echo "==> Snapshots updated!"
+chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
+	@./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 .PHONY: chart-test
-chart-test: ## Test chart against all snapshots
-	@echo "==> Testing default configuration..."
-	$(call helm-template,.helm-test-default.yaml,)
-	@diff .helm-test-default.yaml $(HELM_SNAPSHOT_DIR)/default.snap.yaml
-	@rm .helm-test-default.yaml
-	@echo "==> Testing skipCrdCheck ODH configuration..."
-	$(call helm-template,.helm-test-skip-crd-odh.yaml,--set global.skipCrdCheck=true --set operator.type=odh)
-	@diff .helm-test-skip-crd-odh.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-odh.snap.yaml
-	@rm .helm-test-skip-crd-odh.yaml
-	@echo "==> Testing skipCrdCheck RHOAI configuration..."
-	$(call helm-template,.helm-test-skip-crd-rhoai.yaml,--set global.skipCrdCheck=true --set operator.type=rhoai)
-	@diff .helm-test-skip-crd-rhoai.yaml $(HELM_SNAPSHOT_DIR)/skip-crd-check-rhoai.snap.yaml
-	@rm .helm-test-skip-crd-rhoai.yaml
-	@echo "==> Testing all-components-managed configuration..."
-	$(call helm-template,.helm-test-all-components-managed.yaml,--set global.skipCrdCheck=true --set components.mlflowoperator.dsc.managementState=Managed --set components.llamastackoperator.dsc.managementState=Managed --set components.trainingoperator.dsc.managementState=Managed --set components.kserve.dsc.modelsAsService.managementState=Managed)
-	@diff .helm-test-all-components-managed.yaml $(HELM_SNAPSHOT_DIR)/all-components-managed.snap.yaml
-	@rm .helm-test-all-components-managed.yaml
-	@echo "==> All tests passed!"
+chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
+	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure
@@ -245,8 +218,8 @@ $(HELM_DOCS): $(LOCALBIN)
 	$(call go-install-tool,$(HELM_DOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,$(HELM_DOCS_VERSION))
 
 .PHONY: helm-docs
-helm-docs: helm-docs-ensure ## Run helm-docs.
-	$(HELM_DOCS) --chart-search-root $(shell pwd)/chart -o api-docs.md
+helm-docs: helm-docs-ensure ## Run helm-docs for all charts.
+	$(HELM_DOCS) --chart-search-root $(shell pwd)/$(CHARTS_DIR) -o api-docs.md
 
 # Operator type for helm installation (odh or rhoai)
 OPERATOR_TYPE ?= odh
@@ -262,20 +235,20 @@ endif
 helm-verify: ## Verify helm chart installation and DSC components
 	NAMESPACE=opendatahub-gitops OPERATOR_TYPE=$(OPERATOR_TYPE) ./scripts/verify-helm-chart.sh
 
-# Extra arguments to pass to helm commands (e.g., --set global.olm.source=custom-catalog)
+# Extra arguments to pass to helm commands (e.g., --set olm.source=custom-catalog)
 HELM_EXTRA_ARGS ?=
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 1: Install operators ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops --create-namespace $(HELM_EXTRA_ARGS)
+	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --create-namespace $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 2: Wait for CRDs (dependency) ==="
 	@./scripts/wait-for-crds.sh
 	@bash ./scripts/verify-dependencies.sh
 	@echo ""
 	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops $(HELM_EXTRA_ARGS)
+	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
 	@echo "Waiting for odh-dashboard deployment to exist in namespace $(APPLICATIONS_NAMESPACE)..."
@@ -291,7 +264,7 @@ helm-install-verify: ## Install helm chart and verify installation
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 6: Final helm upgrade with wait condition ==="
-	helm upgrade --install odh ./chart -n opendatahub-gitops --wait --timeout 10m $(HELM_EXTRA_ARGS)
+	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --wait --timeout 10m $(HELM_EXTRA_ARGS)
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies

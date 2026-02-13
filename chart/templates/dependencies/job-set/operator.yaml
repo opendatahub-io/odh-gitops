@@ -1,8 +1,0 @@
-{{- $dep := .Values.dependencies.jobSet -}}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "jobSet" "dependency" $dep "dependencies" .Values.dependencies "components" .Values.components "services" .Values.services) -}}
-{{- if eq $shouldInstall "true" }}
-{{- $installType := include "rhoai-dependencies.installationType" (dict "dependency" $dep "global" .Values.global) -}}
-{{- if eq $installType "olm" }}
-{{ include "rhoai-dependencies.operator.olm" (dict "name" $dep.olm.name "namespace" $dep.olm.namespace "channel" $dep.olm.channel "targetNamespaces" $dep.olm.targetNamespaces "root" $) }}
-{{- end }}
-{{- end }}
