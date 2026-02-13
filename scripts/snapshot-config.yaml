@@ -32,9 +32,3 @@ charts:
           - components.llamastackoperator.dsc.managementState=Managed
           - components.trainingoperator.dsc.managementState=Managed
           - components.kserve.dsc.modelsAsService.managementState=Managed
-
-  odh-operator:
-    testValuesFile: test/testValues.yaml
-    snapshots:
-      - name: default
-        # No additional flags for default
