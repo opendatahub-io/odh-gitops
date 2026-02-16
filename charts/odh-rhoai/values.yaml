@@ -3,8 +3,8 @@
 # =============================================================================
 tags:
   # -- Install operators using Helm chart dependencies instead of OLM.
-  # -- Set to true when OLM is not available in the cluster.
-  # -- Default is false (use OLM Subscriptions when available).
+  # Set to true when OLM is not available in the cluster.
+  # Default is false (use OLM Subscriptions when available).
   install-with-helm-dependencies: false
 
 # -- Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD.

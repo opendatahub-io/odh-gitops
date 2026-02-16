@@ -200,7 +200,6 @@ CHART_NAME ?=
 CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),odh-rhoai)
 
 # Snapshot configuration (in scripts directory)
-SNAPSHOT_CONFIG ?= scripts/snapshot-config.yaml
 HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
