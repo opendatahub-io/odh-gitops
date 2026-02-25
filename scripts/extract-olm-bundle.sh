@@ -17,6 +17,7 @@
 # Environment variables:
 #   BUNDLE_EXTRACT_REGISTRY_USERNAME    Registry username for authentication
 #   BUNDLE_EXTRACT_REGISTRY_PASSWORD    Registry password for authentication
+#                                       (credentials are passed via temporary env file)
 #
 # Requirements: podman, yq (bin/yq)
 # Exit codes: 0 = success, 1 = failure
@@ -93,6 +94,7 @@ Options:
 Environment variables:
   BUNDLE_EXTRACT_REGISTRY_USERNAME    Registry username for authentication
   BUNDLE_EXTRACT_REGISTRY_PASSWORD    Registry password for authentication
+                                      (credentials are passed via temporary env file)
 
 Examples:
   # Extract ODH operator bundle
@@ -209,39 +211,51 @@ extract_bundle() {
     echo "  Namespace: ${NAMESPACE}"
     echo ""
 
-    local volume_flags=""
-    local auth_env_flags=""
+    local volume_flags=()
+    local env_file_flags=()
+    local temp_env_file=""
 
     if [[ "${USE_USER_AUTH}" == "true" ]]; then
         # Mount user's containers auth file into the extractor
-        local auth_file="${XDG_RUNTIME_DIR}/containers/auth.json"
-        if [[ ! -f "${auth_file}" ]]; then
+        local auth_file="${XDG_RUNTIME_DIR:-}/containers/auth.json"
+        if [[ -z "${XDG_RUNTIME_DIR:-}" || ! -f "${auth_file}" ]]; then
             auth_file="${HOME}/.config/containers/auth.json"
         fi
         if [[ -f "${auth_file}" ]]; then
-            volume_flags="-v ${auth_file}:/run/containers/0/auth.json:ro"
+            volume_flags+=("-v" "${auth_file}:/run/containers/0/auth.json:ro")
             echo "  Using credentials from: ${auth_file}"
         else
             echo "WARNING: No podman auth file found. Run 'podman login' first."
         fi
     elif [[ -n "${BUNDLE_EXTRACT_REGISTRY_USERNAME:-}" && -n "${BUNDLE_EXTRACT_REGISTRY_PASSWORD:-}" ]]; then
-        auth_env_flags="-e BUNDLE_EXTRACT_REGISTRY_USERNAME=${BUNDLE_EXTRACT_REGISTRY_USERNAME} -e BUNDLE_EXTRACT_REGISTRY_PASSWORD=${BUNDLE_EXTRACT_REGISTRY_PASSWORD}"
-        echo "  Using credentials from environment variables"
+        # Create a temporary env file to avoid exposing credentials in process list
+        temp_env_file=$(mktemp)
+        # Ensure cleanup on exit, error, or interrupt
+        trap '[[ -n "${temp_env_file:-}" ]] && rm -f "${temp_env_file}"' EXIT
+        chmod 600 "${temp_env_file}"
+        printf 'BUNDLE_EXTRACT_REGISTRY_USERNAME=%s\n' "${BUNDLE_EXTRACT_REGISTRY_USERNAME}" > "${temp_env_file}"
+        printf 'BUNDLE_EXTRACT_REGISTRY_PASSWORD=%s\n' "${BUNDLE_EXTRACT_REGISTRY_PASSWORD}" >> "${temp_env_file}"
+        env_file_flags+=("--env-file" "${temp_env_file}")
+        echo "  Using credentials from environment variables (via temporary file)"
     fi
 
     # Extract bundle using podman
     # Capture to RAW_YAML - only podman output is captured, not echo statements
-    # shellcheck disable=SC2086
     if ! RAW_YAML=$(podman run --rm \
-        ${volume_flags} \
-        ${auth_env_flags} \
+        "${volume_flags[@]}" \
+        "${env_file_flags[@]}" \
         "${OLM_EXTRACTOR_IMAGE}" run \
         "${BUNDLE_IMAGE}" \
         -n "${NAMESPACE}" \
         --cert-manager-enabled=false); then
+        # Clean up temp env file if it exists
+        [[ -n "${temp_env_file}" ]] && rm -f "${temp_env_file}"
         echo "ERROR: Failed to extract OLM bundle from ${BUNDLE_IMAGE}" >&2
         exit 1
     fi
+
+    # Clean up temp env file if it exists
+    [[ -n "${temp_env_file}" ]] && rm -f "${temp_env_file}"
 
     # Validate we got some YAML output
     if [[ -z "${RAW_YAML}" ]]; then
