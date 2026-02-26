@@ -1,0 +1,114 @@
+# =============================================================================
+# Inference Only Stack - Values Override
+#
+# This values file configures the chart to install only the inference/model-serving
+# subset of RHOAI/ODH: KServe with distributed inference (llm-d).
+#
+# Dependencies installed:
+#   - cert-manager        (TLS/certificate management)
+#   - Leader Worker Set   (distributed inference workflows)
+#   - RHCL / Kuadrant     (API management / Authorino)
+#
+# Usage:
+#   helm upgrade --install rhoai ./chart \
+#     -f docs/examples/values-inference-only.yaml \
+#     -n opendatahub-gitops --create-namespace
+# =============================================================================
+
+# -- Global configuration
+# global:
+#   skipCrdCheck: true  # Required for ArgoCD (see docs/inference-only-stack.md)
+
+# -- Operator configuration
+operator:
+  enabled: true
+  type: rhoai  # Change to "odh" for Open Data Hub
+
+# -- Disable monitoring (not needed for inference-only)
+services:
+  monitoring:
+    dependencies:
+      clusterObservability: false
+      opentelemetry: false
+      tempo: false
+    dsci:
+      managementState: Removed
+
+# =============================================================================
+# COMPONENTS
+# Only KServe is enabled; all other components are Removed.
+# =============================================================================
+components:
+  kserve:
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
+      customMetricsAutoscaler: false  # Disabled for now
+      jobSet: false  # Not needed for inference-only
+    dsc:
+      managementState: Managed
+      modelsAsService:
+        managementState: Removed
+      nim:
+        managementState: Removed
+
+  # -- Disable all non-inference components
+  aipipelines:
+    dsc:
+      managementState: Removed
+
+  dashboard:
+    dsc:
+      managementState: Removed
+
+  feastoperator:
+    dsc:
+      managementState: Removed
+
+  kueue:
+    dependencies:
+      certManager: false
+      kueue: false
+    dsc:
+      managementState: Removed
+
+  modelregistry:
+    dsc:
+      managementState: Removed
+
+  ray:
+    dependencies:
+      certManager: false
+    dsc:
+      managementState: Removed
+
+  trainer:
+    dependencies:
+      certManager: false
+      jobSet: false
+    dsc:
+      managementState: Removed
+
+  trainingoperator:
+    dsc:
+      managementState: Removed
+
+  trustyai:
+    dsc:
+      managementState: Removed
+
+  workbenches:
+    dsc:
+      managementState: Removed
+
+  mlflowoperator:
+    dsc:
+      managementState: Removed
+
+  llamastackoperator:
+    dependencies:
+      nfd: false
+      nvidiaGPUOperator: false
+    dsc:
+      managementState: Removed

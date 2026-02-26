@@ -33,6 +33,7 @@ This repository provides a GitOps-based approach to deploying and managing OpenD
     - [For Administrators](#for-administrators)
   - [Release Strategy](#release-strategy)
     - [Release Workflow](#release-workflow)
+  - [Guides](#guides)
 
 ## Overview
 
@@ -146,6 +147,8 @@ To add a new dependency, follow the [Contributing](CONTRIBUTING.md#add-a-new-dep
 - Kustomize v5 or later (optional - `kubectl` has built-in Kustomize support)
 
 ## Installation Methods
+
+> **Looking for inference only?** If you only need model serving (KServe + distributed inference) without the full platform, see the [Inference Only Stack Guide](docs/inference-only-stack.md).
 
 ### Installation instructions
 
@@ -270,6 +273,10 @@ kubectl apply -k configurations/
 4. **Test** thoroughly in a non-production environment
 5. **Maintain** your fork with updates and customizations
 6. **Apply** using your GitOps tool (ArgoCD, Flux, etc.) or `kubectl`
+
+## Guides
+
+- [Inference Only Stack Installation Guide](docs/inference-only-stack.md) - Deploy only the inference/model-serving subset (KServe + distributed inference) without the full platform
 
 ## Release Strategy
 
