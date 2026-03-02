@@ -5,3 +5,14 @@ resources:
   - namespace.yaml
   - operatorgroup.yaml
   - subscription.yaml
+  # RHCL requires a Gateway API provider to be installed, so we need to apply a GatewayClass to install it.
+  # Otherwise, we get this status error on the AuthPolicy resource:
+  #  status:
+  #    conditions:
+  #    - lastTransitionTime: "2026-03-02T17:42:45Z"
+  #      message: '[Gateway API provider (istio / envoy gateway)] is not installed, please
+  #        restart Kuadrant Operator pod once dependency has been installed'
+  #      reason: MissingDependency
+  #      status: "False"
+  #      type: Accepted
+  - openshift-default-gwclass.yaml
