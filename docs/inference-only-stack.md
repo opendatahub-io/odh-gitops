@@ -8,9 +8,7 @@
     - [What Gets Installed](#what-gets-installed)
     - [Values Override](#values-override)
     - [Scripted Installation (Helm)](#scripted-installation-helm)
-    - [GitOps Installation (Argo CD)](#gitops-installation-argo-cd)
     - [Enabling Authorino TLS](#enabling-authorino-tls)
-    - [Switching Between ODH and RHOAI](#switching-between-odh-and-rhoai)
     - [Verification](#verification)
     - [Troubleshooting](#troubleshooting)
 
@@ -34,8 +32,6 @@ The stack installs a minimal set of dependency operators required by KServe:
 - `kubectl` or `oc` CLI installed
 - Cluster admin permissions
 - Helm v3
-- **(GitOps only)** OpenShift GitOps / ArgoCD with cluster-config permissions (
-  see [ArgoCD prerequisites](#gitops-installation-argo-cd))
 
 ## What Gets Installed
 
@@ -51,8 +47,8 @@ Workbenches, MLflow, LlamaStack) are set to `Removed`.
 
 ## Values Override
 
-The values override file is located at [
-`docs/examples/values-inference-only.yaml`](examples/values-inference-only.yaml).
+The values override file is located at
+[`docs/examples/values-inference-only.yaml`](examples/values-inference-only.yaml).
 
 > [!NOTE]
 > The YAML below is a copy of the values file for reference. If you modify the values, ensure you also update the source
@@ -290,8 +286,6 @@ install:
      -f docs/examples/values-inference-only.yaml \
      -n opendatahub-gitops
    ```
-
-3. For ArgoCD, trigger a manual sync. ArgoCD auto-retries will handle CRD ordering on subsequent syncs.
 
 ### Authorino TLS issues
 
