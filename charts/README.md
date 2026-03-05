@@ -5,11 +5,17 @@ These charts are extracted from Red Hat operator bundles and deploy operators wi
 
 ## Charts
 
-| Chart | Namespace | Description |
-|-------|-----------|-------------|
-| `cert-manager-operator` | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
-| `lws-operator` | `openshift-lws-operator` | Leader-Worker-Set Operator |
-| `sail-operator` | `istio-system` | Red Hat Sail (Istio) Operator |
+| Chart | Version | Namespace | Description |
+|-------|---------|-----------|-------------|
+| `cert-manager-operator` | v1.15.2 | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
+| `lws-operator` | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
+| `sail-operator` | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |
+
+### Bundled CRDs
+
+| CRDs | Version | Included In | Source |
+|------|---------|-------------|--------|
+| Gateway API (Gateway, HTTPRoute, etc.) | v1.4.0 | `sail-operator` | [kubernetes-sigs/gateway-api](https://github.com/kubernetes-sigs/gateway-api/tree/v1.4.0/config/crd/standard) |
 
 ## Pre-Install Steps
 
@@ -214,3 +220,4 @@ The scripts:
 2. Extract manifests using `olm-extractor`
 3. Split into CRDs (`crds/`) and templates (`templates/`)
 4. Update `bundle.version` in `values.yaml`
+5. (sail-operator only) Download Gateway API CRDs based on `gatewayAPI.version` and `gatewayAPI.channel` in `values.yaml`

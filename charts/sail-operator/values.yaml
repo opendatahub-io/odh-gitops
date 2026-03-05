@@ -3,3 +3,11 @@ namespace: istio-system
 
 bundle:
   version: "3.2.1"
+
+# Gateway API CRD versions (vendored by update-bundle.sh)
+gatewayAPI:
+  # Kubernetes Gateway API (Gateway, HTTPRoute, etc.)
+  version: "v1.4.0"
+  # CRD channel: "standard" (GA CRDs only) or "experimental" (GA + experimental)
+  # Pulled from: https://github.com/kubernetes-sigs/gateway-api/config/crd/<channel>?ref=<version>
+  channel: "standard"
