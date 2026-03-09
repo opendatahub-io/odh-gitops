@@ -4,6 +4,3 @@ kind: Component
 resources:
   - namespace.yaml
   - subscription.yaml
-  # RHCL/AuthPolicy reconciliation requires a Gateway API provider and a GatewayClass.
-  # Without this, the AuthPolicy reports a MissingDependency condition.
-  - openshift-default-gwclass.yaml
