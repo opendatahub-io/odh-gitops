@@ -37,3 +37,9 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - tags.install-with-helm-dependencies=true
+
+      - name: inference-only
+        valuesFiles:
+          - docs/examples/values-inference-only.yaml
+        setFlags:
+          - skipCrdCheck=true
