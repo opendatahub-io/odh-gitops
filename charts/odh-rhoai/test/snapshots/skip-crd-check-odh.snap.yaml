@@ -165,11 +165,11 @@ spec:
       managementState: Managed
       workbenchNamespace: opendatahub
 ---
-# Source: odh-rhoai-chart/templates/dependencies/rhcl/gatewayclass.yaml
+# Source: odh-rhoai-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
-  name: openshift-default
+  name: openshift-ai-inference
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm

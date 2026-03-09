@@ -137,6 +137,15 @@ components:
         managementState: Managed
       # -- Raw deployment service config for KServe (Headless or Headed)
       rawDeploymentServiceConfig: Headless
+    # -- GatewayClass configuration for KServe inference
+    gatewayClass:
+      # -- Create the GatewayClass: auto (if KServe is Managed), true (always), false (never)
+      create: auto
+      # -- GatewayClass name
+      name: openshift-ai-inference
+      # -- GatewayClass spec
+      spec:
+        controllerName: "openshift.io/gateway-controller/v1"
     modelsAsService:
       # -- Gateway Class configuration for the LLMInferenceService.
       gatewayClass:
@@ -373,15 +382,6 @@ dependencies:
       namespace: kuadrant-system
       # -- Enable Authorino TLS configuration
       tlsEnabled: false
-      # -- GatewayClass configuration (RHCL requires a Gateway API provider)
-      gatewayClass:
-        # -- Create the GatewayClass: auto (if RHCL is installed), true (always), false (never)
-        create: auto
-        # -- GatewayClass name
-        name: openshift-default
-        # -- GatewayClass spec
-        spec:
-          controllerName: "openshift.io/gateway-controller/v1"
       # -- Kuadrant CR spec (user can add any fields)
       spec: {}
       # -- Authorino CR spec (only created if tlsEnabled: true)

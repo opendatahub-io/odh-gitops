@@ -1,0 +1,15 @@
+{{- $kserve := .Values.components.kserve | default dict -}}
+{{- $kserveDsc := $kserve.dsc | default dict -}}
+{{- $isKserveManaged := include "rhoai-dependencies.isComponentActive" $kserveDsc.managementState -}}
+{{- $gwClass := $kserve.gatewayClass | default dict -}}
+{{- $create := ($gwClass.create | toString) -}}
+{{- if or (eq $create "true") (and (eq $create "auto") $isKserveManaged) }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ $gwClass.name | default "openshift-ai-inference" }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+spec:
+  {{- toYaml ($gwClass.spec | default (dict "controllerName" "openshift.io/gateway-controller/v1")) | nindent 2 }}
+{{- end }}
