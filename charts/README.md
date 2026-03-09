@@ -5,11 +5,12 @@ These charts are extracted from Red Hat operator bundles and deploy operators wi
 
 ## Charts
 
-| Chart | Namespace | Description |
-|-------|-----------|-------------|
-| `cert-manager-operator` | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
-| `lws-operator` | `openshift-lws-operator` | Leader-Worker-Set Operator |
-| `sail-operator` | `istio-system` | Red Hat Sail (Istio) Operator |
+| Chart | Version | Namespace | Description |
+|-------|---------|-----------|-------------|
+| `cert-manager-operator` | v1.15.2 | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
+| `gateway-api` | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
+| `lws-operator` | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
+| `sail-operator` | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |
 
 ## Pre-Install Steps
 
@@ -61,11 +62,12 @@ EOF
 
 ```bash
 helm install cert-manager-operator charts/cert-manager-operator/
+helm install gateway-api charts/gateway-api/
 helm install lws-operator charts/lws-operator/
 helm install sail-operator charts/sail-operator/
 ```
 
-Each chart creates its own namespace from `values.yaml` defaults.
+Each operator chart creates its own namespace from `values.yaml` defaults. The `gateway-api` chart is cluster-scoped (CRDs only) and does not create a namespace.
 
 ## Post-Install Steps
 
@@ -198,7 +200,9 @@ kubectl annotate validatingwebhookconfiguration istio-validator-istio-system sai
 
 ## Updating Charts
 
-Each chart includes an `update-bundle.sh` script that extracts fresh manifests from Red Hat operator bundles:
+### Operator charts (bundle-derived)
+
+The operator charts include an `update-bundle.sh` script that extracts fresh manifests from Red Hat operator bundles:
 
 ```bash
 # Requires: podman, python3, pyyaml
@@ -214,3 +218,12 @@ The scripts:
 2. Extract manifests using `olm-extractor`
 3. Split into CRDs (`crds/`) and templates (`templates/`)
 4. Update `bundle.version` in `values.yaml`
+
+### Gateway API chart (CRDs only)
+
+The `gateway-api` chart contains cluster-scoped CRDs downloaded directly from GitHub (not from an operator bundle). Use `update-crds.sh` to update:
+
+```bash
+./charts/gateway-api/scripts/update-crds.sh v1.4.0
+./charts/gateway-api/scripts/update-crds.sh v1.4.0 experimental  # for experimental channel
+```
