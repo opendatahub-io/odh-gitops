@@ -231,9 +231,15 @@ spec:
 {{- end }}
 ```
 
-#### Step 3: Update JSON Schema
+#### Step 3: Generate JSON Schema
 
-Add your dependency to [`chart/values.schema.json`](./chart/values.schema.json) to enable validation.
+The JSON schema is auto-generated from `values.yaml`:
+
+```bash
+make helm-schema              # Generates: chart/values.schema.json
+```
+
+**Note:** The Makefile automatically regenerates the schema when running `make chart-snapshots` (via prerequisite), so you typically don't need to run this separately.
 
 #### Step 4: Update Documentation
 
@@ -285,9 +291,15 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.yourComponent "root" $) | nindent 6 }}
 ```
 
-#### Step 3: Update JSON Schema
+#### Step 3: Generate JSON Schema
 
-Add your component to `chart/values.schema.json` under the `components` section.
+The JSON schema is auto-generated from `values.yaml`:
+
+```bash
+make helm-schema              # Generates: chart/values.schema.json
+```
+
+**Note:** The Makefile automatically regenerates the schema when running `make chart-snapshots` (via prerequisite), so you typically don't need to run this separately.
 
 #### Step 4: Update Documentation
 
