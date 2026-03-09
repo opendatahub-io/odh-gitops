@@ -31,7 +31,7 @@ The stack installs a minimal set of dependency operators required by KServe:
 - OpenShift cluster (version 4.19 or later)
 - `kubectl` or `oc` CLI installed
 - Cluster admin permissions
-- Helm v3
+- Helm v4
 
 ## What Gets Installed
 
@@ -98,23 +98,15 @@ components:
     dsc:
       managementState: Removed
   kueue:
-    dependencies:
-      certManager: false
-      kueue: false
     dsc:
       managementState: Removed
   modelregistry:
     dsc:
       managementState: Removed
   ray:
-    dependencies:
-      certManager: false
     dsc:
       managementState: Removed
   trainer:
-    dependencies:
-      certManager: false
-      jobSet: false
     dsc:
       managementState: Removed
   trainingoperator:
@@ -130,9 +122,6 @@ components:
     dsc:
       managementState: Removed
   llamastackoperator:
-    dependencies:
-      nfd: false
-      nvidiaGPUOperator: false
     dsc:
       managementState: Removed
 ```
@@ -197,16 +186,12 @@ helm upgrade --install rhoai ./chart \
 ### 5. Enable Authorino TLS (post-install)
 
 > [!WARNING]
-> This step is required for KServe to function correctly. Authorino TLS must be enabled after the Kuadrant operator
-> creates the Authorino resource.
-
-After the Kuadrant operator has created the Authorino resource, enable TLS:
+> This step is required for KServe to function correctly. See [Enabling Authorino TLS](#enabling-authorino-tls)
+> for why this is a post-install step.
 
 ```bash
 KUSTOMIZE_MODE=false ./scripts/prepare-authorino-tls.sh
 ```
-
-See [Enabling Authorino TLS](#enabling-authorino-tls) for details.
 
 ### 6. Verify the installation
 

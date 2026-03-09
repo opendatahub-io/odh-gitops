@@ -67,9 +67,6 @@ components:
       managementState: Removed
 
   kueue:
-    dependencies:
-      certManager: false
-      kueue: false
     dsc:
       managementState: Removed
 
@@ -78,15 +75,10 @@ components:
       managementState: Removed
 
   ray:
-    dependencies:
-      certManager: false
     dsc:
       managementState: Removed
 
   trainer:
-    dependencies:
-      certManager: false
-      jobSet: false
     dsc:
       managementState: Removed
 
@@ -107,8 +99,5 @@ components:
       managementState: Removed
 
   llamastackoperator:
-    dependencies:
-      nfd: false
-      nvidiaGPUOperator: false
     dsc:
       managementState: Removed

@@ -682,6 +682,28 @@
               "type": "object",
               "description": "Authorino CR spec fields (only used if tlsEnabled: true)",
               "additionalProperties": true
+            },
+            "gatewayClass": {
+              "type": "object",
+              "description": "GatewayClass configuration (RHCL requires a Gateway API provider)",
+              "properties": {
+                "create": {
+                  "type": "string",
+                  "enum": ["auto", "true", "false"],
+                  "default": "auto",
+                  "description": "Create the GatewayClass: auto (if RHCL is installed), true (always), false (never)"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "GatewayClass name"
+                },
+                "spec": {
+                  "type": "object",
+                  "description": "GatewayClass spec",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
