@@ -1,0 +1,5 @@
+# LWS Operator Helm Chart
+namespace: openshift-lws-operator
+
+bundle:
+  version: "1.0"

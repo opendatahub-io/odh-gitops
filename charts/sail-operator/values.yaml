@@ -1,0 +1,5 @@
+# Sail Operator Helm Chart
+namespace: istio-system
+
+bundle:
+  version: "3.2.1"
