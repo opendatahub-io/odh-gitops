@@ -10,14 +10,13 @@
 #   - RHCL / Kuadrant     (API management / Authorino)
 #
 # Usage:
-#   helm upgrade --install rhoai ./chart \
+#   helm upgrade --install rhoai ./charts/odh-rhoai \
 #     -f docs/examples/values-inference-only.yaml \
 #     -n opendatahub-gitops --create-namespace
 # =============================================================================
 
-# -- Global configuration
-# global:
-#   skipCrdCheck: true  # Required for ArgoCD (see docs/inference-only-stack.md)
+# -- Set skipCrdCheck to true for ArgoCD (see docs/inference-only-stack.md)
+# skipCrdCheck: true
 
 # -- Operator configuration
 operator:

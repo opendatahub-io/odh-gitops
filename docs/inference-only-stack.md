@@ -75,11 +75,11 @@ services:
 components:
   kserve:
     dependencies:
-      certManager: true              # TLS certificates
-      leaderWorkerSet: true          # Distributed inference
-      rhcl: true                     # API management (Authorino)
-      customMetricsAutoscaler: false # KEDA disabled for now
-      jobSet: false                  # Not needed for inference-only
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
+      customMetricsAutoscaler: false  # Disabled for now
+      jobSet: false  # Not needed for inference-only
     dsc:
       managementState: Managed
       modelsAsService:
@@ -87,40 +87,51 @@ components:
       nim:
         managementState: Removed
 
-  # All other components are set to Removed
+  # -- Disable all non-inference components
   aipipelines:
     dsc:
       managementState: Removed
+
   dashboard:
     dsc:
       managementState: Removed
+
   feastoperator:
     dsc:
       managementState: Removed
+
   kueue:
     dsc:
       managementState: Removed
+
   modelregistry:
     dsc:
       managementState: Removed
+
   ray:
     dsc:
       managementState: Removed
+
   trainer:
     dsc:
       managementState: Removed
+
   trainingoperator:
     dsc:
       managementState: Removed
+
   trustyai:
     dsc:
       managementState: Removed
+
   workbenches:
     dsc:
       managementState: Removed
+
   mlflowoperator:
     dsc:
       managementState: Removed
+
   llamastackoperator:
     dsc:
       managementState: Removed
@@ -146,7 +157,7 @@ The first run installs the OLM subscriptions (Namespace, OperatorGroup, Subscrip
 CRDs do not exist yet.
 
 ```bash
-helm upgrade --install rhoai ./chart \
+helm upgrade --install rhoai ./charts/odh-rhoai \
   -f docs/examples/values-inference-only.yaml \
   -n opendatahub-gitops --create-namespace
 ```
@@ -178,7 +189,7 @@ Now that CRDs exist, the second run creates the CR resources (DSCInitialization,
 LeaderWorkerSetOperator, etc.):
 
 ```bash
-helm upgrade --install rhoai ./chart \
+helm upgrade --install rhoai ./charts/odh-rhoai \
   -f docs/examples/values-inference-only.yaml \
   -n opendatahub-gitops
 ```
@@ -267,7 +278,7 @@ install:
 2. Run `helm upgrade` again. CRs are skipped until their CRDs exist:
 
    ```bash
-   helm upgrade --install rhoai ./chart \
+   helm upgrade --install rhoai ./charts/odh-rhoai \
      -f docs/examples/values-inference-only.yaml \
      -n opendatahub-gitops
    ```
