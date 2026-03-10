@@ -369,8 +369,6 @@ dependencies:
       # -- (optional) Version to pin operator to (e.g., "v0.8.0"). If omitted, installs latest from channel.
       # version: v0.8.0
     config:
-      # -- Namespace where Kuadrant CR and operands are deployed
-      namespace: kuadrant-system
       # -- Enable Authorino TLS configuration
       tlsEnabled: false
       # -- Kuadrant CR spec (user can add any fields)

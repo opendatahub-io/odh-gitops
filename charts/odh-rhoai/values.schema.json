@@ -671,11 +671,6 @@
           "type": "object",
           "description": "RHCL configuration",
           "properties": {
-            "namespace": {
-              "type": "string",
-              "default": "kuadrant-system",
-              "description": "Namespace where Kuadrant CR and operands are deployed"
-            },
             "tlsEnabled": {
               "type": "boolean",
               "default": false,

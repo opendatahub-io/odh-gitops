@@ -6,7 +6,7 @@ apiVersion: kuadrant.io/v1beta1
 kind: Kuadrant
 metadata:
   name: kuadrant
-  namespace: {{ $dep.config.namespace }}
+  namespace: {{ $dep.olm.namespace }}
   labels:
     {{- include "rhoai-dependencies.labels" . | nindent 4 }}
 {{- with $dep.config.spec }}

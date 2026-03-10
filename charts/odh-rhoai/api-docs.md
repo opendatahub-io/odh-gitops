@@ -102,9 +102,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
-| dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"namespace":"kuadrant-system","spec":{},"tlsEnabled":false},"dependencies":{"certManager":true,"leaderWorkerSet":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true,"leaderWorkerSet":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
 | dependencies.rhcl.config.authorinoSpec | object | `{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1}` | Authorino CR spec (only created if tlsEnabled: true) |
-| dependencies.rhcl.config.namespace | string | `"kuadrant-system"` | Namespace where Kuadrant CR and operands are deployed |
 | dependencies.rhcl.config.spec | object | `{}` | Kuadrant CR spec (user can add any fields) |
 | dependencies.rhcl.config.tlsEnabled | bool | `false` | Enable Authorino TLS configuration |
 | dependencies.rhcl.dependencies | object | `{"certManager":true,"leaderWorkerSet":true}` | Dependencies required by rhcl |
