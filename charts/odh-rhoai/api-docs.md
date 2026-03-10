@@ -43,12 +43,12 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.mlflowoperator.dependencies | object | `{}` | Dependencies required by MLflow Operator |
 | components.mlflowoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for MLflow Operator |
 | components.mlflowoperator.dsc.managementState | string | `"Removed"` | Management state for MLflow Operator (Managed or Removed) |
-| components.modelregistry | object | `{"defaults":{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":null}}` | Model Registry component |
+| components.modelregistry | object | `{"defaults":{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"managementState":"Managed","registriesNamespace":""}}` | Model Registry component |
 | components.modelregistry.defaults | object | `{"odh":{"registriesNamespace":"odh-model-registry"},"rhoai":{"registriesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.modelregistry.dependencies | object | `{}` | Dependencies required by Model Registry |
-| components.modelregistry.dsc | object | `{"managementState":"Managed","registriesNamespace":null}` | DSC configuration for Model Registry |
+| components.modelregistry.dsc | object | `{"managementState":"Managed","registriesNamespace":""}` | DSC configuration for Model Registry |
 | components.modelregistry.dsc.managementState | string | `"Managed"` | Management state for Model Registry (Managed or Removed) |
-| components.modelregistry.dsc.registriesNamespace | string | `nil` | Registries namespace for Model Registry (overrides defaults) |
+| components.modelregistry.dsc.registriesNamespace | string | `""` | Registries namespace for Model Registry (overrides defaults) |
 | components.ray | object | `{"dependencies":{"certManager":true},"dsc":{"managementState":"Managed"}}` | Ray component |
 | components.ray.dependencies | object | `{"certManager":true}` | Dependencies required by Ray |
 | components.ray.dsc | object | `{"managementState":"Managed"}` | DSC configuration for Ray |
@@ -66,52 +66,52 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.trustyai.dsc | object | `{"eval":{"lmeval":{"permitCodeExecution":"deny","permitOnline":"deny"}},"managementState":"Managed"}` | DSC configuration for TrustyAI |
 | components.trustyai.dsc.eval | object | `{"lmeval":{"permitCodeExecution":"deny","permitOnline":"deny"}}` | Evaluation configuration for TrustyAI evaluations |
 | components.trustyai.dsc.managementState | string | `"Managed"` | Management state for TrustyAI (Managed or Removed) |
-| components.workbenches | object | `{"defaults":{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}},"dependencies":{},"dsc":{"managementState":"Managed","workbenchNamespace":null}}` | Workbenches component |
+| components.workbenches | object | `{"defaults":{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}},"dependencies":{},"dsc":{"managementState":"Managed","workbenchNamespace":""}}` | Workbenches component |
 | components.workbenches.defaults | object | `{"odh":{"workbenchNamespace":"opendatahub"},"rhoai":{"workbenchNamespace":"rhods-notebooks"}}` | Operator-type-specific defaults for dsc fields |
 | components.workbenches.dependencies | object | `{}` | Dependencies required by Workbenches |
-| components.workbenches.dsc | object | `{"managementState":"Managed","workbenchNamespace":null}` | DSC configuration for Workbenches |
+| components.workbenches.dsc | object | `{"managementState":"Managed","workbenchNamespace":""}` | DSC configuration for Workbenches |
 | components.workbenches.dsc.managementState | string | `"Managed"` | Management state for Workbenches (Managed or Removed) |
-| components.workbenches.dsc.workbenchNamespace | string | `nil` | Workbench namespace for Workbenches (overrides defaults) |
+| components.workbenches.dsc.workbenchNamespace | string | `""` | Workbench namespace for Workbenches (overrides defaults) |
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
-| dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
+| dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
 | dependencies.clusterObservability.dependencies | object | `{"opentelemetry":true}` | Dependencies required by cluster-observability |
-| dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) |
+| dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.customMetricsAutoscaler | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.dependencies | object | `{}` | Dependencies required by custom-metrics-autoscaler |
-| dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |
+| dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
 | dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
 | dependencies.jobSet.dependencies | object | `{"certManager":true}` | Dependencies required by job-set |
-| dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |
+| dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.2","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
 | dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
 | dependencies.kueue.dependencies | object | `{"certManager":true}` | Dependencies required by kueue |
-| dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) |
+| dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.leaderWorkerSet | object | `{"config":{"spec":{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.0","name":"leader-worker-set","namespace":"openshift-lws-operator","targetNamespaces":["openshift-lws-operator"]}}` | Leader Worker Set operator |
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
 | dependencies.leaderWorkerSet.dependencies | object | `{"certManager":true}` | Dependencies required by leader-worker-set |
-| dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
+| dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.nfd | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
 | dependencies.nfd.dependencies | object | `{}` | Dependencies required by NFD |
-| dependencies.nfd.enabled | string | `"auto"` | Enable NFD: auto (if needed), true (always), false (never) |
+| dependencies.nfd.enabled | string | `"auto"` | Enable NFD: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.nvidiaGPUOperator | object | `{"dependencies":{"nfd":true},"enabled":"auto","olm":{"channel":"v25.10","name":"gpu-operator-certified","namespace":"nvidia-gpu-operator","source":"certified-operators","targetNamespaces":["nvidia-gpu-operator"]}}` | NVIDIA GPU operator (required for GPU support) |
 | dependencies.nvidiaGPUOperator.dependencies | object | `{"nfd":true}` | Dependencies required by GPU operator |
-| dependencies.nvidiaGPUOperator.enabled | string | `"auto"` | Enable GPU operator: auto (if needed), true (always), false (never) |
+| dependencies.nvidiaGPUOperator.enabled | string | `"auto"` | Enable GPU operator: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
-| dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
+| dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"namespace":"kuadrant-system","spec":{},"tlsEnabled":false},"dependencies":{"certManager":true,"leaderWorkerSet":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
 | dependencies.rhcl.config.authorinoSpec | object | `{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1}` | Authorino CR spec (only created if tlsEnabled: true) |
 | dependencies.rhcl.config.namespace | string | `"kuadrant-system"` | Namespace where Kuadrant CR and operands are deployed |
 | dependencies.rhcl.config.spec | object | `{}` | Kuadrant CR spec (user can add any fields) |
 | dependencies.rhcl.config.tlsEnabled | bool | `false` | Enable Authorino TLS configuration |
 | dependencies.rhcl.dependencies | object | `{"certManager":true,"leaderWorkerSet":true}` | Dependencies required by rhcl |
-| dependencies.rhcl.enabled | string | `"auto"` | Enable rhcl: auto (if needed), true (always), false (never) |
+| dependencies.rhcl.enabled | string | `"auto"` | Enable rhcl: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | dependencies.tempo | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"tempo-product","namespace":"openshift-tempo-operator"}}` | Tempo operator |
 | dependencies.tempo.dependencies | object | `{"opentelemetry":true}` | Dependencies required by tempo |
-| dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
+| dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema |
 | labels | object | `{}` | Common labels applied to all resources |
 | olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
 | olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |

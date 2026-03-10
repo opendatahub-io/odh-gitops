@@ -1,783 +1,1940 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "RHOAI Dependencies Helm Chart Values",
-  "description": "Configuration values for the RHOAI Dependencies Helm chart",
-  "type": "object",
+  "additionalProperties": false,
   "properties": {
-    "tags": {
-      "type": "object",
-      "description": "Installation type selection via Helm tags",
-      "properties": {
-        "install-with-helm-dependencies": {
-          "type": "boolean",
-          "default": false,
-          "description": "Install operators using Helm chart dependencies instead of OLM. Set to true when OLM is not available in the cluster."
-        }
-      },
-      "additionalProperties": false
-    },
-    "skipCrdCheck": {
-      "type": "boolean",
-      "default": false,
-      "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
-    },
-    "olm": {
-      "type": "object",
-      "description": "OLM settings for operator subscriptions",
-      "properties": {
-        "installPlanApproval": {
-          "type": "string",
-          "enum": ["Automatic", "Manual"],
-          "default": "Automatic",
-          "description": "Install plan approval mode for OLM subscriptions"
-        },
-        "source": {
-          "type": "string",
-          "default": "redhat-operators",
-          "description": "Default catalog source for OLM subscriptions"
-        },
-        "sourceNamespace": {
-          "type": "string",
-          "default": "openshift-marketplace",
-          "description": "Namespace of the catalog source"
-        }
-      },
-      "additionalProperties": false
-    },
-    "labels": {
-      "type": "object",
-      "description": "Common labels applied to all resources",
-      "additionalProperties": {
-        "type": "string"
-      }
-    },
-    "operator": {
-      "type": "object",
-      "description": "ODH or RHOAI operator installation configuration",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable operator installation"
-        },
-        "type": {
-          "type": "string",
-          "enum": ["odh", "rhoai"],
-          "default": "rhoai",
-          "description": "Operator type to install: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)"
-        },
-        "odh": {
-          "$ref": "#/definitions/operatorConfig",
-          "description": "ODH operator settings"
-        },
-        "rhoai": {
-          "$ref": "#/definitions/operatorConfig",
-          "description": "RHOAI operator settings"
-        }
-      },
-      "required": ["enabled", "type"],
-      "additionalProperties": false
-    },
-    "trustedCABundle": {
-      "type": "object",
-      "description": "Trusted CA bundle configuration",
-      "properties": {
-        "managementState": {
-          "$ref": "#/definitions/defaultManagementState"
-        },
-        "customCABundle": {
-          "type": "string",
-          "description": "Custom CA bundle"
-        }
-      },
-      "additionalProperties": false
-    },
     "components": {
-      "type": "object",
-      "description": "High-level features that configure DSC managementState and auto-enable their dependencies.",
+      "additionalProperties": false,
+      "description": " COMPONENTS - High-level features that auto-enable their dependencies Components configure the DataScienceCluster (DSC) managementState. managementState values: Managed (dependencies auto-enabled), Removed (no deps), Unmanaged (kueue only, deps auto-enabled)  Structure:   dependencies: Boolean toggles for which dependencies this component needs   dsc: Configuration that goes into the DataScienceCluster CR   defaults: (optional) Operator-type-specific defaults for dsc fields =============================================================================",
       "properties": {
         "aipipelines": {
-          "$ref": "#/definitions/aipipelinesComponent"
+          "additionalProperties": false,
+          "description": "AI Pipelines component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by AI Pipelines",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for AI Pipelines (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "aipipelines"
         },
         "dashboard": {
-          "$ref": "#/definitions/component"
+          "additionalProperties": false,
+          "description": "Dashboard component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Dashboard",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for Dashboard (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "dashboard"
         },
         "feastoperator": {
-          "$ref": "#/definitions/component"
+          "additionalProperties": false,
+          "description": "Feast Operator component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Feast Operator",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Feast Operator",
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for Feast Operator (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "feastoperator"
         },
         "kserve": {
-          "$ref": "#/definitions/kserveComponent"
+          "additionalProperties": false,
+          "description": "KServe model serving component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by KServe (set to false to disable)",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                },
+                "customMetricsAutoscaler": {
+                  "default": true,
+                  "title": "customMetricsAutoscaler",
+                  "type": "boolean"
+                },
+                "jobSet": {
+                  "default": true,
+                  "title": "jobSet",
+                  "type": "boolean"
+                },
+                "leaderWorkerSet": {
+                  "default": true,
+                  "title": "leaderWorkerSet",
+                  "type": "boolean"
+                },
+                "rhcl": {
+                  "default": true,
+                  "title": "rhcl",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for KServe",
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for KServe (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                },
+                "modelsAsService": {
+                  "additionalProperties": false,
+                  "description": "Models as Service configuration",
+                  "properties": {
+                    "managementState": {
+                      "default": "Removed",
+                      "description": "Management state for Models as Service (Managed or Removed)",
+                      "required": [],
+                      "title": "managementState"
+                    }
+                  },
+                  "required": [],
+                  "title": "modelsAsService"
+                },
+                "nim": {
+                  "additionalProperties": false,
+                  "description": "Enables NVIDIA NIM integration",
+                  "properties": {
+                    "managementState": {
+                      "default": "Managed",
+                      "description": "Management state for NIM (Managed or Removed)",
+                      "required": [],
+                      "title": "managementState"
+                    }
+                  },
+                  "required": [],
+                  "title": "nim"
+                },
+                "rawDeploymentServiceConfig": {
+                  "default": "Headless",
+                  "description": "Raw deployment service config for KServe (Headless or Headed)",
+                  "required": [],
+                  "title": "rawDeploymentServiceConfig"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            },
+            "modelsAsService": {
+              "additionalProperties": false,
+              "properties": {
+                "gateway": {
+                  "additionalProperties": false,
+                  "description": "Gateway configuration for the LLMInferenceService.",
+                  "properties": {
+                    "annotations": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "opendatahub.io/managed": {
+                          "default": "false",
+                          "title": "opendatahub.io/managed",
+                          "type": "string"
+                        },
+                        "security.opendatahub.io/authorino-tls-bootstrap": {
+                          "default": "true",
+                          "title": "security.opendatahub.io/authorino-tls-bootstrap",
+                          "type": "string"
+                        }
+                      },
+                      "required": [],
+                      "title": "annotations",
+                      "type": "object"
+                    },
+                    "create": {
+                      "default": "false",
+                      "description": "Flag to create the Gateway (auto, true, false). If auto, it will be created if Models as Service is Managed.",
+                      "required": [],
+                      "title": "create"
+                    },
+                    "name": {
+                      "default": "maas-default-gateway",
+                      "title": "name",
+                      "type": "string"
+                    },
+                    "namespace": {
+                      "default": "openshift-ingress",
+                      "title": "namespace",
+                      "type": "string"
+                    },
+                    "spec": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "gatewayClassName": {
+                          "default": "maas-gateway-class",
+                          "title": "gatewayClassName",
+                          "type": "string"
+                        },
+                        "listeners": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "allowedRoutes": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "namespaces": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "from": {
+                                            "default": "All",
+                                            "title": "from",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [],
+                                        "title": "namespaces",
+                                        "type": "object"
+                                      }
+                                    },
+                                    "required": [],
+                                    "title": "allowedRoutes",
+                                    "type": "object"
+                                  },
+                                  "name": {
+                                    "default": "https",
+                                    "title": "name",
+                                    "type": "string"
+                                  },
+                                  "port": {
+                                    "default": 443,
+                                    "title": "port",
+                                    "type": "integer"
+                                  },
+                                  "protocol": {
+                                    "default": "HTTPS",
+                                    "description": "hostname: \u003cHOSTNAME\u003e # Uncomment this line to use a specific hostname.",
+                                    "title": "protocol",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [],
+                                "type": "object"
+                              }
+                            ],
+                            "required": []
+                          },
+                          "title": "listeners",
+                          "type": "array"
+                        }
+                      },
+                      "required": [],
+                      "title": "spec",
+                      "type": "object"
+                    }
+                  },
+                  "required": [],
+                  "title": "gateway"
+                },
+                "gatewayClass": {
+                  "additionalProperties": false,
+                  "description": "Gateway Class configuration for the LLMInferenceService.",
+                  "properties": {
+                    "create": {
+                      "default": "false",
+                      "description": "Flag to create the Gateway Class (auto, true, false). If auto, it will be created if Models as Service is Managed.",
+                      "required": [],
+                      "title": "create"
+                    },
+                    "name": {
+                      "default": "maas-gateway-class",
+                      "title": "name",
+                      "type": "string"
+                    },
+                    "spec": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "controllerName": {
+                          "default": "openshift.io/gateway-controller/v1",
+                          "title": "controllerName",
+                          "type": "string"
+                        }
+                      },
+                      "required": [],
+                      "title": "spec",
+                      "type": "object"
+                    }
+                  },
+                  "required": [],
+                  "title": "gatewayClass"
+                }
+              },
+              "required": [],
+              "title": "modelsAsService",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "kserve"
         },
         "kueue": {
-          "$ref": "#/definitions/kueueComponent"
-        },
-        "mlflowoperator": {
-          "$ref": "#/definitions/component"
-        },
-        "modelregistry": {
-          "$ref": "#/definitions/modelregistryComponent"
-        },
-        "ray": {
-          "$ref": "#/definitions/component"
-        },
-        "trainer": {
-          "$ref": "#/definitions/component"
-        },
-        "trainingoperator": {
-          "$ref": "#/definitions/component"
-        },
-        "trustyai": {
-          "$ref": "#/definitions/trustyaiComponent"
-        },
-        "workbenches": {
-          "$ref": "#/definitions/workbenchesComponent"
+          "additionalProperties": false,
+          "description": "Kueue job queuing component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Kueue",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                },
+                "kueue": {
+                  "default": true,
+                  "title": "kueue",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Kueue",
+              "properties": {
+                "defaultClusterQueueName": {
+                  "default": "default",
+                  "title": "defaultClusterQueueName",
+                  "type": "string"
+                },
+                "defaultLocalQueueName": {
+                  "default": "default",
+                  "title": "defaultLocalQueueName",
+                  "type": "string"
+                },
+                "managementState": {
+                  "default": "Unmanaged",
+                  "description": "Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "kueue"
         },
         "llamastackoperator": {
-          "$ref": "#/definitions/component"
+          "additionalProperties": false,
+          "description": "LlamaStack Operator component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by LlamaStack Operator",
+              "properties": {
+                "nfd": {
+                  "default": true,
+                  "title": "nfd",
+                  "type": "boolean"
+                },
+                "nvidiaGPUOperator": {
+                  "default": true,
+                  "title": "nvidiaGPUOperator",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for LlamaStack Operator",
+              "properties": {
+                "managementState": {
+                  "default": "Removed",
+                  "description": "Management state for LlamaStack Operator (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "llamastackoperator"
+        },
+        "mlflowoperator": {
+          "additionalProperties": false,
+          "description": "MLflow Operator component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by MLflow Operator",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for MLflow Operator",
+              "properties": {
+                "managementState": {
+                  "default": "Removed",
+                  "description": "Management state for MLflow Operator (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "mlflowoperator"
+        },
+        "modelregistry": {
+          "additionalProperties": false,
+          "description": "Model Registry component",
+          "properties": {
+            "defaults": {
+              "additionalProperties": false,
+              "description": "Operator-type-specific defaults for dsc fields",
+              "properties": {
+                "odh": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "registriesNamespace": {
+                      "default": "odh-model-registry",
+                      "title": "registriesNamespace",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "odh",
+                  "type": "object"
+                },
+                "rhoai": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "registriesNamespace": {
+                      "default": "rhoai-model-registries",
+                      "title": "registriesNamespace",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "rhoai",
+                  "type": "object"
+                }
+              },
+              "required": [],
+              "title": "defaults"
+            },
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Model Registry",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Model Registry",
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for Model Registry (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                },
+                "registriesNamespace": {
+                  "default": "",
+                  "description": "Registries namespace for Model Registry (overrides defaults)",
+                  "required": [],
+                  "title": "registriesNamespace"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "modelregistry"
+        },
+        "ray": {
+          "additionalProperties": false,
+          "description": "Ray component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Ray",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Ray",
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for Ray (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "ray"
+        },
+        "trainer": {
+          "additionalProperties": false,
+          "description": "Trainer component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Trainer",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                },
+                "jobSet": {
+                  "default": true,
+                  "title": "jobSet",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Trainer",
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for Trainer (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "trainer"
+        },
+        "trainingoperator": {
+          "additionalProperties": false,
+          "description": "Kubeflow Training Operator component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Kubeflow Training Operator",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Kubeflow Training Operator",
+              "properties": {
+                "managementState": {
+                  "default": "Removed",
+                  "description": "Management state for Kubeflow Training Operator (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "trainingoperator"
+        },
+        "trustyai": {
+          "additionalProperties": false,
+          "description": "TrustyAI component",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by TrustyAI",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for TrustyAI",
+              "properties": {
+                "eval": {
+                  "additionalProperties": false,
+                  "description": "Evaluation configuration for TrustyAI evaluations",
+                  "properties": {
+                    "lmeval": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "permitCodeExecution": {
+                          "default": "deny",
+                          "title": "permitCodeExecution",
+                          "type": "string"
+                        },
+                        "permitOnline": {
+                          "default": "deny",
+                          "title": "permitOnline",
+                          "type": "string"
+                        }
+                      },
+                      "required": [],
+                      "title": "lmeval",
+                      "type": "object"
+                    }
+                  },
+                  "required": [],
+                  "title": "eval"
+                },
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for TrustyAI (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "trustyai"
+        },
+        "workbenches": {
+          "additionalProperties": false,
+          "description": "Workbenches component",
+          "properties": {
+            "defaults": {
+              "additionalProperties": false,
+              "description": "Operator-type-specific defaults for dsc fields",
+              "properties": {
+                "odh": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "workbenchNamespace": {
+                      "default": "opendatahub",
+                      "title": "workbenchNamespace",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "odh",
+                  "type": "object"
+                },
+                "rhoai": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "workbenchNamespace": {
+                      "default": "rhods-notebooks",
+                      "title": "workbenchNamespace",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "rhoai",
+                  "type": "object"
+                }
+              },
+              "required": [],
+              "title": "defaults"
+            },
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by Workbenches",
+              "required": [],
+              "title": "dependencies"
+            },
+            "dsc": {
+              "additionalProperties": false,
+              "description": "DSC configuration for Workbenches",
+              "properties": {
+                "managementState": {
+                  "default": "Managed",
+                  "description": "Management state for Workbenches (Managed or Removed)",
+                  "required": [],
+                  "title": "managementState"
+                },
+                "workbenchNamespace": {
+                  "default": "",
+                  "description": "Workbench namespace for Workbenches (overrides defaults)",
+                  "required": [],
+                  "title": "workbenchNamespace"
+                }
+              },
+              "required": [],
+              "title": "dsc"
+            }
+          },
+          "required": [],
+          "title": "workbenches"
         }
       },
-      "additionalProperties": false
+      "required": [],
+      "title": "components"
+    },
+    "dependencies": {
+      "additionalProperties": false,
+      "description": " DEPENDENCIES - Operators required by components  Tri-state enabled:   auto  - Install if required by an enabled component (default)   true  - Always install   false - Never install (user has it already or doesn't want it)  dependencies: Other dependencies this dependency requires (for transitive deps) config.spec: CR spec fields (user can add any fields supported by the CR) =============================================================================",
+      "properties": {
+        "certManager": {
+          "additionalProperties": false,
+          "description": "Cert Manager operator",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by cert-manager",
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable cert-manager: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable-v1",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "openshift-cert-manager-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "cert-manager-operator",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "certManager"
+        },
+        "clusterObservability": {
+          "additionalProperties": false,
+          "description": "Cluster Observability operator",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by cluster-observability",
+              "properties": {
+                "opentelemetry": {
+                  "default": true,
+                  "title": "opentelemetry",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable cluster-observability: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "cluster-observability-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-cluster-observability-operator",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "clusterObservability"
+        },
+        "customMetricsAutoscaler": {
+          "additionalProperties": false,
+          "description": "Custom Metrics Autoscaler (KEDA) operator",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by custom-metrics-autoscaler",
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "openshift-custom-metrics-autoscaler-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-keda",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "customMetricsAutoscaler"
+        },
+        "jobSet": {
+          "additionalProperties": false,
+          "description": "Job Set operator",
+          "properties": {
+            "config": {
+              "additionalProperties": false,
+              "properties": {
+                "spec": {
+                  "additionalProperties": false,
+                  "description": "JobSetOperator CR spec (user can add any fields supported by the CR)",
+                  "properties": {
+                    "logLevel": {
+                      "default": "Normal",
+                      "title": "logLevel",
+                      "type": "string"
+                    },
+                    "operatorLogLevel": {
+                      "default": "Normal",
+                      "title": "operatorLogLevel",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "spec"
+                }
+              },
+              "required": [],
+              "title": "config",
+              "type": "object"
+            },
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by job-set",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable job-set: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "tech-preview-v0.1",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "job-set",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-jobset-operator",
+                  "title": "namespace",
+                  "type": "string"
+                },
+                "targetNamespaces": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "required": []
+                  },
+                  "title": "targetNamespaces",
+                  "type": "array"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "jobSet"
+        },
+        "kueue": {
+          "additionalProperties": false,
+          "description": "Kueue operator",
+          "properties": {
+            "config": {
+              "additionalProperties": false,
+              "properties": {
+                "spec": {
+                  "additionalProperties": false,
+                  "description": "Kueue CR spec (user can add any fields)",
+                  "properties": {
+                    "config": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "integrations": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "frameworks": {
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ],
+                                "required": []
+                              },
+                              "title": "frameworks",
+                              "type": "array"
+                            }
+                          },
+                          "required": [],
+                          "title": "integrations",
+                          "type": "object"
+                        }
+                      },
+                      "required": [],
+                      "title": "config",
+                      "type": "object"
+                    },
+                    "managementState": {
+                      "default": "Managed",
+                      "title": "managementState",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "spec"
+                }
+              },
+              "required": [],
+              "title": "config",
+              "type": "object"
+            },
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by kueue",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable kueue: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable-v1.2",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "kueue-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-kueue-operator",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "kueue"
+        },
+        "leaderWorkerSet": {
+          "additionalProperties": false,
+          "description": "Leader Worker Set operator",
+          "properties": {
+            "config": {
+              "additionalProperties": false,
+              "properties": {
+                "spec": {
+                  "additionalProperties": false,
+                  "description": "LeaderWorkerSetOperator CR spec",
+                  "properties": {
+                    "logLevel": {
+                      "default": "Normal",
+                      "title": "logLevel",
+                      "type": "string"
+                    },
+                    "managementState": {
+                      "default": "Managed",
+                      "title": "managementState",
+                      "type": "string"
+                    },
+                    "operatorLogLevel": {
+                      "default": "Normal",
+                      "title": "operatorLogLevel",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "title": "spec"
+                }
+              },
+              "required": [],
+              "title": "config",
+              "type": "object"
+            },
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by leader-worker-set",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable leader-worker-set: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable-v1.0",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "leader-worker-set",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-lws-operator",
+                  "title": "namespace",
+                  "type": "string"
+                },
+                "targetNamespaces": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "required": []
+                  },
+                  "title": "targetNamespaces",
+                  "type": "array"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "leaderWorkerSet"
+        },
+        "nfd": {
+          "additionalProperties": false,
+          "description": "Node Feature Discovery operator (required for GPU support)",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by NFD",
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable NFD: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "nfd",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-nfd",
+                  "title": "namespace",
+                  "type": "string"
+                },
+                "targetNamespaces": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "required": []
+                  },
+                  "title": "targetNamespaces",
+                  "type": "array"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "nfd"
+        },
+        "nvidiaGPUOperator": {
+          "additionalProperties": false,
+          "description": "NVIDIA GPU operator (required for GPU support)",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by GPU operator",
+              "properties": {
+                "nfd": {
+                  "default": true,
+                  "title": "nfd",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable GPU operator: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "v25.10",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "gpu-operator-certified",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "nvidia-gpu-operator",
+                  "title": "namespace",
+                  "type": "string"
+                },
+                "source": {
+                  "default": "certified-operators",
+                  "title": "source",
+                  "type": "string"
+                },
+                "targetNamespaces": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "required": []
+                  },
+                  "title": "targetNamespaces",
+                  "type": "array"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "nvidiaGPUOperator"
+        },
+        "opentelemetry": {
+          "additionalProperties": false,
+          "description": "OpenTelemetry operator",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by opentelemetry",
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable opentelemetry: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "opentelemetry-product",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-opentelemetry-operator",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "opentelemetry"
+        },
+        "rhcl": {
+          "additionalProperties": false,
+          "description": "RHCL (Kuadrant) operator",
+          "properties": {
+            "config": {
+              "additionalProperties": false,
+              "properties": {
+                "authorinoSpec": {
+                  "additionalProperties": false,
+                  "description": "Authorino CR spec (only created if tlsEnabled: true)",
+                  "properties": {
+                    "clusterWide": {
+                      "default": true,
+                      "title": "clusterWide",
+                      "type": "boolean"
+                    },
+                    "listener": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "tls": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "certSecretRef": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "name": {
+                                  "default": "authorino-server-cert",
+                                  "title": "name",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [],
+                              "title": "certSecretRef",
+                              "type": "object"
+                            },
+                            "enabled": {
+                              "default": true,
+                              "title": "enabled",
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [],
+                          "title": "tls",
+                          "type": "object"
+                        }
+                      },
+                      "required": [],
+                      "title": "listener",
+                      "type": "object"
+                    },
+                    "oidcServer": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "tls": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "enabled": {
+                              "default": false,
+                              "title": "enabled",
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [],
+                          "title": "tls",
+                          "type": "object"
+                        }
+                      },
+                      "required": [],
+                      "title": "oidcServer",
+                      "type": "object"
+                    },
+                    "replicas": {
+                      "default": 1,
+                      "title": "replicas",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [],
+                  "title": "authorinoSpec"
+                },
+                "namespace": {
+                  "default": "kuadrant-system",
+                  "description": "Namespace where Kuadrant CR and operands are deployed",
+                  "required": [],
+                  "title": "namespace"
+                },
+                "spec": {
+                  "additionalProperties": false,
+                  "description": "Kuadrant CR spec (user can add any fields)",
+                  "required": [],
+                  "title": "spec"
+                },
+                "tlsEnabled": {
+                  "default": "false",
+                  "description": "Enable Authorino TLS configuration",
+                  "required": [],
+                  "title": "tlsEnabled"
+                }
+              },
+              "required": [],
+              "title": "config",
+              "type": "object"
+            },
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by rhcl",
+              "properties": {
+                "certManager": {
+                  "default": true,
+                  "title": "certManager",
+                  "type": "boolean"
+                },
+                "leaderWorkerSet": {
+                  "default": true,
+                  "title": "leaderWorkerSet",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable rhcl: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "rhcl-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "kuadrant-system",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "rhcl"
+        },
+        "tempo": {
+          "additionalProperties": false,
+          "description": "Tempo operator",
+          "properties": {
+            "dependencies": {
+              "additionalProperties": false,
+              "description": "Dependencies required by tempo",
+              "properties": {
+                "opentelemetry": {
+                  "default": true,
+                  "title": "opentelemetry",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies"
+            },
+            "enabled": {
+              "default": "auto",
+              "description": "Enable tempo: auto (if needed), true (always), false (never) @schema oneOf:   - type: string     enum: [auto]   - type: boolean @schema",
+              "oneOf": [
+                {
+                  "enum": [
+                    "auto"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "required": [],
+              "title": "enabled"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "stable",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "tempo-product",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "openshift-tempo-operator",
+                  "title": "namespace",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "tempo"
+        }
+      },
+      "required": [],
+      "title": "dependencies"
+    },
+    "global": {
+      "description": "Global values are values that can be accessed from any chart or subchart by exactly the same name.",
+      "required": [],
+      "title": "global",
+      "type": "object"
+    },
+    "labels": {
+      "additionalProperties": false,
+      "description": "Common labels applied to all resources",
+      "required": [],
+      "title": "labels"
+    },
+    "olm": {
+      "additionalProperties": false,
+      "description": " OLM - Settings for OLM operator subscriptions =============================================================================",
+      "properties": {
+        "installPlanApproval": {
+          "default": "Automatic",
+          "description": "Install plan approval mode (Automatic or Manual)",
+          "required": [],
+          "title": "installPlanApproval"
+        },
+        "source": {
+          "default": "redhat-operators",
+          "description": "Default catalog source for OLM subscriptions",
+          "required": [],
+          "title": "source"
+        },
+        "sourceNamespace": {
+          "default": "openshift-marketplace",
+          "description": "Namespace of the catalog source",
+          "required": [],
+          "title": "sourceNamespace"
+        }
+      },
+      "required": [],
+      "title": "olm"
+    },
+    "operator": {
+      "additionalProperties": false,
+      "description": " OPERATOR - ODH or RHOAI operator installation =============================================================================",
+      "properties": {
+        "enabled": {
+          "default": "true",
+          "description": "Enable operator installation",
+          "required": [],
+          "title": "enabled"
+        },
+        "odh": {
+          "additionalProperties": false,
+          "description": "ODH operator settings",
+          "properties": {
+            "applicationsNamespace": {
+              "default": "opendatahub",
+              "title": "applicationsNamespace",
+              "type": "string"
+            },
+            "monitoringNamespace": {
+              "default": "opendatahub",
+              "title": "monitoringNamespace",
+              "type": "string"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "fast-3",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "opendatahub-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "opendatahub-operator-system",
+                  "title": "namespace",
+                  "type": "string"
+                },
+                "source": {
+                  "default": "community-operators",
+                  "title": "source",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "odh"
+        },
+        "rhoai": {
+          "additionalProperties": false,
+          "description": "RHOAI operator settings",
+          "properties": {
+            "applicationsNamespace": {
+              "default": "redhat-ods-applications",
+              "title": "applicationsNamespace",
+              "type": "string"
+            },
+            "monitoringNamespace": {
+              "default": "redhat-ods-monitoring",
+              "title": "monitoringNamespace",
+              "type": "string"
+            },
+            "olm": {
+              "additionalProperties": false,
+              "properties": {
+                "channel": {
+                  "default": "fast-3.x",
+                  "title": "channel",
+                  "type": "string"
+                },
+                "name": {
+                  "default": "rhods-operator",
+                  "title": "name",
+                  "type": "string"
+                },
+                "namespace": {
+                  "default": "redhat-ods-operator",
+                  "title": "namespace",
+                  "type": "string"
+                },
+                "source": {
+                  "default": "redhat-operators",
+                  "title": "source",
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "title": "olm",
+              "type": "object"
+            }
+          },
+          "required": [],
+          "title": "rhoai"
+        },
+        "type": {
+          "default": "odh",
+          "description": "Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)",
+          "required": [],
+          "title": "type"
+        }
+      },
+      "required": [],
+      "title": "operator"
     },
     "services": {
-      "type": "object",
-      "description": "Services configuration",
+      "additionalProperties": false,
       "properties": {
         "monitoring": {
-          "type": "object",
+          "additionalProperties": false,
           "description": "Monitoring service configuration",
           "properties": {
             "dependencies": {
-              "$ref": "#/definitions/serviceDeps"
+              "additionalProperties": false,
+              "properties": {
+                "clusterObservability": {
+                  "default": true,
+                  "title": "clusterObservability",
+                  "type": "boolean"
+                },
+                "opentelemetry": {
+                  "default": true,
+                  "title": "opentelemetry",
+                  "type": "boolean"
+                },
+                "tempo": {
+                  "default": true,
+                  "title": "tempo",
+                  "type": "boolean"
+                }
+              },
+              "required": [],
+              "title": "dependencies",
+              "type": "object"
             },
             "dsci": {
-              "$ref": "#/definitions/monitoringConfig"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "dependencies": {
-      "type": "object",
-      "description": "Operators required by components. Use tri-state 'enabled' field: auto (install if needed), true (always install), false (never install)",
-      "properties": {
-        "certManager": {
-          "$ref": "#/definitions/dependency"
-        },
-        "leaderWorkerSet": {
-          "$ref": "#/definitions/dependencyWithConfig"
-        },
-        "jobSet": {
-          "$ref": "#/definitions/dependencyWithConfig"
-        },
-        "rhcl": {
-          "$ref": "#/definitions/rhclDependency"
-        },
-        "kueue": {
-          "$ref": "#/definitions/dependencyWithConfig"
-        },
-        "clusterObservability": {
-          "$ref": "#/definitions/dependency"
-        },
-        "opentelemetry": {
-          "$ref": "#/definitions/dependency"
-        },
-        "tempo": {
-          "$ref": "#/definitions/dependency"
-        },
-        "customMetricsAutoscaler": {
-          "$ref": "#/definitions/dependency"
-        },
-        "nfd": {
-          "$ref": "#/definitions/dependencyWithConfig"
-        },
-        "nvidiaGPUOperator": {
-          "$ref": "#/definitions/dependencyWithConfig"
-        }
-      },
-      "additionalProperties": false
-    }
-  },
-  "definitions": {
-    "defaultManagementState": {
-      "type": "string",
-      "enum": ["Managed", "Removed"],
-      "default": "Removed",
-      "description": "Management state for component in DSC. Managed enables components and auto dependencies management, Removed does not."
-    },
-    "operatorConfig": {
-      "type": "object",
-      "description": "Operator installation configuration",
-      "properties": {
-        "monitoringNamespace": {
-          "type": "string",
-          "description": "Namespace for monitoring components (used in DSCInitialization)"
-        },
-        "applicationsNamespace": {
-          "type": "string",
-          "description": "Namespace for applications (used in DSCInitialization)"
-        },
-        "olm": {
-          "type": "object",
-          "description": "OLM settings for the operator",
-          "properties": {
-            "channel": {
-              "type": "string",
-              "description": "Subscription channel"
-            },
-            "name": {
-              "type": "string",
-              "description": "Operator name in the catalog"
-            },
-            "namespace": {
-              "type": "string",
-              "description": "Namespace where the operator will be installed"
-            },
-            "source": {
-              "type": "string",
-              "description": "Catalog source"
-            }
-          },
-          "required": ["channel", "name", "namespace", "source"],
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "dependencyDeps": {
-      "type": "object",
-      "description": "Boolean map of dependencies required by this dependency",
-      "additionalProperties": {
-        "type": "boolean"
-      }
-    },
-    "componentDeps": {
-      "type": "object",
-      "description": "Boolean map of dependencies required by this component",
-      "additionalProperties": {
-        "type": "boolean"
-      }
-    },
-    "serviceDeps": {
-      "type": "object",
-      "description": "Boolean map of dependencies required by this service",
-      "additionalProperties": {
-        "type": "boolean"
-      }
-    },
-    "operatorTypeDefaults": {
-      "type": "object",
-      "description": "Operator-type-specific defaults for dsc fields",
-      "properties": {
-        "odh": {
-          "type": "object",
-          "additionalProperties": true
-        },
-        "rhoai": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "triStateEnabled": {
-      "oneOf": [
-        {
-          "type": "boolean",
-          "description": "true = always install, false = never install"
-        },
-        {
-          "type": "string",
-          "enum": ["auto"],
-          "description": "auto = install if required by an enabled component"
-        }
-      ],
-      "default": "auto"
-    },
-    "olmConfig": {
-      "type": "object",
-      "description": "OLM-specific configuration for this dependency",
-      "properties": {
-        "channel": {
-          "type": "string",
-          "description": "Subscription channel (e.g., stable-v1, stable)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Operator name in the catalog"
-        },
-        "namespace": {
-          "type": "string",
-          "description": "Namespace where the operator will be installed"
-        },
-        "source": {
-          "type": "string",
-          "description": "Catalog source (overrides global.olm.source)"
-        },
-        "sourceNamespace": {
-          "type": "string",
-          "description": "Catalog source namespace (overrides global.olm.sourceNamespace)"
-        },
-        "installPlanApproval": {
-          "type": "string",
-          "enum": ["Automatic", "Manual"],
-          "description": "Install plan approval (overrides global.olm.installPlanApproval)"
-        },
-        "targetNamespaces": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Target namespaces for OperatorGroup (omit for AllNamespaces mode)"
-        },
-        "version": {
-          "type": "string",
-          "description": "Operator version for version pinning (e.g., v1.0.5). If omitted, installs latest from channel. Auto-constructs startingCSV: $name.$version"
-        }
-      },
-      "required": ["channel", "name", "namespace"],
-      "additionalProperties": false
-    },
-    "component": {
-      "type": "object",
-      "description": "Component configuration with dependencies and DSC configuration",
-      "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
-        },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for this component",
-          "properties": {
-            "managementState": {
-              "$ref": "#/definitions/defaultManagementState"
-            }
-          },
-          "required": ["managementState"],
-          "additionalProperties": false
-        },
-        "defaults": {
-          "$ref": "#/definitions/operatorTypeDefaults"
-        }
-      },
-      "required": ["dsc"],
-      "additionalProperties": false
-    },
-    "aipipelinesComponent": {
-      "type": "object",
-      "description": "AIPipelines component configuration",
-      "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
-        },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for AIPipelines",
-          "properties": {
-            "managementState": {
-              "$ref": "#/definitions/defaultManagementState"
-            },
-            "argoWorkflowsControllers": {
-              "type": "object",
-              "description": "Argo Workflows Controllers configuration",
+              "additionalProperties": false,
               "properties": {
+                "alerting": {
+                  "additionalProperties": false,
+                  "required": [],
+                  "title": "alerting",
+                  "type": "object"
+                },
                 "managementState": {
-                  "$ref": "#/definitions/defaultManagementState"
-                }
-              }
-            }
-          },
-          "required": ["managementState"],
-          "additionalProperties": false
-        },
-        "defaults": {
-          "$ref": "#/definitions/operatorTypeDefaults"
-        }
-      },
-      "required": ["dsc"],
-      "additionalProperties": false
-    },
-    "kueueComponent": {
-      "type": "object",
-      "description": "Kueue component configuration - uses Unmanaged instead of Managed",
-      "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
-        },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for Kueue",
-          "properties": {
-            "managementState": {
-              "type": "string",
-              "enum": ["Unmanaged", "Removed"],
-              "default": "Removed",
-              "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
-            },
-            "defaultLocalQueueName": {
-              "type": "string",
-              "description": "Default local queue name"
-            },
-            "defaultClusterQueueName": {
-              "type": "string",
-              "description": "Default cluster queue name"
-            }
-          },
-          "required": ["managementState", "defaultLocalQueueName", "defaultClusterQueueName"],
-          "additionalProperties": false
-        },
-        "defaults": {
-          "$ref": "#/definitions/operatorTypeDefaults"
-        }
-      },
-      "required": ["dsc"],
-      "additionalProperties": false
-    },
-    "kserveComponent": {
-      "type": "object",
-      "description": "KServe component configuration with dependencies and DSC configuration",
-      "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
-        },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for KServe",
-          "properties": {
-            "managementState": {
-              "$ref": "#/definitions/defaultManagementState"
-            },
-            "rawDeploymentServiceConfig": {
-              "type": "string",
-              "enum": ["Headless", "Headed"],
-              "default": "Headless",
-              "description": "Configures the type of service that is created for InferenceServices using RawDeployment."
-            },
-            "nim": {
-              "type": "object",
-              "description": "NIM configuration for KServe",
-              "properties": {
-                "managementState": {
-                  "$ref": "#/definitions/defaultManagementState"
+                  "default": "Managed",
+                  "title": "managementState",
+                  "type": "string"
+                },
+                "metrics": {
+                  "additionalProperties": false,
+                  "required": [],
+                  "title": "metrics",
+                  "type": "object"
+                },
+                "traces": {
+                  "additionalProperties": false,
+                  "required": [],
+                  "title": "traces",
+                  "type": "object"
                 }
               },
-              "required": ["managementState"],
-              "additionalProperties": false
-            },
-            "modelsAsService": {
-              "type": "object",
-              "description": "Models as Service configuration for KServe",
-              "properties": {
-                "managementState": {
-                  "$ref": "#/definitions/defaultManagementState"
-                }
-              }
+              "required": [],
+              "title": "dsci",
+              "type": "object"
             }
           },
-          "required": ["managementState"],
-          "additionalProperties": false
-        },
-        "modelsAsService": {
-          "type": "object",
-          "description": "Models as Service configuration for KServe",
-          "properties": {
-            "gateway": {
-              "$ref": "#/definitions/gatewayConfig"
-            },
-            "gatewayClass": {
-              "$ref": "#/definitions/gatewayClassConfig"
-            }
-          }
+          "required": [],
+          "title": "monitoring"
         }
       },
-      "required": ["dsc", "modelsAsService", "dependencies"],
-      "additionalProperties": false
+      "required": [],
+      "title": "services",
+      "type": "object"
     },
-    "modelregistryComponent": {
-      "type": "object",
-      "description": "Model Registry component configuration with operator-type defaults.",
+    "skipCrdCheck": {
+      "default": "false",
+      "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD.",
+      "required": [],
+      "title": "skipCrdCheck"
+    },
+    "tags": {
+      "additionalProperties": false,
+      "description": " TAGS - Installation type selection =============================================================================",
       "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
-        },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for Model Registry",
-          "properties": {
-            "managementState": {
-              "$ref": "#/definitions/defaultManagementState"
-            },
-            "registriesNamespace": {
-              "type": ["string", "null"],
-              "description": "Namespace for model registries. Overrides defaults if set."
-            }
-          },
-          "required": ["managementState"],
-          "additionalProperties": false
-        },
-        "defaults": {
-          "$ref": "#/definitions/operatorTypeDefaults"
+        "install-with-helm-dependencies": {
+          "default": "false",
+          "description": "Install operators using Helm chart dependencies instead of OLM. Set to true when OLM is not available in the cluster. Default is false (use OLM Subscriptions when available).",
+          "required": [],
+          "title": "install-with-helm-dependencies"
         }
       },
-      "required": ["dsc"],
-      "additionalProperties": false
+      "required": [],
+      "title": "tags"
     },
-    "workbenchesComponent": {
-      "type": "object",
-      "description": "Workbenches component configuration with dependencies and DSC configuration",
+    "trustedCABundle": {
+      "additionalProperties": false,
+      "description": "Trusted CA bundle configuration",
       "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
+        "customCABundle": {
+          "default": "",
+          "description": "A custom CA bundle that will be available for all components in the Data Science Cluster (DSC).",
+          "required": [],
+          "title": "customCABundle"
         },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for Workbenches",
-          "properties": {
-            "managementState": {
-              "$ref": "#/definitions/defaultManagementState"
-            },
-            "workbenchNamespace": {
-              "type": ["string", "null"],
-              "description": "Namespace for workbenches. Overrides defaults if set."
-            }
-          },
-          "required": ["managementState"],
-          "additionalProperties": false
-        },
-        "defaults": {
-          "$ref": "#/definitions/operatorTypeDefaults"
-        }
-      },
-      "required": ["dsc"],
-      "additionalProperties": false
-    },
-    "trustyaiComponent": {
-      "type": "object",
-      "description": "TrustyAI component configuration",
-      "properties": {
-        "dependencies": {
-          "$ref": "#/definitions/componentDeps"
-        },
-        "dsc": {
-          "type": "object",
-          "description": "DSC configuration for TrustyAI",
-          "properties": {
-            "managementState": {
-              "$ref": "#/definitions/defaultManagementState"
-            },
-            "eval": {
-              "type": "object",
-              "description": "Evaluation configuration for TrustyAI",
-              "properties": {
-                "lmeval": {
-                  "type": "object",
-                  "description": "LMEval configuration for TrustyAI",
-                  "properties": {
-                    "permitCodeExecution": {
-                      "type": "string",
-                      "enum": ["allow", "deny"],
-                      "default": "deny",
-                      "description": "Permit code execution"
-                    },
-                    "permitOnline": {
-                      "type": "string",
-                      "enum": ["allow", "deny"],
-                      "default": "deny",
-                      "description": "Permit online evaluation"
-                    }
-                  },
-                  "required": ["permitCodeExecution", "permitOnline"],
-                  "additionalProperties": false
-                }
-              },
-              "required": ["lmeval"],
-              "additionalProperties": false
-            }
-          },
-          "required": ["managementState"],
-          "additionalProperties": false
-        },
-        "defaults": {
-          "$ref": "#/definitions/operatorTypeDefaults"
-        }
-      },
-      "required": ["dsc"],
-      "additionalProperties": false
-    },
-    "dependency": {
-      "type": "object",
-      "description": "Operator dependency configuration",
-      "properties": {
-        "enabled": {
-          "$ref": "#/definitions/triStateEnabled",
-          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
-        },
-        "dependencies": {
-          "$ref": "#/definitions/dependencyDeps"
-        },
-        "olm": {
-          "$ref": "#/definitions/olmConfig"
-        }
-      },
-      "required": ["enabled"],
-      "additionalProperties": false
-    },
-    "dependencyWithConfig": {
-      "type": "object",
-      "description": "Operator dependency with CR configuration",
-      "properties": {
-        "enabled": {
-          "$ref": "#/definitions/triStateEnabled",
-          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
-        },
-        "dependencies": {
-          "$ref": "#/definitions/dependencyDeps"
-        },
-        "olm": {
-          "$ref": "#/definitions/olmConfig"
-        },
-        "config": {
-          "type": "object",
-          "description": "CR configuration for this dependency",
-          "properties": {
-            "spec": {
-              "type": "object",
-              "description": "CR spec fields - user can add any fields supported by the CR",
-              "additionalProperties": true
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "required": ["enabled"],
-      "additionalProperties": false
-    },
-    "rhclDependency": {
-      "type": "object",
-      "description": "RHCL operator dependency with Kuadrant and Authorino configuration",
-      "properties": {
-        "enabled": {
-          "$ref": "#/definitions/triStateEnabled",
-          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
-        },
-        "dependencies": {
-          "$ref": "#/definitions/dependencyDeps"
-        },
-        "olm": {
-          "$ref": "#/definitions/olmConfig"
-        },
-        "config": {
-          "type": "object",
-          "description": "RHCL configuration",
-          "properties": {
-            "namespace": {
-              "type": "string",
-              "default": "kuadrant-system",
-              "description": "Namespace where Kuadrant CR and operands are deployed"
-            },
-            "tlsEnabled": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable Authorino TLS configuration"
-            },
-            "spec": {
-              "type": "object",
-              "description": "Kuadrant CR spec fields - user can add any fields",
-              "additionalProperties": true
-            },
-            "authorinoSpec": {
-              "type": "object",
-              "description": "Authorino CR spec fields (only used if tlsEnabled: true)",
-              "additionalProperties": true
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "required": ["enabled"],
-      "additionalProperties": false
-    },
-    "monitoringConfig": {
-      "type": "object",
-      "description": "Monitoring configuration",
-      "properties": {
         "managementState": {
-          "$ref": "#/definitions/defaultManagementState"
-        },
-        "metrics": {
-          "type": "object",
-          "description": "Metrics configuration"
-        },
-        "traces": {
-          "type": "object",
-          "description": "Traces configuration"
-        },
-        "alerting": {
-          "type": "object",
-          "description": "Alerting configuration"
-        },
-        "collectorReplicas": {
-          "type": "integer",
-          "description": "Collector replicas"
+          "default": "Managed",
+          "description": "Management state for trusted CA bundle (Managed or Removed)",
+          "required": [],
+          "title": "managementState"
         }
       },
-      "additionalProperties": false
-    },
-    "gatewayConfig": {
-      "type": "object",
-      "description": "Gateway configuration",
-      "properties": {
-        "create": {
-          "$ref": "#/definitions/triStateEnabled"
-        },
-        "name": {
-          "type": "string",
-          "description": "Gateway name"
-        },
-        "namespace": {
-          "type": "string",
-          "description": "Gateway namespace"
-        },
-        "annotations": {
-          "type": "object",
-          "description": "Gateway annotations",
-          "additionalProperties": true
-        },
-        "spec": {
-          "type": "object",
-          "description": "Gateway spec",
-          "additionalProperties": true
-        }
-      },
-      "required": ["create", "name", "namespace", "spec"],
-      "additionalProperties": false
-    },
-    "gatewayClassConfig": {
-      "type": "object",
-      "description": "Gateway Class configuration",
-      "properties": {
-        "create": {
-          "$ref": "#/definitions/triStateEnabled"
-        },
-        "name": {
-          "type": "string",
-          "description": "Gateway Class name"
-        },
-        "annotations": {
-          "type": "object",
-          "description": "Gateway Class annotations",
-          "additionalProperties": true
-        },
-        "spec": {
-          "type": "object",
-          "description": "Gateway Class spec",
-          "additionalProperties": true
-        }
-      },
-      "required": ["create", "name"],
-      "additionalProperties": false
+      "required": [],
+      "title": "trustedCABundle"
     }
   },
-  "additionalProperties": false
+  "required": [],
+  "type": "object"
 }
