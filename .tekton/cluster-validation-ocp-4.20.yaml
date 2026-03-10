@@ -13,7 +13,7 @@ metadata:
     #   event == "pull_request" &&
     #   files.all.exists(file,
     #     !file.startsWith('.github/') &&
-    #     !file.startsWith('chart/') &&
+    #     !file.startsWith('charts/') &&
     #     file != '.gitignore' &&
     #     file != '.kube-linter.yaml' &&
     #     file != '.yamllint.yaml' &&
