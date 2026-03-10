@@ -173,7 +173,7 @@ get_snapshot_values_files() {
     # Read each values file and build -f arguments
     while IFS= read -r vfile; do
         if [[ -n "${vfile}" && "${vfile}" != "null" ]]; then
-            flags="${flags} -f ${REPO_ROOT}/${vfile}"
+            flags="${flags} -f \"${REPO_ROOT}/${vfile}\""
         fi
     done < <("${YQ}" eval ".charts.${chart_name}.snapshots[${index}].valuesFiles[]?" "${CONFIG_FILE}")
 
