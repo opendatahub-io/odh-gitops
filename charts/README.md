@@ -7,7 +7,7 @@ These charts are extracted from Red Hat operator bundles and deploy operators wi
 
 | Chart | Version | Namespace | Description |
 |-------|---------|-----------|-------------|
-| `cert-manager-operator` | v1.15.2 | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
+| `cert-manager-operator` | v1.18.1 | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
 | `gateway-api` | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
 | `lws-operator` | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
 | `sail-operator` | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |

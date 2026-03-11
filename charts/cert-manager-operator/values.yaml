@@ -3,4 +3,4 @@ operatorNamespace: cert-manager-operator
 operandNamespace: cert-manager
 
 bundle:
-  version: "v1.15.2"
+  version: "v1.18.1"

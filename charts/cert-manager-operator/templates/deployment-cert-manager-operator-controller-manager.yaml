@@ -58,27 +58,27 @@ spec:
             - name: OPERATOR_NAME
               value: cert-manager-operator
             - name: RELATED_IMAGE_CERT_MANAGER_WEBHOOK
-              value: registry.redhat.io/cert-manager/jetstack-cert-manager-rhel9@sha256:76fe0671c410cb063225ecfa51c30f86634518a48757ee69bd2662f0643b5f40
+              value: registry.redhat.io/cert-manager/jetstack-cert-manager-rhel9@sha256:903ce74138b1ffc735846a7c5fcdf62bbe82ca29568a6b38caec2656f6637671
             - name: RELATED_IMAGE_CERT_MANAGER_CA_INJECTOR
-              value: registry.redhat.io/cert-manager/jetstack-cert-manager-rhel9@sha256:76fe0671c410cb063225ecfa51c30f86634518a48757ee69bd2662f0643b5f40
+              value: registry.redhat.io/cert-manager/jetstack-cert-manager-rhel9@sha256:903ce74138b1ffc735846a7c5fcdf62bbe82ca29568a6b38caec2656f6637671
             - name: RELATED_IMAGE_CERT_MANAGER_CONTROLLER
-              value: registry.redhat.io/cert-manager/jetstack-cert-manager-rhel9@sha256:76fe0671c410cb063225ecfa51c30f86634518a48757ee69bd2662f0643b5f40
+              value: registry.redhat.io/cert-manager/jetstack-cert-manager-rhel9@sha256:903ce74138b1ffc735846a7c5fcdf62bbe82ca29568a6b38caec2656f6637671
             - name: RELATED_IMAGE_CERT_MANAGER_ACMESOLVER
-              value: registry.redhat.io/cert-manager/jetstack-cert-manager-acmesolver-rhel9@sha256:80d9e21cee7578e80ef80628436c5ce0d7af3118d161a196c31b8b1825e04dc7
+              value: registry.redhat.io/cert-manager/jetstack-cert-manager-acmesolver-rhel9@sha256:38899dcd99bcd1c8c8d2c67cd19d5b1756434028ed2f1b926a282723bd63183e
             - name: RELATED_IMAGE_CERT_MANAGER_ISTIOCSR
-              value: registry.redhat.io/cert-manager/cert-manager-istio-csr-rhel9@sha256:9573d74bd2b926ec94af76f813e6358f14c5b2f4e0eedab7c1ff1070b7279a5c
+              value: registry.redhat.io/cert-manager/cert-manager-istio-csr-rhel9@sha256:fb89adfcc4bcdaf21bed27dbc90586fb2b32180259b9f9d6fcf84a38e401fe03
             - name: OPERAND_IMAGE_VERSION
-              value: 1.15.5
+              value: 1.18.4
             - name: ISTIOCSR_OPERAND_IMAGE_VERSION
-              value: 0.14.0
+              value: 0.14.2
             - name: OPERATOR_IMAGE_VERSION
-              value: 1.15.2
+              value: 1.18.1
             - name: OPERATOR_LOG_LEVEL
               value: "2"
             - name: TRUSTED_CA_CONFIGMAP_NAME
             - name: CLOUD_CREDENTIALS_SECRET_NAME
             - name: UNSUPPORTED_ADDON_FEATURES
-          image: registry.redhat.io/cert-manager/cert-manager-operator-rhel9@sha256:7c91cda4ad5b62f1f1bad8466fa94f54d0c5ab82296f2e8e22bf87d996f6c40e
+          image: registry.redhat.io/cert-manager/cert-manager-operator-rhel9@sha256:99526f5a179816df1f7f51df0517136b247d815b7bdce0a5d0eb7cdaf4b5ce7a
           imagePullPolicy: IfNotPresent
           name: cert-manager-operator
           ports:
@@ -95,12 +95,19 @@ spec:
               drop:
                 - ALL
             privileged: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: cert-manager-operator-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+        - emptyDir: {}
+          name: tmp
