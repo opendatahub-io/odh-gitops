@@ -5,7 +5,7 @@
 # =============================================================================
 # TAGS - Installation type selection
 # =============================================================================
-tags: # @schema additionalProperties:false
+tags:
   # -- Install operators using Helm chart dependencies instead of OLM.
   # Set to true when OLM is not available in the cluster.
   # Default is false (use OLM Subscriptions when available).
@@ -17,7 +17,7 @@ skipCrdCheck: false # @schema default: false
 # =============================================================================
 # OLM - Settings for OLM operator subscriptions
 # =============================================================================
-olm: # @schema additionalProperties:false
+olm:
   # -- Install plan approval mode (Automatic or Manual)
   installPlanApproval: Automatic # @schema; enum:[Automatic, Manual];default: "Automatic"
   # -- Default catalog source for OLM subscriptions
@@ -31,7 +31,7 @@ labels: {}
 # =============================================================================
 # OPERATOR - ODH or RHOAI operator installation
 # =============================================================================
-operator: # @schema additionalProperties:false
+operator:
   # -- Enable operator installation
   enabled: true # @schema default: true
 
@@ -61,16 +61,16 @@ operator: # @schema additionalProperties:false
       source: redhat-operators # @schema default: "redhat-operators"
 
 # -- Trusted CA bundle configuration
-trustedCABundle: # @schema; additionalProperties:false
+trustedCABundle:
   # -- Management state for trusted CA bundle (Managed or Removed)
   managementState: Managed # @schema; enum:[Managed, Removed];required:true
   # -- A custom CA bundle that will be available for all components in the Data Science Cluster (DSC).
   customCABundle: ""
 
-services: # @schema additionalProperties:false
+services:
   # -- Monitoring service configuration
   monitoring:
-    dependencies: # @schema additionalProperties:false
+    dependencies:
       clusterObservability: true
       opentelemetry: true
       tempo: true
@@ -90,36 +90,36 @@ services: # @schema additionalProperties:false
 #   dsc: Configuration that goes into the DataScienceCluster CR
 #   defaults: (optional) Operator-type-specific defaults for dsc fields
 # =============================================================================
-components: # @schema additionalProperties:false
+components:
   # -- AI Pipelines component
-  aipipelines: # @schema; additionalProperties:false
+  aipipelines:
     # -- Dependencies required by AI Pipelines
     dependencies: {}
-    dsc: # @schema additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for AI Pipelines (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
       # argoWorkflowsControllers:
       #   managementState: Managed # @schema enum:[Managed, Removed];required:true
 
   # -- Dashboard component
-  dashboard: # @schema; additionalProperties:false
+  dashboard:
     # -- Dependencies required by Dashboard
     dependencies: {}
-    dsc: # @schema additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Dashboard (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
 
   # -- Feast Operator component
-  feastoperator: # @schema; additionalProperties:false
+  feastoperator:
     # -- Dependencies required by Feast Operator
     dependencies: {}
     # -- DSC configuration for Feast Operator
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Feast Operator (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
 
   # -- KServe model serving component
-  kserve: # @schema; additionalProperties:false
+  kserve:
     # -- Dependencies required by KServe (set to false to disable)
     dependencies:
       certManager: true
@@ -128,7 +128,7 @@ components: # @schema additionalProperties:false
       rhcl: true
       customMetricsAutoscaler: false
     # -- DSC configuration for KServe
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for KServe (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
       # -- Models as Service configuration
@@ -236,24 +236,24 @@ components: # @schema additionalProperties:false
 
 
   # -- Kueue job queuing component
-  kueue: # @schema; additionalProperties:false
+  kueue:
     # -- Dependencies required by Kueue
     dependencies:
       certManager: true
       kueue: true
     # -- DSC configuration for Kueue
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
       managementState: Unmanaged # @schema; enum:[Unmanaged, Removed];required:true
       defaultLocalQueueName: default
       defaultClusterQueueName: default
 
   # -- Model Registry component
-  modelregistry: # @schema; additionalProperties:false
+  modelregistry:
     # -- Dependencies required by Model Registry
     dependencies: {}
     # -- DSC configuration for Model Registry
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Model Registry (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
       # -- Registries namespace for Model Registry (overrides defaults)
@@ -266,41 +266,41 @@ components: # @schema additionalProperties:false
         registriesNamespace: rhoai-model-registries
 
   # -- Ray component
-  ray: # @schema; additionalProperties:false
+  ray:
     # -- Dependencies required by Ray
     dependencies:
       certManager: true
     # -- DSC configuration for Ray
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Ray (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
 
   # -- Trainer component
-  trainer: # @schema; additionalProperties:false
+  trainer:
     # -- Dependencies required by Trainer
     dependencies:
       certManager: true
       jobSet: true
     # -- DSC configuration for Trainer
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Trainer (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
 
   # -- Kubeflow Training Operator component
-  trainingoperator: # @schema; additionalProperties:false
+  trainingoperator:
     # -- Dependencies required by Kubeflow Training Operator
     dependencies: {}
     # -- DSC configuration for Kubeflow Training Operator
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Kubeflow Training Operator (Managed or Removed)
       managementState: Removed # @schema; enum:[Managed, Removed];required:true
 
   # -- TrustyAI component
-  trustyai: # @schema; additionalProperties:false
+  trustyai:
     # -- Dependencies required by TrustyAI
     dependencies: {}
     # -- DSC configuration for TrustyAI
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for TrustyAI (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
       # -- Evaluation configuration for TrustyAI evaluations
@@ -310,11 +310,11 @@ components: # @schema additionalProperties:false
           permitOnline: deny # @schema enum:[deny, allow]
 
   # -- Workbenches component
-  workbenches: # @schema; additionalProperties:false
+  workbenches:
     # -- Dependencies required by Workbenches
     dependencies: {}
     # -- DSC configuration for Workbenches
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for Workbenches (Managed or Removed)
       managementState: Managed # @schema; enum:[Managed, Removed];required:true
       # -- Workbench namespace for Workbenches (overrides defaults)
@@ -327,11 +327,11 @@ components: # @schema additionalProperties:false
         workbenchNamespace: rhods-notebooks
 
   # -- MLflow Operator component
-  mlflowoperator: # @schema; additionalProperties:false
+  mlflowoperator:
     # -- Dependencies required by MLflow Operator
     dependencies: {}
     # -- DSC configuration for MLflow Operator
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for MLflow Operator (Managed or Removed)
       managementState: Removed # @schema; enum:[Managed, Removed];required:true
 
@@ -345,13 +345,13 @@ components: # @schema additionalProperties:false
       managementState: Removed # @schema; enum:[Managed, Removed];required:true
 
   # -- LlamaStack Operator component
-  llamastackoperator: # @schema; additionalProperties:false
+  llamastackoperator:
     # -- Dependencies required by LlamaStack Operator
     dependencies:
       nfd: true
       nvidiaGPUOperator: true
     # -- DSC configuration for LlamaStack Operator
-    dsc: # @schema; additionalProperties:false;required:true
+    dsc: # @schema; required:true
       # -- Management state for LlamaStack Operator (Managed or Removed)
       managementState: Removed # @schema; enum:[Managed, Removed];required:true
 
@@ -366,9 +366,9 @@ components: # @schema additionalProperties:false
 # dependencies: Other dependencies this dependency requires (for transitive deps)
 # config.spec: CR spec fields (user can add any fields supported by the CR)
 # =============================================================================
-dependencies: # @schema additionalProperties:false
+dependencies:
   # -- Cert Manager operator
-  certManager: # @schema; additionalProperties:false
+  certManager:
     # -- Enable cert-manager: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -385,7 +385,7 @@ dependencies: # @schema additionalProperties:false
       namespace: cert-manager-operator
 
   # -- Leader Worker Set operator
-  leaderWorkerSet: # @schema; additionalProperties:false
+  leaderWorkerSet:
     # -- Enable leader-worker-set: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -411,7 +411,7 @@ dependencies: # @schema additionalProperties:false
         operatorLogLevel: Normal
 
   # -- Job Set operator
-  jobSet: # @schema; additionalProperties:false
+  jobSet:
     # -- Enable job-set: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -436,7 +436,7 @@ dependencies: # @schema additionalProperties:false
         operatorLogLevel: Normal
 
   # -- RHCL (Kuadrant) operator
-  rhcl: # @schema; additionalProperties:false
+  rhcl:
     # -- Enable rhcl: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -474,7 +474,7 @@ dependencies: # @schema additionalProperties:false
             enabled: false
 
   # -- Kueue operator
-  kueue: # @schema; additionalProperties:false
+  kueue:
     # -- Enable kueue: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -506,7 +506,7 @@ dependencies: # @schema additionalProperties:false
               - TrainJob
 
   # -- Cluster Observability operator
-  clusterObservability: # @schema; additionalProperties:false
+  clusterObservability:
     # -- Enable cluster-observability: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -524,7 +524,7 @@ dependencies: # @schema additionalProperties:false
       namespace: openshift-cluster-observability-operator
 
   # -- OpenTelemetry operator
-  opentelemetry: # @schema; additionalProperties:false
+  opentelemetry:
     # -- Enable opentelemetry: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -541,7 +541,7 @@ dependencies: # @schema additionalProperties:false
       namespace: openshift-opentelemetry-operator
 
   # -- Tempo operator
-  tempo: # @schema; additionalProperties:false
+  tempo:
     # -- Enable tempo: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -559,7 +559,7 @@ dependencies: # @schema additionalProperties:false
       namespace: openshift-tempo-operator
 
   # -- Custom Metrics Autoscaler (KEDA) operator
-  customMetricsAutoscaler: # @schema; additionalProperties:false
+  customMetricsAutoscaler:
     # -- Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -576,7 +576,7 @@ dependencies: # @schema additionalProperties:false
       namespace: openshift-keda
 
   # -- Node Feature Discovery operator (required for GPU support)
-  nfd: # @schema; additionalProperties:false
+  nfd:
     # -- Enable NFD: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
@@ -603,7 +603,7 @@ dependencies: # @schema additionalProperties:false
     #       imagePullPolicy: Always
 
   # -- NVIDIA GPU operator (required for GPU support)
-  nvidiaGPUOperator: # @schema; additionalProperties:false
+  nvidiaGPUOperator:
     # -- Enable GPU operator: auto (if needed), true (always), false (never)
     # @schema
     # oneOf:
