@@ -158,28 +158,28 @@ components:
           - name: https
             port: 443
             # Uncomment the following line to use a specific hostname.
-            #hostname: <HOSTNAME>
+            # hostname: <HOSTNAME>
             protocol: HTTPS
             allowedRoutes:
               namespaces:
                 from: All
                 # The following is an example of how to restrict the namespaces to the interested ones.
                 # from: Selector
-                #selector:
-                #  matchExpressions:
-                #  - key: kubernetes.io/metadata.name
-                #    operator: In
-                #    values:
-                #    - llm-namespace1
-                #    - llm-namespace2
-                #     - ...
+                # selector:
+                #   matchExpressions:
+                #   - key: kubernetes.io/metadata.name
+                #     operator: In
+                #     values:
+                #     - llm-namespace1
+                #     - llm-namespace2
+                #      - ...
             # Uncomment this to enable TLS termination for the Gateway.
-            #tls:
-            #  certificateRefs:
-            #  - group: ''
-            #    kind: Secret
-            #    name: <SECRET_NAME>
-            #  mode: Terminate
+            # tls:
+            #   certificateRefs:
+            #   - group: ''
+            #     kind: Secret
+            #     name: <SECRET_NAME>
+            #   mode: Terminate
     modelsAsService:
       # -- Gateway Class configuration for the LLMInferenceService.
       gatewayClass:
