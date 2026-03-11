@@ -1,0 +1,239 @@
+{{- if .Values.azure.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opendatahub-azure-cloud-manager-role
+  namespace: {{ .Values.azure.cloudManager.namespace }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - events
+      - namespaces
+      - secrets
+      - serviceaccounts
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - infrastructures
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - certmanagers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - clusterroles
+      - rolebindings
+      - roles
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - cert-manager-operator-controller-manager-clusterrole
+      - cert-manager-operator-metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - metrics-reader
+      - servicemesh-operator3-clusterrole
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - openshift-lws-operator-clusterrole
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - cert-manager-operator-controller-manager-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - openshift-lws-operator-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - servicemesh-operator3-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - sail-operator.io
+    resources:
+      - istios
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+{{- end }}

@@ -1,0 +1,12 @@
+{{- if .Values.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: redhat-ods-operator-metrics-reader
+  namespace: {{ .Values.rhaiOperator.namespace }}
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+{{- end }}

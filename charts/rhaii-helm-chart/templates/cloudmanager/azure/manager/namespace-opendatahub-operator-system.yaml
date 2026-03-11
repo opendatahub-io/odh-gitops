@@ -1,0 +1,10 @@
+{{- if .Values.azure.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+    name: opendatahub-azure-cloud-manager-operator
+  name: {{ .Values.azure.cloudManager.namespace }}
+  namespace: {{ .Values.azure.cloudManager.namespace }}
+{{- end }}
