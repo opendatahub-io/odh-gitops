@@ -185,6 +185,25 @@ spec:
 ---
 # Source: odh-rhoai-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: openshift-ai-inference
+  namespace: openshift-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  gatewayClassName: openshift-ai-inference
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    name: https
+    port: 443
+    protocol: HTTPS
+---
+# Source: odh-rhoai-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
+apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
   name: openshift-ai-inference

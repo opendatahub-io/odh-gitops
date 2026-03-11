@@ -13,3 +13,24 @@ metadata:
 spec:
   {{- toYaml ($gwClass.spec | default (dict "controllerName" "openshift.io/gateway-controller/v1")) | nindent 2 }}
 {{- end }}
+---
+{{- $gateway := $kserve.gateway | default dict -}}
+{{- $gwCreate := ($gateway.create | toString) -}}
+{{- if or (eq $gwCreate "true") (and (eq $gwCreate "auto") $isKserveManaged) }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gateway.name | default "openshift-ai-inference" }}
+  namespace: {{ $gateway.namespace | default "openshift-ingress" }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+    {{- with $gateway.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- toYaml $gateway.spec | nindent 2 }}
+{{- end }}

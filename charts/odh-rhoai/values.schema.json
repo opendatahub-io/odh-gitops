@@ -481,6 +481,9 @@
         "gatewayClass": {
           "$ref": "#/definitions/gatewayClassConfig"
         },
+        "gateway": {
+          "$ref": "#/definitions/gatewayConfig"
+        },
         "modelsAsService": {
           "type": "object",
           "description": "Models as Service configuration for KServe",
@@ -741,6 +744,11 @@
         "namespace": {
           "type": "string",
           "description": "Gateway namespace"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Additional Gateway labels",
+          "additionalProperties": true
         },
         "annotations": {
           "type": "object",
