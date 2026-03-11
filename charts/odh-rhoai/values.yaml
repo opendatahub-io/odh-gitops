@@ -152,6 +152,8 @@ components:
       create: auto
       name: openshift-ai-inference
       namespace: openshift-ingress
+      labels:
+        istio.io/rev: openshift-gateway
       spec:
         gatewayClassName: openshift-ai-inference
         listeners:
