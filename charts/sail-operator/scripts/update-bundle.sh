@@ -61,6 +61,7 @@ echo "[2/3] Cleaning old manifests..."
 find "$CHART_DIR/crds" -name "*.yaml" -delete 2>/dev/null || true
 find "$CHART_DIR/templates" -name "*.yaml" \
   ! -name "namespace.yaml" \
+  ! -name "istio.yaml" \
   -delete 2>/dev/null || true
 
 # Split manifests (no templatization)

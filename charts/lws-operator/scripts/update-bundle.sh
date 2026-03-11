@@ -60,6 +60,7 @@ echo "[2/3] Cleaning old manifests..."
 find "$CHART_DIR/crds" -name "*.yaml" -delete 2>/dev/null || true
 find "$CHART_DIR/templates" -name "*.yaml" \
   ! -name "namespace.yaml" \
+  ! -name "kube-system-role-binding.yaml" \
   -delete 2>/dev/null || true
 
 # Split manifests, templatize namespace references
