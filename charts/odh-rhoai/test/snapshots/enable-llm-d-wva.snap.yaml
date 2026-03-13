@@ -17,6 +17,15 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-keda
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -40,24 +49,6 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: openshift-lws-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
----
-# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-nfd
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
----
-# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nvidia-gpu-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -134,20 +125,20 @@ spec:
     kserve:
       managementState: Managed
       modelsAsService:
-        managementState: Managed
+        managementState: Removed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
       wva:
-        managementState: Removed
+        managementState: Managed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
       managementState: Unmanaged
     llamastackoperator:
-      managementState: Managed
+      managementState: Removed
     mlflowoperator:
-      managementState: Managed
+      managementState: Removed
     modelregistry:
       managementState: Managed
       registriesNamespace: odh-model-registry
@@ -156,7 +147,7 @@ spec:
     trainer:
       managementState: Managed
     trainingoperator:
-      managementState: Managed
+      managementState: Removed
     trustyai:
       eval:
         lmeval:
@@ -278,6 +269,18 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
+# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-custom-metrics-autoscaler-operator
+  namespace: openshift-keda
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -317,34 +320,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-lws-operator
----
-# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: nfd
-  namespace: openshift-nfd
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-  targetNamespaces:
-    - openshift-nfd
----
-# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: gpu-operator-certified
-  namespace: nvidia-gpu-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-  targetNamespaces:
-    - nvidia-gpu-operator
 ---
 # Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -426,6 +401,22 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-custom-metrics-autoscaler-operator
+  namespace: openshift-keda
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: openshift-custom-metrics-autoscaler-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -472,38 +463,6 @@ spec:
   installPlanApproval: Automatic
   name: leader-worker-set
   source: redhat-operators
-  sourceNamespace: openshift-marketplace
----
-# Source: odh-rhoai-chart/templates/dependencies/nfd/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: nfd
-  namespace: openshift-nfd
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable
-  installPlanApproval: Automatic
-  name: nfd
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
----
-# Source: odh-rhoai-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: gpu-operator-certified
-  namespace: nvidia-gpu-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: v25.10
-  installPlanApproval: Automatic
-  name: gpu-operator-certified
-  source: certified-operators
   sourceNamespace: openshift-marketplace
 ---
 # Source: odh-rhoai-chart/templates/dependencies/opentelemetry/operator.yaml

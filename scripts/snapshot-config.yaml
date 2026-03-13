@@ -43,3 +43,10 @@ charts:
           - docs/examples/values-inference-only.yaml
         setFlags:
           - skipCrdCheck=true
+          
+      - name: enable-llm-d-wva
+        setFlags:
+          - skipCrdCheck=true
+          - components.kserve.dsc.wva.managementState=Managed
+          - components.kserve.dependencies.customMetricsAutoscaler=true
+

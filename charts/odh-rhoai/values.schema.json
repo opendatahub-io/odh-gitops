@@ -465,6 +465,17 @@
               "required": ["managementState"],
               "additionalProperties": false
             },
+            "wva": {
+              "type": "object",
+              "description": "Workload Variant Autoscaler configuration for KServe",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "required": ["managementState"],
+              "additionalProperties": false
+            },
             "modelsAsService": {
               "type": "object",
               "description": "Models as Service configuration for KServe",

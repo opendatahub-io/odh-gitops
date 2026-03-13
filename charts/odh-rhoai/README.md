@@ -345,7 +345,6 @@ components:
       rawDeploymentServiceConfig: Headless  # Headless | Headed
       nim:
         managementState: Managed  # NVIDIA NIM integration
-
   kueue:
     dsc:
       managementState: Unmanaged  # Unmanaged | Removed

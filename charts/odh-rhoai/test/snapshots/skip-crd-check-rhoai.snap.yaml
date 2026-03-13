@@ -17,15 +17,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-keda
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
----
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -129,6 +120,8 @@ spec:
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
+      wva:
+        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -267,18 +260,6 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: openshift-custom-metrics-autoscaler-operator
-  namespace: openshift-keda
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
----
 # Source: odh-rhoai-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -396,22 +377,6 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   name: cluster-observability-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
----
-# Source: odh-rhoai-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: openshift-custom-metrics-autoscaler-operator
-  namespace: openshift-keda
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable
-  installPlanApproval: Automatic
-  name: openshift-custom-metrics-autoscaler-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
