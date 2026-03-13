@@ -1,0 +1,39 @@
+# Enable/disable all resource creation
+enabled: true
+
+# Install CRDs or not using the chart
+installCRDs: true
+
+# Common labels applied to all resources
+labels: {}
+
+# RHAI Operator configuration
+rhaiOperator:
+  # Operator namespace
+  namespace: redhat-ods-operator
+  # Manager container image
+  image: DEFAULT_MANAGER_IMAGE
+
+# Azure cloud configuration
+azure:
+  enabled: false
+  cloudManager:
+    # Cloud Manager operator namespace
+    namespace: opendatahub-operator-system
+    # Cloud Manager container image
+    image: DEFAULT_AZURE_CLOUD_MANAGER_IMAGE
+
+# CoreWeave cloud configuration
+coreweave:
+  enabled: false
+  cloudManager:
+    # Cloud Manager operator namespace
+    namespace: opendatahub-operator-system
+    # Cloud Manager container image
+    image: DEFAULT_COREWEAVE_CLOUD_MANAGER_IMAGE
+
+# Image pull secrets for private registries (list of secret names)
+imagePullSecrets: []
+# Example:
+# imagePullSecrets:
+#   - my-registry-secret

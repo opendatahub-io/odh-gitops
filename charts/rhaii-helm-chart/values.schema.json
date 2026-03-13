@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Enable/disable all resource creation",
+      "default": true
+    },
+    "installCRDs": {
+      "type": "boolean",
+      "description": "Install CRDs or not using the chart",
+      "default": true
+    },
+    "labels": {
+      "type": "object",
+      "description": "Common labels applied to all resources",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "rhaiOperator": {
+      "type": "object",
+      "description": "RHAI Operator configuration",
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "description": "Operator namespace",
+          "default": "redhat-ods-operator"
+        },
+        "image": {
+          "type": "string",
+          "description": "Manager container image"
+        }
+      }
+    },
+    "azure": {
+      "type": "object",
+      "description": "Azure cloud configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Azure cloud manager resources",
+          "default": false
+        },
+        "cloudManager": {
+          "type": "object",
+          "description": "Azure Cloud Manager configuration",
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "description": "Cloud Manager operator namespace",
+              "default": "opendatahub-operator-system"
+            },
+            "image": {
+              "type": "string",
+              "description": "Cloud Manager container image"
+            }
+          }
+        }
+      }
+    },
+    "coreweave": {
+      "type": "object",
+      "description": "CoreWeave cloud configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable CoreWeave cloud manager resources",
+          "default": false
+        },
+        "cloudManager": {
+          "type": "object",
+          "description": "CoreWeave Cloud Manager configuration",
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "description": "Cloud Manager operator namespace",
+              "default": "opendatahub-operator-system"
+            },
+            "image": {
+              "type": "string",
+              "description": "Cloud Manager container image"
+            }
+          }
+        }
+      }
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "description": "Image pull secrets for private registries (list of secret names)",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

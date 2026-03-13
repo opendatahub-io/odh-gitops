@@ -1,0 +1,77 @@
+# helmtemplate-generator configuration for cloudmanager resources
+#
+# Placeholders (replaced by update-bundle.sh via sed):
+#   CLOUD_NAME - cloud name (azure or coreweave)
+#   CLOUD_DIR  - output subdirectory (cloudmanager/azure or cloudmanager/coreweave)
+
+rules:
+  # Replace namespace references with Helm template
+  - path: .metadata.namespace
+    value: '{{ .Values.CLOUD_NAME.cloudManager.namespace }}'
+
+  # Replace Namespace resource name
+  - match:
+      kinds:
+        - Namespace
+    changes:
+      - path: .metadata.name
+        value: '{{ .Values.CLOUD_NAME.cloudManager.namespace }}'
+
+  # Replace namespace in RoleBinding/ClusterRoleBinding subjects
+  - match:
+      kinds:
+        - RoleBinding
+        - ClusterRoleBinding
+    changes:
+      - path: .subjects[0].namespace
+        value: '{{ .Values.CLOUD_NAME.cloudManager.namespace }}'
+
+  # Replace container image with Helm value
+  - match:
+      kinds:
+        - Deployment
+    changes:
+      - path: .spec.template.spec.containers[0].image
+        value: '{{ .Values.CLOUD_NAME.cloudManager.image }}'
+
+  # Wrap all resources with cloud enabled conditional
+  - match:
+    wrap:
+      before: '{{- if .Values.CLOUD_NAME.enabled }}'
+      after: '{{- end }}'
+
+output:
+  splitByDocument: true
+  directoryRules:
+    - match:
+        kinds:
+          - CustomResourceDefinition
+      directory: CLOUD_DIR/crds
+    - match:
+        kinds:
+          - Role
+          - RoleBinding
+          - ClusterRole
+          - ClusterRoleBinding
+          - ServiceAccount
+      directory: CLOUD_DIR/rbac
+    - match:
+        kinds:
+          - Deployment
+          - Namespace
+      directory: CLOUD_DIR/manager
+    - match:
+        kinds:
+          - ValidatingWebhookConfiguration
+          - MutatingWebhookConfiguration
+      directory: CLOUD_DIR/webhooks
+    - match:
+        kinds:
+          - Service
+        names:
+          - '*webhook*'
+      directory: CLOUD_DIR/webhooks
+    - match:
+        kinds:
+          - Service
+      directory: CLOUD_DIR/manager

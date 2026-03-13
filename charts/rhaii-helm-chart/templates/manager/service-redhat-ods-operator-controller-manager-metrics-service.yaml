@@ -1,0 +1,17 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: rhods-operator
+  name: redhat-ods-operator-controller-manager-metrics-service
+  namespace: {{ .Values.rhaiOperator.namespace }}
+spec:
+  ports:
+    - name: http
+      port: 8443
+      protocol: TCP
+      targetPort: http
+  selector:
+    name: rhods-operator
+{{- end }}
