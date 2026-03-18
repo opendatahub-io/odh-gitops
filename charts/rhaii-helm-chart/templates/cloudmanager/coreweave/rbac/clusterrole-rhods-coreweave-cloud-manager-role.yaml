@@ -2,14 +2,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: opendatahub-coreweave-cloud-manager-role
-  namespace: {{ .Values.coreweave.cloudManager.namespace }}
+  name: rhods-coreweave-cloud-manager-role
 rules:
   - apiGroups:
       - ""
     resources:
       - configmaps
-      - events
       - namespaces
       - secrets
       - serviceaccounts
@@ -21,6 +19,27 @@ rules:
       - list
       - patch
       - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs:
+      - get
+      - list
+      - patch
       - watch
   - apiGroups:
       - apiextensions.k8s.io
@@ -46,9 +65,10 @@ rules:
       - update
       - watch
   - apiGroups:
-      - config.openshift.io
+      - cert-manager.io
     resources:
-      - infrastructures
+      - certificates
+      - clusterissuers
     verbs:
       - create
       - delete
@@ -74,7 +94,6 @@ rules:
     resources:
       - events
     verbs:
-      - delete
       - get
       - list
       - patch
@@ -109,6 +128,7 @@ rules:
       - operator.openshift.io
     resources:
       - certmanagers
+      - leaderworkersetoperators
     verbs:
       - create
       - delete
@@ -121,9 +141,7 @@ rules:
       - rbac.authorization.k8s.io
     resources:
       - clusterrolebindings
-      - clusterroles
       - rolebindings
-      - roles
     verbs:
       - create
       - delete
@@ -131,6 +149,15 @@ rules:
       - list
       - patch
       - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    verbs:
+      - create
+      - get
+      - list
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -181,6 +208,14 @@ rules:
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
+    resources:
+      - roles
+    verbs:
+      - create
+      - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
     resourceNames:
       - cert-manager-operator-controller-manager-role
     resources:
@@ -225,7 +260,7 @@ rules:
       - update
       - watch
   - apiGroups:
-      - sail-operator.io
+      - sailoperator.io
     resources:
       - istios
     verbs:

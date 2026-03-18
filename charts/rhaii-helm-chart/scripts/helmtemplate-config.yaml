@@ -7,12 +7,6 @@ filter:
       names:
         - "kserves.components.platform.opendatahub.io"
     - kinds:
-        - ValidatingWebhookConfiguration
-      names:
-        - "kserve-llmisvc-kueuelabels-validator.opendatahub.io"
-        - "kserve-isvc-kueuelabels-validator.opendatahub.io"
-        - "hardwareprofile-llmisvc-injector.opendatahub.io"
-    - kinds:
         - MutatingWebhookConfiguration
       names:
         - "connection-llmisvc.opendatahub.io"
@@ -21,15 +15,28 @@ filter:
 rules:
   # Replace namespace references with Helm template
   - path: .metadata.namespace
-    value: '{{ .Values.rhaiOperator.namespace }}'
+    value: '{{ .Values.rhaiiOperator.namespace }}'
 
   # Replace Namespace resource name
   - match:
       kinds:
         - Namespace
+      names:
+        - 'redhat-ods-operator|opendatahub-operator-system'
     changes:
       - path: .metadata.name
-        value: '{{ .Values.rhaiOperator.namespace }}'
+        value: '{{ .Values.rhaiiOperator.namespace }}'
+
+  - match:
+      kinds:
+        - Namespace
+      names:
+        - 'redhat-ods-applications'
+        - 'opendatahub'
+    changes:
+      - path: .metadata.name
+        value: '{{ .Values.rhaiiOperator.namespace }}'
+
 
   # Replace namespace in RoleBinding/ClusterRoleBinding subjects
   - match:
@@ -38,7 +45,7 @@ rules:
         - ClusterRoleBinding
     changes:
       - path: .subjects[0].namespace
-        value: '{{ .Values.rhaiOperator.namespace }}'
+        value: '{{ .Values.rhaiiOperator.namespace }}'
 
   # Replace namespace in webhook service references
   - match:
@@ -47,7 +54,7 @@ rules:
         - MutatingWebhookConfiguration
     changes:
       - path: .webhooks[0].clientConfig.service.namespace
-        value: '{{ .Values.rhaiOperator.namespace }}'
+        value: '{{ .Values.rhaiiOperator.namespace }}'
 
   # Wrap CRDs with installCRDs condition
   - match:
@@ -82,15 +89,7 @@ rules:
         - Deployment
     changes:
       - path: .spec.template.spec.containers[0].image
-        value: '{{ .Values.rhaiOperator.image }}'
-
-  # Append env vars for disabled components and services
-  - match:
-      kinds:
-        - Deployment
-    path: .spec.template.spec.containers[0].env
-    appendWith: |
-      {{- include "rhaii-helm-chart.disabledResourcesEnv" . | nindent 12 }}
+        value: '{{ .Values.rhaiiOperator.image }}'
 
 output:
   splitByDocument: true

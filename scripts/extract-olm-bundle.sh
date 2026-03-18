@@ -153,9 +153,9 @@ cleanup_templates() {
         rm -rf "${OUTPUT_DIR}/templates/${subdir}"
     done
 
-    # Remove any .yaml files at templates root (preserve _helpers.tpl)
+    # Remove any .yaml files at templates root (preserve _helpers.tpl, validation.yaml)
     if [[ -d "${OUTPUT_DIR}/templates" ]]; then
-        find "${OUTPUT_DIR}/templates" -maxdepth 1 -name "*.yaml" -delete 2>/dev/null || true
+        find "${OUTPUT_DIR}/templates" -maxdepth 1 -name "*.yaml" ! -name "validation.yaml" -delete 2>/dev/null || true
     fi
 
     echo "  Done"
@@ -203,7 +203,7 @@ extract_bundle() {
         "${OLM_EXTRACTOR_IMAGE}" run \
         "${BUNDLE_IMAGE}" \
         -n "${NAMESPACE}" \
-        --cert-manager-enabled=false); then
+        --cert-manager-enabled=true); then
         # Clean up temp env file if it exists
         [[ -n "${temp_env_file}" ]] && rm -f "${temp_env_file}"
         echo "ERROR: Failed to extract OLM bundle from ${BUNDLE_IMAGE}" >&2

@@ -24,21 +24,13 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Environment variables for disabled components and services
+Validate that exactly one cloud provider is enabled.
 */}}
-{{- define "rhaii-helm-chart.disabledResourcesEnv" -}}
-- name: RHAI_DISABLE_DSC_RESOURCE
-  value: "true"
-- name: RHAI_DISABLE_DSCI_RESOURCE
-  value: "true"
-{{- $components := list "dashboard" "datasciencepipelines" "feastoperator" "kserve" "kueue" "llamastackoperator" "mlflowoperator" "modelcontroller" "modelregistry" "modelsasservice" "ray" "sparkoperator" "trainer" "trainingoperator" "trustyai" "workbenches" -}}
-{{- range $components }}
-- name: RHAI_DISABLE_{{ . | upper }}_COMPONENT
-  value: "true"
-{{- end }}
-{{- $services := list "auth" "certconfigmapgenerator" "gateway" "monitoring" "setupcontroller" -}}
-{{- range $services }}
-- name: RHAI_DISABLE_{{ . | upper }}_SERVICE
-  value: "true"
-{{- end }}
-{{- end }}
+{{- define "rhaii-helm-chart.validateCloudProvider" -}}
+{{- if and .Values.enabled (not (or .Values.azure.enabled .Values.coreweave.enabled)) -}}
+{{- fail "Exactly one cloud provider must be enabled: set azure.enabled=true or coreweave.enabled=true" -}}
+{{- end -}}
+{{- if and .Values.enabled .Values.azure.enabled .Values.coreweave.enabled -}}
+{{- fail "Only one cloud provider can be enabled at a time: set either azure.enabled=true or coreweave.enabled=true, not both" -}}
+{{- end -}}
+{{- end -}}

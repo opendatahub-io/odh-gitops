@@ -8,9 +8,10 @@ installCRDs: true
 labels: {}
 
 # RHAI Operator configuration
-rhaiOperator:
+rhaiiOperator:
   # Operator namespace
   namespace: redhat-ods-operator
+  applicationsNamespace: redhat-ods-applications
   # Manager container image
   image: DEFAULT_MANAGER_IMAGE
 
@@ -19,18 +20,45 @@ azure:
   enabled: false
   cloudManager:
     # Cloud Manager operator namespace
-    namespace: opendatahub-operator-system
+    namespace: cloudmanager-operator-system
     # Cloud Manager container image
     image: DEFAULT_AZURE_CLOUD_MANAGER_IMAGE
+  # AzureKubernetesEngine CR configuration
+  kubernetesEngine:
+    dependencies:
+      certManager:
+        managementPolicy: Managed
+      gatewayAPI:
+        managementPolicy: Managed
+      lws:
+        managementPolicy: Managed
+      sailOperator:
+        managementPolicy: Managed
 
 # CoreWeave cloud configuration
 coreweave:
   enabled: false
   cloudManager:
     # Cloud Manager operator namespace
-    namespace: opendatahub-operator-system
+    namespace: cloudmanager-operator-system
     # Cloud Manager container image
     image: DEFAULT_COREWEAVE_CLOUD_MANAGER_IMAGE
+  # CoreWeaveKubernetesEngine CR configuration
+  kubernetesEngine:
+    dependencies:
+      certManager:
+        managementPolicy: Managed
+      gatewayAPI:
+        managementPolicy: Managed
+      lws:
+        managementPolicy: Managed
+      sailOperator:
+        managementPolicy: Managed
+
+# Kserve component CR configuration
+components:
+  kserve:
+    spec: {}
 
 # Image pull secrets for private registries (list of secret names)
 imagePullSecrets: []

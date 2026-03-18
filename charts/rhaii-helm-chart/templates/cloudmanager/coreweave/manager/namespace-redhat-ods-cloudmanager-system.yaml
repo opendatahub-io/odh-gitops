@@ -2,9 +2,6 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  labels:
-    control-plane: controller-manager
-    name: opendatahub-coreweave-cloud-manager-operator
   name: {{ .Values.coreweave.cloudManager.namespace }}
   namespace: {{ .Values.coreweave.cloudManager.namespace }}
 {{- end }}

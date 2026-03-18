@@ -19,7 +19,7 @@
         "type": "string"
       }
     },
-    "rhaiOperator": {
+    "rhaiiOperator": {
       "type": "object",
       "description": "RHAI Operator configuration",
       "properties": {
@@ -57,6 +57,58 @@
               "description": "Cloud Manager container image"
             }
           }
+        },
+        "kubernetesEngine": {
+          "type": "object",
+          "description": "AzureKubernetesEngine CR configuration",
+          "properties": {
+            "dependencies": {
+              "type": "object",
+              "description": "Dependency configurations",
+              "properties": {
+                "certManager": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                },
+                "gatewayAPI": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                },
+                "lws": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                },
+                "sailOperator": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -81,6 +133,98 @@
             "image": {
               "type": "string",
               "description": "Cloud Manager container image"
+            }
+          }
+        },
+        "kubernetesEngine": {
+          "type": "object",
+          "description": "CoreWeaveKubernetesEngine CR configuration",
+          "properties": {
+            "dependencies": {
+              "type": "object",
+              "description": "Dependency configurations",
+              "properties": {
+                "certManager": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                },
+                "gatewayAPI": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                },
+                "lws": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                },
+                "sailOperator": {
+                  "type": "object",
+                  "properties": {
+                    "managementPolicy": {
+                      "type": "string",
+                      "enum": ["Managed", "Unmanaged"],
+                      "default": "Managed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "description": "Component CR configurations",
+      "properties": {
+        "kserve": {
+          "type": "object",
+          "description": "Kserve component CR configuration",
+          "properties": {
+            "spec": {
+              "type": "object",
+              "description": "Kserve CR spec fields",
+              "properties": {
+                "modelsAsService": {
+                  "type": "object",
+                  "properties": {
+                    "managementState": {
+                      "type": "string",
+                      "enum": ["Managed", "Removed"]
+                    }
+                  }
+                },
+                "nim": {
+                  "type": "object",
+                  "properties": {
+                    "managementState": {
+                      "type": "string",
+                      "enum": ["Managed", "Removed"]
+                    }
+                  }
+                },
+                "rawDeploymentServiceConfig": {
+                  "type": "string",
+                  "enum": ["Headless", "Headed"]
+                }
+              }
             }
           }
         }

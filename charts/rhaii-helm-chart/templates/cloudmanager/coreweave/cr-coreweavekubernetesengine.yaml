@@ -1,0 +1,22 @@
+{{- if .Values.coreweave.enabled }}
+apiVersion: infrastructure.opendatahub.io/v1alpha1
+kind: CoreWeaveKubernetesEngine
+metadata:
+  name: default-coreweavekubernetesengine
+  labels:
+    {{- include "rhaii-helm-chart.labels" . | nindent 4 }}
+spec:
+  dependencies:
+    certManager:
+      configuration: {}
+      managementPolicy: {{ .Values.coreweave.kubernetesEngine.dependencies.certManager.managementPolicy }}
+    gatewayAPI:
+      configuration: {}
+      managementPolicy: {{ .Values.coreweave.kubernetesEngine.dependencies.gatewayAPI.managementPolicy }}
+    lws:
+      configuration: {}
+      managementPolicy: {{ .Values.coreweave.kubernetesEngine.dependencies.lws.managementPolicy }}
+    sailOperator:
+      configuration: {}
+      managementPolicy: {{ .Values.coreweave.kubernetesEngine.dependencies.sailOperator.managementPolicy }}
+{{- end }}

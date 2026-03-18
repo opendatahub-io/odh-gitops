@@ -2,14 +2,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: prometheus-k8s-viewer
-  namespace: {{ .Values.rhaiOperator.namespace }}
+  name: rhods-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: prometheus-k8s-viewer
+  name: rhods-operator-role
 subjects:
   - kind: ServiceAccount
-    name: prometheus-k8s
-    namespace: {{ .Values.rhaiOperator.namespace }}
+    name: redhat-ods-operator-controller-manager
+    namespace: {{ .Values.rhaiiOperator.namespace }}
 {{- end }}

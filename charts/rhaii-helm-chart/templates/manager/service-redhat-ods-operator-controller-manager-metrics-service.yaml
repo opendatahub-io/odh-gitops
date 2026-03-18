@@ -5,7 +5,7 @@ metadata:
   labels:
     name: rhods-operator
   name: redhat-ods-operator-controller-manager-metrics-service
-  namespace: {{ .Values.rhaiOperator.namespace }}
+  namespace: {{ .Values.rhaiiOperator.namespace }}
 spec:
   ports:
     - name: http

@@ -5,7 +5,6 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.3
   name: coreweavekubernetesengines.infrastructure.opendatahub.io
-  namespace: {{ .Values.coreweave.cloudManager.namespace }}
 spec:
   group: infrastructure.opendatahub.io
   names:
@@ -15,7 +14,20 @@ spec:
     singular: coreweavekubernetesengine
   scope: Cluster
   versions:
-    - name: v1alpha1
+    - additionalPrinterColumns:
+        - description: Ready
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - description: Reason
+          jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Reason
+          type: string
+        - description: DependenciesAvailable
+          jsonPath: .status.conditions[?(@.type=="DependenciesAvailable")].status
+          name: Deps Available
+          type: string
+      name: v1alpha1
       schema:
         openAPIV3Schema:
           description: |-
@@ -50,6 +62,23 @@ spec:
                       properties:
                         configuration:
                           description: Configuration for the cert-manager operator.
+                          type: object
+                        managementPolicy:
+                          default: Managed
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          enum:
+                            - Managed
+                            - Unmanaged
+                          type: string
+                      type: object
+                    gatewayAPI:
+                      description: GatewayAPI defines the Gateway API dependency.
+                      properties:
+                        configuration:
+                          description: Configuration for the Gateway API.
                           type: object
                         managementPolicy:
                           default: Managed

@@ -4,22 +4,22 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-    name: opendatahub-coreweave-cloud-manager-operator
-  name: opendatahub-coreweave-cloud-manager-operator
+    name: coreweave-cloud-manager-operator
+  name: coreweave-cloud-manager-operator
   namespace: {{ .Values.coreweave.cloudManager.namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: opendatahub-coreweave-cloud-manager-operator
+      name: coreweave-cloud-manager-operator
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: controller-manager
-        name: opendatahub-coreweave-cloud-manager-operator
+        name: coreweave-cloud-manager-operator
     spec:
       affinity:
         nodeAffinity:
@@ -38,17 +38,24 @@ spec:
                     - key: name
                       operator: In
                       values:
-                        - opendatahub-coreweave-cloud-manager-operator
+                        - coreweave-cloud-manager-operator
                 topologyKey: kubernetes.io/hostname
               weight: 100
       containers:
         - args:
+            - coreweave
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
             - --leader-elect
           command:
-            - /coreweavecloudmanager
+            - /cloudmanager
           env:
+            - name: RHAI_OPERATOR_NAMESPACE
+              value: redhat-ods-operator
+            - name: RHAI_WEBHOOK_CERT_SECRET_NAME
+              value: rhods-operator-controller-webhook-cert
+            - name: RHAI_WEBHOOK_SERVICE_NAME
+              value: rhods-operator-webhook-service
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -91,6 +98,6 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: opendatahub-coreweave-cloud-manager-operator
+      serviceAccountName: coreweave-cloud-manager-operator
       terminationGracePeriodSeconds: 10
 {{- end }}

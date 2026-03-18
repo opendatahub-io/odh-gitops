@@ -43,10 +43,20 @@ charts:
           - docs/examples/values-inference-only.yaml
         setFlags:
           - skipCrdCheck=true
-          
+
       - name: enable-llm-d-wva
         setFlags:
           - skipCrdCheck=true
           - components.kserve.dsc.wva.managementState=Managed
           - components.kserve.dependencies.customMetricsAutoscaler=true
 
+
+  rhaii-helm-chart:
+    snapshots:
+      - name: azure
+        setFlags:
+          - azure.enabled=true
+
+      - name: coreweave
+        setFlags:
+          - coreweave.enabled=true
