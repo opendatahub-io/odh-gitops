@@ -16,7 +16,7 @@ jobs:
       - name: Linting Charts
         run: |
           set -euo pipefail
-          for chart in charts/*/; do
+          for chart in $(find charts -name Chart.yaml -exec dirname {} \;); do
             helm lint "$chart"
           done
       - name: Setup Chart Linting
@@ -31,7 +31,7 @@ jobs:
           fi
 
       - name: Run chart-testing (lint)
-        run: ct lint --debug --chart-dirs charts --config ./.github/configs/ct.yaml --lint-conf ./.github/configs/lintconf.yaml
+        run: ct lint --debug --config ./.github/configs/ct.yaml --lint-conf ./.github/configs/lintconf.yaml
       - name: Run chart snapshot tests
         run: make chart-test
 
@@ -40,7 +40,7 @@ jobs:
       - name: Generate docs and check for changes
         run: |
           make helm-docs
-          if ! git diff --exit-code charts/*/api-docs.md; then
+          if ! git diff --exit-code -- $(find charts -name api-docs.md); then
             echo -e '\033[0;31mDocumentation outdated! (Run make helm-docs locally and commit)\033[0m ❌'
             exit 1
           else

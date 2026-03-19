@@ -1,7 +1,8 @@
 remote: origin
 target-branch: main
 chart-dirs:
-  - chart
+  - charts
+  - charts/dependencies
 helm-extra-args: "--timeout 600s"
 validate-chart-schema: true
 validate-maintainers: false
