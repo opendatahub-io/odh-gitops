@@ -51,7 +51,7 @@ spec:
             - /cloudmanager
           env:
             - name: RHAI_OPERATOR_NAMESPACE
-              value: {{ .Values.rhaiiOperator.namespace }}
+              value: {{ .Values.rhaiOperator.namespace }}
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
               value: redhat-ods-operator-controller-webhook-cert
             - name: RHAI_WEBHOOK_SERVICE_NAME

@@ -1,6 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
+  "$defs": {
+    "dependency": {
+      "type": "object",
+      "description": "Dependency configuration",
+      "properties": {
+        "configuration": {
+          "type": "object",
+          "description": "Configuration for the dependency"
+        },
+        "managementPolicy": {
+          "type": "string",
+          "description": "Whether the operator manages this dependency (Managed or Unmanaged)",
+          "enum": ["Managed", "Unmanaged"],
+          "default": "Managed"
+        }
+      }
+    }
+  },
   "properties": {
     "enabled": {
       "type": "boolean",
@@ -19,7 +37,28 @@
         "type": "string"
       }
     },
-    "rhaiiOperator": {
+    "components": {
+      "type": "object",
+      "description": "Components configuration",
+      "properties": {
+        "kserve": {
+          "type": "object",
+          "description": "Kserve component configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create Kserve CR via post-install hook",
+              "default": true
+            },
+            "spec": {
+              "type": "object",
+              "description": "Kserve CR spec"
+            }
+          }
+        }
+      }
+    },
+    "rhaiOperator": {
       "type": "object",
       "description": "RHAI Operator configuration",
       "properties": {
@@ -27,6 +66,11 @@
           "type": "string",
           "description": "Operator namespace",
           "default": "redhat-ods-operator"
+        },
+        "applicationsNamespace": {
+          "type": "string",
+          "description": "Applications namespace",
+          "default": "redhat-ods-applications"
         },
         "image": {
           "type": "string",
@@ -50,7 +94,7 @@
             "namespace": {
               "type": "string",
               "description": "Cloud Manager operator namespace",
-              "default": "opendatahub-operator-system"
+              "default": "cloudmanager-operator-system"
             },
             "image": {
               "type": "string",
@@ -62,47 +106,30 @@
           "type": "object",
           "description": "AzureKubernetesEngine CR configuration",
           "properties": {
-            "dependencies": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create AzureKubernetesEngine CR via post-install hook",
+              "default": true
+            },
+            "spec": {
               "type": "object",
-              "description": "Dependency configurations",
+              "description": "AzureKubernetesEngine CR spec",
               "properties": {
-                "certManager": {
+                "dependencies": {
                   "type": "object",
+                  "description": "Dependency configurations",
                   "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                },
-                "gatewayAPI": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                },
-                "lws": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                },
-                "sailOperator": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
+                    "certManager": {
+                      "$ref": "#/$defs/dependency"
+                    },
+                    "gatewayAPI": {
+                      "$ref": "#/$defs/dependency"
+                    },
+                    "lws": {
+                      "$ref": "#/$defs/dependency"
+                    },
+                    "sailOperator": {
+                      "$ref": "#/$defs/dependency"
                     }
                   }
                 }
@@ -128,7 +155,7 @@
             "namespace": {
               "type": "string",
               "description": "Cloud Manager operator namespace",
-              "default": "opendatahub-operator-system"
+              "default": "cloudmanager-operator-system"
             },
             "image": {
               "type": "string",
@@ -140,89 +167,32 @@
           "type": "object",
           "description": "CoreWeaveKubernetesEngine CR configuration",
           "properties": {
-            "dependencies": {
-              "type": "object",
-              "description": "Dependency configurations",
-              "properties": {
-                "certManager": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                },
-                "gatewayAPI": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                },
-                "lws": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                },
-                "sailOperator": {
-                  "type": "object",
-                  "properties": {
-                    "managementPolicy": {
-                      "type": "string",
-                      "enum": ["Managed", "Unmanaged"],
-                      "default": "Managed"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "components": {
-      "type": "object",
-      "description": "Component CR configurations",
-      "properties": {
-        "kserve": {
-          "type": "object",
-          "description": "Kserve component CR configuration",
-          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create CoreWeaveKubernetesEngine CR via post-install hook",
+              "default": true
+            },
             "spec": {
               "type": "object",
-              "description": "Kserve CR spec fields",
+              "description": "CoreWeaveKubernetesEngine CR spec",
               "properties": {
-                "modelsAsService": {
+                "dependencies": {
                   "type": "object",
+                  "description": "Dependency configurations",
                   "properties": {
-                    "managementState": {
-                      "type": "string",
-                      "enum": ["Managed", "Removed"]
+                    "certManager": {
+                      "$ref": "#/$defs/dependency"
+                    },
+                    "gatewayAPI": {
+                      "$ref": "#/$defs/dependency"
+                    },
+                    "lws": {
+                      "$ref": "#/$defs/dependency"
+                    },
+                    "sailOperator": {
+                      "$ref": "#/$defs/dependency"
                     }
                   }
-                },
-                "nim": {
-                  "type": "object",
-                  "properties": {
-                    "managementState": {
-                      "type": "string",
-                      "enum": ["Managed", "Removed"]
-                    }
-                  }
-                },
-                "rawDeploymentServiceConfig": {
-                  "type": "string",
-                  "enum": ["Headless", "Headed"]
                 }
               }
             }

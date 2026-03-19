@@ -2,6 +2,5 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ .Values.rhaiiOperator.namespace }}
-  namespace: {{ .Values.rhaiiOperator.namespace }}
+  name: {{ .Values.rhaiOperator.namespace }}
 {{- end }}

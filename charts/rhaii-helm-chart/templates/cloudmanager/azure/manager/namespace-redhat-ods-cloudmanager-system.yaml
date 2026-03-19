@@ -3,5 +3,4 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Values.azure.cloudManager.namespace }}
-  namespace: {{ .Values.azure.cloudManager.namespace }}
 {{- end }}

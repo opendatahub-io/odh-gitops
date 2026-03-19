@@ -10,5 +10,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: redhat-ods-operator-controller-manager
-    namespace: {{ .Values.rhaiiOperator.namespace }}
+    namespace: {{ .Values.rhaiOperator.namespace }}
 {{- end }}

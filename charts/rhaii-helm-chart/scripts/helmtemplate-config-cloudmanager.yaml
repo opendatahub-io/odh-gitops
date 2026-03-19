@@ -6,8 +6,15 @@
 
 rules:
   # Replace namespace references with Helm template
-  - path: .metadata.namespace
-    value: '{{ .Values.CLOUD_NAME.cloudManager.namespace }}'
+  - match:
+      excludeKinds:
+        - CustomResourceDefinition
+        - Namespace
+        - ClusterRole
+        - ClusterRoleBinding
+    changes:
+      - path: .metadata.namespace
+        value: '{{ .Values.CLOUD_NAME.cloudManager.namespace }}'
 
   # Replace Namespace resource name
   - match:
@@ -33,12 +40,20 @@ rules:
     changes:
       - path: .spec.template.spec.containers[0].image
         value: '{{ .Values.CLOUD_NAME.cloudManager.image }}'
+      - path: .spec.template.spec.containers[name=manager].env[name=RHAI_OPERATOR_NAMESPACE].value
+        value: '{{ .Values.rhaiOperator.namespace }}'
 
   # Wrap all resources with cloud enabled conditional
-  - match:
-    wrap:
+  - wrap:
       before: '{{- if .Values.CLOUD_NAME.enabled }}'
       after: '{{- end }}'
+
+  - match:
+      kinds:
+        - CustomResourceDefinition
+    changes:
+      - path: .metadata.annotations["helm.sh/resource-policy"]
+        value: keep
 
 output:
   splitByDocument: true

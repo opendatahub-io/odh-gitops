@@ -1,0 +1,89 @@
+RHAII Helm Chart has been installed.
+
+{{- if .Values.azure.enabled }}
+Cloud provider: Azure
+{{- else if .Values.coreweave.enabled }}
+Cloud provider: CoreWeave
+{{- end }}
+
+== Custom Resources ==
+
+{{- if .Values.components.kserve.enabled }}
+
+Kserve CR will be automatically created by the post-install hook Job.
+{{- else }}
+
+Kserve CR is NOT automatically created. To create it manually:
+
+   kubectl apply -f - <<EOF
+   apiVersion: components.platform.opendatahub.io/v1alpha1
+   kind: Kserve
+   metadata:
+     name: default-kserve
+   spec: {}
+   EOF
+{{- end }}
+
+{{- if .Values.azure.enabled }}
+{{- if .Values.azure.kubernetesEngine.enabled }}
+
+AzureKubernetesEngine CR will be automatically created by the post-install hook Job.
+{{- else }}
+
+AzureKubernetesEngine CR is NOT automatically created. To create it manually:
+
+   kubectl apply -f - <<EOF
+   apiVersion: infrastructure.opendatahub.io/v1alpha1
+   kind: AzureKubernetesEngine
+   metadata:
+     name: default-azurekubernetesengine
+   spec:
+     dependencies:
+       certManager:
+         configuration: {}
+         managementPolicy: Managed
+       gatewayAPI:
+         configuration: {}
+         managementPolicy: Managed
+       lws:
+         configuration: {}
+         managementPolicy: Managed
+       sailOperator:
+         configuration: {}
+         managementPolicy: Managed
+   EOF
+{{- end }}
+{{- end }}
+
+{{- if .Values.coreweave.enabled }}
+{{- if .Values.coreweave.kubernetesEngine.enabled }}
+
+CoreWeaveKubernetesEngine CR will be automatically created by the post-install hook Job.
+{{- else }}
+
+CoreWeaveKubernetesEngine CR is NOT automatically created. To create it manually:
+
+   kubectl apply -f - <<EOF
+   apiVersion: infrastructure.opendatahub.io/v1alpha1
+   kind: CoreWeaveKubernetesEngine
+   metadata:
+     name: default-coreweavekubernetesengine
+   spec:
+     dependencies:
+       certManager:
+         configuration: {}
+         managementPolicy: Managed
+       gatewayAPI:
+         configuration: {}
+         managementPolicy: Managed
+       lws:
+         configuration: {}
+         managementPolicy: Managed
+       sailOperator:
+         configuration: {}
+         managementPolicy: Managed
+   EOF
+{{- end }}
+{{- end }}
+
+Set managementPolicy to "Unmanaged" for any dependency you manage yourself.

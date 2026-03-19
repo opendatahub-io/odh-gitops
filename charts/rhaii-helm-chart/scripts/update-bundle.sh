@@ -35,7 +35,7 @@ NAMESPACE="redhat-ods-operator"
 FROM_OPERATOR=true
 
 # helmtemplate-generator Go module (must match scripts/extract-olm-bundle.sh)
-HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@3bc347fc1affd320b7829e64d262c9c5c6f4c40f"
+HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@97f92726d411785dd9eb359b371ba704c022fbcd"
 
 # Cloud mappings: <cloud_name> <kustomize_subdir> <output_subdir>
 CLOUD_TARGETS=(

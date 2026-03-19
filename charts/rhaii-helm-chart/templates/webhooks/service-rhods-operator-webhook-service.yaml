@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/name: rhods-operator-webhook-service
     app.kubernetes.io/part-of: rhods-operator
   name: rhods-operator-webhook-service
-  namespace: {{ .Values.rhaiiOperator.namespace }}
+  namespace: {{ .Values.rhaiOperator.namespace }}
 spec:
   ports:
     - port: 443

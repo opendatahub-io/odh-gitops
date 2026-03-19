@@ -8,12 +8,19 @@ installCRDs: true
 labels: {}
 
 # RHAI Operator configuration
-rhaiiOperator:
+rhaiOperator:
   # Operator namespace
   namespace: redhat-ods-operator
   applicationsNamespace: redhat-ods-applications
   # Manager container image
-  image: DEFAULT_MANAGER_IMAGE
+  image: quay.io/opendatahub/opendatahub-operator:latest
+
+# Components configuration
+components:
+  kserve:
+    # Create Kserve CR via post-install hook
+    enabled: true
+    spec: {}
 
 # Azure cloud configuration
 azure:
@@ -22,18 +29,24 @@ azure:
     # Cloud Manager operator namespace
     namespace: cloudmanager-operator-system
     # Cloud Manager container image
-    image: DEFAULT_AZURE_CLOUD_MANAGER_IMAGE
-  # AzureKubernetesEngine CR configuration
+    image: quay.io/opendatahub/opendatahub-operator:latest
   kubernetesEngine:
-    dependencies:
-      certManager:
-        managementPolicy: Managed
-      gatewayAPI:
-        managementPolicy: Managed
-      lws:
-        managementPolicy: Managed
-      sailOperator:
-        managementPolicy: Managed
+    # Create AzureKubernetesEngine CR via post-install hook
+    enabled: true
+    spec:
+      dependencies:
+        certManager:
+          configuration: {}
+          managementPolicy: Managed
+        gatewayAPI:
+          configuration: {}
+          managementPolicy: Managed
+        lws:
+          configuration: {}
+          managementPolicy: Managed
+        sailOperator:
+          configuration: {}
+          managementPolicy: Managed
 
 # CoreWeave cloud configuration
 coreweave:
@@ -42,23 +55,24 @@ coreweave:
     # Cloud Manager operator namespace
     namespace: cloudmanager-operator-system
     # Cloud Manager container image
-    image: DEFAULT_COREWEAVE_CLOUD_MANAGER_IMAGE
-  # CoreWeaveKubernetesEngine CR configuration
+    image: quay.io/opendatahub/opendatahub-operator:latest
   kubernetesEngine:
-    dependencies:
-      certManager:
-        managementPolicy: Managed
-      gatewayAPI:
-        managementPolicy: Managed
-      lws:
-        managementPolicy: Managed
-      sailOperator:
-        managementPolicy: Managed
-
-# Kserve component CR configuration
-components:
-  kserve:
-    spec: {}
+    # Create CoreWeaveKubernetesEngine CR via post-install hook
+    enabled: true
+    spec:
+      dependencies:
+        certManager:
+          configuration: {}
+          managementPolicy: Managed
+        gatewayAPI:
+          configuration: {}
+          managementPolicy: Managed
+        lws:
+          configuration: {}
+          managementPolicy: Managed
+        sailOperator:
+          configuration: {}
+          managementPolicy: Managed
 
 # Image pull secrets for private registries (list of secret names)
 imagePullSecrets: []

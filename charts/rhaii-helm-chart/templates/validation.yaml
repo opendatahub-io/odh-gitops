@@ -1,0 +1,1 @@
+{{- include "rhaii-helm-chart.validateCloudProvider" . -}}
