@@ -2702,9 +2702,27 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: rhaii-post-install-hook
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: create-crs
           image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           command:
             - /bin/bash
             - -c
