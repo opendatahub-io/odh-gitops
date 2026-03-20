@@ -10,7 +10,7 @@ Cloud provider: CoreWeave
 
 {{- if .Values.components.kserve.enabled }}
 
-Kserve CR will be automatically created by the post-install hook Job.
+KServe CR was automatically created during the installation.
 {{- else }}
 
 Kserve CR is NOT automatically created. To create it manually:
@@ -27,7 +27,7 @@ Kserve CR is NOT automatically created. To create it manually:
 {{- if .Values.azure.enabled }}
 {{- if .Values.azure.kubernetesEngine.enabled }}
 
-AzureKubernetesEngine CR will be automatically created by the post-install hook Job.
+AzureKubernetesEngine CR was automatically created during the installation.
 {{- else }}
 
 AzureKubernetesEngine CR is NOT automatically created. To create it manually:
@@ -58,7 +58,7 @@ AzureKubernetesEngine CR is NOT automatically created. To create it manually:
 {{- if .Values.coreweave.enabled }}
 {{- if .Values.coreweave.kubernetesEngine.enabled }}
 
-CoreWeaveKubernetesEngine CR will be automatically created by the post-install hook Job.
+CoreWeaveKubernetesEngine CR was automatically created during the installation.
 {{- else }}
 
 CoreWeaveKubernetesEngine CR is NOT automatically created. To create it manually:

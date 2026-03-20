@@ -14,6 +14,11 @@ rhaiOperator:
   applicationsNamespace: redhat-ods-applications
   # Manager container image
   image: quay.io/opendatahub/opendatahub-operator:latest
+  # Related images env vars (RELATED_IMAGE_*)
+  relatedImages: {}
+  # Example:
+  # relatedImages:
+  #   RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE: quay.io/opendatahub/kserve-controller:latest
 
 # Components configuration
 components:
@@ -27,7 +32,7 @@ azure:
   enabled: false
   cloudManager:
     # Cloud Manager operator namespace
-    namespace: cloudmanager-operator-system
+    namespace: rhai-cloudmanager-system
     # Cloud Manager container image
     image: quay.io/opendatahub/opendatahub-operator:latest
   kubernetesEngine:
@@ -53,7 +58,7 @@ coreweave:
   enabled: false
   cloudManager:
     # Cloud Manager operator namespace
-    namespace: cloudmanager-operator-system
+    namespace: rhai-cloudmanager-system
     # Cloud Manager container image
     image: quay.io/opendatahub/opendatahub-operator:latest
   kubernetesEngine:

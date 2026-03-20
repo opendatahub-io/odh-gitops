@@ -89,6 +89,12 @@ rules:
           {{- end }}
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_APPLICATIONS_NAMESPACE].value
         value: '{{ .Values.rhaiOperator.applicationsNamespace }}'
+      - path: .spec.template.spec.containers[name=rhods-operator].env
+        appendWith: |
+          {{- range $name, $value := .Values.rhaiOperator.relatedImages }}
+          - name: {{ $name }}
+            value: {{ $value }}
+          {{- end }}
 
   # Replace manager container image with Helm template value
   - match:

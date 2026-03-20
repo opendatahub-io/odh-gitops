@@ -9,7 +9,7 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | azure.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
-| azure.cloudManager.namespace | string | `"cloudmanager-operator-system"` |  |
+| azure.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | azure.enabled | bool | `false` |  |
 | azure.kubernetesEngine.enabled | bool | `true` |  |
 | azure.kubernetesEngine.spec.dependencies.certManager.configuration | object | `{}` |  |
@@ -23,7 +23,7 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | components.kserve.enabled | bool | `true` |  |
 | components.kserve.spec | object | `{}` |  |
 | coreweave.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
-| coreweave.cloudManager.namespace | string | `"cloudmanager-operator-system"` |  |
+| coreweave.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | coreweave.enabled | bool | `false` |  |
 | coreweave.kubernetesEngine.enabled | bool | `true` |  |
 | coreweave.kubernetesEngine.spec.dependencies.certManager.configuration | object | `{}` |  |
@@ -41,4 +41,5 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | rhaiOperator.applicationsNamespace | string | `"redhat-ods-applications"` |  |
 | rhaiOperator.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | rhaiOperator.namespace | string | `"redhat-ods-operator"` |  |
+| rhaiOperator.relatedImages | object | `{}` |  |
 

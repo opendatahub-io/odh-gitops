@@ -53,9 +53,10 @@ charts:
 
   rhaii-helm-chart:
     snapshots:
-      - name: azure
+      - name: azure-with-related-images
         setFlags:
           - azure.enabled=true
+          - rhaiOperator.relatedImages.RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE=quay.io/opendatahub/kserve-controller:latest
 
       - name: coreweave
         setFlags:

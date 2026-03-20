@@ -1,9 +1,9 @@
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/azure/manager/namespace-redhat-ods-cloudmanager-system.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/manager/namespace-rhai-cloudmanager-system.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: cloudmanager-operator-system
+  name: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/manager/namespace-redhat-ods-applications.yaml
 apiVersion: v1
@@ -22,7 +22,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: azure-cloud-manager-operator
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
@@ -429,11 +429,11 @@ spec:
       subresources:
         status: {}
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/clusterrole-rhods-azure-cloud-manager-role.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/clusterrole-rhai-azure-cloud-manager-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhods-azure-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 rules:
   - apiGroups:
       - ""
@@ -2194,19 +2194,19 @@ rules:
       - update
       - watch
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/clusterrolebinding-rhods-azure-cloud-manager-rolebinding.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/clusterrolebinding-rhai-azure-cloud-manager-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhods-azure-cloud-manager-rolebinding
+  name: rhai-azure-cloud-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhods-azure-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 subjects:
   - kind: ServiceAccount
     name: azure-cloud-manager-operator
-    namespace: cloudmanager-operator-system
+    namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/rbac/clusterrolebinding-rhods-operator-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2227,7 +2227,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: azure-cloud-manager-leader-election-role
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 rules:
   - apiGroups:
       - coordination.k8s.io
@@ -2251,7 +2251,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: azure-cloud-manager-leader-election-rolebinding
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -2259,7 +2259,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: azure-cloud-manager-operator
-    namespace: cloudmanager-operator-system
+    namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/manager/service-redhat-ods-operator-controller-manager-metrics-service.yaml
 apiVersion: v1
@@ -2307,7 +2307,7 @@ metadata:
     control-plane: controller-manager
     name: azure-cloud-manager-operator
   name: azure-cloud-manager-operator
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 spec:
   replicas: 1
   selector:
@@ -2508,6 +2508,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
+            - name: RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE
+              value: quay.io/opendatahub/kserve-controller:latest
           image: quay.io/opendatahub/opendatahub-operator:latest
           imagePullPolicy: Always
           livenessProbe:
@@ -2687,6 +2689,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "1"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3

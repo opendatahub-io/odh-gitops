@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: cloudmanager-operator-system
+  name: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/manager/namespace-redhat-ods-applications.yaml
 apiVersion: v1
@@ -22,7 +22,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: coreweave-cloud-manager-operator
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
@@ -2206,7 +2206,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: coreweave-cloud-manager-operator
-    namespace: cloudmanager-operator-system
+    namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/rbac/clusterrolebinding-rhods-operator-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2227,7 +2227,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: coreweave-cloud-manager-leader-election-role
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 rules:
   - apiGroups:
       - coordination.k8s.io
@@ -2251,7 +2251,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: coreweave-cloud-manager-leader-election-rolebinding
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -2259,7 +2259,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: coreweave-cloud-manager-operator
-    namespace: cloudmanager-operator-system
+    namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/manager/service-redhat-ods-operator-controller-manager-metrics-service.yaml
 apiVersion: v1
@@ -2307,7 +2307,7 @@ metadata:
     control-plane: controller-manager
     name: coreweave-cloud-manager-operator
   name: coreweave-cloud-manager-operator
-  namespace: cloudmanager-operator-system
+  namespace: rhai-cloudmanager-system
 spec:
   replicas: 1
   selector:
@@ -2354,7 +2354,7 @@ spec:
             - name: RHAI_OPERATOR_NAMESPACE
               value: redhat-ods-operator
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
-              value: rhods-operator-controller-webhook-cert
+              value: redhat-ods-operator-controller-webhook-cert
             - name: RHAI_WEBHOOK_SERVICE_NAME
               value: rhods-operator-webhook-service
             - name: OPERATOR_NAMESPACE
@@ -2687,6 +2687,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "1"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3
