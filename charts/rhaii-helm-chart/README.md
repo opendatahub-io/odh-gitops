@@ -91,6 +91,41 @@ Set `managementPolicy: Unmanaged` for any dependency you want to manage yourself
 | `coreweave.kubernetesEngine.enabled` | Create CoreWeaveKubernetesEngine CR via post-install hook | `true` |
 | `coreweave.kubernetesEngine.spec` | CoreWeaveKubernetesEngine CR spec | See [values.yaml](values.yaml) |
 
+## Testing with kind
+
+You can test the chart locally using [kind](https://kind.sigs.k8s.io/).
+
+### Create a cluster
+
+```bash
+kind create cluster --name rhoai --config ./kind.config.yaml
+```
+
+An example `kind.config.yaml` that uses local container registry credentials:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /path/to/your/auth.json
+        containerPath: /var/lib/kubelet/config.json
+```
+
+This mounts a local `auth.json` into the kind node so it can pull images from private registries. Set `hostPath` to the actual path of your container credentials file (e.g. `$HOME/.config/containers/auth.json` or `$XDG_RUNTIME_DIR/containers/auth.json`, depending on your system).
+
+Alternatively, the chart supports `imagePullSecrets` — see the [Configuration](#configuration) section.
+
+### Install the chart
+
+```bash
+helm upgrade rhaii ./charts/rhaii-helm-chart/ \
+  --install --create-namespace \
+  --namespace rhaii \
+  --set azure.enabled=true
+```
+
 ## Uninstall
 
 ```bash
