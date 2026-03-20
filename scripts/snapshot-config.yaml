@@ -58,6 +58,12 @@ charts:
           - azure.enabled=true
           - rhaiOperator.relatedImages.RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE=quay.io/opendatahub/kserve-controller:latest
 
+      - name: with-custom-namespacew
+        setFlags:
+          - azure.enabled=true
+          - rhaiOperator.namespace=rhai-operator
+          - rhaiOperator.applicationsNamespace=rhai-applications
+
       - name: coreweave
         setFlags:
           - coreweave.enabled=true

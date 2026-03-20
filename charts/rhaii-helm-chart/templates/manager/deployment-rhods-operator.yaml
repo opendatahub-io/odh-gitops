@@ -104,10 +104,10 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
-          {{- range $name, $value := .Values.rhaiOperator.relatedImages }}
+            {{- range $name, $value := .Values.rhaiOperator.relatedImages }}
             - name: {{ $name }}
               value: {{ $value }}
-          {{- end }}
+            {{- end }}
           image: {{ .Values.rhaiOperator.image }}
           imagePullPolicy: Always
           livenessProbe:

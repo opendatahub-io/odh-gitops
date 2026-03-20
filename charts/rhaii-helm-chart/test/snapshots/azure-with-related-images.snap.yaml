@@ -2077,6 +2077,8 @@ rules:
     resources:
       - clusterservingruntimes
       - clusterservingruntimes/finalizers
+      - clusterstoragecontainers
+      - clusterstoragecontainers/finalizers
       - inferencegraphs
       - inferenceservices
       - inferenceservices/finalizers
@@ -2097,6 +2099,7 @@ rules:
       - serving.kserve.io
     resources:
       - clusterservingruntimes/status
+      - clusterstoragecontainers/status
       - inferencegraphs/status
       - inferenceservices/status
       - predictors/status

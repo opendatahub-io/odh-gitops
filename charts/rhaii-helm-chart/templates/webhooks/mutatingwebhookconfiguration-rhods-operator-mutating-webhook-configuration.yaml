@@ -32,7 +32,7 @@ webhooks:
     clientConfig:
       service:
         name: rhods-operator-webhook-service
-        namespace: redhat-ods-operator
+        namespace: {{ .Values.rhaiOperator.namespace }}
         path: /platform-connection-llmisvc
     failurePolicy: Fail
     name: connection-llmisvc.opendatahub.io

@@ -57,7 +57,7 @@ rules:
         - ValidatingWebhookConfiguration
         - MutatingWebhookConfiguration
     changes:
-      - path: .webhooks[0].clientConfig.service.namespace
+      - path: .webhooks[*].clientConfig.service.namespace
         value: '{{ .Values.rhaiOperator.namespace }}'
 
   # Wrap CRDs with installCRDs condition

@@ -4,13 +4,19 @@ Red Hat OpenShift AI Operator Helm chart for non-OLM installation.
 
 This chart installs the RHAI operator and its cloud manager components. Exactly one cloud provider (Azure or CoreWeave) must be enabled.
 
+## Prerequisites
+
+- Kubernetes cluster
+- Helm 3.x
+- Cluster-admin privileges (the chart creates CRDs, ClusterRoles, and namespaces)
+
 ## Installation
 
 ### Azure
 
 ```bash
 helm upgrade rhaii ./charts/rhaii-helm-chart/ \
-  --install --create-namespace --wait \
+  --install --create-namespace \
   --namespace rhaii \
   --set azure.enabled=true
 ```
@@ -19,75 +25,39 @@ helm upgrade rhaii ./charts/rhaii-helm-chart/ \
 
 ```bash
 helm upgrade rhaii ./charts/rhaii-helm-chart/ \
-  --install --create-namespace --wait \
+  --install --create-namespace \
   --namespace rhaii \
   --set coreweave.enabled=true
 ```
 
-## Post-install: Create Custom Resources
+> **Note:** `helm install --wait` (or `helm upgrade --install --wait` the first time) is not supported at this stage. The chart uses post-install hooks (Jobs) to create Custom Resources after the operators are deployed. These hooks require the CRDs to be registered, but without the Custom Resource the rhods-operator will not start correctly because it needs the cert-manager, which means the `--wait` flag may cause the installation to time out or fail.
 
-After installing the chart, you must create the required custom resources.
+## What the Chart Installs
 
-### Kserve (required)
+The chart deploys the following resources:
 
-```bash
-kubectl apply -f - <<EOF
-apiVersion: components.platform.opendatahub.io/v1alpha1
-kind: Kserve
-metadata:
-  name: default-kserve
-spec: {}
-EOF
-```
+1. **RHAI Operator** — Deployment, ServiceAccount, RBAC, webhooks, and CRDs in the operator namespace
+2. **Cloud Manager** (Azure or CoreWeave) — Deployment, ServiceAccount, RBAC, and CRDs for the selected cloud provider
+3. **Post-install Job** — A Helm hook that automatically creates the required Custom Resources (Kserve, AzureKubernetesEngine, or CoreWeaveKubernetesEngine) after install/upgrade
 
-### AzureKubernetesEngine (when `azure.enabled=true`)
+### Custom Resources Created by Post-install Hook
 
-```bash
-kubectl apply -f - <<EOF
-apiVersion: infrastructure.opendatahub.io/v1alpha1
-kind: AzureKubernetesEngine
-metadata:
-  name: default-azurekubernetesengine
-spec:
-  dependencies:
-    certManager:
-      configuration: {}
-      managementPolicy: Managed
-    gatewayAPI:
-      configuration: {}
-      managementPolicy: Managed
-    lws:
-      configuration: {}
-      managementPolicy: Managed
-    sailOperator:
-      configuration: {}
-      managementPolicy: Managed
-EOF
-```
+The post-install Job creates the following CRs (configurable via values):
 
-### CoreWeaveKubernetesEngine (when `coreweave.enabled=true`)
+- **Kserve** — Created when `components.kserve.enabled=true` (default)
+- **AzureKubernetesEngine** — Created when `azure.enabled=true` and `azure.kubernetesEngine.enabled=true` (default)
+- **CoreWeaveKubernetesEngine** — Created when `coreweave.enabled=true` and `coreweave.kubernetesEngine.enabled=true` (default)
 
-```bash
-kubectl apply -f - <<EOF
-apiVersion: infrastructure.opendatahub.io/v1alpha1
-kind: CoreWeaveKubernetesEngine
-metadata:
-  name: default-coreweavekubernetesengine
-spec:
-  dependencies:
-    certManager:
-      configuration: {}
-      managementPolicy: Managed
-    gatewayAPI:
-      configuration: {}
-      managementPolicy: Managed
-    lws:
-      configuration: {}
-      managementPolicy: Managed
-    sailOperator:
-      configuration: {}
-      managementPolicy: Managed
-EOF
+You can customize the spec of each CR through values. For example:
+
+```yaml
+azure:
+  enabled: true
+  kubernetesEngine:
+    spec:
+      dependencies:
+        certManager:
+          managementPolicy: Unmanaged
 ```
 
 Set `managementPolicy: Unmanaged` for any dependency you want to manage yourself.
@@ -95,20 +65,31 @@ Set `managementPolicy: Unmanaged` for any dependency you want to manage yourself
 ## Configuration
 
 | Parameter | Description | Default |
-|---|---|---|
+| --- | --- | --- |
 | `enabled` | Enable/disable all resource creation | `true` |
 | `installCRDs` | Install CRDs with the chart | `true` |
 | `labels` | Common labels applied to all resources | `{}` |
+| `imagePullSecrets` | Image pull secrets for private registries | `[]` |
+| **RHAI Operator** | | |
 | `rhaiOperator.namespace` | Operator namespace | `redhat-ods-operator` |
 | `rhaiOperator.applicationsNamespace` | Applications namespace | `redhat-ods-applications` |
 | `rhaiOperator.image` | Operator container image | `quay.io/opendatahub/opendatahub-operator:latest` |
+| `rhaiOperator.relatedImages` | Related images env vars (`RELATED_IMAGE_*`) | `{}` |
+| **Components** | | |
+| `components.kserve.enabled` | Create Kserve CR via post-install hook | `true` |
+| `components.kserve.spec` | Kserve CR spec | `{}` |
+| **Azure** | | |
 | `azure.enabled` | Enable Azure cloud provider | `false` |
-| `azure.cloudManager.namespace` | Azure Cloud Manager namespace | `cloudmanager-operator-system` |
+| `azure.cloudManager.namespace` | Azure Cloud Manager namespace | `rhai-cloudmanager-system` |
 | `azure.cloudManager.image` | Azure Cloud Manager image | `quay.io/opendatahub/opendatahub-operator:latest` |
+| `azure.kubernetesEngine.enabled` | Create AzureKubernetesEngine CR via post-install hook | `true` |
+| `azure.kubernetesEngine.spec` | AzureKubernetesEngine CR spec | See [values.yaml](values.yaml) |
+| **CoreWeave** | | |
 | `coreweave.enabled` | Enable CoreWeave cloud provider | `false` |
-| `coreweave.cloudManager.namespace` | CoreWeave Cloud Manager namespace | `cloudmanager-operator-system` |
+| `coreweave.cloudManager.namespace` | CoreWeave Cloud Manager namespace | `rhai-cloudmanager-system` |
 | `coreweave.cloudManager.image` | CoreWeave Cloud Manager image | `quay.io/opendatahub/opendatahub-operator:latest` |
-| `imagePullSecrets` | Image pull secrets for private registries | `[]` |
+| `coreweave.kubernetesEngine.enabled` | Create CoreWeaveKubernetesEngine CR via post-install hook | `true` |
+| `coreweave.kubernetesEngine.spec` | CoreWeaveKubernetesEngine CR spec | See [values.yaml](values.yaml) |
 
 ## Uninstall
 

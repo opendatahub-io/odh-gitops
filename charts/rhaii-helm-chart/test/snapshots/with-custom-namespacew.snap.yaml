@@ -1,5 +1,5 @@
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/manager/namespace-redhat-ods-cloudmanager-system.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/manager/namespace-rhai-cloudmanager-system.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -9,19 +9,19 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: redhat-ods-applications
+  name: rhai-applications
 ---
 # Source: rhaii-helm-chart/templates/manager/namespace-redhat-ods-operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: redhat-ods-operator
+  name: rhai-operator
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/serviceaccount-coreweave-cloud-manager-operator.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: coreweave-cloud-manager-operator
+  name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
@@ -29,23 +29,23 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: redhat-ods-operator-controller-manager
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/crds/customresourcedefinition-coreweavekubernetesengines.infrastructure.opendatahub.io.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.3
     helm.sh/resource-policy: keep
-  name: coreweavekubernetesengines.infrastructure.opendatahub.io
+  name: azurekubernetesengines.infrastructure.opendatahub.io
 spec:
   group: infrastructure.opendatahub.io
   names:
-    kind: CoreWeaveKubernetesEngine
-    listKind: CoreWeaveKubernetesEngineList
-    plural: coreweavekubernetesengines
-    singular: coreweavekubernetesengine
+    kind: AzureKubernetesEngine
+    listKind: AzureKubernetesEngineList
+    plural: azurekubernetesengines
+    singular: azurekubernetesengine
   scope: Cluster
   versions:
     - additionalPrinterColumns:
@@ -65,8 +65,8 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            CoreWeaveKubernetesEngine is the Schema for the CoreWeaveKubernetesEngines API.
-            It represents the configuration for a CoreWeave Kubernetes Engine cluster.
+            AzureKubernetesEngine is the Schema for the azurekubernetesengines API.
+            It represents the configuration for an Azure Kubernetes Service (AKS) cluster.
           properties:
             apiVersion:
               description: |-
@@ -86,10 +86,10 @@ spec:
             metadata:
               type: object
             spec:
-              description: CoreWeaveKubernetesEngineSpec defines the desired state of CoreWeaveKubernetesEngine.
+              description: AzureKubernetesEngineSpec defines the desired state of AzureKubernetesEngine.
               properties:
                 dependencies:
-                  description: Dependencies defines the dependency configurations for the CoreWeave Kubernetes Engine.
+                  description: Dependencies defines the dependency configurations for the Azure Kubernetes Engine.
                   properties:
                     certManager:
                       description: CertManager defines the cert-manager operator dependency.
@@ -162,7 +162,7 @@ spec:
                   type: object
               type: object
             status:
-              description: CoreWeaveKubernetesEngineStatus defines the observed state of CoreWeaveKubernetesEngine.
+              description: AzureKubernetesEngineStatus defines the observed state of AzureKubernetesEngine.
               properties:
                 conditions:
                   items:
@@ -228,8 +228,8 @@ spec:
               type: object
           type: object
           x-kubernetes-validations:
-            - message: CoreWeaveKubernetesEngine name must be default-coreweavekubernetesengine
-              rule: self.metadata.name == 'default-coreweavekubernetesengine'
+            - message: AzureKubernetesEngine name must be default-azurekubernetesengine
+              rule: self.metadata.name == 'default-azurekubernetesengine'
       served: true
       storage: true
       subresources:
@@ -429,11 +429,11 @@ spec:
       subresources:
         status: {}
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/clusterrole-rhods-coreweave-cloud-manager-role.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/clusterrole-rhai-azure-cloud-manager-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhods-coreweave-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 rules:
   - apiGroups:
       - ""
@@ -532,7 +532,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines
+      - azurekubernetesengines
     verbs:
       - create
       - delete
@@ -544,13 +544,13 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines/finalizers
+      - azurekubernetesengines/finalizers
     verbs:
       - update
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines/status
+      - azurekubernetesengines/status
     verbs:
       - get
       - patch
@@ -2197,18 +2197,18 @@ rules:
       - update
       - watch
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/clusterrolebinding-rhods-coreweave-cloud-manager-rolebinding.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/clusterrolebinding-rhai-azure-cloud-manager-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhods-coreweave-cloud-manager-rolebinding
+  name: rhai-azure-cloud-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhods-coreweave-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 subjects:
   - kind: ServiceAccount
-    name: coreweave-cloud-manager-operator
+    name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/rbac/clusterrolebinding-rhods-operator-rolebinding.yaml
@@ -2223,13 +2223,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: redhat-ods-operator-controller-manager
-    namespace: redhat-ods-operator
+    namespace: rhai-operator
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/role-coreweave-cloud-manager-leader-election-role.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/role-azure-cloud-manager-leader-election-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: coreweave-cloud-manager-leader-election-role
+  name: azure-cloud-manager-leader-election-role
   namespace: rhai-cloudmanager-system
 rules:
   - apiGroups:
@@ -2249,19 +2249,19 @@ rules:
       - create
       - patch
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/rolebinding-coreweave-cloud-manager-leader-election-rolebinding.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/rolebinding-azure-cloud-manager-leader-election-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: coreweave-cloud-manager-leader-election-rolebinding
+  name: azure-cloud-manager-leader-election-rolebinding
   namespace: rhai-cloudmanager-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: coreweave-cloud-manager-leader-election-role
+  name: azure-cloud-manager-leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: coreweave-cloud-manager-operator
+    name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
 ---
 # Source: rhaii-helm-chart/templates/manager/service-redhat-ods-operator-controller-manager-metrics-service.yaml
@@ -2271,7 +2271,7 @@ metadata:
   labels:
     name: rhods-operator
   name: redhat-ods-operator-controller-manager-metrics-service
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
 spec:
   ports:
     - name: http
@@ -2293,7 +2293,7 @@ metadata:
     app.kubernetes.io/name: rhods-operator-webhook-service
     app.kubernetes.io/part-of: rhods-operator
   name: rhods-operator-webhook-service
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
 spec:
   ports:
     - port: 443
@@ -2302,28 +2302,28 @@ spec:
   selector:
     name: rhods-operator
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/manager/deployment-coreweave-cloud-manager-operator.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/azure/manager/deployment-azure-cloud-manager-operator.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-    name: coreweave-cloud-manager-operator
-  name: coreweave-cloud-manager-operator
+    name: azure-cloud-manager-operator
+  name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: coreweave-cloud-manager-operator
+      name: azure-cloud-manager-operator
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: controller-manager
-        name: coreweave-cloud-manager-operator
+        name: azure-cloud-manager-operator
     spec:
       affinity:
         nodeAffinity:
@@ -2342,12 +2342,12 @@ spec:
                     - key: name
                       operator: In
                       values:
-                        - coreweave-cloud-manager-operator
+                        - azure-cloud-manager-operator
                 topologyKey: kubernetes.io/hostname
               weight: 100
       containers:
         - args:
-            - coreweave
+            - azure
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
             - --leader-elect
@@ -2355,7 +2355,7 @@ spec:
             - /cloudmanager
           env:
             - name: RHAI_OPERATOR_NAMESPACE
-              value: redhat-ods-operator
+              value: rhai-operator
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
               value: redhat-ods-operator-controller-webhook-cert
             - name: RHAI_WEBHOOK_SERVICE_NAME
@@ -2402,7 +2402,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: coreweave-cloud-manager-operator
+      serviceAccountName: azure-cloud-manager-operator
       terminationGracePeriodSeconds: 10
 ---
 # Source: rhaii-helm-chart/templates/manager/deployment-rhods-operator.yaml
@@ -2412,7 +2412,7 @@ metadata:
   labels:
     name: rhods-operator
   name: rhods-operator
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
 spec:
   replicas: 3
   selector:
@@ -2500,7 +2500,7 @@ spec:
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
-              value: redhat-ods-applications
+              value: rhai-applications
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME
@@ -2568,14 +2568,14 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: redhat-ods-operator/opendatahub-operator-webhook-cert
   name: rhods-operator-mutating-webhook-configuration
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
         name: rhods-operator-webhook-service
-        namespace: redhat-ods-operator
+        namespace: rhai-operator
         path: /platform-connection-isvc
     failurePolicy: Fail
     name: connection-isvc.opendatahub.io
@@ -2595,7 +2595,7 @@ webhooks:
     clientConfig:
       service:
         name: rhods-operator-webhook-service
-        namespace: redhat-ods-operator
+        namespace: rhai-operator
         path: /platform-connection-llmisvc
     failurePolicy: Fail
     name: connection-llmisvc.opendatahub.io
@@ -2616,7 +2616,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: rhaii-post-install-hook
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2677,14 +2677,14 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rhaii-post-install-hook
-    namespace: redhat-ods-operator
+    namespace: rhai-operator
 ---
 # Source: rhaii-helm-chart/templates/hooks/post-install-crs-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: rhaii-post-install-crs
-  namespace: redhat-ods-operator
+  namespace: rhai-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2721,12 +2721,12 @@ spec:
                   app.kubernetes.io/managed-by: Helm
               spec: {}
               EOF
-              echo "Creating CoreWeaveKubernetesEngine CR..."
+              echo "Creating AzureKubernetesEngine CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: infrastructure.opendatahub.io/v1alpha1
-              kind: CoreWeaveKubernetesEngine
+              kind: AzureKubernetesEngine
               metadata:
-                name: default-coreweavekubernetesengine
+                name: default-azurekubernetesengine
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
