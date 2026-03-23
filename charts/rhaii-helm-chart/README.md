@@ -4,10 +4,25 @@ Red Hat OpenShift AI Operator Helm chart for non-OLM installation.
 
 This chart installs the RHAI operator and its cloud manager components. Exactly one cloud provider (Azure or CoreWeave) must be enabled.
 
+## Table of Contents
+
+- [RHAII Helm Chart](#rhaii-helm-chart)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+    - [Azure](#azure)
+    - [CoreWeave](#coreweave)
+  - [Pull Secrets](#pull-secrets)
+  - [How It Works](#how-it-works)
+  - [Managed Dependencies](#managed-dependencies)
+  - [Configuration Reference](#configuration-reference)
+  - [Testing with kind](#testing-with-kind)
+  - [Uninstall](#uninstall)
+
 ## Prerequisites
 
-- Kubernetes cluster
-- Helm 3.x
+- Kubernetes cluster (or OpenShift)
+- Helm 4.x
 - Cluster-admin privileges (the chart creates CRDs, ClusterRoles, and namespaces)
 
 ## Installation
@@ -30,37 +45,8 @@ helm upgrade rhaii ./charts/rhaii-helm-chart/ \
   --set coreweave.enabled=true
 ```
 
-> **Note:** `helm install --wait` (or `helm upgrade --install --wait` the first time) is not supported at this stage. The chart uses post-install hooks (Jobs) to create Custom Resources after the operators are deployed. These hooks require the CRDs to be registered, but without the Custom Resource the rhods-operator will not start correctly because it needs the cert-manager, which means the `--wait` flag may cause the installation to time out or fail.
-
-## What the Chart Installs
-
-The chart deploys the following resources:
-
-1. **RHAI Operator** — Deployment, ServiceAccount, RBAC, webhooks, and CRDs in the operator namespace
-2. **Cloud Manager** (Azure or CoreWeave) — Deployment, ServiceAccount, RBAC, and CRDs for the selected cloud provider
-3. **Post-install Job** — A Helm hook that automatically creates the required Custom Resources (Kserve, AzureKubernetesEngine, or CoreWeaveKubernetesEngine) after install/upgrade
-
-### Custom Resources Created by Post-install Hook
-
-The post-install Job creates the following CRs (configurable via values):
-
-- **Kserve** — Created when `components.kserve.enabled=true` (default)
-- **AzureKubernetesEngine** — Created when `azure.enabled=true` and `azure.kubernetesEngine.enabled=true` (default)
-- **CoreWeaveKubernetesEngine** — Created when `coreweave.enabled=true` and `coreweave.kubernetesEngine.enabled=true` (default)
-
-You can customize the spec of each CR through values. For example:
-
-```yaml
-azure:
-  enabled: true
-  kubernetesEngine:
-    spec:
-      dependencies:
-        certManager:
-          managementPolicy: Unmanaged
-```
-
-Set `managementPolicy: Unmanaged` for any dependency you want to manage yourself.
+> [!WARNING]
+> `helm install --wait` is **not supported**. The chart uses post-install hook Jobs to create Custom Resources after the operators are deployed. These hooks require CRDs to be registered first, and the rhods-operator depends on cert-manager to start correctly. Using `--wait` may cause the installation to time out or fail.
 
 ## Pull Secrets
 
@@ -79,74 +65,61 @@ This will:
 1. Create a `kubernetes.io/dockerconfigjson` Secret named `rhaii-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
 2. Add `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager and llmisvc-controller-manager in the applications namespace)
 
-The secret name defaults to `rhaii-pull-secret` and MUST NOT be changed.
+The secret name defaults to `rhaii-pull-secret` and **must not** be changed.
 
-> **Note:** Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To change the dependency namespaces managed, set `imagePullSecret.dependencyNamespaces` to the desired namespaces.
+> [!NOTE]
+> Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To customize which dependency namespaces receive pull secrets, set `imagePullSecret.dependencyNamespaces`.
 
-## Configuration
+## How It Works
 
-| Parameter | Description | Default |
-| --- | --- | --- |
-| `enabled` | Enable/disable all resource creation | `true` |
-| `installCRDs` | Install CRDs with the chart | `true` |
-| `labels` | Common labels applied to all resources | `{}` |
-| **Image Pull Secret** | | |
-| `imagePullSecret.name` | Name of the pull secret to create | `rhaii-pull-secret` |
-| `imagePullSecret.dockerConfigJson` | Docker config JSON content (use `--set-file`) | `""` |
-| **RHAI Operator** | | |
-| `rhaiOperator.namespace` | Operator namespace | `redhat-ods-operator` |
-| `rhaiOperator.applicationsNamespace` | Applications namespace | `redhat-ods-applications` |
-| `rhaiOperator.image` | Operator container image | `quay.io/opendatahub/opendatahub-operator:latest` |
-| `rhaiOperator.relatedImages` | Related images env vars (`RELATED_IMAGE_*`) | `{}` |
-| **Components** | | |
-| `components.kserve.enabled` | Create Kserve CR via post-install hook | `true` |
-| `components.kserve.spec` | Kserve CR spec | `{}` |
-| **Azure** | | |
-| `azure.enabled` | Enable Azure cloud provider | `false` |
-| `azure.cloudManager.namespace` | Azure Cloud Manager namespace | `rhai-cloudmanager-system` |
-| `azure.cloudManager.image` | Azure Cloud Manager image | `quay.io/opendatahub/opendatahub-operator:latest` |
-| `azure.kubernetesEngine.enabled` | Create AzureKubernetesEngine CR via post-install hook | `true` |
-| `azure.kubernetesEngine.spec` | AzureKubernetesEngine CR spec | See [values.yaml](values.yaml) |
-| **CoreWeave** | | |
-| `coreweave.enabled` | Enable CoreWeave cloud provider | `false` |
-| `coreweave.cloudManager.namespace` | CoreWeave Cloud Manager namespace | `rhai-cloudmanager-system` |
-| `coreweave.cloudManager.image` | CoreWeave Cloud Manager image | `quay.io/opendatahub/opendatahub-operator:latest` |
-| `coreweave.kubernetesEngine.enabled` | Create CoreWeaveKubernetesEngine CR via post-install hook | `true` |
-| `coreweave.kubernetesEngine.spec` | CoreWeaveKubernetesEngine CR spec | See [values.yaml](values.yaml) |
+The chart performs a **two-phase installation**:
+
+1. **Phase 1 — Helm install:** deploys all operator resources (Deployments, RBAC, CRDs, etc.)
+2. **Phase 2 — Post-install hook:** a Helm hook Job runs after install/upgrade to create the Custom Resources that configure the operators
+
+This two-phase approach is necessary because the CRs depend on CRDs that are only available after the operators are deployed.
+
+## Managed Dependencies
+
+The KubernetesEngine CRs (Azure or CoreWeave) manage the following dependencies. Each can be set to `Managed` (operator handles installation and lifecycle) or `Unmanaged` (you manage it yourself):
+
+| Dependency | Description |
+| --- | --- |
+| `certManager` | Certificate management (cert-manager) |
+| `gatewayAPI` | Gateway API CRDs and controller |
+| `lws` | LeaderWorkerSet (LWS) operator |
+| `sailOperator` | Sail Operator (Istio service mesh) |
+
+To opt out of a managed dependency, set its `managementPolicy` to `Unmanaged`:
+
+```yaml
+azure:
+  enabled: true
+  kubernetesEngine:
+    spec:
+      dependencies:
+        certManager:
+          managementPolicy: Unmanaged
+```
+
+## Configuration Reference
+
+For the configuration reference, please refer to the [API reference](api-docs.md) file and the [values.yaml](values.yaml) file.
 
 ## Testing with kind
 
 You can test the chart locally using [kind](https://kind.sigs.k8s.io/).
 
-### Create a cluster
-
 ```bash
-kind create cluster --name rhoai --config ./kind.config.yaml
-```
+# Create a local cluster
+kind create cluster --name rhoai
 
-An example `kind.config.yaml` that uses local container registry credentials:
-
-```yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-  - role: control-plane
-    extraMounts:
-      - hostPath: /path/to/your/auth.json
-        containerPath: /var/lib/kubelet/config.json
-```
-
-This mounts a local `auth.json` into the kind node so it can pull images from private registries. Set `hostPath` to the actual path of your container credentials file (e.g. `$HOME/.config/containers/auth.json` or `$XDG_RUNTIME_DIR/containers/auth.json`, depending on your system).
-
-Alternatively, the chart supports `imagePullSecret` — see the [Pull Secrets](#pull-secrets) section.
-
-### Install the chart
-
-```bash
+# Install the chart (see "Pull Secrets" section for private registry auth)
 helm upgrade rhaii ./charts/rhaii-helm-chart/ \
   --install --create-namespace \
   --namespace rhaii \
-  --set azure.enabled=true
+  --set azure.enabled=true \
+  --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
 
 ## Uninstall
