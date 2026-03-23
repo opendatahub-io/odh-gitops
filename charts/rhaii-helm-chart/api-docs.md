@@ -9,6 +9,7 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | azure.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
+| azure.cloudManager.imagePullPolicy | string | `"Always"` |  |
 | azure.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | azure.enabled | bool | `false` |  |
 | azure.kubernetesEngine.enabled | bool | `true` |  |
@@ -23,6 +24,7 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | components.kserve.enabled | bool | `true` |  |
 | components.kserve.spec | object | `{}` |  |
 | coreweave.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
+| coreweave.cloudManager.imagePullPolicy | string | `"Always"` |  |
 | coreweave.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | coreweave.enabled | bool | `false` |  |
 | coreweave.kubernetesEngine.enabled | bool | `true` |  |
@@ -35,11 +37,17 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.configuration | object | `{}` |  |
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | enabled | bool | `true` |  |
-| imagePullSecrets | list | `[]` |  |
+| imagePullSecret.dependencyNamespaces[0] | string | `"cert-manager-operator"` |  |
+| imagePullSecret.dependencyNamespaces[1] | string | `"cert-manager"` |  |
+| imagePullSecret.dependencyNamespaces[2] | string | `"openshift-lws-operator"` |  |
+| imagePullSecret.dependencyNamespaces[3] | string | `"istio-system"` |  |
+| imagePullSecret.dockerConfigJson | string | `""` |  |
+| imagePullSecret.name | string | `"rhaii-pull-secret"` |  |
 | installCRDs | bool | `true` |  |
 | labels | object | `{}` |  |
 | rhaiOperator.applicationsNamespace | string | `"redhat-ods-applications"` |  |
 | rhaiOperator.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
+| rhaiOperator.imagePullPolicy | string | `"Always"` |  |
 | rhaiOperator.namespace | string | `"redhat-ods-operator"` |  |
 | rhaiOperator.relatedImages | object | `{}` |  |
 

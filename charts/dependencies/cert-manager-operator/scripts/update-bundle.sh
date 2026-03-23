@@ -66,6 +66,7 @@ echo "[2/3] Cleaning old manifests..."
 find "$CHART_DIR/crds" -name "*.yaml" -delete 2>/dev/null || true
 find "$CHART_DIR/templates" -name "*.yaml" \
   ! -name "namespace.yaml" \
+  ! -name "serviceaccount-cert-manager.yaml" \
   -delete 2>/dev/null || true
 
 # Split manifests into CRDs and templates, templatize namespace references
@@ -136,6 +137,9 @@ for doc in docs:
             content = doc.strip()
             content = content.replace('namespace: cert-manager-operator', 'namespace: {{ .Values.operatorNamespace }}')
             content = content.replace('namespace: cert-manager', 'namespace: {{ .Values.operandNamespace }}')
+            # Add imagePullSecrets to ServiceAccounts
+            if kind == 'ServiceAccount':
+                content += '\n{{- with .Values.imagePullSecrets }}\nimagePullSecrets:\n  {{- toYaml . | nindent 2 }}\n{{- end }}'
             with open(filepath, 'w') as out:
                 out.write(content + '\n')
 

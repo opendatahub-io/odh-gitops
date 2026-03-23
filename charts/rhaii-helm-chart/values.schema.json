@@ -207,11 +207,27 @@
         }
       }
     },
-    "imagePullSecrets": {
-      "type": "array",
-      "description": "Image pull secrets for private registries (list of secret names)",
-      "items": {
-        "type": "string"
+    "imagePullSecret": {
+      "type": "object",
+      "description": "Pull secret configuration for private registries. Use --set-file imagePullSecret.dockerConfigJson=path/to/auth.json",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the pull secret to create in target namespaces",
+          "default": "rhaii-pull-secret",
+          "const": "rhaii-pull-secret"
+        },
+        "dockerConfigJson": {
+          "type": "string",
+          "description": "Docker config JSON content (populated via --set-file)"
+        },
+        "dependencyNamespaces": {
+          "type": "array",
+          "description": "Namespaces created by dependency operators where pull secrets should be injected",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     }
   }

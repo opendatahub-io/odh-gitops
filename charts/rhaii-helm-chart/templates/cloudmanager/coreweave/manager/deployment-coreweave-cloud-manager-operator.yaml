@@ -63,7 +63,7 @@ spec:
             - name: DEFAULT_CHARTS_PATH
               value: /opt/charts
           image: {{ .Values.coreweave.cloudManager.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.coreweave.cloudManager.imagePullPolicy }}
           livenessProbe:
             httpGet:
               path: /healthz

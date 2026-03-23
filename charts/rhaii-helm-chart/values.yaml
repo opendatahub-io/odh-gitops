@@ -14,6 +14,8 @@ rhaiOperator:
   applicationsNamespace: redhat-ods-applications
   # Manager container image
   image: quay.io/opendatahub/opendatahub-operator:latest
+  # Image pull policy
+  imagePullPolicy: Always
   # Related images env vars (RELATED_IMAGE_*)
   relatedImages: {}
   # Example:
@@ -35,6 +37,8 @@ azure:
     namespace: rhai-cloudmanager-system
     # Cloud Manager container image
     image: quay.io/opendatahub/opendatahub-operator:latest
+    # Image pull policy
+    imagePullPolicy: Always
   kubernetesEngine:
     # Create AzureKubernetesEngine CR via post-install hook
     enabled: true
@@ -61,6 +65,8 @@ coreweave:
     namespace: rhai-cloudmanager-system
     # Cloud Manager container image
     image: quay.io/opendatahub/opendatahub-operator:latest
+    # Image pull policy
+    imagePullPolicy: Always
   kubernetesEngine:
     # Create CoreWeaveKubernetesEngine CR via post-install hook
     enabled: true
@@ -79,8 +85,17 @@ coreweave:
           configuration: {}
           managementPolicy: Managed
 
-# Image pull secrets for private registries (list of secret names)
-imagePullSecrets: []
-# Example:
-# imagePullSecrets:
-#   - my-registry-secret
+# Pull secret for private registries
+# Use --set-file imagePullSecret.dockerConfigJson=path/to/auth.json
+imagePullSecret:
+  # Name of the pull secret to create in target namespaces. This name MUST not be changed
+  # as it is referred also in other installed dependencies and not yet configurable.
+  name: rhaii-pull-secret
+  # Docker config JSON content (populated via --set-file)
+  dockerConfigJson: ""
+  # Namespaces created by dependency operators where pull secrets should be injected
+  dependencyNamespaces:
+    - cert-manager-operator
+    - cert-manager
+    - openshift-lws-operator
+    - istio-system

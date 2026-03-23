@@ -38,10 +38,20 @@ rules:
       kinds:
         - Deployment
     changes:
-      - path: .spec.template.spec.containers[0].image
+      - path: .spec.template.spec.containers[name=manager].image
         value: '{{ .Values.CLOUD_NAME.cloudManager.image }}'
+      - path: .spec.template.spec.containers[name=manager].imagePullPolicy
+        value: '{{ .Values.CLOUD_NAME.cloudManager.imagePullPolicy }}'
       - path: .spec.template.spec.containers[name=manager].env[name=RHAI_OPERATOR_NAMESPACE].value
         value: '{{ .Values.rhaiOperator.namespace }}'
+
+  - match:
+      kinds:
+        - ServiceAccount
+    changes:
+      - path: .
+        appendWith: |
+          {{ include "rhaii-helm-chart.imagePullSecrets" . }}
 
   # Wrap all resources with cloud enabled conditional
   - wrap:

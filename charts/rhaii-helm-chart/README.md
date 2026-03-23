@@ -62,6 +62,27 @@ azure:
 
 Set `managementPolicy: Unmanaged` for any dependency you want to manage yourself.
 
+## Pull Secrets
+
+To pull images from private registries, pass your docker config JSON file during install:
+
+```bash
+helm upgrade rhaii ./charts/rhaii-helm-chart/ \
+  --install --create-namespace \
+  --namespace rhaii \
+  --set azure.enabled=true \
+  --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
+```
+
+This will:
+
+1. Create a `kubernetes.io/dockerconfigjson` Secret named `rhaii-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
+2. Add `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager and llmisvc-controller-manager in the applications namespace)
+
+The secret name defaults to `rhaii-pull-secret` and MUST NOT be changed.
+
+> **Note:** Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To change the dependency namespaces managed, set `imagePullSecret.dependencyNamespaces` to the desired namespaces.
+
 ## Configuration
 
 | Parameter | Description | Default |
@@ -69,7 +90,9 @@ Set `managementPolicy: Unmanaged` for any dependency you want to manage yourself
 | `enabled` | Enable/disable all resource creation | `true` |
 | `installCRDs` | Install CRDs with the chart | `true` |
 | `labels` | Common labels applied to all resources | `{}` |
-| `imagePullSecrets` | Image pull secrets for private registries | `[]` |
+| **Image Pull Secret** | | |
+| `imagePullSecret.name` | Name of the pull secret to create | `rhaii-pull-secret` |
+| `imagePullSecret.dockerConfigJson` | Docker config JSON content (use `--set-file`) | `""` |
 | **RHAI Operator** | | |
 | `rhaiOperator.namespace` | Operator namespace | `redhat-ods-operator` |
 | `rhaiOperator.applicationsNamespace` | Applications namespace | `redhat-ods-applications` |
@@ -115,7 +138,7 @@ nodes:
 
 This mounts a local `auth.json` into the kind node so it can pull images from private registries. Set `hostPath` to the actual path of your container credentials file (e.g. `$HOME/.config/containers/auth.json` or `$XDG_RUNTIME_DIR/containers/auth.json`, depending on your system).
 
-Alternatively, the chart supports `imagePullSecrets` — see the [Configuration](#configuration) section.
+Alternatively, the chart supports `imagePullSecret` — see the [Pull Secrets](#pull-secrets) section.
 
 ### Install the chart
 

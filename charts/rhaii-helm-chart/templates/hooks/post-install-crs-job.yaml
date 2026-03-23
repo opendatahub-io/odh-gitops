@@ -7,7 +7,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: rhaii-post-install-crs
-  namespace: {{ .Values.rhaiOperator.namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "rhaii-helm-chart.labels" . | nindent 4 }}
   annotations:
@@ -23,16 +23,11 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: rhaii-post-install-hook
+      {{- include "rhaii-helm-chart.imagePullSecrets" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- range . }}
-        - name: {{ . }}
-        {{- end }}
-      {{- end }}
       containers:
         - name: create-crs
           image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0

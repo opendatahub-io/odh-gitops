@@ -24,6 +24,31 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
+Check if imagePullSecret is enabled (dockerConfigJson is provided).
+*/}}
+{{- define "rhaii-helm-chart.imagePullSecretEnabled" -}}
+{{- if .Values.imagePullSecret.dockerConfigJson -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the imagePullSecret name.
+*/}}
+{{- define "rhaii-helm-chart.imagePullSecretName" -}}
+{{- .Values.imagePullSecret.name | default "rhaii-pull-secret" -}}
+{{- end -}}
+
+{{/*
+Render imagePullSecrets block for pod specs.
+Always outputs the block so that pre-created secrets are picked up.
+*/}}
+{{- define "rhaii-helm-chart.imagePullSecrets" -}}
+imagePullSecrets:
+  - name: {{ include "rhaii-helm-chart.imagePullSecretName" . }}
+{{- end -}}
+
+{{/*
 Validate that exactly one cloud provider is enabled.
 */}}
 {{- define "rhaii-helm-chart.validateCloudProvider" -}}

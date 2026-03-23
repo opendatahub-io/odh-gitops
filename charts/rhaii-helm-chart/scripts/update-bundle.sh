@@ -29,7 +29,7 @@ CHART_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 NAMESPACE="redhat-ods-operator"
 
 # helmtemplate-generator Go module
-HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@2aa99fe15d0dcb0350b110ce84d7cfc4158991b0"
+HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@64f313ee820134546c77d04c69f5a6cb86f4c737"
 
 # Cloud mappings: <cloud_name> <kustomize_subdir> <output_subdir>
 CLOUD_TARGETS=(
@@ -110,6 +110,11 @@ fi
 # Step 1: Generate operator templates
 # ==============================================================================
 
+echo "Running 'make manifests-all' in opendatahub-operator..."
+make -C "${ODH_OPERATOR_DIR}" manifests-all
+echo "  Done"
+echo ""
+
 RHAI_KUSTOMIZE_PATH="${ODH_OPERATOR_DIR}/config/rhaii/rhoai/default/"
 if [[ ! -d "${RHAI_KUSTOMIZE_PATH}" ]]; then
     echo "ERROR: Kustomize directory not found: ${RHAI_KUSTOMIZE_PATH}" >&2
@@ -133,7 +138,7 @@ for subdir in crds rbac manager webhooks; do
     rm -rf "${CHART_DIR}/templates/${subdir}"
 done
 if [[ -d "${CHART_DIR}/templates" ]]; then
-    find "${CHART_DIR}/templates" -maxdepth 1 -name "*.yaml" ! -name "validation.yaml" -delete 2>/dev/null || true
+    find "${CHART_DIR}/templates" -maxdepth 1 -name "*.yaml" ! -name "validation.yaml" ! -name "pull-secret.yaml" -delete 2>/dev/null || true
 fi
 mkdir -p "${CHART_DIR}/templates"
 echo "  Done"

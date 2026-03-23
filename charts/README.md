@@ -202,28 +202,81 @@ kubectl annotate validatingwebhookconfiguration istio-validator-istio-system sai
 
 ### Operator charts (bundle-derived)
 
-The operator charts include an `update-bundle.sh` script that extracts fresh manifests from Red Hat operator bundles:
+Each operator chart under `charts/dependencies/` includes an `update-bundle.sh` script that extracts fresh manifests from Red Hat operator bundles.
+
+**Prerequisites:** `podman`, `python3`, `pyyaml`, and registry authentication:
 
 ```bash
-# Requires: podman, python3, pyyaml
-# Requires: podman login registry.redhat.io
+podman login registry.redhat.io
+```
 
-./charts/cert-manager-operator/scripts/update-bundle.sh v1.15.2
-./charts/lws-operator/scripts/update-bundle.sh 1.0
-./charts/sail-operator/scripts/update-bundle.sh 3.2.1
+**Update commands:**
+
+```bash
+./charts/dependencies/cert-manager-operator/scripts/update-bundle.sh v1.18.1
+./charts/dependencies/lws-operator/scripts/update-bundle.sh 1.0
+./charts/dependencies/sail-operator/scripts/update-bundle.sh 3.2.1
 ```
 
 The scripts:
 1. Pull the operator bundle image from `registry.redhat.io`
-2. Extract manifests using `olm-extractor`
-3. Split into CRDs (`crds/`) and templates (`templates/`)
+2. Extract manifests using [`olm-extractor`](https://github.com/lburgazzoli/olm-extractor)
+3. Split into CRDs (`crds/`) and templates (`templates/`), templatizing namespace references
 4. Update `bundle.version` in `values.yaml`
+
+**After updating**, review the generated manifests and verify with:
+
+```bash
+helm lint charts/dependencies/<chart-name>/
+make chart-snapshots
+```
 
 ### Gateway API chart (CRDs only)
 
 The `gateway-api` chart contains cluster-scoped CRDs downloaded directly from GitHub (not from an operator bundle). Use `update-crds.sh` to update:
 
 ```bash
-./charts/gateway-api/scripts/update-crds.sh v1.4.0
-./charts/gateway-api/scripts/update-crds.sh v1.4.0 experimental  # for experimental channel
+./charts/dependencies/gateway-api/scripts/update-crds.sh v1.4.0
+./charts/dependencies/gateway-api/scripts/update-crds.sh v1.4.0 experimental  # for experimental channel
 ```
+
+The script downloads CRDs from the [kubernetes-sigs/gateway-api](https://github.com/kubernetes-sigs/gateway-api) repository and updates both `values.yaml` and `Chart.yaml` with the new version.
+
+**After updating**, review the generated manifests and verify with:
+
+```bash
+helm lint charts/dependencies/gateway-api/
+make chart-snapshots
+```
+
+### RHAII Helm Chart
+
+The `rhaii-helm-chart` generates its templates from the [opendatahub-operator](https://github.com/opendatahub-io/opendatahub-operator) repository using kustomize and [helmtemplate-generator](https://github.com/davidebianchi/helmtemplate-generator). It also generates cloud-specific (Azure, CoreWeave) cloudmanager templates.
+
+**Prerequisites:** `go`, `kustomize`, and SSH access to the opendatahub-operator repo.
+
+**Update from the default branch (main):**
+
+```bash
+./charts/rhaii-helm-chart/scripts/update-bundle.sh v2.19.0
+```
+
+**Update from a specific branch:**
+
+```bash
+./charts/rhaii-helm-chart/scripts/update-bundle.sh v2.19.0 --branch feat/my-branch
+```
+
+**Update from a local opendatahub-operator checkout** (skips cloning):
+
+```bash
+./charts/rhaii-helm-chart/scripts/update-bundle.sh v2.19.0 --odh-operator-dir /path/to/opendatahub-operator
+```
+
+The script:
+
+1. Clones (or uses a local) opendatahub-operator repo and runs `make manifests-all`
+2. Builds kustomize manifests from `config/rhaii/rhoai/default/`
+3. Pipes them through `helmtemplate-generator` to produce Helm templates
+4. Repeats for each cloudmanager target (Azure, CoreWeave) from `config/cloudmanager/<cloud>/rhoai/`
+5. Updates `Chart.yaml` with the new `appVersion`

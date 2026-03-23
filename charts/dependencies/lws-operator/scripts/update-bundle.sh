@@ -66,6 +66,7 @@ find "$CHART_DIR/templates" -name "*.yaml" \
   ! -name "namespace.yaml" \
   ! -name "kube-system-role-binding.yaml" \
   ! -name "leaderworkersetoperator.yaml" \
+  ! -name "serviceaccount-lws-controller.yaml" \
   -delete 2>/dev/null || true
 
 # Split manifests, templatize namespace references
@@ -118,6 +119,9 @@ for doc in docs:
             # Templatize namespace references
             content = doc.strip()
             content = content.replace('namespace: openshift-lws-operator', 'namespace: {{ .Values.namespace }}')
+            # Add imagePullSecrets to ServiceAccounts
+            if kind == 'ServiceAccount':
+                content += '\n{{- with .Values.imagePullSecrets }}\nimagePullSecrets:\n  {{- toYaml . | nindent 2 }}\n{{- end }}'
             with open(filepath, 'w') as out:
                 out.write(content + '\n')
 

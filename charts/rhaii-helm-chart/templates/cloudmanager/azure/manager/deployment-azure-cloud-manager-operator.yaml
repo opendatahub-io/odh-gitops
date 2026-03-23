@@ -63,7 +63,7 @@ spec:
             - name: DEFAULT_CHARTS_PATH
               value: /opt/charts
           image: {{ .Values.azure.cloudManager.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.azure.cloudManager.imagePullPolicy }}
           livenessProbe:
             httpGet:
               path: /healthz

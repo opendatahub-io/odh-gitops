@@ -109,7 +109,7 @@ spec:
               value: {{ $value }}
             {{- end }}
           image: {{ .Values.rhaiOperator.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.rhaiOperator.imagePullPolicy }}
           livenessProbe:
             httpGet:
               path: /healthz
@@ -157,10 +157,4 @@ spec:
           secret:
             defaultMode: 420
             secretName: redhat-ods-operator-controller-webhook-cert
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{- range . }}
-        - name: {{ . }}
-      {{- end }}
-      {{- end }}
 {{- end }}

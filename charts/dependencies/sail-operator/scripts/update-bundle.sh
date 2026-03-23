@@ -117,6 +117,9 @@ for doc in docs:
             # Templatize namespace references
             content = doc.strip()
             content = content.replace('namespace: istio-system', 'namespace: {{ .Values.namespace }}')
+            # Add imagePullSecrets to ServiceAccounts
+            if kind == 'ServiceAccount':
+                content += '\n{{- with .Values.imagePullSecrets }}\nimagePullSecrets:\n  {{- toYaml . | nindent 2 }}\n{{- end }}'
             with open(filepath, 'w') as out:
                 out.write(content + '\n')
 

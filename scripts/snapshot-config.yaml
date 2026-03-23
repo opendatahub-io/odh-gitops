@@ -51,6 +51,22 @@ charts:
           - components.kserve.dependencies.customMetricsAutoscaler=true
 
 
+  dependencies/cert-manager-operator:
+    snapshots:
+      - name: default
+
+  dependencies/gateway-api:
+    snapshots:
+      - name: default
+
+  dependencies/lws-operator:
+    snapshots:
+      - name: default
+
+  dependencies/sail-operator:
+    snapshots:
+      - name: default
+
   rhaii-helm-chart:
     snapshots:
       - name: azure-with-related-images
@@ -58,7 +74,7 @@ charts:
           - azure.enabled=true
           - rhaiOperator.relatedImages.RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE=quay.io/opendatahub/kserve-controller:latest
 
-      - name: with-custom-namespacew
+      - name: with-custom-namespace
         setFlags:
           - azure.enabled=true
           - rhaiOperator.namespace=rhai-operator
@@ -67,3 +83,14 @@ charts:
       - name: coreweave
         setFlags:
           - coreweave.enabled=true
+
+      - name: azure-with-pull-secret
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+
+      - name: coreweave-with-pull-secret
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+
