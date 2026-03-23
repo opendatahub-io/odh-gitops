@@ -91,6 +91,6 @@ charts:
 
       - name: coreweave-with-pull-secret
         setFlags:
-          - azure.enabled=true
+          - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
 
