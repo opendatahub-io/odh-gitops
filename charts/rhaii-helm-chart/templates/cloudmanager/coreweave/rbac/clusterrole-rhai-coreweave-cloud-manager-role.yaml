@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhods-coreweave-cloud-manager-role
+  name: rhai-coreweave-cloud-manager-role
 rules:
   - apiGroups:
       - ""

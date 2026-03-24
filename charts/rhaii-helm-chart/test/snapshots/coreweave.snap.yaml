@@ -1,5 +1,5 @@
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/manager/namespace-redhat-ods-cloudmanager-system.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/manager/namespace-rhai-cloudmanager-system.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -433,11 +433,11 @@ spec:
       subresources:
         status: {}
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/clusterrole-rhods-coreweave-cloud-manager-role.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/clusterrole-rhai-coreweave-cloud-manager-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhods-coreweave-cloud-manager-role
+  name: rhai-coreweave-cloud-manager-role
 rules:
   - apiGroups:
       - ""
@@ -2201,15 +2201,15 @@ rules:
       - update
       - watch
 ---
-# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/clusterrolebinding-rhods-coreweave-cloud-manager-rolebinding.yaml
+# Source: rhaii-helm-chart/templates/cloudmanager/coreweave/rbac/clusterrolebinding-rhai-coreweave-cloud-manager-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhods-coreweave-cloud-manager-rolebinding
+  name: rhai-coreweave-cloud-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhods-coreweave-cloud-manager-role
+  name: rhai-coreweave-cloud-manager-role
 subjects:
   - kind: ServiceAccount
     name: coreweave-cloud-manager-operator
