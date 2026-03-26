@@ -4,7 +4,7 @@ kind: Service
 metadata:
   labels:
     name: rhods-operator
-  name: rhaii-operator-controller-manager-metrics-service
+  name: rhai-operator-controller-manager-metrics-service
   namespace: {{ .Values.rhaiOperator.namespace }}
 spec:
   ports:
@@ -13,5 +13,5 @@ spec:
       protocol: TCP
       targetPort: http
   selector:
-    name: rhaii-operator
+    name: rhai-operator
 {{- end }}

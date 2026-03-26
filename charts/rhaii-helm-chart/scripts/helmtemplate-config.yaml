@@ -95,27 +95,27 @@ rules:
         value: '{{ .Values.rhaiOperator.imagePullPolicy }}'
       # Update OPERATOR_NAME env var value
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=OPERATOR_NAME].value
-        value: rhaii-operator
-      # Rename container from rhods-operator to rhaii-operator (must be last)
+        value: rhai-operator
+      # Rename container from rhods-operator to rhai-operator (must be last)
       - path: .spec.template.spec.containers[name=rhods-operator].name
-        value: rhaii-operator
+        value: rhai-operator
       # Rename deployment metadata and labels
       - path: .metadata.name
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels.name
-        value: rhaii-operator
+        value: rhai-operator
       - path: .spec.selector.matchLabels.name
-        value: rhaii-operator
+        value: rhai-operator
       - path: .spec.template.metadata.labels.name
-        value: rhaii-operator
+        value: rhai-operator
       - path: .spec.template.metadata.annotations["kubectl.kubernetes.io/default-container"]
-        value: rhaii-operator
+        value: rhai-operator
       # Update podAntiAffinity label selector
       - path: .spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchExpressions[0].values[0]
-        value: rhaii-operator
+        value: rhai-operator
       # Update serviceAccountName reference
       - path: .spec.template.spec.serviceAccountName
-        value: rhaii-operator-controller-manager
+        value: rhai-operator-controller-manager
 
   # Rename ServiceAccount
   - match:
@@ -125,7 +125,7 @@ rules:
         - "redhat-ods-operator-controller-manager"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-controller-manager
+        value: rhai-operator-controller-manager
 
   # Rename ClusterRoles
   - match:
@@ -135,7 +135,7 @@ rules:
         - "rhods-operator-role"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-role
+        value: rhai-operator-role
 
   - match:
       kinds:
@@ -144,7 +144,7 @@ rules:
         - "redhat-ods-operator-metrics-reader"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-metrics-reader
+        value: rhai-operator-metrics-reader
 
   # Rename ClusterRoleBinding and update references
   - match:
@@ -154,11 +154,11 @@ rules:
         - "rhods-operator-rolebinding"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-rolebinding
+        value: rhai-operator-rolebinding
       - path: .subjects[0].name
-        value: rhaii-operator-controller-manager
+        value: rhai-operator-controller-manager
       - path: .roleRef.name
-        value: rhaii-operator-role
+        value: rhai-operator-role
 
   # Rename Service and update selector
   - match:
@@ -168,9 +168,9 @@ rules:
         - "redhat-ods-operator-controller-manager-metrics-service"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-controller-manager-metrics-service
+        value: rhai-operator-controller-manager-metrics-service
       - path: .spec.selector.name
-        value: rhaii-operator
+        value: rhai-operator
 
   # Rename Webhook Service and update labels and selector
   - match:
@@ -180,17 +180,17 @@ rules:
         - "rhods-operator-webhook-service"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-webhook-service
+        value: rhai-operator-webhook-service
       - path: .metadata.labels["app.kubernetes.io/created-by"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels["app.kubernetes.io/instance"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels["app.kubernetes.io/name"]
-        value: rhaii-operator-webhook-service
+        value: rhai-operator-webhook-service
       - path: .metadata.labels["app.kubernetes.io/part-of"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .spec.selector.name
-        value: rhaii-operator
+        value: rhai-operator
 
   # Rename ValidatingWebhookConfiguration and update labels
   - match:
@@ -200,17 +200,17 @@ rules:
         - "rhods-operator-validating-webhook-configuration"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-validating-webhook-configuration
+        value: rhai-operator-validating-webhook-configuration
       - path: .webhooks[*].clientConfig.service.name
-        value: rhaii-operator-webhook-service
+        value: rhai-operator-webhook-service
       - path: .metadata.labels["app.kubernetes.io/created-by"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels["app.kubernetes.io/instance"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels["app.kubernetes.io/name"]
-        value: rhaii-operator-validating-webhook-configuration
+        value: rhai-operator-validating-webhook-configuration
       - path: .metadata.labels["app.kubernetes.io/part-of"]
-        value: rhaii-operator
+        value: rhai-operator
 
   # Rename MutatingWebhookConfiguration and update labels
   - match:
@@ -220,17 +220,19 @@ rules:
         - "rhods-operator-mutating-webhook-configuration"
     changes:
       - path: .metadata.name
-        value: rhaii-operator-mutating-webhook-configuration
+        value: rhai-operator-mutating-webhook-configuration
+      - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
+        value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
       - path: .webhooks[*].clientConfig.service.name
-        value: rhaii-operator-webhook-service
+        value: rhai-operator-webhook-service
       - path: .metadata.labels["app.kubernetes.io/created-by"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels["app.kubernetes.io/instance"]
-        value: rhaii-operator
+        value: rhai-operator
       - path: .metadata.labels["app.kubernetes.io/name"]
-        value: rhaii-operator-mutating-webhook-configuration
+        value: rhai-operator-mutating-webhook-configuration
       - path: .metadata.labels["app.kubernetes.io/part-of"]
-        value: rhaii-operator
+        value: rhai-operator
 
   # Add image pull secrets to ServiceAccount
   - match:

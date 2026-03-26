@@ -75,7 +75,7 @@ helm upgrade rhaii ./charts/rhaii-helm-chart/ \
 ```
 
 > [!WARNING]
-> `helm install --wait` is **not supported**. The chart uses post-install hook Jobs to create Custom Resources after the operators are deployed. These hooks require CRDs to be registered first, and the rhaii-operator depends on cert-manager to start correctly. Using `--wait` may cause the installation to time out or fail.
+> `helm install --wait` is **not supported**. The chart uses post-install hook Jobs to create Custom Resources after the operators are deployed. These hooks require CRDs to be registered first, and the rhai-operator depends on cert-manager to start correctly. Using `--wait` may cause the installation to time out or fail.
 
 ## How It Works
 
@@ -143,7 +143,7 @@ CRDs are **not** removed on uninstall (`helm.sh/resource-policy: keep`). To remo
 ```bash
 kubectl delete crd kserves.components.platform.opendatahub.io
 ```
-**Operator-created CRDs (created by rhaii-operator during KServe deployment):**
+**Operator-created CRDs (created by rhai-operator during KServe deployment):**
 ```bash
 kubectl delete crd llminferenceservices.serving.kserve.io
 kubectl delete crd llminferenceserviceconfigs.serving.kserve.io

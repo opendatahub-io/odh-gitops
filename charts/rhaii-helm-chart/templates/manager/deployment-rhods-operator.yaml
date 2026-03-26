@@ -3,20 +3,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    name: rhaii-operator
-  name: rhaii-operator
+    name: rhai-operator
+  name: rhai-operator
   namespace: {{ .Values.rhaiOperator.namespace }}
 spec:
   replicas: 3
   selector:
     matchLabels:
-      name: rhaii-operator
+      name: rhai-operator
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: rhaii-operator
+        kubectl.kubernetes.io/default-container: rhai-operator
       labels:
-        name: rhaii-operator
+        name: rhai-operator
     spec:
       affinity:
         nodeAffinity:
@@ -35,7 +35,7 @@ spec:
                     - key: name
                       operator: In
                       values:
-                        - rhaii-operator
+                        - rhai-operator
                 topologyKey: kubernetes.io/hostname
               weight: 100
       containers:
@@ -97,7 +97,7 @@ spec:
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME
-              value: rhaii-operator
+              value: rhai-operator
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -116,7 +116,7 @@ spec:
               port: 8081
             initialDelaySeconds: 15
             periodSeconds: 20
-          name: rhaii-operator
+          name: rhai-operator
           ports:
             - containerPort: 9443
               name: webhook-server
@@ -150,7 +150,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: rhaii-operator-controller-manager
+      serviceAccountName: rhai-operator-controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
         - name: cert
