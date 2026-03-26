@@ -13,12 +13,17 @@ This chart provides a flexible way to install the operators and configurations r
 
 ## Quick Start
 
+> [!NOTE]
+> All commands below assume you are in the repository root directory.
+
 ```bash
 # Install dependencies with default settings. We need to install the dependencies before the operator is installed.
-helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace
+# Set OPERATOR_TYPE to: odh | rhoai
+export OPERATOR_TYPE=${OPERATOR_TYPE:-odh}
+helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops --create-namespace --set operator.type=${OPERATOR_TYPE}
 
 # Wait for CRDs to be created, then run again to create CRs
-helm upgrade --install rhoai ./chart -n opendatahub-gitops
+helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops --create-namespace --set operator.type=${OPERATOR_TYPE}
 ```
 
 ## Installation Flow
@@ -27,7 +32,7 @@ Due to CRD dependencies (operators create CRDs that are needed for CR resources)
 
 ```bash
 for i in {1..5}; do
-  helm upgrade --install rhoai ./chart -n opendatahub-gitops --create-namespace
+  helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops --create-namespace --set operator.type=${OPERATOR_TYPE}
   sleep 60
 done
 ```

@@ -28,7 +28,7 @@ The stack installs a minimal set of dependency operators required by KServe:
 
 ## Prerequisites
 
-- OpenShift cluster (version 4.19 or later)
+- OpenShift cluster (version 4.19.9 or later)
 - `kubectl` or `oc` CLI installed
 - Cluster admin permissions
 - Helm v4
@@ -43,7 +43,7 @@ The values override configures the chart to install:
 4. **DataScienceCluster** (DSC) with only KServe set to `Managed`
 
 All other components (AI Pipelines, Dashboard, Feast, Kueue, Model Registry, Ray, Trainer, Training Operator, TrustyAI,
-Workbenches, MLflow, LlamaStack) are set to `Removed`.
+Workbenches, MLflow, LlamaStack, Spark Operator) are set to `Removed`.
 
 ## Values Override
 
@@ -85,6 +85,8 @@ components:
       modelsAsService:
         managementState: Removed
       nim:
+        managementState: Removed
+      wva:
         managementState: Removed
 
   # -- Disable all non-inference components
@@ -135,6 +137,10 @@ components:
   llamastackoperator:
     dsc:
       managementState: Removed
+
+  sparkoperator:
+    dsc:
+      managementState: Removed
 ```
 
 > [!NOTE]
@@ -157,9 +163,9 @@ The first run installs the OLM subscriptions (Namespace, OperatorGroup, Subscrip
 CRDs do not exist yet.
 
 ```bash
-helm upgrade --install rhoai ./charts/odh-rhoai \
+helm upgrade --install rhaii ./charts/odh-rhoai \
   -f docs/examples/values-inference-only.yaml \
-  -n opendatahub-gitops --create-namespace
+  -n rhaii-gitops --create-namespace
 ```
 
 ### 3. Wait for CRDs
@@ -189,9 +195,9 @@ Now that CRDs exist, the second run creates the CR resources (DSCInitialization,
 LeaderWorkerSetOperator, etc.):
 
 ```bash
-helm upgrade --install rhoai ./charts/odh-rhoai \
+helm upgrade --install rhaii ./charts/odh-rhoai \
   -f docs/examples/values-inference-only.yaml \
-  -n opendatahub-gitops
+  -n rhaii-gitops
 ```
 
 ### 5. Enable Authorino TLS (post-install)
@@ -278,9 +284,9 @@ install:
 2. Run `helm upgrade` again. CRs are skipped until their CRDs exist:
 
    ```bash
-   helm upgrade --install rhoai ./charts/odh-rhoai \
+   helm upgrade --install rhaii ./charts/odh-rhoai \
      -f docs/examples/values-inference-only.yaml \
-     -n opendatahub-gitops
+     -n rhaii-gitops
    ```
 
 ### Authorino TLS issues

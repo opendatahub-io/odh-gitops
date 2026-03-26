@@ -134,6 +134,9 @@
         },
         "llamastackoperator": {
           "$ref": "#/definitions/component"
+        },
+        "sparkoperator": {
+          "$ref": "#/definitions/component"
         }
       },
       "additionalProperties": false

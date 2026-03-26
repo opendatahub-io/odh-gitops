@@ -3,7 +3,7 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: redhat-ods-operator/opendatahub-operator-webhook-cert
+    cert-manager.io/inject-ca-from: {{ .Values.rhaiOperator.namespace }}/opendatahub-operator-webhook-cert
   name: rhods-operator-mutating-webhook-configuration
   namespace: {{ .Values.rhaiOperator.namespace }}
 webhooks:

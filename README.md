@@ -141,7 +141,7 @@ To add a new dependency, follow the [Contributing](CONTRIBUTING.md#add-a-new-dep
 
 ### Prerequisites
 
-- OpenShift cluster (version 4.19 or later)
+- OpenShift cluster (version 4.19.9 or later)
 - `kubectl` or `oc` CLI installed
 - Cluster admin permissions
 - Kustomize v5 or later (optional - `kubectl` has built-in Kustomize support)

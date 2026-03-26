@@ -36,7 +36,7 @@ trap 'echo "ERROR: Script failed at line $LINENO" >&2; exit 1' ERR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # helmtemplate-generator Go module (used via go run)
-HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@3bc347fc1affd320b7829e64d262c9c5c6f4c40f"
+HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@7d76ac29fe5f7cdc6a6c9b953f8dc715ee348bef"
 
 # OLM extractor image
 OLM_EXTRACTOR_IMAGE="quay.io/lburgazzoli/olm-extractor:main"

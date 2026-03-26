@@ -29,7 +29,7 @@ CHART_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 NAMESPACE="redhat-ods-operator"
 
 # helmtemplate-generator Go module
-HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@64f313ee820134546c77d04c69f5a6cb86f4c737"
+HELMTEMPLATE_GENERATOR_PKG="github.com/davidebianchi/helmtemplate-generator@7d76ac29fe5f7cdc6a6c9b953f8dc715ee348bef"
 
 # Cloud mappings: <cloud_name> <kustomize_subdir> <output_subdir>
 CLOUD_TARGETS=(

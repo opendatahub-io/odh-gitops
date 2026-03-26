@@ -10,9 +10,9 @@
 #   - RHCL / Kuadrant     (API management / Authorino)
 #
 # Usage:
-#   helm upgrade --install rhoai ./charts/odh-rhoai \
+#   helm upgrade --install rhaii ./charts/odh-rhoai \
 #     -f docs/examples/values-inference-only.yaml \
-#     -n opendatahub-gitops --create-namespace
+#     -n rhaii-gitops --create-namespace
 # =============================================================================
 
 # -- Set skipCrdCheck to true for ArgoCD (see docs/inference-only-stack.md)
@@ -21,7 +21,7 @@
 # -- Operator configuration
 operator:
   enabled: true
-  type: rhoai  # Change to "odh" for Open Data Hub
+  type: rhoai
 
 # -- Disable monitoring (not needed for inference-only)
 services:
@@ -50,6 +50,8 @@ components:
       modelsAsService:
         managementState: Removed
       nim:
+        managementState: Removed
+      wva:
         managementState: Removed
 
   # -- Disable all non-inference components
@@ -98,5 +100,9 @@ components:
       managementState: Removed
 
   llamastackoperator:
+    dsc:
+      managementState: Removed
+
+  sparkoperator:
     dsc:
       managementState: Removed
