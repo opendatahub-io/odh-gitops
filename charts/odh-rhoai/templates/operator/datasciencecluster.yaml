@@ -29,6 +29,8 @@ spec:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.modelregistry "root" $) | nindent 6 }}
     ray:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.ray "root" $) | nindent 6 }}
+    sparkoperator:
+      {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.sparkoperator "root" $) | nindent 6 }}
     trainer:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "component" .Values.components.trainer "root" $) | nindent 6 }}
     trainingoperator:

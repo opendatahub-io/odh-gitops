@@ -132,9 +132,9 @@ apply-and-verify-dependencies: kustomize ## Apply and verify dependencies
 
 .PHONY: remove
 remove: kustomize ## Remove kustomize directory as passed as argument
-	@echo "Applying kustomization $(FOLDER)..."
+	@echo "Removing kustomization $(FOLDER)..."
 	@if [ -z "$(FOLDER)" ]; then \
-		echo "Error: FOLDER variable is required. Usage: make apply FOLDER=<path>"; \
+		echo "Error: FOLDER variable is required. Usage: make remove FOLDER=<path>"; \
 		exit 1; \
 	fi
 	$(KUSTOMIZE) build $(FOLDER) | $(K8S_CLI) delete --ignore-not-found $(K8S_FLAGS) -f -
@@ -199,11 +199,48 @@ CHARTS_DIR ?= charts
 CHART_NAME ?=
 CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),odh-rhoai)
 
-# Snapshot configuration (in scripts directory)
+# Snapshot configuration
 HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
+HELM_SCHEMA_VERSION ?= 2.3.1
 ##@ Helm Chart utilities
+.PHONY: helm-schema-install
+helm-schema-install: ## Install helm-schema plugin for auto-generating values.schema.json
+	@if ! helm plugin list | grep -q "schema"; then \
+		echo "Installing helm-schema plugin..."; \
+		helm plugin install https://github.com/losisin/helm-values-schema-json.git --version v$(HELM_SCHEMA_VERSION); \
+	else \
+		echo "helm-schema plugin already installed"; \
+	fi
+
+.PHONY: helm-schema
+helm-schema: helm-schema-install ## Generate values.schema.json for chart
+	@if [ -n "$(CHART_NAME)" ]; then \
+		echo "Generating schema for $(CHART_NAME)..."; \
+		if [ "$(CHART_NAME)" = "odh-rhoai" ]; then \
+			helm schema -f $(CHARTS_DIR)/$(CHART_NAME)/values.yaml -o $(CHARTS_DIR)/$(CHART_NAME)/values.schema.json \
+				--schema-root.title "ODH/RHOAI Dependencies Helm Chart Values" \
+				--schema-root.description "Configuration values for the ODH/RHOAI Dependencies Helm chart"; \
+		else \
+			helm schema -f $(CHARTS_DIR)/$(CHART_NAME)/values.yaml -o $(CHARTS_DIR)/$(CHART_NAME)/values.schema.json; \
+		fi; \
+	else \
+		echo "Generating schemas for all charts..."; \
+		for chart in $(CHARTS_DIR)/*/values.yaml; do \
+			chart_dir=$$(dirname $$chart); \
+			chart_name=$$(basename $$chart_dir); \
+			echo "  Generating schema for $$chart_name..."; \
+			if [ "$$chart_name" = "odh-rhoai" ]; then \
+				helm schema -f $$chart_dir/values.yaml -o $$chart_dir/values.schema.json \
+					--schema-root.title "ODH/RHOAI Dependencies Helm Chart Values" \
+					--schema-root.description "Configuration values for the ODH/RHOAI Dependencies Helm chart" || echo "  Skipped $$chart_name (no schema annotations)"; \
+			else \
+				helm schema -f $$chart_dir/values.yaml -o $$chart_dir/values.schema.json || echo "  Skipped $$chart_name (no schema annotations)"; \
+			fi; \
+		done; \
+	fi
+
 .PHONY: chart-snapshots
-chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
+chart-snapshots: helm-schema yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
 	@./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 .PHONY: chart-test

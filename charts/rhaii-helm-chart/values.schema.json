@@ -1,234 +1,236 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "$defs": {
-    "dependency": {
-      "type": "object",
-      "description": "Dependency configuration",
-      "properties": {
-        "configuration": {
-          "type": "object",
-          "description": "Configuration for the dependency"
-        },
-        "managementPolicy": {
-          "type": "string",
-          "description": "Whether the operator manages this dependency (Managed or Unmanaged)",
-          "enum": ["Managed", "Unmanaged"],
-          "default": "Managed"
-        }
-      }
-    }
-  },
-  "properties": {
-    "enabled": {
-      "type": "boolean",
-      "description": "Enable/disable all resource creation",
-      "default": true
-    },
-    "installCRDs": {
-      "type": "boolean",
-      "description": "Install CRDs or not using the chart",
-      "default": true
-    },
-    "labels": {
-      "type": "object",
-      "description": "Common labels applied to all resources",
-      "additionalProperties": {
-        "type": "string"
-      }
-    },
-    "components": {
-      "type": "object",
-      "description": "Components configuration",
-      "properties": {
-        "kserve": {
-          "type": "object",
-          "description": "Kserve component configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Create Kserve CR via post-install hook",
-              "default": true
-            },
-            "spec": {
-              "type": "object",
-              "description": "Kserve CR spec"
-            }
-          }
-        }
-      }
-    },
-    "rhaiOperator": {
-      "type": "object",
-      "description": "RHAI Operator configuration",
-      "properties": {
-        "namespace": {
-          "type": "string",
-          "description": "Operator namespace",
-          "default": "redhat-ods-operator"
-        },
-        "applicationsNamespace": {
-          "type": "string",
-          "description": "Applications namespace",
-          "default": "redhat-ods-applications"
-        },
-        "image": {
-          "type": "string",
-          "description": "Manager container image"
-        },
-        "relatedImages": {
-          "type": "object",
-          "description": "Related images env vars (RELATED_IMAGE_*) for disconnected environments",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "azure": {
-      "type": "object",
-      "description": "Azure cloud configuration",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable Azure cloud manager resources",
-          "default": false
-        },
-        "cloudManager": {
-          "type": "object",
-          "description": "Azure Cloud Manager configuration",
-          "properties": {
-            "namespace": {
-              "type": "string",
-              "description": "Cloud Manager operator namespace",
-              "default": "cloudmanager-operator-system"
-            },
-            "image": {
-              "type": "string",
-              "description": "Cloud Manager container image"
-            }
-          }
-        },
-        "kubernetesEngine": {
-          "type": "object",
-          "description": "AzureKubernetesEngine CR configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Create AzureKubernetesEngine CR via post-install hook",
-              "default": true
-            },
-            "spec": {
-              "type": "object",
-              "description": "AzureKubernetesEngine CR spec",
-              "properties": {
-                "dependencies": {
-                  "type": "object",
-                  "description": "Dependency configurations",
-                  "properties": {
-                    "certManager": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "gatewayAPI": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "lws": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "sailOperator": {
-                      "$ref": "#/$defs/dependency"
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "azure": {
+            "type": "object",
+            "properties": {
+                "cloudManager": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string"
+                        },
+                        "imagePullPolicy": {
+                            "type": "string"
+                        },
+                        "namespace": {
+                            "type": "string"
+                        }
                     }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "coreweave": {
-      "type": "object",
-      "description": "CoreWeave cloud configuration",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable CoreWeave cloud manager resources",
-          "default": false
-        },
-        "cloudManager": {
-          "type": "object",
-          "description": "CoreWeave Cloud Manager configuration",
-          "properties": {
-            "namespace": {
-              "type": "string",
-              "description": "Cloud Manager operator namespace",
-              "default": "cloudmanager-operator-system"
-            },
-            "image": {
-              "type": "string",
-              "description": "Cloud Manager container image"
-            }
-          }
-        },
-        "kubernetesEngine": {
-          "type": "object",
-          "description": "CoreWeaveKubernetesEngine CR configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Create CoreWeaveKubernetesEngine CR via post-install hook",
-              "default": true
-            },
-            "spec": {
-              "type": "object",
-              "description": "CoreWeaveKubernetesEngine CR spec",
-              "properties": {
-                "dependencies": {
-                  "type": "object",
-                  "description": "Dependency configurations",
-                  "properties": {
-                    "certManager": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "gatewayAPI": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "lws": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "sailOperator": {
-                      "$ref": "#/$defs/dependency"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "kubernetesEngine": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "spec": {
+                            "type": "object",
+                            "properties": {
+                                "dependencies": {
+                                    "type": "object",
+                                    "properties": {
+                                        "certManager": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "gatewayAPI": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "lws": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "sailOperator": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                  }
                 }
-              }
             }
-          }
-        }
-      }
-    },
-    "imagePullSecret": {
-      "type": "object",
-      "description": "Pull secret configuration for private registries. Use --set-file imagePullSecret.dockerConfigJson=path/to/auth.json",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the pull secret to create in target namespaces",
-          "default": "rhaii-pull-secret",
-          "const": "rhaii-pull-secret"
         },
-        "dockerConfigJson": {
-          "type": "string",
-          "description": "Docker config JSON content (populated via --set-file)"
+        "components": {
+            "type": "object",
+            "properties": {
+                "kserve": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "spec": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
         },
-        "dependencyNamespaces": {
-          "type": "array",
-          "description": "Namespaces created by dependency operators where pull secrets should be injected",
-          "items": {
-            "type": "string"
-          }
+        "coreweave": {
+            "type": "object",
+            "properties": {
+                "cloudManager": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string"
+                        },
+                        "imagePullPolicy": {
+                            "type": "string"
+                        },
+                        "namespace": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "kubernetesEngine": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "spec": {
+                            "type": "object",
+                            "properties": {
+                                "dependencies": {
+                                    "type": "object",
+                                    "properties": {
+                                        "certManager": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "gatewayAPI": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "lws": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "sailOperator": {
+                                            "type": "object",
+                                            "properties": {
+                                                "configuration": {
+                                                    "type": "object"
+                                                },
+                                                "managementPolicy": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "enabled": {
+            "type": "boolean"
+        },
+        "imagePullSecret": {
+            "type": "object",
+            "properties": {
+                "dependencyNamespaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "dockerConfigJson": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "installCRDs": {
+            "type": "boolean"
+        },
+        "labels": {
+            "type": "object"
+        },
+        "rhaiOperator": {
+            "type": "object",
+            "properties": {
+                "applicationsNamespace": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "imagePullPolicy": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "relatedImages": {
+                    "type": "object"
+                }
+            }
         }
-      }
     }
-  }
 }

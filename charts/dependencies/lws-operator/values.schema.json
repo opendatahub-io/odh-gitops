@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+        "bundle": {
+            "properties": {
+                "version": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "namespace": {
+            "type": "string"
+        }
+    },
+    "type": "object"
+}
