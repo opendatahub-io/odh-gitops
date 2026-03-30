@@ -93,7 +93,7 @@ spec:
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
-              value: {{ .Values.rhaiOperator.applicationsNamespace }}
+              value: {{ .Values.rhaiOperator.applicationsNamespace | quote }}
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME
@@ -104,9 +104,9 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
-            {{- range $name, $value := .Values.rhaiOperator.relatedImages }}
-            - name: {{ $name }}
-              value: {{ $value }}
+            {{- range $item := .Values.rhaiOperator.relatedImages }}
+            - name: {{ $item.name | quote }}
+              value: {{ $item.value | quote }}
             {{- end }}
           image: {{ .Values.rhaiOperator.image }}
           imagePullPolicy: {{ .Values.rhaiOperator.imagePullPolicy }}

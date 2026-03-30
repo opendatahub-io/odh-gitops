@@ -2504,7 +2504,7 @@ spec:
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
-              value: redhat-ods-applications
+              value: "redhat-ods-applications"
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME

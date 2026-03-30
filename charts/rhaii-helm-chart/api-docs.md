@@ -49,5 +49,5 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | rhaiOperator.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | rhaiOperator.imagePullPolicy | string | `"Always"` |  |
 | rhaiOperator.namespace | string | `"redhat-ods-operator"` |  |
-| rhaiOperator.relatedImages | object | `{}` |  |
+| rhaiOperator.relatedImages | list | `[]` |  |
 

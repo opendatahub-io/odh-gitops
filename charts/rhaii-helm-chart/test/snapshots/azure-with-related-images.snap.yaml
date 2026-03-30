@@ -2504,7 +2504,7 @@ spec:
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
-              value: redhat-ods-applications
+              value: "redhat-ods-applications"
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME
@@ -2515,8 +2515,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
-            - name: RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE
-              value: quay.io/opendatahub/kserve-controller:latest
+            - name: "RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE"
+              value: "quay.io/opendatahub/kserve-controller:latest"
           image: quay.io/opendatahub/opendatahub-operator:latest
           imagePullPolicy: Always
           livenessProbe:

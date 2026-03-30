@@ -17,10 +17,11 @@ rhaiOperator:
   # Image pull policy
   imagePullPolicy: Always
   # Related images env vars (RELATED_IMAGE_*)
-  relatedImages: {}
+  relatedImages: []
   # Example:
   # relatedImages:
-  #   RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE: quay.io/opendatahub/kserve-controller:latest
+  #   - name: RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE
+  #     value: quay.io/opendatahub/kserve-controller:latest
 
 # Components configuration
 components:

@@ -77,10 +77,20 @@
           "description": "Manager container image"
         },
         "relatedImages": {
-          "type": "object",
+          "type": "array",
           "description": "Related images env vars (RELATED_IMAGE_*) for disconnected environments",
-          "additionalProperties": {
-            "type": "string"
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "value"]
           }
         }
       }
