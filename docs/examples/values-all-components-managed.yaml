@@ -1,0 +1,85 @@
+# =============================================================================
+# All Components Managed - Values Override
+#
+# This values file enables all components and monitoring. Use this to deploy
+# the full RHOAI/ODH platform with all features enabled.
+#
+# Since all components default to Removed, this override explicitly sets every
+# component to Managed (or Unmanaged for Kueue).
+#
+# Usage:
+#   helm upgrade --install rhaii ./charts/odh-rhoai \
+#     -f docs/examples/values-all-components-managed.yaml \
+#     -n rhaii-gitops --create-namespace
+# =============================================================================
+
+# -- Enable monitoring
+services:
+  monitoring:
+    dsci:
+      managementState: Managed
+
+# =============================================================================
+# COMPONENTS
+# =============================================================================
+components:
+  aipipelines:
+    dsc:
+      managementState: Managed
+
+  dashboard:
+    dsc:
+      managementState: Managed
+
+  feastoperator:
+    dsc:
+      managementState: Managed
+
+  kserve:
+    dsc:
+      managementState: Managed
+      nim:
+        managementState: Managed
+      modelsAsService:
+        managementState: Managed
+    modelsAsService:
+      gatewayClass:
+        create: true
+      gateway:
+        create: true
+
+  kueue:
+    dsc:
+      managementState: Unmanaged
+
+  modelregistry:
+    dsc:
+      managementState: Managed
+
+  ray:
+    dsc:
+      managementState: Managed
+
+  trainer:
+    dsc:
+      managementState: Managed
+
+  trainingoperator:
+    dsc:
+      managementState: Managed
+
+  trustyai:
+    dsc:
+      managementState: Managed
+
+  workbenches:
+    dsc:
+      managementState: Managed
+
+  mlflowoperator:
+    dsc:
+      managementState: Managed
+
+  llamastackoperator:
+    dsc:
+      managementState: Managed

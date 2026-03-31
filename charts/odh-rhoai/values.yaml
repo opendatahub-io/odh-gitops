@@ -71,7 +71,7 @@ services:
       opentelemetry: true
       tempo: true
     dsci:
-      managementState: Managed
+      managementState: Removed
       metrics: {}
       traces: {}
       alerting: {}
@@ -93,7 +93,7 @@ components:
     dependencies: {}
     dsc:
       # -- Management state for AI Pipelines (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
       # argoWorkflowsControllers:
       #   managementState: Managed
 
@@ -103,7 +103,7 @@ components:
     dependencies: {}
     dsc:
       # -- Management state for Dashboard (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
 
   # -- Feast Operator component
   feastoperator:
@@ -112,7 +112,7 @@ components:
     # -- DSC configuration for Feast Operator
     dsc:
       # -- Management state for Feast Operator (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
 
   # -- KServe model serving component
   kserve:
@@ -126,7 +126,7 @@ components:
     # -- DSC configuration for KServe
     dsc:
       # -- Management state for KServe (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
       # -- Models as Service configuration
       modelsAsService:
         # -- Management state for Models as Service (Managed or Removed)
@@ -134,7 +134,7 @@ components:
       # -- Enables NVIDIA NIM integration
       nim:
         # -- Management state for NIM (Managed or Removed)
-        managementState: Managed
+        managementState: Removed
       # -- Raw deployment service config for KServe (Headless or Headed)
       rawDeploymentServiceConfig: Headless
       # -- Enables llm-d Workload Variant Autoscaler
@@ -240,7 +240,7 @@ components:
     # -- DSC configuration for Kueue
     dsc:
       # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
-      managementState: Unmanaged
+      managementState: Removed
       defaultLocalQueueName: default
       defaultClusterQueueName: default
 
@@ -251,7 +251,7 @@ components:
     # -- DSC configuration for Model Registry
     dsc:
       # -- Management state for Model Registry (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
       # -- Registries namespace for Model Registry (overrides defaults)
       registriesNamespace:
     # -- Operator-type-specific defaults for dsc fields
@@ -269,7 +269,7 @@ components:
     # -- DSC configuration for Ray
     dsc:
       # -- Management state for Ray (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
 
   # -- Trainer component
   trainer:
@@ -280,7 +280,7 @@ components:
     # -- DSC configuration for Trainer
     dsc:
       # -- Management state for Trainer (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
 
   # -- Kubeflow Training Operator component
   trainingoperator:
@@ -298,7 +298,7 @@ components:
     # -- DSC configuration for TrustyAI
     dsc:
       # -- Management state for TrustyAI (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
       # -- Evaluation configuration for TrustyAI evaluations
       eval:
         lmeval:
@@ -312,7 +312,7 @@ components:
     # -- DSC configuration for Workbenches
     dsc:
       # -- Management state for Workbenches (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
       # -- Workbench namespace for Workbenches (overrides defaults)
       workbenchNamespace:
     # -- Operator-type-specific defaults for dsc fields

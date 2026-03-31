@@ -58,5 +58,5 @@ To enable TLS for Authorino:
 
 === Documentation ===
 For more information, see the chart README:
-https://github.com/opendatahub-io/odh-gitops/tree/main/chart
+https://github.com/opendatahub-io/odh-gitops/tree/main/charts/odh-rhoai
 

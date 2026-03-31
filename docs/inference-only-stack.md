@@ -3,14 +3,29 @@
 ## Table of Contents
 
 - [Inference Only Stack](#inference-only-stack)
-    - [Overview](#overview)
-    - [Prerequisites](#prerequisites)
-    - [What Gets Installed](#what-gets-installed)
-    - [Values Override](#values-override)
-    - [Scripted Installation (Helm)](#scripted-installation-helm)
-    - [Enabling Authorino TLS](#enabling-authorino-tls)
-    - [Verification](#verification)
-    - [Troubleshooting](#troubleshooting)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Prerequisites](#prerequisites)
+  - [What Gets Installed](#what-gets-installed)
+  - [Values Override](#values-override)
+  - [Scripted Installation (Helm)](#scripted-installation-helm)
+    - [1. Clone the repository](#1-clone-the-repository)
+    - [2. Install operators (first Helm run)](#2-install-operators-first-helm-run)
+    - [3. Wait for CRDs](#3-wait-for-crds)
+    - [4. Create CRs (second Helm run)](#4-create-crs-second-helm-run)
+    - [5. Enable Authorino TLS (post-install)](#5-enable-authorino-tls-post-install)
+    - [6. Verify the installation](#6-verify-the-installation)
+  - [Enabling Authorino TLS](#enabling-authorino-tls)
+    - [CLI method](#cli-method)
+  - [Verification](#verification)
+    - [Check operator CSVs](#check-operator-csvs)
+    - [Check Authorino TLS](#check-authorino-tls)
+    - [Check DataScienceCluster status](#check-datasciencecluster-status)
+    - [Comprehensive verification](#comprehensive-verification)
+  - [Troubleshooting](#troubleshooting)
+    - [CRs not being created](#crs-not-being-created)
+    - [Authorino TLS issues](#authorino-tls-issues)
+    - [Dependencies not being installed](#dependencies-not-being-installed)
 
 ## Overview
 
@@ -35,15 +50,12 @@ The stack installs a minimal set of dependency operators required by KServe:
 
 ## What Gets Installed
 
-The values override configures the chart to install:
+Since all components and monitoring default to `Removed`, the values override only needs to enable KServe:
 
-1. **Dependency operators** (via OLM): cert-manager, Leader Worker Set, RHCL (Kuadrant)
-2. **ODH/RHOAI operator** (via OLM)
-3. **DSCInitialization** (DSCI) with monitoring disabled
+1. **ODH/RHOAI operator** (via OLM)
+2. **Dependency operators** (via OLM): cert-manager, Leader Worker Set, RHCL (Kuadrant) are auto-enabled by KServe
+3. **DSCInitialization** (DSCI) with monitoring disabled (default)
 4. **DataScienceCluster** (DSC) with only KServe set to `Managed`
-
-All other components (AI Pipelines, Dashboard, Feast, Kueue, Model Registry, Ray, Trainer, Training Operator, TrustyAI,
-Workbenches, MLflow, LlamaStack, Spark Operator) are set to `Removed`.
 
 ## Values Override
 
@@ -54,23 +66,14 @@ The values override file is located at
 > The YAML below is a copy of the values file for reference. If you modify the values, ensure you also update the source
 > file at `docs/examples/values-inference-only.yaml`.
 
-Below is the full content with field-by-field explanations:
+Since all components and monitoring default to `Removed`, the override only needs to enable KServe and set the operator
+type:
 
 ```yaml
 # -- Operator configuration
 operator:
   enabled: true
   type: rhoai  # Change to "odh" for Open Data Hub
-
-# -- Disable monitoring (not needed for inference-only)
-services:
-  monitoring:
-    dependencies:
-      clusterObservability: false
-      opentelemetry: false
-      tempo: false
-    dsci:
-      managementState: Removed
 
 components:
   kserve:
@@ -82,71 +85,12 @@ components:
       jobSet: false  # Not needed for inference-only
     dsc:
       managementState: Managed
-      modelsAsService:
-        managementState: Removed
-      nim:
-        managementState: Removed
-      wva:
-        managementState: Removed
-
-  # -- Disable all non-inference components
-  aipipelines:
-    dsc:
-      managementState: Removed
-
-  dashboard:
-    dsc:
-      managementState: Removed
-
-  feastoperator:
-    dsc:
-      managementState: Removed
-
-  kueue:
-    dsc:
-      managementState: Removed
-
-  modelregistry:
-    dsc:
-      managementState: Removed
-
-  ray:
-    dsc:
-      managementState: Removed
-
-  trainer:
-    dsc:
-      managementState: Removed
-
-  trainingoperator:
-    dsc:
-      managementState: Removed
-
-  trustyai:
-    dsc:
-      managementState: Removed
-
-  workbenches:
-    dsc:
-      managementState: Removed
-
-  mlflowoperator:
-    dsc:
-      managementState: Removed
-
-  llamastackoperator:
-    dsc:
-      managementState: Removed
-
-  sparkoperator:
-    dsc:
-      managementState: Removed
 ```
 
 > [!NOTE]
 > The chart's tri-state dependency resolution (`auto`/`true`/`false`) handles transitive dependencies automatically. For
-> example, RHCL auto-pulls cert-manager and Leader Worker Set as its own dependencies. Setting components to `Removed`
-> prevents their dependencies from being installed.
+> example, RHCL auto-pulls cert-manager and Leader Worker Set as its own dependencies. Components set to `Removed`
+> (the default) do not trigger dependency installation.
 
 ## Scripted Installation (Helm)
 

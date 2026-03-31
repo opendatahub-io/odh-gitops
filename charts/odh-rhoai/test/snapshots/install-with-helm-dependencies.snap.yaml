@@ -9,7 +9,7 @@ metadata:
   name: default-dsci
 spec:
   monitoring:
-    managementState: Managed
+    managementState: Removed
     namespace: opendatahub
   applicationsNamespace: opendatahub
   trustedCABundle:
@@ -27,35 +27,35 @@ metadata:
 spec:
   components:
     aipipelines:
-      managementState: Managed
+      managementState: Removed
     dashboard:
-      managementState: Managed
+      managementState: Removed
     feastoperator:
-      managementState: Managed
+      managementState: Removed
     kserve:
-      managementState: Managed
+      managementState: Removed
       modelsAsService:
         managementState: Removed
       nim:
-        managementState: Managed
+        managementState: Removed
       rawDeploymentServiceConfig: Headless
       wva:
         managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
-      managementState: Unmanaged
+      managementState: Removed
     llamastackoperator:
       managementState: Removed
     mlflowoperator:
       managementState: Removed
     modelregistry:
-      managementState: Managed
+      managementState: Removed
       registriesNamespace: odh-model-registry
     ray:
-      managementState: Managed
+      managementState: Removed
     trainer:
-      managementState: Managed
+      managementState: Removed
     trainingoperator:
       managementState: Removed
     trustyai:
@@ -63,94 +63,7 @@ spec:
         lmeval:
           permitCodeExecution: deny
           permitOnline: deny
-      managementState: Managed
+      managementState: Removed
     workbenches:
-      managementState: Managed
+      managementState: Removed
       workbenchNamespace: opendatahub
----
-# Source: odh-rhoai-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: openshift-ai-inference
-  namespace: openshift-ingress
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-    istio.io/rev: openshift-gateway
-spec:
-  gatewayClassName: openshift-ai-inference
-  listeners:
-  - allowedRoutes:
-      namespaces:
-        from: All
-    name: https
-    port: 443
-    protocol: HTTPS
----
-# Source: odh-rhoai-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata:
-  name: openshift-ai-inference
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  controllerName: openshift.io/gateway-controller/v1
----
-# Source: odh-rhoai-chart/templates/dependencies/job-set/config.yaml
-apiVersion: operator.openshift.io/v1
-kind: JobSetOperator
-metadata:
-  name: cluster
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  logLevel: Normal
-  operatorLogLevel: Normal
----
-# Source: odh-rhoai-chart/templates/dependencies/rhcl/config.yaml
-apiVersion: kuadrant.io/v1beta1
-kind: Kuadrant
-metadata:
-  name: kuadrant
-  namespace: kuadrant-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
----
-# Source: odh-rhoai-chart/templates/dependencies/kueue/config.yaml
-apiVersion: kueue.openshift.io/v1
-kind: Kueue
-metadata:
-  name: cluster
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  config:
-    integrations:
-      frameworks:
-      - Deployment
-      - Pod
-      - PyTorchJob
-      - RayCluster
-      - RayJob
-      - StatefulSet
-      - TrainJob
-  managementState: Managed
----
-# Source: odh-rhoai-chart/templates/dependencies/leader-worker-set/config.yaml
-apiVersion: operator.openshift.io/v1
-kind: LeaderWorkerSetOperator
-metadata:
-  name: cluster
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  logLevel: Normal
-  managementState: Managed
-  operatorLogLevel: Normal

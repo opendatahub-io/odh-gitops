@@ -26,12 +26,10 @@ charts:
           - operator.type=rhoai
 
       - name: all-components-managed
+        valuesFiles:
+          - docs/examples/values-all-components-managed.yaml
         setFlags:
           - skipCrdCheck=true
-          - components.mlflowoperator.dsc.managementState=Managed
-          - components.llamastackoperator.dsc.managementState=Managed
-          - components.trainingoperator.dsc.managementState=Managed
-          - components.kserve.dsc.modelsAsService.managementState=Managed
 
       - name: install-with-helm-dependencies
         setFlags:
@@ -47,6 +45,7 @@ charts:
       - name: enable-llm-d-wva
         setFlags:
           - skipCrdCheck=true
+          - components.kserve.dsc.managementState=Managed
           - components.kserve.dsc.wva.managementState=Managed
           - components.kserve.dependencies.customMetricsAutoscaler=true
 

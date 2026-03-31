@@ -227,6 +227,12 @@ spec:
                 echo "✅ Custom OLM catalog installed"
               fi
 
+              # Validate operator type against allowlist
+              if [ "${OPERATOR_TYPE}" != "odh" ] && [ "${OPERATOR_TYPE}" != "rhoai" ]; then
+                echo "ERROR: Invalid operator type '${OPERATOR_TYPE}'. Must be 'odh' or 'rhoai'."
+                exit 1
+              fi
+
               # Build additional helm args
               HELM_EXTRA_ARGS="--set operator.type=${OPERATOR_TYPE}"
               echo "Using operator type: ${OPERATOR_TYPE}"
