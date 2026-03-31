@@ -72,8 +72,8 @@ charts:
       - name: azure-with-related-images
         setFlags:
           - azure.enabled=true
-          - rhaiOperator.relatedImages[0].name=RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE
-          - rhaiOperator.relatedImages[0].value=quay.io/opendatahub/kserve-controller:latest
+          - rhaiOperator.relatedImages[0].name=RELATED_IMAGE_ODH_KSERVE_LLMISVC_CONTROLLER_IMAGE
+          - rhaiOperator.relatedImages[0].value=ghcr.io/opendatahub-io/kserve/odh-kserve-llmisvc-controller:release-v0.17
 
       - name: with-custom-namespace
         setFlags:

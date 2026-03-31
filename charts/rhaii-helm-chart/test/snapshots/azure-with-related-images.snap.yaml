@@ -2515,8 +2515,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
-            - name: "RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE"
-              value: "quay.io/opendatahub/kserve-controller:latest"
+            - name: "RELATED_IMAGE_ODH_KSERVE_LLMISVC_CONTROLLER_IMAGE"
+              value: "ghcr.io/opendatahub-io/kserve/odh-kserve-llmisvc-controller:release-v0.17"
           image: quay.io/opendatahub/opendatahub-operator:latest
           imagePullPolicy: Always
           livenessProbe:
