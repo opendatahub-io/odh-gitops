@@ -6,7 +6,7 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
 
 ## Table of Contents
 
-- [RHAII Helm Chart](#rhaii-helm-chart)
+- [RHAI On XKS Helm Chart](#rhaii-helm-chart)
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Pull Secrets](#pull-secrets)

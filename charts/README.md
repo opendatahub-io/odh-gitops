@@ -249,11 +249,11 @@ helm lint charts/dependencies/gateway-api/
 make chart-snapshots
 ```
 
-### RHAII Helm Chart
+### RHAI On XKS Helm Chart
 
-The `rhaii-helm-chart` generates its templates from the [opendatahub-operator](https://github.com/opendatahub-io/opendatahub-operator) repository using kustomize and [helmtemplate-generator](https://github.com/davidebianchi/helmtemplate-generator). It also generates cloud-specific (Azure, CoreWeave) cloudmanager templates.
+The `rhai-on-xks-helm-chart` generates its templates from the [opendatahub-operator](https://github.com/opendatahub-io/opendatahub-operator) repository using kustomize and [helmtemplate-generator](https://github.com/davidebianchi/helmtemplate-generator). It also generates cloud-specific (Azure, CoreWeave) cloudmanager templates.
 
-**Prerequisites:** `go`, `kustomize`, and access to the rhods-operator repo.
+**Prerequisites:** `go`, `kustomize`, and access to the ODH `opendatahub-operator` git repo.
 
 **Update from the default branch (rhoai-3.4):**
 
