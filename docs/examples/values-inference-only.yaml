@@ -4,6 +4,9 @@
 # This values file configures the chart to install only the inference/model-serving
 # subset of RHOAI/ODH: KServe with distributed inference (llm-d).
 #
+# Since all components default to Removed, this override only needs to enable
+# KServe and configure its dependencies.
+#
 # Dependencies installed:
 #   - cert-manager        (TLS/certificate management)
 #   - Leader Worker Set   (distributed inference workflows)
@@ -23,19 +26,9 @@ operator:
   enabled: true
   type: rhoai
 
-# -- Disable monitoring (not needed for inference-only)
-services:
-  monitoring:
-    dependencies:
-      clusterObservability: false
-      opentelemetry: false
-      tempo: false
-    dsci:
-      managementState: Removed
-
 # =============================================================================
 # COMPONENTS
-# Only KServe is enabled; all other components are Removed.
+# Only KServe is enabled; all other components are already Removed by default.
 # =============================================================================
 components:
   kserve:
@@ -47,62 +40,3 @@ components:
       jobSet: false  # Not needed for inference-only
     dsc:
       managementState: Managed
-      modelsAsService:
-        managementState: Removed
-      nim:
-        managementState: Removed
-      wva:
-        managementState: Removed
-
-  # -- Disable all non-inference components
-  aipipelines:
-    dsc:
-      managementState: Removed
-
-  dashboard:
-    dsc:
-      managementState: Removed
-
-  feastoperator:
-    dsc:
-      managementState: Removed
-
-  kueue:
-    dsc:
-      managementState: Removed
-
-  modelregistry:
-    dsc:
-      managementState: Removed
-
-  ray:
-    dsc:
-      managementState: Removed
-
-  trainer:
-    dsc:
-      managementState: Removed
-
-  trainingoperator:
-    dsc:
-      managementState: Removed
-
-  trustyai:
-    dsc:
-      managementState: Removed
-
-  workbenches:
-    dsc:
-      managementState: Removed
-
-  mlflowoperator:
-    dsc:
-      managementState: Removed
-
-  llamastackoperator:
-    dsc:
-      managementState: Removed
-
-  sparkoperator:
-    dsc:
-      managementState: Removed

@@ -263,7 +263,7 @@ components:
     # -- DSC configuration for YourComponent
     dsc:
       # -- Management state for YourComponent (Managed or Removed)
-      managementState: Managed
+      managementState: Removed
     # -- Operator-type-specific defaults for dsc fields
     defaults:
       odh:
@@ -289,7 +289,23 @@ spec:
 
 Add your component to `chart/values.schema.json` under the `components` section.
 
-#### Step 4: Update Documentation
+#### Step 4: Update All-Components Values File
+
+Add your component to `docs/examples/values-all-components-managed.yaml` so it is covered by snapshot tests and CI
+validation:
+
+```yaml
+components:
+  # ... existing components ...
+  yourComponent:
+    dsc:
+      managementState: Managed
+```
+
+This values file is used by the `all-components-managed` snapshot in `scripts/snapshot-config.yaml` and by the Tekton
+CI pipeline for cluster validation.
+
+#### Step 5: Update Documentation
 
 1. Update `chart/README.md` with component information
 2. Run `make helm-docs` to regenerate `chart/api-docs.md`
@@ -299,16 +315,27 @@ Add your component to `chart/values.schema.json` under the `components` section.
 1. **Lint the chart**:
 
    ```bash
-   helm lint ./chart
+   helm lint ./charts/odh-rhoai
    ```
 
-2. **Update snapshots**:
+2. **Verify the chart renders with all components managed**:
+
+   Since all components default to `Removed`, test that the chart renders correctly with all components enabled:
+
+   ```bash
+   helm template ./charts/odh-rhoai \
+     -f docs/examples/values-all-components-managed.yaml \
+     --set skipCrdCheck=true
+   ```
+
+3. **Update and test snapshots**:
 
    ```bash
    make chart-snapshots
+   make chart-test
    ```
 
-3. **Test on a cluster**:
+4. **Test on a cluster**:
 
    ```bash
    make helm-install-verify

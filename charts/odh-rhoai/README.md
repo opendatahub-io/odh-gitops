@@ -16,14 +16,26 @@ This chart provides a flexible way to install the operators and configurations r
 > [!NOTE]
 > All commands below assume you are in the repository root directory.
 
+All components default to `Removed`. Use a values file to enable the components you need:
+
+| Values File | Description |
+|-------------|-------------|
+| [`docs/examples/values-all-components-managed.yaml`](../../docs/examples/values-all-components-managed.yaml) | Enable all components and monitoring (full platform) |
+| [`docs/examples/values-inference-only.yaml`](../../docs/examples/values-inference-only.yaml) | Enable only KServe for inference/model serving |
+
 ```bash
-# Install dependencies with default settings. We need to install the dependencies before the operator is installed.
 # Set OPERATOR_TYPE to: odh | rhoai
 export OPERATOR_TYPE=${OPERATOR_TYPE:-odh}
-helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops --create-namespace --set operator.type=${OPERATOR_TYPE}
+
+# Install with all components enabled
+helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops --create-namespace \
+  -f docs/examples/values-all-components-managed.yaml \
+  --set operator.type=${OPERATOR_TYPE}
 
 # Wait for CRDs to be created, then run again to create CRs
-helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops --create-namespace --set operator.type=${OPERATOR_TYPE}
+helm upgrade --install ${OPERATOR_TYPE} ./charts/odh-rhoai -n ${OPERATOR_TYPE}-gitops \
+  -f docs/examples/values-all-components-managed.yaml \
+  --set operator.type=${OPERATOR_TYPE}
 ```
 
 ## Installation Flow
@@ -142,19 +154,19 @@ High-level features that:
 
 | Component | Description | Default State | Dependencies |
 |-----------|-------------|---------------|--------------|
-| `aipipelines` | AI Pipelines | Managed | - |
-| `dashboard` | Dashboard | Managed | - |
-| `feastoperator` | Feast feature store operator | Managed | - |
-| `kserve` | KServe model serving | Managed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
-| `kueue` | Kueue job queuing | Unmanaged | certManager, kueue |
+| `aipipelines` | AI Pipelines | Removed | - |
+| `dashboard` | Dashboard | Removed | - |
+| `feastoperator` | Feast feature store operator | Removed | - |
+| `kserve` | KServe model serving | Removed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
+| `kueue` | Kueue job queuing | Removed | certManager, kueue |
 | `llamastackoperator` | LlamaStack Operator | Removed | nfd, nvidiaGPUOperator |
 | `mlflowoperator` | MLflow tracking and model registry | Removed | - |
-| `modelregistry` | Model Registry | Managed | - |
-| `ray` | Ray distributed computing | Managed | certManager |
-| `trainer` | Trainer | Managed | certManager, jobSet |
+| `modelregistry` | Model Registry | Removed | - |
+| `ray` | Ray distributed computing | Removed | certManager |
+| `trainer` | Trainer | Removed | certManager, jobSet |
 | `trainingoperator` | Kubeflow Training Operator | Removed | - |
-| `trustyai` | TrustyAI | Managed | - |
-| `workbenches` | Workbenches | Managed | - |
+| `trustyai` | TrustyAI | Removed | - |
+| `workbenches` | Workbenches | Removed | - |
 
 ### Dependencies
 
@@ -346,17 +358,17 @@ components:
       certManager: true       # explicitly enable (same as default)
       customMetricsAutoscaler: false  # disable this dependency for kserve
     dsc:
-      managementState: Managed  # Managed | Removed
+      managementState: Managed  # Managed | Removed (default: Removed)
       rawDeploymentServiceConfig: Headless  # Headless | Headed
       nim:
         managementState: Managed  # NVIDIA NIM integration
   kueue:
     dsc:
-      managementState: Unmanaged  # Unmanaged | Removed
+      managementState: Unmanaged  # Unmanaged | Removed (default: Removed)
 
   aipipelines:
     dsc:
-      managementState: Managed  # Managed | Removed
+      managementState: Managed  # Managed | Removed (default: Removed)
 
   modelregistry:
     dsc:
@@ -369,7 +381,7 @@ components:
       workbenchNamespace: my-workbench-ns  # overrides operator-type default
 ```
 
-When `managementState` is `Managed` or `Unmanaged`, the component's dependencies are auto-enabled. When `Removed`, they are not.
+All components default to `Removed`. When set to `Managed` or `Unmanaged`, the component's dependencies are auto-enabled.
 
 Components with operator-type-specific defaults (like `modelregistry` and `workbenches`) will use appropriate namespace values based on whether you're using `odh` or `rhoai` operator type, unless explicitly overridden.
 
