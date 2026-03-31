@@ -8,7 +8,7 @@
 # component to Managed (or Unmanaged for Kueue).
 #
 # Usage:
-#   helm upgrade --install rhaii ./charts/odh-rhoai \
+#   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
 #     -f docs/examples/values-all-components-managed.yaml \
 #     -n rhaii-gitops --create-namespace
 # =============================================================================

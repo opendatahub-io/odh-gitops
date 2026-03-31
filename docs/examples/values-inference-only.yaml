@@ -13,7 +13,7 @@
 #   - RHCL / Kuadrant     (API management / Authorino)
 #
 # Usage:
-#   helm upgrade --install rhaii ./charts/odh-rhoai \
+#   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
 #     -f docs/examples/values-inference-only.yaml \
 #     -n rhaii-gitops --create-namespace
 # =============================================================================

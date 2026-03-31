@@ -315,7 +315,7 @@ CI pipeline for cluster validation.
 1. **Lint the chart**:
 
    ```bash
-   helm lint ./charts/odh-rhoai
+   helm lint ./charts/rhai-on-openshift-chart
    ```
 
 2. **Verify the chart renders with all components managed**:
@@ -323,7 +323,7 @@ CI pipeline for cluster validation.
    Since all components default to `Removed`, test that the chart renders correctly with all components enabled:
 
    ```bash
-   helm template ./charts/odh-rhoai \
+   helm template ./charts/rhai-on-openshift-chart \
      -f docs/examples/values-all-components-managed.yaml \
      --set skipCrdCheck=true
    ```

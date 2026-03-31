@@ -8,7 +8,7 @@
 #   make chart-test CHART_NAME=<name>       # Test specific chart
 
 charts:
-  odh-rhoai:
+  rhai-on-openshift-chart:
     # Optional: additional values file for testing (relative to chart path)
     testValuesFile: test/testValues.yaml
     snapshots:
@@ -66,7 +66,7 @@ charts:
     snapshots:
       - name: default
 
-  rhaii-helm-chart:
+  rhai-on-xks-chart:
     snapshots:
       - name: azure-with-related-images
         setFlags:

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: rhaii-helm-chart
-description: Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
-type: application
-version: 0.1.0
-appVersion: 3.4.0-ea.2

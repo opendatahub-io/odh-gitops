@@ -1,0 +1,106 @@
+{{- if .Values.enabled }}
+{{- $createKserve := .Values.components.kserve.enabled }}
+{{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
+{{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
+{{- if or $createKserve $createAzureKE $createCoreweaveKE }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhaii-post-install-crs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhaii-post-install-hook
+      {{- include "rhai-on-xks-chart.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: create-crs
+          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              {{- if $createKserve }}
+              echo "Creating Kserve CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: components.platform.opendatahub.io/v1alpha1
+              kind: Kserve
+              metadata:
+                name: default-kserve
+                labels:
+                  {{- include "rhai-on-xks-chart.labels" . | nindent 18 }}
+              {{- if .Values.components.kserve.spec }}
+              spec:
+                {{- .Values.components.kserve.spec | toYaml | nindent 16 }}
+              {{- else }}
+              spec: {}
+              {{- end }}
+              EOF
+              {{- end }}
+              {{- if $createAzureKE }}
+              echo "Creating AzureKubernetesEngine CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: infrastructure.opendatahub.io/v1alpha1
+              kind: AzureKubernetesEngine
+              metadata:
+                name: default-azurekubernetesengine
+                labels:
+                  {{- include "rhai-on-xks-chart.labels" . | nindent 18 }}
+              {{- if .Values.azure.kubernetesEngine.spec }}
+              spec:
+                {{- .Values.azure.kubernetesEngine.spec | toYaml | nindent 16 }}
+              {{- else }}
+              spec: {}
+              {{- end }}
+              EOF
+              {{- end }}
+              {{- if $createCoreweaveKE }}
+              echo "Creating CoreWeaveKubernetesEngine CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: infrastructure.opendatahub.io/v1alpha1
+              kind: CoreWeaveKubernetesEngine
+              metadata:
+                name: default-coreweavekubernetesengine
+                labels:
+                  {{- include "rhai-on-xks-chart.labels" . | nindent 18 }}
+              {{- if .Values.coreweave.kubernetesEngine.spec }}
+              spec:
+                {{- .Values.coreweave.kubernetesEngine.spec | toYaml | nindent 16 }}
+              {{- else }}
+              spec: {}
+              {{- end }}
+              EOF
+              {{- end }}
+              echo "Done."
+{{- end }}
+{{- end }}

@@ -76,7 +76,7 @@ Examples:
   $(basename "$0") --generate --chart odh-operator
 
   # Test snapshots for specific chart
-  $(basename "$0") --test --chart odh-rhoai
+  $(basename "$0") --test --chart rhai-on-openshift-chart
 EOF
 }
 

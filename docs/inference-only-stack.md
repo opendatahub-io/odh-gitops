@@ -73,7 +73,7 @@ type:
 # -- Operator configuration
 operator:
   enabled: true
-  type: rhoai  # Change to "odh" for Open Data Hub
+  type: rhoai
 
 components:
   kserve:
@@ -107,7 +107,7 @@ The first run installs the OLM subscriptions (Namespace, OperatorGroup, Subscrip
 CRDs do not exist yet.
 
 ```bash
-helm upgrade --install rhaii ./charts/odh-rhoai \
+helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   -f docs/examples/values-inference-only.yaml \
   -n rhaii-gitops --create-namespace
 ```
@@ -139,7 +139,7 @@ Now that CRDs exist, the second run creates the CR resources (DSCInitialization,
 LeaderWorkerSetOperator, etc.):
 
 ```bash
-helm upgrade --install rhaii ./charts/odh-rhoai \
+helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   -f docs/examples/values-inference-only.yaml \
   -n rhaii-gitops
 ```
@@ -228,7 +228,7 @@ install:
 2. Run `helm upgrade` again. CRs are skipped until their CRDs exist:
 
    ```bash
-   helm upgrade --install rhaii ./charts/odh-rhoai \
+   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
      -f docs/examples/values-inference-only.yaml \
      -n rhaii-gitops
    ```

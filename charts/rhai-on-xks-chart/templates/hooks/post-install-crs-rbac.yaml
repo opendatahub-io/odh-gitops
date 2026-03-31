@@ -1,0 +1,68 @@
+{{- if .Values.enabled }}
+{{- $createKserve := .Values.components.kserve.enabled }}
+{{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
+{{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
+{{- if or $createKserve $createAzureKE $createCoreweaveKE }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhaii-post-install-hook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhaii-post-install-hook
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - kserves
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines
+      - coreweavekubernetesengines
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhaii-post-install-hook
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhaii-post-install-hook
+subjects:
+  - kind: ServiceAccount
+    name: rhaii-post-install-hook
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
