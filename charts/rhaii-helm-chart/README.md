@@ -1,6 +1,6 @@
 # RHAII Helm Chart
 
-Red Hat OpenShift AI Operator Helm chart for non-OLM installation.
+Red Hat AI Inference Helm chart for non-OLM installation.
 
 This chart installs the RHAI operator and its cloud manager components. Exactly one cloud provider (Azure or CoreWeave) must be enabled.
 
@@ -9,10 +9,10 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
 - [RHAII Helm Chart](#rhaii-helm-chart)
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
+  - [Pull Secrets](#pull-secrets)
   - [Installation](#installation)
     - [Azure](#azure)
     - [CoreWeave](#coreweave)
-  - [Pull Secrets](#pull-secrets)
   - [How It Works](#how-it-works)
   - [Managed Dependencies](#managed-dependencies)
   - [Configuration Reference](#configuration-reference)
@@ -21,36 +21,40 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
 
 ## Prerequisites
 
-- Kubernetes cluster (or OpenShift)
+- Kubernetes cluster
 - Helm 4.x
 - Cluster-admin privileges (the chart creates CRDs, ClusterRoles, and namespaces)
-
-## Installation
-
-### Azure
-
-```bash
-helm upgrade rhaii ./charts/rhaii-helm-chart/ \
-  --install --create-namespace \
-  --namespace rhaii \
-  --set azure.enabled=true
-```
-
-### CoreWeave
-
-```bash
-helm upgrade rhaii ./charts/rhaii-helm-chart/ \
-  --install --create-namespace \
-  --namespace rhaii \
-  --set coreweave.enabled=true
-```
-
-> [!WARNING]
-> `helm install --wait` is **not supported**. The chart uses post-install hook Jobs to create Custom Resources after the operators are deployed. These hooks require CRDs to be registered first, and the rhods-operator depends on cert-manager to start correctly. Using `--wait` may cause the installation to time out or fail.
+- Pull secret for `registry.redhat.io` (see [Pull Secrets](#pull-secrets) below)
 
 ## Pull Secrets
 
-To pull images from private registries, pass your docker config JSON file during install:
+> [!IMPORTANT]
+> A pull secret is **required** to install this chart. The chart pulls images from `registry.redhat.io`, including the `ose-cli-rhel9:v4.21.0` image used by the post-install hook Job.
+
+### Obtaining credentials
+
+```bash
+podman login registry.redhat.io --authfile /path/to/auth.json
+```
+
+### What the pull secret does
+
+The `imagePullSecret.dockerConfigJson` parameter:
+
+1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhaii-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
+2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, and the post-install hook)
+
+The secret name defaults to `rhaii-pull-secret` and **should not** be changed.
+
+> [!NOTE]
+> Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To customize which dependency namespaces receive pull secrets, set `imagePullSecret.dependencyNamespaces`.
+
+## Installation
+
+> [!NOTE]
+> All commands below assume you are in the repository root directory.
+
+### Azure
 
 ```bash
 helm upgrade rhaii ./charts/rhaii-helm-chart/ \
@@ -60,15 +64,18 @@ helm upgrade rhaii ./charts/rhaii-helm-chart/ \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
 
-This will:
+### CoreWeave
 
-1. Create a `kubernetes.io/dockerconfigjson` Secret named `rhaii-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
-2. Add `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager and llmisvc-controller-manager in the applications namespace)
+```bash
+helm upgrade rhaii ./charts/rhaii-helm-chart/ \
+  --install --create-namespace \
+  --namespace rhaii \
+  --set coreweave.enabled=true \
+  --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
+```
 
-The secret name defaults to `rhaii-pull-secret` and **must not** be changed.
-
-> [!NOTE]
-> Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To customize which dependency namespaces receive pull secrets, set `imagePullSecret.dependencyNamespaces`.
+> [!WARNING]
+> `helm install --wait` is **not supported**. The chart uses post-install hook Jobs to create Custom Resources after the operators are deployed. These hooks require CRDs to be registered first, and the rhai-operator depends on cert-manager to start correctly. Using `--wait` may cause the installation to time out or fail.
 
 ## How It Works
 
@@ -128,10 +135,30 @@ helm upgrade rhaii ./charts/rhaii-helm-chart/ \
 helm uninstall rhaii -n rhaii
 ```
 
+### Clean up CRDs
+
 CRDs are **not** removed on uninstall (`helm.sh/resource-policy: keep`). To remove them manually:
 
+**Chart-managed CRDs:**
 ```bash
 kubectl delete crd kserves.components.platform.opendatahub.io
+```
+**Operator-created CRDs (created by rhai-operator during KServe deployment):**
+```bash
+kubectl delete crd llminferenceservices.serving.kserve.io
+kubectl delete crd llminferenceserviceconfigs.serving.kserve.io
+```
+
+**Azure:**
+```bash
 kubectl delete crd azurekubernetesengines.infrastructure.opendatahub.io
+```
+
+**CoreWeave:**
+```bash
 kubectl delete crd coreweavekubernetesengines.infrastructure.opendatahub.io
 ```
+
+### Clean up namespaces
+
+The namespaces created by the chart are not automatically removed. Clean up the namespaces as needed based on your configuration.

@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# Update RHAII operator Helm chart from opendatahub-operator repo and cloudmanager resources.
+# Update RHAII operator Helm chart from rhods-operator repo and cloudmanager resources.
 #
-# By default, the opendatahub-operator repo is shallow-cloned from GitHub.
+# By default, the rhods-operator repo is shallow-cloned from GitHub.
 # Use --odh-operator-dir to point to a local checkout instead.
 #
 # Usage:
 #   ./update-bundle.sh <version> [options...]
 #
 # Options:
-#   --odh-operator-dir <path>   Path to a local opendatahub-operator checkout.
+#   --odh-operator-dir <path>   Path to a local rhods-operator checkout.
 #                               Skips cloning from GitHub when set.
-#   --branch <branch>           Branch to clone (default: main).
+#   --branch <branch>           Branch to clone (default: rhoai-3.4-ea.2).
 #                               Ignored when --odh-operator-dir is set.
 #
 # Examples:
-#   ./update-bundle.sh v2.19.0
-#   ./update-bundle.sh v2.19.0 --branch feat/my-branch
-#   ./update-bundle.sh v2.19.0 --odh-operator-dir /path/to/opendatahub-operator
+#   ./update-bundle.sh 3.4.0-ea.2
+#   ./update-bundle.sh 3.4.0 --branch rhoai-3.4
+#   ./update-bundle.sh 3.4.0-ea.2 --odh-operator-dir /path/to/rhods-operator
 
 set -euo pipefail
 
@@ -38,8 +38,8 @@ CLOUD_TARGETS=(
 )
 
 # Defaults
-ODH_REPO_URL="git@github.com:opendatahub-io/opendatahub-operator.git"
-ODH_BRANCH="main"
+ODH_REPO_URL="https://github.com/red-hat-data-services/rhods-operator.git"
+ODH_BRANCH="rhoai-3.4"
 ODH_OPERATOR_DIR=""
 LOCAL_MODE=false
 
@@ -87,20 +87,20 @@ if ! command -v go &> /dev/null; then
 fi
 
 # ==============================================================================
-# Resolve opendatahub-operator directory
+# Resolve rhods-operator directory
 # ==============================================================================
 
 if [[ "${LOCAL_MODE}" == "true" ]]; then
     if [[ ! -d "${ODH_OPERATOR_DIR}" ]]; then
-        echo "ERROR: opendatahub-operator directory not found at ${ODH_OPERATOR_DIR}" >&2
+        echo "ERROR: rhods-operator directory not found at ${ODH_OPERATOR_DIR}" >&2
         exit 1
     fi
-    echo "Using local opendatahub-operator: ${ODH_OPERATOR_DIR}"
+    echo "Using local rhods-operator: ${ODH_OPERATOR_DIR}"
 else
     ODH_OPERATOR_DIR="$(mktemp -d)"
     trap 'rm -rf "${ODH_OPERATOR_DIR}"' EXIT
 
-    echo "Cloning opendatahub-operator (branch: ${ODH_BRANCH})..."
+    echo "Cloning rhods-operator (branch: ${ODH_BRANCH})..."
     git clone --depth 1 --branch "${ODH_BRANCH}" "${ODH_REPO_URL}" "${ODH_OPERATOR_DIR}"
     echo "  Done"
     echo ""
@@ -110,8 +110,20 @@ fi
 # Step 1: Generate operator templates
 # ==============================================================================
 
-echo "Running 'make manifests-all' in opendatahub-operator..."
+echo "Running 'make manifests-all' in rhods-operator..."
+echo "  This generates CRDs and RBAC for ODH, RHOAI, and cloudmanager..."
 make -C "${ODH_OPERATOR_DIR}" manifests-all
+echo "  Done"
+echo ""
+
+echo "Generating kustomization.yaml from templates..."
+# Generate main operator kustomization (creates config/rhoai/manager/kustomization.yaml)
+make -C "${ODH_OPERATOR_DIR}" manager-kustomization ODH_PLATFORM_TYPE=rhoai
+# Generate cloudmanager kustomizations
+for cloud in azure coreweave; do
+    cp -f "${ODH_OPERATOR_DIR}/config/cloudmanager/${cloud}/manager/kustomization.yaml.in" \
+          "${ODH_OPERATOR_DIR}/config/cloudmanager/${cloud}/manager/kustomization.yaml"
+done
 echo "  Done"
 echo ""
 
@@ -168,7 +180,7 @@ echo "Cloudmanager Templates"
 echo "=============================================================================="
 echo ""
 echo "Configuration:"
-echo "  ODH Operator: ${ODH_OPERATOR_DIR}"
+echo "  RHODS Operator: ${ODH_OPERATOR_DIR}"
 echo ""
 
 for target_entry in "${CLOUD_TARGETS[@]}"; do

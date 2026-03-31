@@ -7,7 +7,7 @@
 
 set -e
 
-NAMESPACE="${NAMESPACE:-opendatahub-gitops}"
+NAMESPACE="${NAMESPACE:-rhaii-gitops}"
 TIMEOUT="${TIMEOUT:-600}"  # 10 minutes default
 INTERVAL="${INTERVAL:-10}"
 OPERATOR_TYPE="${OPERATOR_TYPE:-odh}"  # odh or rhoai

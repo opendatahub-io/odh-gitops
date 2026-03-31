@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 HELM_RELEASE="${HELM_RELEASE:-odh}"
-HELM_NAMESPACE="${HELM_NAMESPACE:-opendatahub-gitops}"
+HELM_NAMESPACE="${HELM_NAMESPACE:-rhaii-gitops}"
 
 
 # Operator CRDs (created by ODH/RHOAI operator)

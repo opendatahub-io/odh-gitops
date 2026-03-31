@@ -245,7 +245,6 @@ HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.llamastacko
 helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 1: Install operators ==="
 	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --create-namespace $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
-	@echo ""
 	@echo "=== Step 2: Wait for CRDs (dependency) ==="
 	@./scripts/wait-for-crds.sh
 	@bash ./scripts/verify-dependencies.sh

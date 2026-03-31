@@ -13,7 +13,7 @@ rhaiOperator:
   namespace: redhat-ods-operator
   applicationsNamespace: redhat-ods-applications
   # Manager container image
-  image: quay.io/opendatahub/opendatahub-operator:latest
+  image: quay.io/opendatahub/opendatahub-operator:latest # TODO: need update to final release image
   # Image pull policy
   imagePullPolicy: Always
   # Related images env vars (RELATED_IMAGE_*)

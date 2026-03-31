@@ -30,7 +30,7 @@ imagePullSecrets:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: redhat-ods-operator-controller-manager
+  name: rhai-operator-controller-manager
   namespace: redhat-ods-operator
 imagePullSecrets:
   - name: rhaii-pull-secret
@@ -711,7 +711,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: redhat-ods-operator-metrics-reader
+  name: rhai-operator-metrics-reader
 rules:
   - nonResourceURLs:
       - /metrics
@@ -722,7 +722,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhods-operator-role
+  name: rhai-operator-role
 rules:
   - apiGroups:
       - ""
@@ -2219,14 +2219,14 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhods-operator-rolebinding
+  name: rhai-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhods-operator-role
+  name: rhai-operator-role
 subjects:
   - kind: ServiceAccount
-    name: redhat-ods-operator-controller-manager
+    name: rhai-operator-controller-manager
     namespace: redhat-ods-operator
 ---
 # Source: rhaii-helm-chart/templates/cloudmanager/azure/rbac/role-azure-cloud-manager-leader-election-role.yaml
@@ -2274,7 +2274,7 @@ kind: Service
 metadata:
   labels:
     name: rhods-operator
-  name: redhat-ods-operator-controller-manager-metrics-service
+  name: rhai-operator-controller-manager-metrics-service
   namespace: redhat-ods-operator
 spec:
   ports:
@@ -2283,7 +2283,7 @@ spec:
       protocol: TCP
       targetPort: http
   selector:
-    name: rhods-operator
+    name: rhai-operator
 ---
 # Source: rhaii-helm-chart/templates/webhooks/service-rhods-operator-webhook-service.yaml
 apiVersion: v1
@@ -2291,12 +2291,12 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/created-by: rhods-operator
-    app.kubernetes.io/instance: rhods-operator
+    app.kubernetes.io/created-by: rhai-operator
+    app.kubernetes.io/instance: rhai-operator
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rhods-operator-webhook-service
-    app.kubernetes.io/part-of: rhods-operator
-  name: rhods-operator-webhook-service
+    app.kubernetes.io/name: rhai-operator-webhook-service
+    app.kubernetes.io/part-of: rhai-operator
+  name: rhai-operator-webhook-service
   namespace: redhat-ods-operator
 spec:
   ports:
@@ -2304,7 +2304,7 @@ spec:
       protocol: TCP
       targetPort: 9443
   selector:
-    name: rhods-operator
+    name: rhai-operator
 ---
 # Source: rhaii-helm-chart/templates/cloudmanager/azure/manager/deployment-azure-cloud-manager-operator.yaml
 apiVersion: apps/v1
@@ -2361,9 +2361,9 @@ spec:
             - name: RHAI_OPERATOR_NAMESPACE
               value: redhat-ods-operator
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
-              value: redhat-ods-operator-controller-webhook-cert
+              value: rhai-operator-controller-webhook-cert
             - name: RHAI_WEBHOOK_SERVICE_NAME
-              value: rhods-operator-webhook-service
+              value: rhai-operator-webhook-service
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -2414,20 +2414,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    name: rhods-operator
-  name: rhods-operator
+    name: rhai-operator
+  name: rhai-operator
   namespace: redhat-ods-operator
 spec:
   replicas: 3
   selector:
     matchLabels:
-      name: rhods-operator
+      name: rhai-operator
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: rhods-operator
+        kubectl.kubernetes.io/default-container: rhai-operator
       labels:
-        name: rhods-operator
+        name: rhai-operator
     spec:
       affinity:
         nodeAffinity:
@@ -2446,7 +2446,7 @@ spec:
                     - key: name
                       operator: In
                       values:
-                        - rhods-operator
+                        - rhai-operator
                 topologyKey: kubernetes.io/hostname
               weight: 100
       containers:
@@ -2508,7 +2508,7 @@ spec:
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME
-              value: rhods-operator
+              value: rhai-operator
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -2525,7 +2525,7 @@ spec:
               port: 8081
             initialDelaySeconds: 15
             periodSeconds: 20
-          name: rhods-operator
+          name: rhai-operator
           ports:
             - containerPort: 9443
               name: webhook-server
@@ -2559,7 +2559,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: redhat-ods-operator-controller-manager
+      serviceAccountName: rhai-operator-controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
         - name: cert
@@ -2572,15 +2572,20 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: redhat-ods-operator/opendatahub-operator-webhook-cert
-  name: rhods-operator-mutating-webhook-configuration
+    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
+  name: rhai-operator-mutating-webhook-configuration
   namespace: redhat-ods-operator
+  labels:
+    app.kubernetes.io/created-by: rhai-operator
+    app.kubernetes.io/instance: rhai-operator
+    app.kubernetes.io/name: rhai-operator-mutating-webhook-configuration
+    app.kubernetes.io/part-of: rhai-operator
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: rhods-operator-webhook-service
+        name: rhai-operator-webhook-service
         namespace: redhat-ods-operator
         path: /platform-connection-isvc
     failurePolicy: Fail
@@ -2600,7 +2605,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: rhods-operator-webhook-service
+        name: rhai-operator-webhook-service
         namespace: redhat-ods-operator
         path: /platform-connection-llmisvc
     failurePolicy: Fail

@@ -53,9 +53,9 @@ spec:
             - name: RHAI_OPERATOR_NAMESPACE
               value: {{ .Values.rhaiOperator.namespace }}
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
-              value: redhat-ods-operator-controller-webhook-cert
+              value: rhai-operator-controller-webhook-cert
             - name: RHAI_WEBHOOK_SERVICE_NAME
-              value: rhods-operator-webhook-service
+              value: rhai-operator-webhook-service
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:

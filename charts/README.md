@@ -253,18 +253,18 @@ make chart-snapshots
 
 The `rhaii-helm-chart` generates its templates from the [opendatahub-operator](https://github.com/opendatahub-io/opendatahub-operator) repository using kustomize and [helmtemplate-generator](https://github.com/davidebianchi/helmtemplate-generator). It also generates cloud-specific (Azure, CoreWeave) cloudmanager templates.
 
-**Prerequisites:** `go`, `kustomize`, and SSH access to the opendatahub-operator repo.
+**Prerequisites:** `go`, `kustomize`, and access to the rhods-operator repo.
 
-**Update from the default branch (main):**
+**Update from the default branch (rhoai-3.4):**
 
 ```bash
-./charts/rhaii-helm-chart/scripts/update-bundle.sh v2.19.0
+./charts/rhaii-helm-chart/scripts/update-bundle.sh 3.4.0-ea.2
 ```
 
 **Update from a specific branch:**
 
 ```bash
-./charts/rhaii-helm-chart/scripts/update-bundle.sh v2.19.0 --branch feat/my-branch
+./charts/rhaii-helm-chart/scripts/update-bundle.sh 3.5.0 --branch rhoai-3.5
 ```
 
 **Update from a local opendatahub-operator checkout** (skips cloning):
