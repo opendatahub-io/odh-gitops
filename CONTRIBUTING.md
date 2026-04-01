@@ -270,8 +270,6 @@ components:
         someField: odh-value
       rhoai:
         someField: rhoai-value
-      rhai:
-        someField: rhai-value
 ```
 
 #### Step 2: Update DataScienceCluster Template
