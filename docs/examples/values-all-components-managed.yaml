@@ -42,6 +42,8 @@ components:
         managementState: Managed
       modelsAsService:
         managementState: Managed
+      wva:
+        managementState: Managed
     modelsAsService:
       gatewayClass:
         create: true

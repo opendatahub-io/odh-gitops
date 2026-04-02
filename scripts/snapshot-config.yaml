@@ -37,10 +37,10 @@ charts:
           - tags.install-with-helm-dependencies=true
 
       - name: inference-only
-        valuesFiles:
-          - docs/examples/values-inference-only.yaml
         setFlags:
           - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=inference
 
       - name: enable-llm-d-wva
         setFlags:
