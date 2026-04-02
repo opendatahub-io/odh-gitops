@@ -2570,7 +2570,7 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: rhai-operator/rhai-operator-webhook-cert
+    cert-manager.io/inject-ca-from: rhai-operator/opendatahub-operator-webhook-cert
   name: rhai-operator-mutating-webhook-configuration
   namespace: rhai-operator
   labels:

@@ -224,8 +224,9 @@ rules:
     changes:
       - path: .metadata.name
         value: rhai-operator-mutating-webhook-configuration
-      - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
-        value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
+        # TODO: Uncomment this when the webhook cert secret is renamed
+      # - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
+      #   value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-controller-webhook-cert'
       - path: .webhooks[*].clientConfig.service.name
         value: rhai-operator-webhook-service
       - path: .metadata.labels["app.kubernetes.io/created-by"]
