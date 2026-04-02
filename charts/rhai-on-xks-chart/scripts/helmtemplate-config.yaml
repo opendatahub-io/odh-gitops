@@ -80,7 +80,7 @@ rules:
     changes:
       # Replace RHAI_APPLICATIONS_NAMESPACE with templated value
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_APPLICATIONS_NAMESPACE].value
-        value: '{{ .Values.rhaiOperator.applicationsNamespace }}'
+        value: '{{ .Values.rhaiOperator.applicationsNamespace | quote }}'
       # Add related images env vars
       - path: .spec.template.spec.containers[name=rhods-operator].env
         appendWith: |
@@ -224,9 +224,8 @@ rules:
     changes:
       - path: .metadata.name
         value: rhai-operator-mutating-webhook-configuration
-        # TODO: Uncomment this when the webhook cert secret is renamed
-      # - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
-      #   value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-controller-webhook-cert'
+      - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
+        value: '{{ .Values.rhaiOperator.namespace }}/opendatahub-operator-webhook-cert'
       - path: .webhooks[*].clientConfig.service.name
         value: rhai-operator-webhook-service
       - path: .metadata.labels["app.kubernetes.io/created-by"]
