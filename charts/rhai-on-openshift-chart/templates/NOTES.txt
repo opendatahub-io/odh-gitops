@@ -1,6 +1,6 @@
 {{- $operatorType := .Values.operator.type }}
 
-🎉 {{ $operatorType | upper }} Chart installed successfully!
+{{ $operatorType | upper }} Chart installed successfully!
 
 === Installation Summary ===
 

@@ -15,6 +15,7 @@ metadata:
     #     !file.startsWith('.github/') &&
     #     !file.startsWith('charts/') &&
     #     !file.startsWith('scripts/') &&
+    #     !file.startsWith('docs/') &&
     #     file != '.gitignore' &&
     #     file != '.kube-linter.yaml' &&
     #     file != '.yamllint.yaml' &&
