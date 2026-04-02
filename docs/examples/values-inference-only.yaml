@@ -12,7 +12,11 @@
 #   - Leader Worker Set   (distributed inference workflows)
 #   - RHCL / Kuadrant     (API management / Authorino)
 #
-# Usage:
+# Usage with profile:
+#   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
+#     --set profile=rhaii -n rhaii-gitops --create-namespace
+#
+# Usage with values file:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
 #     -f docs/examples/values-inference-only.yaml \
 #     -n rhaii-gitops --create-namespace
