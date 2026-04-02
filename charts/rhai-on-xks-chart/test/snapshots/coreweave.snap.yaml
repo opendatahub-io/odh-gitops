@@ -2563,7 +2563,7 @@ spec:
         - name: cert
           secret:
             defaultMode: 420
-            secretName: redhat-ods-operator-controller-webhook-cert
+            secretName: rhai-operator-controller-webhook-cert
 ---
 # Source: rhai-on-xks-chart/templates/webhooks/mutatingwebhookconfiguration-rhods-operator-mutating-webhook-configuration.yaml
 apiVersion: admissionregistration.k8s.io/v1

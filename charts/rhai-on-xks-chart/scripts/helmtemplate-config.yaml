@@ -116,6 +116,9 @@ rules:
       # Update serviceAccountName reference
       - path: .spec.template.spec.serviceAccountName
         value: rhai-operator-controller-manager
+      # Rename webhook cert secret in volume (rhods-operator to rhai-operator)
+      - path: .spec.template.spec.volumes[name=cert].secret.secretName
+        value: rhai-operator-controller-webhook-cert
 
   # Rename ServiceAccount
   - match:

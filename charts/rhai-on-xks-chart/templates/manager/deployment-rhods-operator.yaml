@@ -156,5 +156,5 @@ spec:
         - name: cert
           secret:
             defaultMode: 420
-            secretName: redhat-ods-operator-controller-webhook-cert
+            secretName: rhai-operator-controller-webhook-cert
 {{- end }}
