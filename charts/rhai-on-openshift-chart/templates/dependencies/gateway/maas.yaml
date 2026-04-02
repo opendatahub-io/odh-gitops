@@ -2,7 +2,8 @@
 {{- $kserveDsc := $kserve.dsc | default dict -}}
 {{- $maas := $kserve.modelsAsService | default dict -}}
 {{- $gateway := $maas.gateway | default dict -}}
-{{- $isMaaSEnabled := and (eq $kserveDsc.modelsAsService.managementState "Managed") (eq $kserveDsc.managementState "Managed") -}}
+{{- $effectiveKserveState := include "rhoai-dependencies.effectiveManagementState" (dict "state" $kserveDsc.managementState "root" . "name" "kserve") -}}
+{{- $isMaaSEnabled := and (eq ($kserveDsc.modelsAsService.managementState | default "Removed") "Managed") (eq $effectiveKserveState "Managed") -}}
 {{- $gatewayClass := $maas.gatewayClass | default dict -}}
 {{- if or (eq ($gatewayClass.create | toString) "true") (and $isMaaSEnabled (eq ($gatewayClass.create | toString) "auto")) -}}
 apiVersion: gateway.networking.k8s.io/v1
