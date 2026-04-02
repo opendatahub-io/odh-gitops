@@ -40,7 +40,14 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - operator.type=rhoai
-          - profile=inference
+          - profile=rhaii
+
+      - name: profile-with-customization
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=rhaii
+          - components.kserve.dependencies.jobSet=true
 
       - name: enable-llm-d-wva
         setFlags:

@@ -66,21 +66,16 @@ Arguments (passed as dict):
 */}}
 {{- define "rhoai-dependencies.profileComponentDefaults" -}}
 {{- $profile := .root.Values.profile | default "default" -}}
-{{- $name := .name -}}
-{{- if eq $profile "inference" -}}
-  {{- if eq $name "kserve" -}}
-dependencies:
-  jobSet: false
-dsc:
-  managementState: Managed
-  {{- else -}}
-dsc:
-  managementState: Removed
-  {{- end -}}
-{{- else -}}
-dsc:
-  managementState: Removed
+{{- $profileFile := printf "profiles/%s.yaml" $profile -}}
+{{- $profileValues := .root.Files.Get $profileFile | fromYaml -}}
+{{- $items := dict -}}
+{{- if and $profileValues ($profileValues.components | default dict) -}}
+  {{- $items = index ($profileValues.components | default dict) .name | default dict -}}
 {{- end -}}
+{{- if and (not $items) $profileValues ($profileValues.services | default dict) -}}
+  {{- $items = index ($profileValues.services | default dict) .name | default dict -}}
+{{- end -}}
+{{- toYaml $items -}}
 {{- end }}
 
 {{/*

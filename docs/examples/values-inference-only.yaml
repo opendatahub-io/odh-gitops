@@ -14,7 +14,7 @@
 #
 # Usage with profile:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-#     --set profile=inference -n rhaii-gitops --create-namespace
+#     --set profile=rhaii -n rhaii-gitops --create-namespace
 #
 # Usage with values file:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \

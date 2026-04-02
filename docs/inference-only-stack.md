@@ -59,16 +59,16 @@ Since all components and monitoring default to `Removed`, the values override on
 
 ## Values Override
 
-The simplest way to deploy the inference-only stack is using the built-in `inference` profile:
+The simplest way to deploy the inference-only stack is using the built-in `rhaii` profile:
 
 ```bash
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-  --set profile=inference \
+  --set profile=rhaii \
   --set operator.type=rhoai \
   -n rhaii-gitops --create-namespace
 ```
 
-The `inference` profile automatically enables KServe with its required dependencies and disables unnecessary ones
+The `rhaii` profile automatically enables KServe with its required dependencies and disables unnecessary ones
 (like jobSet). See the [Deploy Profiles](../charts/rhai-on-openshift-chart/README.md#deploy-profiles) section in the chart README for
 more details.
 
@@ -98,7 +98,7 @@ CRDs do not exist yet.
 ```bash
 # Using profile (recommended)
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-  --set profile=inference \
+  --set profile=rhaii \
   --set operator.type=rhoai \
   -n rhaii-gitops --create-namespace
 
@@ -137,7 +137,7 @@ LeaderWorkerSetOperator, etc.):
 ```bash
 # Using profile
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-  --set profile=inference \
+  --set profile=rhaii \
   --set operator.type=rhoai \
   -n rhaii-gitops
 
@@ -232,7 +232,7 @@ install:
 
    ```bash
    helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-     --set profile=inference --set operator.type=rhoai \
+     --set profile=rhaii --set operator.type=rhoai \
      -n rhaii-gitops
    ```
 

@@ -23,9 +23,9 @@
     },
     "profile": {
       "type": "string",
-      "enum": ["default", "inference"],
+      "enum": ["default", "rhaii"],
       "default": "default",
-      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'inference' enables only KServe for model serving. Explicit managementState values override the profile."
+      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
     },
     "olm": {
       "type": "object",

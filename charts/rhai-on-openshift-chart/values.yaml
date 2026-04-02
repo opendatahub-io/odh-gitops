@@ -11,7 +11,7 @@ tags:
 skipCrdCheck: false
 
 # -- Deploy profile: sets default managementState for components and services.
-# Options: default (all Removed), inference (KServe only)
+# Options: default (all Removed), rhaii (KServe for inference/model serving)
 # Explicit managementState values override the profile.
 profile: default
 
@@ -126,7 +126,7 @@ components:
     dependencies:
       certManager: true
       leaderWorkerSet: true
-      # -- JobSet dependency. Null uses profile default (true for default, false for inference).
+      # -- JobSet dependency. Null uses profile default (true for default, false for rhaii).
       jobSet:
       rhcl: true
       customMetricsAutoscaler: false
