@@ -61,6 +61,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.ray.dependencies | object | `{"certManager":true}` | Dependencies required by Ray |
 | components.ray.dsc | object | `{"managementState":"Removed"}` | DSC configuration for Ray |
 | components.ray.dsc.managementState | string | `"Removed"` | Management state for Ray (Managed or Removed) |
+| components.sparkoperator | object | `{"dependencies":{},"dsc":{"managementState":"Removed"}}` | Spark Operator component |
+| components.sparkoperator.dependencies | object | `{}` | Dependencies required by Spark Operator |
+| components.sparkoperator.dsc | object | `{"managementState":"Removed"}` | DSC configuration for Spark Operator |
+| components.sparkoperator.dsc.managementState | string | `"Removed"` | Management state for Spark Operator (Managed or Removed) |
 | components.trainer | object | `{"dependencies":{"certManager":true,"jobSet":true},"dsc":{"managementState":"Removed"}}` | Trainer component |
 | components.trainer.dependencies | object | `{"certManager":true,"jobSet":true}` | Dependencies required by Trainer |
 | components.trainer.dsc | object | `{"managementState":"Removed"}` | DSC configuration for Trainer |
@@ -89,7 +93,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.customMetricsAutoscaler | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.dependencies | object | `{}` | Dependencies required by custom-metrics-autoscaler |
 | dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |
-| dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"tech-preview-v0.1","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
+| dependencies.jobSet | object | `{"config":{"spec":{"logLevel":"Normal","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.0","name":"job-set","namespace":"openshift-jobset-operator","targetNamespaces":["openshift-jobset-operator"]}}` | Job Set operator |
 | dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
 | dependencies.jobSet.dependencies | object | `{"certManager":true}` | Dependencies required by job-set |
 | dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |

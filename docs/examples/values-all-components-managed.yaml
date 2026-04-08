@@ -80,6 +80,10 @@ components:
     dsc:
       managementState: Managed
 
+  sparkoperator:
+    dsc:
+      managementState: Managed
+
   llamastackoperator:
     dsc:
       managementState: Managed

@@ -342,6 +342,15 @@ components:
       # -- Management state for LlamaStack Operator (Managed or Removed)
       managementState: Removed
 
+  # -- Spark Operator component
+  sparkoperator:
+    # -- Dependencies required by Spark Operator
+    dependencies: {}
+    # -- DSC configuration for Spark Operator
+    dsc:
+      # -- Management state for Spark Operator (Managed or Removed)
+      managementState: Removed
+
 # =============================================================================
 # DEPENDENCIES - Operators required by components
 #
@@ -393,7 +402,7 @@ dependencies:
     dependencies:
       certManager: true
     olm:
-      channel: tech-preview-v0.1
+      channel: stable-v1.0
       name: job-set
       namespace: openshift-jobset-operator
       targetNamespaces:
