@@ -153,6 +153,8 @@ spec:
       registriesNamespace: odh-model-registry
     ray:
       managementState: Managed
+    sparkoperator:
+      managementState: Managed
     trainer:
       managementState: Managed
     trainingoperator:
