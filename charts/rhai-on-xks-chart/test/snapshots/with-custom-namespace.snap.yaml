@@ -968,6 +968,17 @@ rules:
       - cert-manager.io
     resources:
       - certificates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - cert-manager.io
+    resources:
       - issuers
     verbs:
       - create
