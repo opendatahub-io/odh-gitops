@@ -968,18 +968,6 @@ rules:
       - cert-manager.io
     resources:
       - certificates
-      - clusterissuers
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - cert-manager.io
-    resources:
       - issuers
     verbs:
       - create
@@ -1354,8 +1342,6 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - azurekubernetesengines
-      - coreweavekubernetesengines
       - hardwareprofiles
     verbs:
       - create
@@ -1368,16 +1354,12 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - azurekubernetesengines/finalizers
-      - coreweavekubernetesengines/finalizers
       - hardwareprofiles/finalizers
     verbs:
       - update
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - azurekubernetesengines/status
-      - coreweavekubernetesengines/status
       - hardwareprofiles/status
     verbs:
       - get
@@ -1722,18 +1704,12 @@ rules:
       - patch
       - update
   - apiGroups:
-      - operator.openshift.io
+      - operator.authorino.kuadrant.io
     resources:
-      - certmanagers
-      - leaderworkersetoperators
+      - authorinos
     verbs:
-      - create
-      - delete
       - get
       - list
-      - patch
-      - update
-      - watch
   - apiGroups:
       - operator.openshift.io
     resources:
@@ -1749,6 +1725,7 @@ rules:
       - operator.openshift.io
     resources:
       - jobsetoperators
+      - leaderworkersetoperators
     verbs:
       - get
       - list
@@ -1861,113 +1838,11 @@ rules:
       - rbac.authorization.k8s.io
     resources:
       - clusterrolebindings
+      - clusterroles
       - rolebindings
-    verbs:
-      - '*'
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - clusterroles
-    verbs:
-      - '*'
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - cert-manager-operator-controller-manager-clusterrole
-      - cert-manager-operator-metrics-reader
-    resources:
-      - clusterroles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - metrics-reader
-      - servicemesh-operator3-clusterrole
-    resources:
-      - clusterroles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - openshift-lws-operator-clusterrole
-    resources:
-      - clusterroles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
       - roles
     verbs:
       - '*'
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - cert-manager-operator-controller-manager-role
-    resources:
-      - roles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - openshift-lws-operator-role
-    resources:
-      - roles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - servicemesh-operator3-role
-    resources:
-      - roles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
   - apiGroups:
       - route.openshift.io
     resources:
@@ -1995,18 +1870,6 @@ rules:
       - create
       - patch
       - update
-  - apiGroups:
-      - sailoperator.io
-    resources:
-      - istios
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
   - apiGroups:
       - security.openshift.io
     resources:
@@ -2141,6 +2004,18 @@ rules:
       - delete
       - get
       - patch
+  - apiGroups:
+      - telemetry.istio.io
+    resources:
+      - telemetries
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - template.openshift.io
     resources:
@@ -2505,6 +2380,8 @@ spec:
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
               value: "rhai-applications"
+            - name: RHAI_VERSION
+              value: "3.4.0"
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME

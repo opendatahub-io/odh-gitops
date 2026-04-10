@@ -94,6 +94,8 @@ spec:
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
               value: {{ .Values.rhaiOperator.applicationsNamespace | quote }}
+            - name: RHAI_VERSION
+              value: {{ .Chart.AppVersion | quote }}
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: OPERATOR_NAME

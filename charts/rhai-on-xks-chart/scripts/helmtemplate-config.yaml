@@ -81,6 +81,8 @@ rules:
       # Replace RHAI_APPLICATIONS_NAMESPACE with templated value
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_APPLICATIONS_NAMESPACE].value
         value: '{{ .Values.rhaiOperator.applicationsNamespace | quote }}'
+      - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_VERSION].value
+        value: '{{ .Chart.AppVersion | quote }}'
       # Add related images env vars
       - path: .spec.template.spec.containers[name=rhods-operator].env
         appendWith: |
