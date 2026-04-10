@@ -1,4 +1,5 @@
 {{- if .Values.enabled }}
+{{- if .Values.hooks.postInstallCrs.enabled }}
 {{- $createKserve := .Values.components.kserve.enabled }}
 {{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
 {{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
@@ -30,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: create-crs
-          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0
+          image: {{ required "hooks.postInstallCrs.image is required" .Values.hooks.postInstallCrs.image | quote }}
           resources:
             limits:
               cpu: 200m
@@ -102,5 +103,6 @@ spec:
               EOF
               {{- end }}
               echo "Done."
+{{- end }}
 {{- end }}
 {{- end }}

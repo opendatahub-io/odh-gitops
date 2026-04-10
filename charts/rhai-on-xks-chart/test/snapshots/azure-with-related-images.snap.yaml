@@ -2722,7 +2722,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: create-crs
-          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9@sha256:dcb3f93d34aa0fdab33eb37949adfaa8fdd11ff3479363bb7735c5ba3eb345ce"
           resources:
             limits:
               cpu: 200m

@@ -37,6 +37,29 @@
         "type": "string"
       }
     },
+    "hooks": {
+      "type": "object",
+      "description": "Helm hooks configuration",
+      "properties": {
+        "postInstallCrs": {
+          "type": "object",
+          "description": "Post-install hook for creating CRs",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable post-install CR creation hook",
+              "default": true
+            },
+            "image": {
+              "type": "string",
+              "description": "Container image used by the post-install hook job"
+            }
+          },
+          "additionalProperties": false,
+          "required": ["image"]
+        }
+      }
+    },
     "components": {
       "type": "object",
       "description": "Components configuration",
