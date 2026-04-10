@@ -23,6 +23,11 @@ rhaiOperator:
   #   - name: RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE
   #     value: quay.io/opendatahub/kserve-controller:latest
 
+hooks:
+  postInstallCrs:
+    enabled: true
+    image: registry.redhat.io/openshift4/ose-cli-rhel9@sha256:dcb3f93d34aa0fdab33eb37949adfaa8fdd11ff3479363bb7735c5ba3eb345ce
+
 # Components configuration
 components:
   kserve:
