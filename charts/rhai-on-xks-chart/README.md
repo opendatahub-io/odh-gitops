@@ -79,12 +79,33 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
 
 ## How It Works
 
-The chart performs a **two-phase installation**:
+The chart performs a **multi-phase installation**:
 
 1. **Phase 1 — Helm install:** deploys all operator resources (Deployments, RBAC, CRDs, etc.)
-2. **Phase 2 — Post-install hook:** a Helm hook Job runs after install/upgrade to create the Custom Resources that configure the operators
+2. **Phase 2 — Post-install hook (weight 1):** a Helm hook Job creates the Custom Resources (Kserve CR, KubernetesEngine CR) that configure the operators
+3. **Phase 3 — Post-install hook (weight 2):** a Helm hook Job waits for dependencies (Gateway API CRDs, cert-manager CA secret, GatewayClass `istio`) and then creates the `inference-gateway` Gateway CR along with its supporting ConfigMaps
 
-This two-phase approach is necessary because the CRs depend on CRDs that are only available after the operators are deployed.
+Phase 2 and 3 are necessary because the CRs depend on CRDs and resources that are only available after the operators are deployed and reconciled.
+
+### Inference Gateway
+
+By default (`components.kserve.gateway.create: true`), the chart creates a Gateway CR named `inference-gateway` in the applications namespace. This gateway is required for KServe model inference traffic. The hook:
+
+1. Waits for Gateway API CRDs to be installed (by the cloud manager)
+2. Waits for the cert-manager CA secret (`opendatahub-ca`)
+3. Creates a CA bundle ConfigMap (`rhaii-ca-bundle`)
+4. Creates a gateway config ConfigMap (`inference-gateway-config`) with CA bundle mount for istio-proxy and Azure-specific health probe annotation (Azure only)
+5. Waits for the `istio` GatewayClass (created by Sail Operator)
+6. Creates the `inference-gateway` Gateway CR
+
+To disable automatic gateway creation:
+
+```yaml
+components:
+  kserve:
+    gateway:
+      create: false
+```
 
 ## Managed Dependencies
 

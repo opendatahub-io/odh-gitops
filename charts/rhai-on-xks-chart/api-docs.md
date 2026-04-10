@@ -22,6 +22,7 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | azure.kubernetesEngine.spec.dependencies.sailOperator.configuration | object | `{}` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | components.kserve.enabled | bool | `true` |  |
+| components.kserve.gateway.create | bool | `true` |  |
 | components.kserve.spec | object | `{}` |  |
 | coreweave.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | coreweave.cloudManager.imagePullPolicy | string | `"Always"` |  |

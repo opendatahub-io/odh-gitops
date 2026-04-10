@@ -2667,6 +2667,42 @@ rules:
       - create
       - patch
       - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gatewayclasses
+    verbs:
+      - get
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2776,3 +2812,166 @@ spec:
                     managementPolicy: Managed
               EOF
               echo "Done."
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-gateway-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhaii-post-create-gateway
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "2"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhaii-post-install-hook
+      imagePullSecrets:
+        - name: rhaii-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: create-gateway
+          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              TIMEOUT=300
+              INTERVAL=5
+              ELAPSED=0
+
+              echo "Step 1: Waiting for Gateway API CRDs required by Gateway CR 'inference-gateway'..."
+              until kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for Gateway API CRDs after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "CRD not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "Gateway API CRDs are available."
+
+              echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
+              ELAPSED=0
+              until kubectl get secret opendatahub-ca -n cert-manager >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "CA secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "CA secret is available."
+
+              echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
+              kubectl get secret opendatahub-ca -n cert-manager \
+                -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
+              kubectl create configmap rhaii-ca-bundle \
+                --from-file=ca.crt=/tmp/ca.crt \
+                -n rhai-applications \
+                --dry-run=client -o yaml | kubectl apply -f -
+              echo "CA bundle ConfigMap created."
+
+              echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: inference-gateway-config
+                namespace: rhai-applications
+              data:
+                deployment: |
+                  spec:
+                    template:
+                      spec:
+                        volumes:
+                        - name: rhaii-ca-bundle
+                          configMap:
+                            name: rhaii-ca-bundle
+                        containers:
+                        - name: istio-proxy
+                          volumeMounts:
+                          - name: rhaii-ca-bundle
+                            mountPath: /var/run/secrets/rhaii
+                            readOnly: true
+                service: |
+                  metadata:
+                    annotations:
+                      service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
+              EOF
+              echo "ConfigMap used by Gateway CR 'inference-gateway' created."
+
+              echo "Step 5: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
+              ELAPSED=0
+              until kubectl get gatewayclass istio >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for GatewayClass 'istio' after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "GatewayClass 'istio' not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "GatewayClass 'istio' is available."
+
+              echo "Step 6: Creating Gateway CR 'inference-gateway'..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: Gateway
+              metadata:
+                name: inference-gateway
+                namespace: rhai-applications
+              spec:
+                gatewayClassName: istio
+                listeners:
+                  - name: http
+                    port: 80
+                    protocol: HTTP
+                    allowedRoutes:
+                      namespaces:
+                        from: All
+                infrastructure:
+                  labels:
+                    serving.kserve.io/gateway: kserve-ingress-gateway
+                  parametersRef:
+                    group: ""
+                    kind: ConfigMap
+                    name: inference-gateway-config
+              EOF
+              echo "Gateway CR 'inference-gateway' created successfully."

@@ -2,7 +2,8 @@
 {{- $createKserve := .Values.components.kserve.enabled }}
 {{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
 {{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
-{{- if or $createKserve $createAzureKE $createCoreweaveKE }}
+{{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
+{{- if or $createKserve $createAzureKE $createCoreweaveKE $createGateway }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -45,6 +46,44 @@ rules:
       - create
       - patch
       - update
+  {{- if $createGateway }}
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gatewayclasses
+    verbs:
+      - get
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

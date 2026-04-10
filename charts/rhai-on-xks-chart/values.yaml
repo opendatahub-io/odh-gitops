@@ -29,6 +29,10 @@ components:
     # Create Kserve CR via post-install hook
     enabled: true
     spec: {}
+    # Gateway configuration for KServe inference
+    gateway:
+      # Create Gateway and ConfigMaps via post-install hook
+      create: true
 
 # Azure cloud configuration
 azure:
