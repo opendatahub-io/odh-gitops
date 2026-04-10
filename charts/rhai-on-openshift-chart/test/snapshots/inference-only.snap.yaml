@@ -90,6 +90,8 @@ spec:
       registriesNamespace: rhoai-model-registries
     ray:
       managementState: Removed
+    sparkoperator:
+      managementState: Removed
     trainer:
       managementState: Removed
     trainingoperator:

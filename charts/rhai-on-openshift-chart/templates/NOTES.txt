@@ -6,25 +6,26 @@
 
 Operator: {{ $operatorType | upper }}
 Namespace: {{ .Release.Namespace }}
+Profile: {{ .Values.profile | default "default" }}
 
 === Enabled Components ===
 
 {{- range $name, $comp := .Values.components }}
-  - {{ $name }}: {{ $comp.dsc.managementState }}
+  - {{ $name }}: {{ include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $comp.dsc.managementState "root" $ "name" $name) }}
 {{- end }}
 
 === Enabled Services ===
 
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.dsci }}
-  - {{ $name }}: {{ $svc.dsci.managementState }}
+  - {{ $name }}: {{ include "rhoai-dependencies.effectiveServiceManagementState" (dict "state" $svc.dsci.managementState "root" $ "name" $name) }}
 {{- end }}
 {{- end }}
 
 === Enabled Dependencies ===
 
 {{- range $name, $dep := .Values.dependencies }}
-{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" $name "dependency" $dep "dependencies" $.Values.dependencies "components" $.Values.components "services" $.Values.services) }}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" $name "dependency" $dep "root" $) }}
 {{- if eq $shouldInstall "true" }}
   - {{ $name }}
 {{- end }}
@@ -41,8 +42,11 @@ Namespace: {{ .Release.Namespace }}
 3. Check DataScienceCluster status:
    kubectl get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
 
-{{- if or (eq .Values.dependencies.rhcl.enabled "true") (eq .Values.dependencies.rhcl.enabled "auto") }}
-{{- $rhclNs := .Values.dependencies.rhcl.olm.namespace }}
+{{- $rhclDep := .Values.dependencies.rhcl | default dict }}
+{{- $rhclShouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "rhcl" "dependency" $rhclDep "root" .) }}
+{{- if eq $rhclShouldInstall "true" }}
+{{- $rhclOlm := include "rhoai-dependencies.olmConfig" (dict "dependency" $rhclDep "root" $) | fromYaml }}
+{{- $rhclNs := $rhclOlm.namespace }}
 === Enable Authorino TLS (Optional) ===
 
 To enable TLS for Authorino:

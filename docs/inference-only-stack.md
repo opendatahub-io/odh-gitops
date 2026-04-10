@@ -59,33 +59,22 @@ Since all components and monitoring default to `Removed`, the values override on
 
 ## Values Override
 
-The values override file is located at
-[`docs/examples/values-inference-only.yaml`](examples/values-inference-only.yaml).
+The simplest way to deploy the inference-only stack is using the built-in `rhaii` profile:
 
-> [!NOTE]
-> The YAML below is a copy of the values file for reference. If you modify the values, ensure you also update the source
-> file at `docs/examples/values-inference-only.yaml`.
-
-Since all components and monitoring default to `Removed`, the override only needs to enable KServe and set the operator
-type:
-
-```yaml
-# -- Operator configuration
-operator:
-  enabled: true
-  type: rhoai
-
-components:
-  kserve:
-    dependencies:
-      certManager: true
-      leaderWorkerSet: true
-      rhcl: true
-      customMetricsAutoscaler: false  # Disabled for now
-      jobSet: false  # Not needed for inference-only
-    dsc:
-      managementState: Managed
+```bash
+helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
+  --set profile=rhaii \
+  --set operator.type=rhoai \
+  -n rhaii-gitops --create-namespace
 ```
+
+The `rhaii` profile automatically enables KServe with its required dependencies and disables unnecessary ones
+(like jobSet). See the [Deploy Profiles](../charts/rhai-on-openshift-chart/README.md#deploy-profiles) section in the chart README for
+more details.
+
+Alternatively, you can use the values override file at
+[`docs/examples/values-inference-only.yaml`](examples/values-inference-only.yaml) for full control over the
+configuration.
 
 > [!NOTE]
 > The chart's tri-state dependency resolution (`auto`/`true`/`false`) handles transitive dependencies automatically. For
@@ -107,6 +96,13 @@ The first run installs the OLM subscriptions (Namespace, OperatorGroup, Subscrip
 CRDs do not exist yet.
 
 ```bash
+# Using profile (recommended)
+helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
+  --set profile=rhaii \
+  --set operator.type=rhoai \
+  -n rhaii-gitops --create-namespace
+
+# Or using values file for full control
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   -f docs/examples/values-inference-only.yaml \
   -n rhaii-gitops --create-namespace
@@ -139,6 +135,13 @@ Now that CRDs exist, the second run creates the CR resources (DSCInitialization,
 LeaderWorkerSetOperator, etc.):
 
 ```bash
+# Using profile
+helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
+  --set profile=rhaii \
+  --set operator.type=rhoai \
+  -n rhaii-gitops
+
+# Or using values file
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   -f docs/examples/values-inference-only.yaml \
   -n rhaii-gitops
@@ -229,7 +232,7 @@ install:
 
    ```bash
    helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-     -f docs/examples/values-inference-only.yaml \
+     --set profile=rhaii --set operator.type=rhoai \
      -n rhaii-gitops
    ```
 

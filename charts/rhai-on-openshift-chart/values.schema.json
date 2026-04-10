@@ -21,6 +21,12 @@
       "default": false,
       "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
     },
+    "profile": {
+      "type": "string",
+      "enum": ["default", "rhaii"],
+      "default": "default",
+      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
+    },
     "olm": {
       "type": "object",
       "description": "OLM settings for operator subscriptions",
@@ -204,10 +210,17 @@
   },
   "definitions": {
     "defaultManagementState": {
-      "type": "string",
-      "enum": ["Managed", "Removed"],
-      "default": "Removed",
-      "description": "Management state for component in DSC. Managed enables components and auto dependencies management, Removed does not."
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["Managed", "Removed"]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Management state for component in DSC. Managed enables components and auto dependencies management, Removed does not. Null uses the profile default."
     },
     "operatorConfig": {
       "type": "object",
@@ -257,9 +270,12 @@
     },
     "componentDeps": {
       "type": "object",
-      "description": "Boolean map of dependencies required by this component",
+      "description": "Boolean map of dependencies required by this component. Null values are resolved by the profile.",
       "additionalProperties": {
-        "type": "boolean"
+        "oneOf": [
+          { "type": "boolean" },
+          { "type": "null" }
+        ]
       }
     },
     "serviceDeps": {
@@ -413,10 +429,17 @@
           "description": "DSC configuration for Kueue",
           "properties": {
             "managementState": {
-              "type": "string",
-              "enum": ["Unmanaged", "Removed"],
-              "default": "Removed",
-              "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not."
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": ["Unmanaged", "Removed"]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Management state for kueue in DSC. Unmanaged enables auto-dependencies, Removed does not. Null uses the profile default."
             },
             "defaultLocalQueueName": {
               "type": "string",
@@ -718,7 +741,8 @@
       "description": "Monitoring configuration",
       "properties": {
         "managementState": {
-          "$ref": "#/definitions/defaultManagementState"
+          "$ref": "#/definitions/defaultManagementState",
+          "description": "Management state for monitoring. Null uses the profile default."
         },
         "metrics": {
           "type": "object",

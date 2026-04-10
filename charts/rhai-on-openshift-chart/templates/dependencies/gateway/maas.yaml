@@ -1,8 +1,10 @@
 {{- $kserve := .Values.components.kserve | default dict -}}
-{{- $kserveDsc := $kserve.dsc | default dict -}}
+{{- $kserveDscMerged := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "kserve" "component" $kserve "root" .) | fromYaml -}}
 {{- $maas := $kserve.modelsAsService | default dict -}}
 {{- $gateway := $maas.gateway | default dict -}}
-{{- $isMaaSEnabled := and (eq $kserveDsc.modelsAsService.managementState "Managed") (eq $kserveDsc.managementState "Managed") -}}
+{{- $effectiveKserveState := $kserveDscMerged.managementState | default "Removed" -}}
+{{- $effectiveMaaSState := ($kserveDscMerged.modelsAsService | default dict).managementState | default "Removed" -}}
+{{- $isMaaSEnabled := and (eq $effectiveMaaSState "Managed") (eq $effectiveKserveState "Managed") -}}
 {{- $gatewayClass := $maas.gatewayClass | default dict -}}
 {{- if or (eq ($gatewayClass.create | toString) "true") (and $isMaaSEnabled (eq ($gatewayClass.create | toString) "auto")) -}}
 apiVersion: gateway.networking.k8s.io/v1

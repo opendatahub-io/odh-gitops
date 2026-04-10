@@ -1,6 +1,7 @@
 {{- $kserve := .Values.components.kserve | default dict -}}
 {{- $kserveDsc := $kserve.dsc | default dict -}}
-{{- $isKserveManaged := include "rhoai-dependencies.isComponentActive" $kserveDsc.managementState -}}
+{{- $effectiveKserveState := include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $kserveDsc.managementState "root" . "name" "kserve") -}}
+{{- $isKserveManaged := include "rhoai-dependencies.isComponentActive" $effectiveKserveState -}}
 {{- $gwClass := $kserve.gatewayClass | default dict -}}
 {{- $create := ($gwClass.create | toString) -}}
 {{- if or (eq $create "true") (and (eq $create "auto") $isKserveManaged) }}

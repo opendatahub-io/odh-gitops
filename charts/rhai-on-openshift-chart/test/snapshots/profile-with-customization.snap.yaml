@@ -8,15 +8,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-keda
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
----
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -48,7 +39,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: opendatahub-operator-system
+  name: redhat-ods-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -64,8 +55,8 @@ metadata:
 spec:
   monitoring:
     managementState: Removed
-    namespace: opendatahub
-  applicationsNamespace: opendatahub
+    namespace: redhat-ods-monitoring
+  applicationsNamespace: redhat-ods-applications
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
@@ -94,7 +85,7 @@ spec:
         managementState: Removed
       rawDeploymentServiceConfig: Headless
       wva:
-        managementState: Managed
+        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -105,7 +96,7 @@ spec:
       managementState: Removed
     modelregistry:
       managementState: Removed
-      registriesNamespace: odh-model-registry
+      registriesNamespace: rhoai-model-registries
     ray:
       managementState: Removed
     sparkoperator:
@@ -122,7 +113,7 @@ spec:
       managementState: Removed
     workbenches:
       managementState: Removed
-      workbenchNamespace: opendatahub
+      workbenchNamespace: rhods-notebooks
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -202,18 +193,6 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: openshift-custom-metrics-autoscaler-operator
-  namespace: openshift-keda
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
----
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -258,8 +237,8 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: opendatahub-operator
-  namespace: opendatahub-operator-system
+  name: rhods-operator
+  namespace: redhat-ods-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -279,22 +258,6 @@ spec:
   channel: stable-v1
   installPlanApproval: Automatic
   name: openshift-cert-manager-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
----
-# Source: rhai-on-openshift-chart/templates/dependencies/custom-metrics-autoscaler/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: openshift-custom-metrics-autoscaler-operator
-  namespace: openshift-keda
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable
-  installPlanApproval: Automatic
-  name: openshift-custom-metrics-autoscaler-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
@@ -350,16 +313,16 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: opendatahub-operator
-  namespace: opendatahub-operator-system
+  name: rhods-operator
+  namespace: redhat-ods-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
-  channel: fast-3
+  channel: beta
   installPlanApproval: Automatic
-  name: opendatahub-operator
-  source: community-operators
+  name: rhods-operator
+  source: redhat-operators
   sourceNamespace: openshift-marketplace
   config:
     env:

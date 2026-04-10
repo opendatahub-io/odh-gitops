@@ -30,7 +30,14 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
       - [Step 1: Add Component Configuration](#step-1-add-component-configuration)
       - [Step 2: Update DataScienceCluster Template](#step-2-update-datasciencecluster-template)
       - [Step 3: Update JSON Schema](#step-3-update-json-schema-1)
+      - [Step 4: Update All-Components Values File](#step-4-update-all-components-values-file)
+      - [Step 5: Update Documentation](#step-5-update-documentation)
+    - [Adding a New Deploy Profile](#adding-a-new-deploy-profile)
+      - [Step 1: Create the Profile File](#step-1-create-the-profile-file)
+      - [Step 2: Update JSON Schema](#step-2-update-json-schema)
+      - [Step 3: Add Snapshot Test](#step-3-add-snapshot-test)
       - [Step 4: Update Documentation](#step-4-update-documentation-1)
+      - [Step 5: Generate and Test Snapshots](#step-5-generate-and-test-snapshots)
     - [Testing Helm Chart Changes](#testing-helm-chart-changes)
   - [Testing Your Changes](#testing-your-changes)
     - [Kustomize Validation](#kustomize-validation)
@@ -309,6 +316,65 @@ CI pipeline for cluster validation.
 
 1. Update `chart/README.md` with component information
 2. Run `make helm-docs` to regenerate `chart/api-docs.md`
+
+### Adding a New Deploy Profile
+
+Profiles are preconfigured deployment types defined as YAML files in `charts/rhai-on-openshift-chart/profiles/`. Each file mirrors the `values.yaml` structure and contains only the overrides for that profile.
+
+#### Step 1: Create the Profile File
+
+Create a new YAML file in `charts/rhai-on-openshift-chart/profiles/<name>.yaml`:
+
+```yaml
+# profiles/my-profile.yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+  dashboard:
+    dsc:
+      managementState: Managed
+services:
+  monitoring:
+    dsci:
+      managementState: Managed
+```
+
+Only include the components/services you want to change from the default (`Removed`). Dependencies are auto-resolved based on active components.
+
+#### Step 2: Update JSON Schema
+
+Add your profile name to the `profile` enum in `charts/rhai-on-openshift-chart/values.schema.json`:
+
+```json
+"profile": {
+  "enum": ["default", "rhaii", "my-profile"],
+  ...
+}
+```
+
+#### Step 3: Add Snapshot Test
+
+Add a snapshot entry in `scripts/snapshot-config.yaml`:
+
+```yaml
+- name: my-profile
+  setFlags:
+    - skipCrdCheck=true
+    - profile=my-profile
+```
+
+#### Step 4: Update Documentation
+
+1. Add the profile to the Deploy Profiles table in `charts/rhai-on-openshift-chart/README.md`
+2. Run `make helm-docs` to regenerate `charts/rhai-on-openshift-chart/api-docs.md`
+
+#### Step 5: Generate and Test Snapshots
+
+```bash
+make chart-snapshots CHART_NAME=rhai-on-openshift-chart
+make chart-test CHART_NAME=rhai-on-openshift-chart
+```
 
 ### Testing Helm Chart Changes
 

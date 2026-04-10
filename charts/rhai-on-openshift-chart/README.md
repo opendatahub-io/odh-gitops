@@ -6,6 +6,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations 
 
 This chart provides a flexible way to install the operators and configurations required by OpenShift AI (RHOAI) and Open Data Hub (ODH). It supports:
 
+- **Deploy profiles**: Preconfigured deployment types (e.g., `rhaii`) that enable the right components and dependencies with a single flag
 - **Component-based installation**: Enable high-level components (kserve, kueue, aipipelines, ...) and their dependencies are automatically installed
 - **Tri-state dependency management**: Dependencies can be `auto` (install if needed), `true` (always install), or `false` (skip - user has it already)
 - **OLM installation**: Operators are installed via Operator Lifecycle Manager (OLM)
@@ -16,7 +17,27 @@ This chart provides a flexible way to install the operators and configurations r
 > [!NOTE]
 > All commands below assume you are in the repository root directory.
 
-All components default to `Removed`. Use a values file to enable the components you need:
+All components default to `Removed`. You can use a **profile** or a **values file** to enable the components you need.
+
+### Using a profile
+
+Profiles preconfigure which components and dependencies to install with a single flag:
+
+```bash
+# Set OPERATOR_TYPE to: odh | rhoai
+export OPERATOR_TYPE=${OPERATOR_TYPE:-odh}
+
+# Install RHAII stack (KServe + required dependencies for inference)
+helm upgrade --install ${OPERATOR_TYPE} ./charts/rhai-on-openshift-chart -n ${OPERATOR_TYPE}-gitops --create-namespace \
+  --set profile=rhaii \
+  --set operator.type=${OPERATOR_TYPE}
+```
+
+See [Deploy Profiles](#deploy-profiles) for available profiles and details.
+
+### Using a values file
+
+For full control or to enable all components, use a values file:
 
 | Values File | Description |
 |-------------|-------------|
@@ -24,7 +45,6 @@ All components default to `Removed`. Use a values file to enable the components 
 | [`docs/examples/values-inference-only.yaml`](../../docs/examples/values-inference-only.yaml) | Enable only KServe for inference/model serving |
 
 ```bash
-# Set OPERATOR_TYPE to: odh | rhoai
 export OPERATOR_TYPE=${OPERATOR_TYPE:-odh}
 
 # Install with all components enabled
@@ -121,6 +141,34 @@ components:
                   name: <SECRET_NAME>
                 mode: Terminate
 ```
+
+## Deploy Profiles
+
+Profiles provide preconfigured deployment types that set the right `managementState` for components and dependencies with a single `--set profile=<name>` flag.
+
+| Profile | Description | Components enabled | Dependencies auto-installed |
+|---------|-------------|--------------------|-----------------------------|
+| `default` | All components Removed (manual configuration) | None | None |
+| `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
+
+Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
+
+### How profiles work
+
+- When `profile` is set, it provides default `managementState` values for components that are not explicitly configured
+- **Explicit values always win**: setting `--set components.kserve.dsc.managementState=Removed` overrides the profile
+- Profile `default` preserves the standard behavior — all components are `Removed` unless you enable them manually
+- Profiles also control component dependency defaults (e.g., `rhaii` disables `jobSet` for kserve since it's not needed for inference-only deployments)
+
+### Example: RHAII deployment
+
+```bash
+helm upgrade --install rhoai ./charts/rhai-on-openshift-chart -n rhoai-gitops --create-namespace \
+  --set profile=rhaii \
+  --set operator.type=rhoai
+```
+
+This installs the RHOAI operator with KServe enabled and its required dependencies (cert-manager, leader-worker-set, RHCL/Kuadrant).
 
 ## Configuration
 

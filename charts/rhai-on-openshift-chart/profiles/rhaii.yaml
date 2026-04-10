@@ -1,0 +1,9 @@
+# RHAII profile - Inference/model-serving stack
+# Enables KServe with its required dependencies for inference-only deployments.
+# Dependencies auto-installed: cert-manager, leader-worker-set, RHCL/Kuadrant
+components:
+  kserve:
+    dependencies:
+      jobSet: false
+    dsc:
+      managementState: Managed

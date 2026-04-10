@@ -37,10 +37,17 @@ charts:
           - tags.install-with-helm-dependencies=true
 
       - name: inference-only
-        valuesFiles:
-          - docs/examples/values-inference-only.yaml
         setFlags:
           - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=rhaii
+
+      - name: profile-with-customization
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=rhaii
+          - components.kserve.dependencies.jobSet=true
 
       - name: enable-llm-d-wva
         setFlags:

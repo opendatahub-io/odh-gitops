@@ -54,6 +54,8 @@ spec:
       registriesNamespace: odh-model-registry
     ray:
       managementState: Removed
+    sparkoperator:
+      managementState: Removed
     trainer:
       managementState: Removed
     trainingoperator:

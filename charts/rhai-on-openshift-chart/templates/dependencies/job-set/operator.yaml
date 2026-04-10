@@ -2,9 +2,7 @@
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict
   "dependencyName" "jobSet"
   "dependency" $dep
-  "dependencies" .Values.dependencies
-  "components" .Values.components
-  "services" .Values.services
+  "root" $
 ) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if eq (include "rhoai-dependencies.isOlmMode" $) "true" }}

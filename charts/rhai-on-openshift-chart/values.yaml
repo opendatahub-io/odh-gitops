@@ -10,6 +10,11 @@ tags:
 # -- Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD.
 skipCrdCheck: false
 
+# -- Deploy profile: sets default managementState for components and services.
+# Options: default (all Removed), rhaii (KServe for inference/model serving)
+# Explicit managementState values override the profile.
+profile: default
+
 # =============================================================================
 # OLM - Settings for OLM operator subscriptions
 # =============================================================================
@@ -71,7 +76,8 @@ services:
       opentelemetry: true
       tempo: true
     dsci:
-      managementState: Removed
+      # -- Management state for monitoring. Null uses profile default.
+      managementState:
       metrics: {}
       traces: {}
       alerting: {}
@@ -92,8 +98,8 @@ components:
     # -- Dependencies required by AI Pipelines
     dependencies: {}
     dsc:
-      # -- Management state for AI Pipelines (Managed or Removed)
-      managementState: Removed
+      # -- Management state for AI Pipelines. Null uses profile default.
+      managementState:
       # argoWorkflowsControllers:
       #   managementState: Managed
 
@@ -102,8 +108,8 @@ components:
     # -- Dependencies required by Dashboard
     dependencies: {}
     dsc:
-      # -- Management state for Dashboard (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Dashboard. Null uses profile default.
+      managementState:
 
   # -- Feast Operator component
   feastoperator:
@@ -111,8 +117,8 @@ components:
     dependencies: {}
     # -- DSC configuration for Feast Operator
     dsc:
-      # -- Management state for Feast Operator (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Feast Operator. Null uses profile default.
+      managementState:
 
   # -- KServe model serving component
   kserve:
@@ -120,28 +126,29 @@ components:
     dependencies:
       certManager: true
       leaderWorkerSet: true
-      jobSet: true
+      # -- JobSet dependency. Null uses profile default (true for default, false for rhaii).
+      jobSet:
       rhcl: true
       customMetricsAutoscaler: false
     # -- DSC configuration for KServe
     dsc:
-      # -- Management state for KServe (Managed or Removed)
-      managementState: Removed
+      # -- Management state for KServe. Null uses profile default.
+      managementState:
       # -- Models as Service configuration
       modelsAsService:
-        # -- Management state for Models as Service (Managed or Removed)
-        managementState: Removed
+        # -- Management state for Models as Service. Null uses profile default.
+        managementState:
       # -- Enables NVIDIA NIM integration
       nim:
-        # -- Management state for NIM (Managed or Removed)
-        managementState: Removed
+        # -- Management state for NIM. Null uses profile default.
+        managementState:
       # -- Raw deployment service config for KServe (Headless or Headed)
       rawDeploymentServiceConfig: Headless
       # -- Enables llm-d Workload Variant Autoscaler
       # -- Note: When run on Openshift, and set to Managed ensure Custom Metrics Autoscaler (CMA) or Prometheus Adapter is installed
       wva:
-        # -- Management state for workload-variant-autoscaler (Managed or Removed)
-        managementState: Removed
+        # -- Management state for workload-variant-autoscaler. Null uses profile default.
+        managementState:
     # -- GatewayClass configuration for KServe inference
     gatewayClass:
       # -- Create the GatewayClass: auto (if KServe is Managed), true (always), false (never)
@@ -239,8 +246,8 @@ components:
       kueue: true
     # -- DSC configuration for Kueue
     dsc:
-      # -- Management state for Kueue (Unmanaged or Removed). Auto-enables: kueue operator
-      managementState: Removed
+      # -- Management state for Kueue. Null uses profile default.
+      managementState:
       defaultLocalQueueName: default
       defaultClusterQueueName: default
 
@@ -250,8 +257,8 @@ components:
     dependencies: {}
     # -- DSC configuration for Model Registry
     dsc:
-      # -- Management state for Model Registry (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Model Registry. Null uses profile default.
+      managementState:
       # -- Registries namespace for Model Registry (overrides defaults)
       registriesNamespace:
     # -- Operator-type-specific defaults for dsc fields
@@ -268,8 +275,8 @@ components:
       certManager: true
     # -- DSC configuration for Ray
     dsc:
-      # -- Management state for Ray (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Ray. Null uses profile default.
+      managementState:
 
   # -- Trainer component
   trainer:
@@ -279,8 +286,8 @@ components:
       jobSet: true
     # -- DSC configuration for Trainer
     dsc:
-      # -- Management state for Trainer (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Trainer. Null uses profile default.
+      managementState:
 
   # -- Kubeflow Training Operator component
   trainingoperator:
@@ -288,8 +295,8 @@ components:
     dependencies: {}
     # -- DSC configuration for Kubeflow Training Operator
     dsc:
-      # -- Management state for Kubeflow Training Operator (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Kubeflow Training Operator. Null uses profile default.
+      managementState:
 
   # -- TrustyAI component
   trustyai:
@@ -297,8 +304,8 @@ components:
     dependencies: {}
     # -- DSC configuration for TrustyAI
     dsc:
-      # -- Management state for TrustyAI (Managed or Removed)
-      managementState: Removed
+      # -- Management state for TrustyAI. Null uses profile default.
+      managementState:
       # -- Evaluation configuration for TrustyAI evaluations
       eval:
         lmeval:
@@ -311,8 +318,8 @@ components:
     dependencies: {}
     # -- DSC configuration for Workbenches
     dsc:
-      # -- Management state for Workbenches (Managed or Removed)
-      managementState: Removed
+      # -- Management state for Workbenches. Null uses profile default.
+      managementState:
       # -- Workbench namespace for Workbenches (overrides defaults)
       workbenchNamespace:
     # -- Operator-type-specific defaults for dsc fields
@@ -328,8 +335,8 @@ components:
     dependencies: {}
     # -- DSC configuration for MLflow Operator
     dsc:
-      # -- Management state for MLflow Operator (Managed or Removed)
-      managementState: Removed
+      # -- Management state for MLflow Operator. Null uses profile default.
+      managementState:
 
   # -- LlamaStack Operator component
   llamastackoperator:
@@ -339,8 +346,8 @@ components:
       nvidiaGPUOperator: true
     # -- DSC configuration for LlamaStack Operator
     dsc:
-      # -- Management state for LlamaStack Operator (Managed or Removed)
-      managementState: Removed
+      # -- Management state for LlamaStack Operator. Null uses profile default.
+      managementState:
 
   # -- Spark Operator component
   sparkoperator:

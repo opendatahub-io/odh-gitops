@@ -139,7 +139,7 @@ spec:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
       wva:
-        managementState: Removed
+        managementState: Managed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -152,6 +152,8 @@ spec:
       managementState: Managed
       registriesNamespace: odh-model-registry
     ray:
+      managementState: Managed
+    sparkoperator:
       managementState: Managed
     trainer:
       managementState: Managed
