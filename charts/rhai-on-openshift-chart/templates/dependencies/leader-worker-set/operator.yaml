@@ -12,6 +12,7 @@
   "channel" $dep.olm.channel
   "version" $dep.olm.version
   "targetNamespaces" $dep.olm.targetNamespaces
+  "config" $dep.olm.config
   "root" $
 ) }}
 {{- end }}

@@ -13,6 +13,7 @@
   "version" $dep.olm.version
   "source" $dep.olm.source
   "targetNamespaces" $dep.olm.targetNamespaces
+  "config" $dep.olm.config
   "root" $
 ) }}
 {{- end }}

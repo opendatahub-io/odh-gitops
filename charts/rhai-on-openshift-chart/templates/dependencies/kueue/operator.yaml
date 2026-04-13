@@ -11,6 +11,7 @@
   "namespace" $dep.olm.namespace
   "channel" $dep.olm.channel
   "version" $dep.olm.version
+  "config" $dep.olm.config
   "root" $
 ) }}
 {{- end }}

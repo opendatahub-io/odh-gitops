@@ -56,6 +56,12 @@ charts:
           - components.kserve.dsc.wva.managementState=Managed
           - components.kserve.dependencies.customMetricsAutoscaler=true
 
+      - name: with-rhcl-config
+        setFlags:
+          - skipCrdCheck=true
+          - components.kserve.dsc.managementState=Managed
+          - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
+          - dependencies.rhcl.olm.config.env[0].value=image-value
 
   dependencies/cert-manager-operator:
     snapshots:
