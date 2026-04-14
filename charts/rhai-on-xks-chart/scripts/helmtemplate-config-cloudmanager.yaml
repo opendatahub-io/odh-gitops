@@ -44,12 +44,6 @@ rules:
         value: '{{ .Values.CLOUD_NAME.cloudManager.imagePullPolicy }}'
       - path: .spec.template.spec.containers[name=manager].env[name=RHAI_OPERATOR_NAMESPACE].value
         value: '{{ .Values.rhaiOperator.namespace }}'
-      # Update webhook cert secret name (rhods-operator to rhai-operator) TODO: we should change in opendatahub-operator instead
-      - path: .spec.template.spec.containers[name=manager].env[name=RHAI_WEBHOOK_CERT_SECRET_NAME].value
-        value: rhai-operator-controller-webhook-cert
-      # Update webhook service name (rhods-operator to rhai-operator) TODO: we should change in opendatahub-operator instead
-      - path: .spec.template.spec.containers[name=manager].env[name=RHAI_WEBHOOK_SERVICE_NAME].value
-        value: rhai-operator-webhook-service
 
   - match:
       kinds:

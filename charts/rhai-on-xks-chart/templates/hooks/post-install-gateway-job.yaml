@@ -72,7 +72,7 @@ spec:
 
               echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
               ELAPSED=0
-              until kubectl get secret opendatahub-ca -n cert-manager >/dev/null 2>&1; do
+              until kubectl get secret rhaii-ca -n cert-manager >/dev/null 2>&1; do
                 if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
                   echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
                   exit 1
@@ -84,7 +84,7 @@ spec:
               echo "CA secret is available."
 
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
-              kubectl get secret opendatahub-ca -n cert-manager \
+              kubectl get secret rhaii-ca -n cert-manager \
                 -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
               kubectl create configmap rhaii-ca-bundle \
                 --from-file=ca.crt=/tmp/ca.crt \
