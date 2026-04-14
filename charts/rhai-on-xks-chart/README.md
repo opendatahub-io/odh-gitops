@@ -93,7 +93,7 @@ By default (`components.kserve.gateway.create: true`), the chart creates a Gatew
 
 1. Waits for Gateway API CRDs to be installed (by the cloud manager)
 2. Waits for the cert-manager CA secret (`opendatahub-ca`)
-3. Creates a CA bundle ConfigMap (`rhaii-ca-bundle`)
+3. Creates a CA bundle ConfigMap (`odh-ca-bundle`)
 4. Creates a gateway config ConfigMap (`inference-gateway-config`) with CA bundle mount for istio-proxy and Azure-specific health probe annotation (Azure only)
 5. Waits for the `istio` GatewayClass (created by Sail Operator)
 6. Creates the `inference-gateway` Gateway CR

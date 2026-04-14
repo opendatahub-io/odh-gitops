@@ -86,7 +86,7 @@ spec:
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
               kubectl get secret opendatahub-ca -n cert-manager \
                 -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-              kubectl create configmap rhaii-ca-bundle \
+              kubectl create configmap odh-ca-bundle \
                 --from-file=ca.crt=/tmp/ca.crt \
                 -n {{ $appNs }} \
                 --dry-run=client -o yaml | kubectl apply -f -
@@ -105,14 +105,14 @@ spec:
                     template:
                       spec:
                         volumes:
-                        - name: rhaii-ca-bundle
+                        - name: odh-ca-bundle
                           configMap:
-                            name: rhaii-ca-bundle
+                            name: odh-ca-bundle
                         containers:
                         - name: istio-proxy
                           volumeMounts:
-                          - name: rhaii-ca-bundle
-                            mountPath: /var/run/secrets/rhaii
+                          - name: odh-ca-bundle
+                            mountPath: /var/run/secrets/opendatahub
                             readOnly: true
               {{- if .Values.azure.enabled }}
                 service: |
