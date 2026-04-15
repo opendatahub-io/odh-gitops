@@ -98,6 +98,14 @@ spec:
               value: {{ .Chart.AppVersion | quote }}
             - name: ODH_PLATFORM_TYPE
               value: XKS
+            - name: RHAI_CA_SECRET_NAME
+              value: rhaii-ca
+            - name: RHAI_CA_SECRET_NAMESPACE
+              value: cert-manager
+            - name: RHAI_ISSUER_REF_NAME
+              value: rhaii-ca-issuer
+            - name: RHAI_ISTIO_CA_CERTIFICATE_PATH
+              value: /var/run/secrets/rhaii/ca.crt
             - name: OPERATOR_NAME
               value: rhai-operator
             - name: OPERATOR_NAMESPACE
@@ -144,10 +152,40 @@ spec:
             capabilities:
               drop:
                 - ALL
+            readOnlyRootFilesystem: true
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs
               name: cert
               readOnly: true
+            - mountPath: /opt/manifests
+              name: manifests
+            - mountPath: /tmp
+              name: tmp
+      initContainers:
+        - command:
+            - cp
+            - -r
+            - /opt/manifests-template/.
+            - /opt/manifests/
+          image: {{ .Values.rhaiOperator.image }}
+          imagePullPolicy: Always
+          name: copy-manifests
+          resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - mountPath: /opt/manifests
+              name: manifests
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -159,4 +197,11 @@ spec:
           secret:
             defaultMode: 420
             secretName: rhai-operator-controller-webhook-cert
+        - emptyDir:
+            sizeLimit: 256Mi
+          name: manifests
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 10Mi
+          name: tmp
 {{- end }}

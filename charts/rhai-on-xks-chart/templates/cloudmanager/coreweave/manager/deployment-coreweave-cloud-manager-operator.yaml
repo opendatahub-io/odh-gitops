@@ -50,12 +50,6 @@ spec:
           command:
             - /cloudmanager
           env:
-            - name: OPERATOR_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: DEFAULT_CHARTS_PATH
-              value: /opt/charts
             - name: RHAI_OPERATOR_NAMESPACE
               value: {{ .Values.rhaiOperator.namespace }}
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
@@ -70,8 +64,12 @@ spec:
               value: cert-manager
             - name: RHAI_ISSUER_REF_NAME
               value: rhaii-ca-issuer
-            - name: RHAI_ISTIO_CA_CERTIFICATE_PATH
-              value: /var/run/secrets/rhaii/ca.crt
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DEFAULT_CHARTS_PATH
+              value: /opt/charts
           image: {{ .Values.coreweave.cloudManager.image }}
           imagePullPolicy: {{ .Values.coreweave.cloudManager.imagePullPolicy }}
           livenessProbe:
