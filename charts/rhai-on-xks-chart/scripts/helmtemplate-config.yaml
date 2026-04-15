@@ -195,7 +195,7 @@ rules:
       - path: .spec.selector.name
         value: rhai-operator
 
-  # Update MutatingWebhookConfiguration cert annotation and add labels
+  # Update MutatingWebhookConfiguration cert annotation
   - match:
       kinds:
         - MutatingWebhookConfiguration
@@ -204,14 +204,6 @@ rules:
     changes:
       - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
         value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
-      - path: .metadata.labels["app.kubernetes.io/created-by"]
-        value: rhai-operator
-      - path: .metadata.labels["app.kubernetes.io/instance"]
-        value: rhai-operator
-      - path: .metadata.labels["app.kubernetes.io/name"]
-        value: rhai-operator-mutating-webhook-configuration
-      - path: .metadata.labels["app.kubernetes.io/part-of"]
-        value: rhai-operator
 
   # Add image pull secrets to ServiceAccount
   - match:

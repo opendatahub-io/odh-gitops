@@ -2449,11 +2449,6 @@ metadata:
     cert-manager.io/inject-ca-from: rhai-operator/rhai-operator-webhook-cert
   name: rhai-operator-mutating-webhook-configuration
   namespace: rhai-operator
-  labels:
-    app.kubernetes.io/created-by: rhai-operator
-    app.kubernetes.io/instance: rhai-operator
-    app.kubernetes.io/name: rhai-operator-mutating-webhook-configuration
-    app.kubernetes.io/part-of: rhai-operator
 webhooks:
   - admissionReviewVersions:
       - v1
