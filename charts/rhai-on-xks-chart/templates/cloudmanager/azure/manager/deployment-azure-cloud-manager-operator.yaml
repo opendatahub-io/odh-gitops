@@ -70,6 +70,8 @@ spec:
               value: cert-manager
             - name: RHAI_ISSUER_REF_NAME
               value: rhaii-ca-issuer
+            - name: RHAI_ISTIO_CA_CERTIFICATE_PATH
+              value: /var/run/secrets/rhaii/ca.crt
           image: {{ .Values.azure.cloudManager.image }}
           imagePullPolicy: {{ .Values.azure.cloudManager.imagePullPolicy }}
           livenessProbe:
