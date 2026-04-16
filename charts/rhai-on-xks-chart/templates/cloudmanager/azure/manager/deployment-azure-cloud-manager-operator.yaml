@@ -59,11 +59,11 @@ spec:
             - name: RHAI_WEBHOOK_CERT_NAME
               value: rhai-operator-webhook-cert
             - name: RHAI_CA_SECRET_NAME
-              value: rhaii-ca
+              value: rhai-ca
             - name: RHAI_CA_SECRET_NAMESPACE
               value: cert-manager
             - name: RHAI_ISSUER_REF_NAME
-              value: rhaii-ca-issuer
+              value: rhai-ca-issuer
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:

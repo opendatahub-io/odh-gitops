@@ -45,7 +45,7 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | imagePullSecret.dependencyNamespaces[2] | string | `"openshift-lws-operator"` |  |
 | imagePullSecret.dependencyNamespaces[3] | string | `"istio-system"` |  |
 | imagePullSecret.dockerConfigJson | string | `""` |  |
-| imagePullSecret.name | string | `"rhaii-pull-secret"` |  |
+| imagePullSecret.name | string | `"rhai-pull-secret"` |  |
 | installCRDs | bool | `true` |  |
 | labels | object | `{}` |  |
 | rhaiOperator.applicationsNamespace | string | `"redhat-ods-applications"` |  |

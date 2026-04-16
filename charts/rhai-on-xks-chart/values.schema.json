@@ -247,8 +247,8 @@
         "name": {
           "type": "string",
           "description": "Name of the pull secret to create in target namespaces",
-          "default": "rhaii-pull-secret",
-          "const": "rhaii-pull-secret"
+          "default": "rhai-pull-secret",
+          "const": "rhai-pull-secret"
         },
         "dockerConfigJson": {
           "type": "string",

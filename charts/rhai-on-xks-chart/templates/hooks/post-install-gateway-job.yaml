@@ -4,7 +4,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rhaii-post-create-gateway
+  name: rhai-post-create-gateway
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
@@ -20,7 +20,7 @@ spec:
         {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
     spec:
       restartPolicy: Never
-      serviceAccountName: rhaii-post-install-hook
+      serviceAccountName: rhai-post-install-hook
       {{- include "rhai-on-xks-chart.imagePullSecrets" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
@@ -72,7 +72,7 @@ spec:
 
               echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
               ELAPSED=0
-              until kubectl get secret rhaii-ca -n cert-manager >/dev/null 2>&1; do
+              until kubectl get secret rhai-ca -n cert-manager >/dev/null 2>&1; do
                 if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
                   echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
                   exit 1
@@ -84,9 +84,9 @@ spec:
               echo "CA secret is available."
 
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
-              kubectl get secret rhaii-ca -n cert-manager \
+              kubectl get secret rhai-ca -n cert-manager \
                 -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-              kubectl create configmap rhaii-ca-bundle \
+              kubectl create configmap rhai-ca-bundle \
                 --from-file=ca.crt=/tmp/ca.crt \
                 -n {{ $appNs }} \
                 --dry-run=client -o yaml | kubectl apply -f -
@@ -105,14 +105,14 @@ spec:
                     template:
                       spec:
                         volumes:
-                        - name: rhaii-ca-bundle
+                        - name: rhai-ca-bundle
                           configMap:
-                            name: rhaii-ca-bundle
+                            name: rhai-ca-bundle
                         containers:
                         - name: istio-proxy
                           volumeMounts:
-                          - name: rhaii-ca-bundle
-                            mountPath: /var/run/secrets/rhaii
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/rhai
                             readOnly: true
               {{- if .Values.azure.enabled }}
                 service: |

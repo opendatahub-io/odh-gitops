@@ -100,7 +100,7 @@ coreweave:
 imagePullSecret:
   # Name of the pull secret to create in target namespaces. This name MUST not be changed
   # as it is referred also in other installed dependencies and not yet configurable.
-  name: rhaii-pull-secret
+  name: rhai-pull-secret
   # Docker config JSON content (populated via --set-file)
   dockerConfigJson: ""
   # Namespaces created by dependency operators where pull secrets should be injected

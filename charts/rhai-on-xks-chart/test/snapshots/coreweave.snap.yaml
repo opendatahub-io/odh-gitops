@@ -24,7 +24,7 @@ metadata:
   name: coreweave-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 imagePullSecrets:
-  - name: rhaii-pull-secret
+  - name: rhai-pull-secret
 ---
 # Source: rhai-on-xks-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
@@ -33,7 +33,7 @@ metadata:
   name: rhai-operator-controller-manager
   namespace: redhat-ods-operator
 imagePullSecrets:
-  - name: rhaii-pull-secret
+  - name: rhai-pull-secret
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/crds/customresourcedefinition-coreweavekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -2242,11 +2242,11 @@ spec:
             - name: RHAI_WEBHOOK_CERT_NAME
               value: rhai-operator-webhook-cert
             - name: RHAI_CA_SECRET_NAME
-              value: rhaii-ca
+              value: rhai-ca
             - name: RHAI_CA_SECRET_NAMESPACE
               value: cert-manager
             - name: RHAI_ISSUER_REF_NAME
-              value: rhaii-ca-issuer
+              value: rhai-ca-issuer
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -2393,13 +2393,13 @@ spec:
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: RHAI_CA_SECRET_NAME
-              value: rhaii-ca
+              value: rhai-ca
             - name: RHAI_CA_SECRET_NAMESPACE
               value: cert-manager
             - name: RHAI_ISSUER_REF_NAME
-              value: rhaii-ca-issuer
+              value: rhai-ca-issuer
             - name: RHAI_ISTIO_CA_CERTIFICATE_PATH
-              value: /var/run/secrets/rhaii/ca.crt
+              value: /var/run/secrets/rhai/ca.crt
             - name: OPERATOR_NAME
               value: rhai-operator
             - name: OPERATOR_NAMESPACE
@@ -2550,7 +2550,7 @@ webhooks:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: rhaii-post-install-hook
+  name: rhai-post-install-hook
   namespace: default
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -2564,7 +2564,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhaii-post-install-hook
+  name: rhai-post-install-hook
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2633,7 +2633,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhaii-post-install-hook
+  name: rhai-post-install-hook
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2644,17 +2644,17 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhaii-post-install-hook
+  name: rhai-post-install-hook
 subjects:
   - kind: ServiceAccount
-    name: rhaii-post-install-hook
+    name: rhai-post-install-hook
     namespace: default
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rhaii-post-install-crs
+  name: rhai-post-install-crs
   namespace: default
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -2672,9 +2672,9 @@ spec:
         app.kubernetes.io/managed-by: Helm
     spec:
       restartPolicy: Never
-      serviceAccountName: rhaii-post-install-hook
+      serviceAccountName: rhai-post-install-hook
       imagePullSecrets:
-        - name: rhaii-pull-secret
+        - name: rhai-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -2742,7 +2742,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rhaii-post-create-gateway
+  name: rhai-post-create-gateway
   namespace: default
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -2760,9 +2760,9 @@ spec:
         app.kubernetes.io/managed-by: Helm
     spec:
       restartPolicy: Never
-      serviceAccountName: rhaii-post-install-hook
+      serviceAccountName: rhai-post-install-hook
       imagePullSecrets:
-        - name: rhaii-pull-secret
+        - name: rhai-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -2813,7 +2813,7 @@ spec:
 
               echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
               ELAPSED=0
-              until kubectl get secret rhaii-ca -n cert-manager >/dev/null 2>&1; do
+              until kubectl get secret rhai-ca -n cert-manager >/dev/null 2>&1; do
                 if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
                   echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
                   exit 1
@@ -2825,9 +2825,9 @@ spec:
               echo "CA secret is available."
 
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
-              kubectl get secret rhaii-ca -n cert-manager \
+              kubectl get secret rhai-ca -n cert-manager \
                 -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-              kubectl create configmap rhaii-ca-bundle \
+              kubectl create configmap rhai-ca-bundle \
                 --from-file=ca.crt=/tmp/ca.crt \
                 -n redhat-ods-applications \
                 --dry-run=client -o yaml | kubectl apply -f -
@@ -2846,14 +2846,14 @@ spec:
                     template:
                       spec:
                         volumes:
-                        - name: rhaii-ca-bundle
+                        - name: rhai-ca-bundle
                           configMap:
-                            name: rhaii-ca-bundle
+                            name: rhai-ca-bundle
                         containers:
                         - name: istio-proxy
                           volumeMounts:
-                          - name: rhaii-ca-bundle
-                            mountPath: /var/run/secrets/rhaii
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/rhai
                             readOnly: true
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."

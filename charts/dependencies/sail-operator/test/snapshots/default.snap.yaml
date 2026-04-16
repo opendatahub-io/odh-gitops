@@ -12,7 +12,7 @@ metadata:
   name: servicemesh-operator3
   namespace: istio-system
 imagePullSecrets:
-  - name: rhaii-pull-secret
+  - name: rhai-pull-secret
 ---
 # Source: sail-operator/templates/clusterrole-metrics-reader.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -553,4 +553,4 @@ spec:
           ENABLE_GATEWAY_API_INFERENCE_EXTENSION: "true"
     global:
       imagePullSecrets:
-        - rhaii-pull-secret
+        - rhai-pull-secret

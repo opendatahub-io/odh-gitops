@@ -41,10 +41,10 @@ podman login registry.redhat.io --authfile /path/to/auth.json
 
 The `imagePullSecret.dockerConfigJson` parameter:
 
-1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhaii-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
+1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
 2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, and the post-install hook)
 
-The secret name defaults to `rhaii-pull-secret` and **should not** be changed.
+The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
 > [!NOTE]
 > Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To customize which dependency namespaces receive pull secrets, set `imagePullSecret.dependencyNamespaces`.
@@ -92,8 +92,8 @@ Phase 2 and 3 are necessary because the CRs depend on CRDs and resources that ar
 By default (`components.kserve.gateway.create: true`), the chart creates a Gateway CR named `inference-gateway` in the applications namespace. This gateway is required for KServe model inference traffic. The hook:
 
 1. Waits for Gateway API CRDs to be installed (by the cloud manager)
-2. Waits for the cert-manager CA secret (`rhaii-ca`)
-3. Creates a CA bundle ConfigMap (`rhaii-ca-bundle`)
+2. Waits for the cert-manager CA secret (`rhai-ca`)
+3. Creates a CA bundle ConfigMap (`rhai-ca-bundle`)
 4. Creates a gateway config ConfigMap (`inference-gateway-config`) with CA bundle mount for istio-proxy and Azure-specific health probe annotation (Azure only)
 5. Waits for the `istio` GatewayClass (created by Sail Operator)
 6. Creates the `inference-gateway` Gateway CR

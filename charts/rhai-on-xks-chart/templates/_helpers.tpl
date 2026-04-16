@@ -36,7 +36,7 @@ true
 Return the imagePullSecret name.
 */}}
 {{- define "rhai-on-xks-chart.imagePullSecretName" -}}
-{{- .Values.imagePullSecret.name | default "rhaii-pull-secret" -}}
+{{- .Values.imagePullSecret.name | default "rhai-pull-secret" -}}
 {{- end -}}
 
 {{/*
