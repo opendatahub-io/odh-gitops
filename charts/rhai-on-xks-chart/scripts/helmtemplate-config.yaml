@@ -121,8 +121,11 @@ rules:
       # Rename webhook cert secret in volume (rhods-operator to rhai-operator)
       - path: .spec.template.spec.volumes[name=cert].secret.secretName
         value: rhai-operator-controller-webhook-cert
+      # Replace init container image with Helm template value
       - path: .spec.template.spec.initContainers[name=copy-manifests].image
         value: '{{ .Values.rhaiOperator.image }}'
+      - path: .spec.template.spec.initContainers[name=copy-manifests].imagePullPolicy
+        value: '{{ .Values.rhaiOperator.imagePullPolicy }}'
 
   # Rename ServiceAccount
   - match:

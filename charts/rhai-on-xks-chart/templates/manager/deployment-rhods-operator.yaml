@@ -168,7 +168,7 @@ spec:
             - /opt/manifests-template/.
             - /opt/manifests/
           image: {{ .Values.rhaiOperator.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.rhaiOperator.imagePullPolicy }}
           name: copy-manifests
           resources:
             limits:
