@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: create-crs
-          image: {{ required "hooks.postInstallCrs.image is required" .Values.hooks.postInstallCrs.image | quote }}
+          image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
           resources:
             limits:
               cpu: 200m

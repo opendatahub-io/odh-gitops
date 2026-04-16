@@ -41,6 +41,10 @@
       "type": "object",
       "description": "Helm hooks configuration",
       "properties": {
+        "cliImage": {
+          "type": "string",
+          "description": "CLI container image used by all post-install hook jobs"
+        },
         "postInstallCrs": {
           "type": "object",
           "description": "Post-install hook for creating CRs",
@@ -49,16 +53,12 @@
               "type": "boolean",
               "description": "Enable post-install CR creation hook",
               "default": true
-            },
-            "image": {
-              "type": "string",
-              "description": "Container image used by the post-install hook job"
             }
           },
-          "additionalProperties": false,
-          "required": ["image"]
+          "additionalProperties": false
         }
-      }
+      },
+      "required": ["cliImage"]
     },
     "components": {
       "type": "object",

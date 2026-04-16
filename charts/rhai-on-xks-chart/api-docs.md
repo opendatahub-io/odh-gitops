@@ -38,8 +38,8 @@ Red Hat OpenShift AI Operator Helm chart (non-OLM installation)
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.configuration | object | `{}` |  |
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | enabled | bool | `true` |  |
+| hooks.cliImage | string | `"registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"` |  |
 | hooks.postInstallCrs.enabled | bool | `true` |  |
-| hooks.postInstallCrs.image | string | `"registry.redhat.io/openshift4/ose-cli-rhel9@sha256:dcb3f93d34aa0fdab33eb37949adfaa8fdd11ff3479363bb7735c5ba3eb345ce"` |  |
 | imagePullSecret.dependencyNamespaces[0] | string | `"cert-manager-operator"` |  |
 | imagePullSecret.dependencyNamespaces[1] | string | `"cert-manager"` |  |
 | imagePullSecret.dependencyNamespaces[2] | string | `"openshift-lws-operator"` |  |

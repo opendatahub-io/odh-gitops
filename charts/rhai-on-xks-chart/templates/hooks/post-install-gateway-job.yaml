@@ -31,7 +31,7 @@ spec:
           emptyDir: {}
       containers:
         - name: create-gateway
-          image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.21.0
+          image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
           resources:
             limits:
               cpu: 200m
