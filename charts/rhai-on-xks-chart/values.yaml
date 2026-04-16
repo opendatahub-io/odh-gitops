@@ -26,7 +26,7 @@ rhaiOperator:
 hooks:
   postInstallCrs:
     enabled: true
-    image: registry.redhat.io/openshift4/ose-cli-rhel9@sha256:dcb3f93d34aa0fdab33eb37949adfaa8fdd11ff3479363bb7735c5ba3eb345ce
+    image: registry.redhat.io/openshift4/ose-cli-rhel9@sha256:955522d112850dd0be4b385351e7374cf6db9d9e769ecbadbbe4b7666680fb9d
 
 # Components configuration
 components:
