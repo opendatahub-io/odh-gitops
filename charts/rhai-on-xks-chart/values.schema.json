@@ -99,6 +99,11 @@
           "type": "string",
           "description": "Manager container image"
         },
+        "imagePullPolicy": {
+          "type": "string",
+          "description": "Image pull policy for the manager container",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        },
         "relatedImages": {
           "type": "array",
           "description": "Related images env vars (RELATED_IMAGE_*) for disconnected environments",

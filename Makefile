@@ -268,6 +268,24 @@ helm-install-verify: ## Install helm chart and verify installation
 	@echo "=== Step 6: Final helm upgrade with wait condition ==="
 	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --wait --timeout 10m $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
 
+## RHAI on XKS Chart
+XKS_CHART_PATH ?= $(CHARTS_DIR)/rhai-on-xks-chart
+XKS_RELEASE_NAME ?= rhai-on-xks
+XKS_NAMESPACE ?= rhai-on-xks
+XKS_CLOUD_PROVIDER ?= azure
+
+.PHONY: helm-verify-xks
+helm-verify-xks: ## Verify rhai-on-xks-chart installation
+	RELEASE_NAME=$(XKS_RELEASE_NAME) NAMESPACE=$(XKS_NAMESPACE) CLOUD_PROVIDER=$(XKS_CLOUD_PROVIDER) ./charts/rhai-on-xks-chart/scripts/verify.sh
+
+.PHONY: helm-install-verify-xks
+helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
+	@echo "=== Step 1: Install rhai-on-xks-chart ==="
+	helm upgrade --install $(XKS_RELEASE_NAME) ./$(XKS_CHART_PATH) -n $(XKS_NAMESPACE) --create-namespace --set $(XKS_CLOUD_PROVIDER).enabled=true $(HELM_EXTRA_ARGS)
+	@echo ""
+	@echo "=== Step 2: Verify installation ==="
+	$(MAKE) helm-verify-xks
+
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies
 	./scripts/uninstall-helm-chart.sh
