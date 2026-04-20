@@ -20,9 +20,10 @@ fi
 INTERVAL=10
 
 ERRORS=0
+ERROR_MESSAGES=()
 
 log_ok()   { echo "  OK: $1"; }
-log_fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
+log_fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); ERROR_MESSAGES+=("$1"); }
 
 wait_for() {
   local description="$1"
@@ -86,6 +87,32 @@ wait_for_all_deployments_in_namespace() {
     [ -z "${deploy}" ] && continue
     wait_for_deployment "${deploy}" "${ns}"
   done <<< "${deployments}"
+}
+
+wait_for_cr_ready() {
+  local api_resource="$1"
+  local name="$2"
+  local description="${3:-${api_resource}/${name}}"
+
+  if ! wait_for "${description} to exist" kubectl get "${api_resource}" "${name}"; then
+    log_fail "${description} not found"
+    return 1
+  fi
+
+  check_cr_conditions() {
+    local conditions
+    conditions=$(kubectl get "${api_resource}" "${name}" -o jsonpath='{range .status.conditions[?(@.type=="Ready")]}{.status}{end}' 2>/dev/null)
+    [ "${conditions}" = "True" ]
+  }
+
+  if ! wait_for "${description} to be Ready" check_cr_conditions; then
+    log_fail "${description} did not become Ready within ${TIMEOUT}s"
+    kubectl get "${api_resource}" "${name}" -o yaml 2>/dev/null || true
+    return 1
+  fi
+
+  log_ok "${description} is Ready"
+  return 0
 }
 
 echo "=== Verifying rhai-on-xks-chart Installation ==="
@@ -166,25 +193,12 @@ elif [ "${CLOUD_PROVIDER}" = "coreweave" ]; then
   fi
 fi
 
-# --- Step 2: Infrastructure deployments ---
-echo "--- Infrastructure Deployments ---"
-infra_deployments=$(kubectl get deployments -A -l infrastructure.opendatahub.io/part-of -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' 2>/dev/null || echo "")
-if [ -z "${infra_deployments}" ]; then
-  echo "  No deployments with label 'infrastructure.opendatahub.io/part-of' found yet, waiting..."
-  if wait_for "infrastructure deployments" bash -c "kubectl get deployments -A -l infrastructure.opendatahub.io/part-of -o name 2>/dev/null | grep -q ."; then
-    infra_deployments=$(kubectl get deployments -A -l infrastructure.opendatahub.io/part-of -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' 2>/dev/null)
-  fi
-fi
-
-if [ -n "${infra_deployments}" ]; then
-  while IFS= read -r entry; do
-    [ -z "${entry}" ] && continue
-    ns="${entry%%/*}"
-    name="${entry##*/}"
-    wait_for_deployment "${name}" "${ns}"
-  done <<< "${infra_deployments}"
-else
-  log_fail "No infrastructure deployments found"
+# --- Step 2: Cloud provider CR status ---
+echo "--- Cloud Provider CR ---"
+if [ "${CLOUD_PROVIDER}" = "azure" ]; then
+  wait_for_cr_ready "azurekubernetesengines.infrastructure.opendatahub.io" "default-azurekubernetesengine" "AzureKubernetesEngine 'default-azurekubernetesengine'"
+elif [ "${CLOUD_PROVIDER}" = "coreweave" ]; then
+  wait_for_cr_ready "coreweavekubernetesengines.infrastructure.opendatahub.io" "default-coreweavekubernetesengine" "CoreWeaveKubernetesEngine 'default-coreweavekubernetesengine'"
 fi
 
 # --- Step 3: cert-manager deployments ---
@@ -195,9 +209,13 @@ wait_for_all_deployments_in_namespace "cert-manager"
 echo "--- RHAI Operator ---"
 wait_for_deployment "rhai-operator" "redhat-ods-operator" 3
 
-# --- Step 5: Applications namespace deployments ---
-echo "--- Applications ---"
-wait_for_all_deployments_in_namespace "redhat-ods-applications"
+# --- Step 5: KServe component CR status ---
+echo "--- KServe Component ---"
+wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
+
+# --- Step 6: Inference Gateway Istio ---
+echo "--- Inference Gateway Istio ---"
+wait_for_deployment "inference-gateway-istio" "redhat-ods-applications"
 
 # --- Summary ---
 echo ""
@@ -206,6 +224,9 @@ if [ $ERRORS -eq 0 ]; then
   echo "All checks passed"
   exit 0
 else
-  echo "${ERRORS} check(s) failed"
+  echo "${ERRORS} check(s) failed:"
+  for msg in "${ERROR_MESSAGES[@]}"; do
+    echo "  - ${msg}"
+  done
   exit 1
 fi
