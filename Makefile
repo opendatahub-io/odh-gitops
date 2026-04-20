@@ -315,6 +315,8 @@ update-image: yq ## Update xks chart images from Build-Config repo into values-$
 	$(SED_COMMAND) -i '/^  # Example:$$/,/^  #.*value:.*$$/d' "$${override}" && \
 	$(YQ) -i '.rhaiOperator.image = load("'"$${patch}"'").rhaiOperator.image' "$${override}" && \
 	$(YQ) -i '.rhaiOperator.relatedImages = load("'"$${patch}"'").rhaiOperator.relatedImages' "$${override}" && \
+	$(YQ) -i '.azure.cloudManager.image = load("'"$${patch}"'").azure.image' "$${override}" && \
+	$(YQ) -i '.coreweave.cloudManager.image = load("'"$${patch}"'").coreweave.image' "$${override}" && \
 	echo "Created $${override}:" && \
-	echo "  image: $$($(YQ) '.rhaiOperator.image' "$${override}")" && \
+	echo "  rhaiOperator.image: $$($(YQ) '.rhaiOperator.image' "$${override}")" && \
 	echo "  relatedImages: $$($(YQ) '.rhaiOperator.relatedImages | length' "$${override}") entries"
