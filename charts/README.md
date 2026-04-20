@@ -244,6 +244,8 @@ The chart generates its templates from the [opendatahub-operator](https://github
 
 Use `make update-image` to generate a branch-specific values file with operator images from the Build-Config repo. This creates `values-<branch>.yaml`.
 
+**Important:** For RHOAI, you must use a release branch (e.g. `rhoai-3.4`) rather than `main`.
+
 ```bash
 # ODH (default): fetches from ODH-Build-Config main branch
 # Currently not supported yet

@@ -301,11 +301,14 @@ helm-uninstall: ## Uninstall helm chart and all dependencies
 
 .PHONY: update-image
 update-image: yq ## Update xks chart images from Build-Config repo into values-$(BUILD_CONFIG_BRANCH).yaml
-	@echo "Fetching $(BUILD_CONFIG_URL)..."; \
+	@if [ "$(OPERATOR_TYPE)" = "rhoai" ] && [ "$(BUILD_CONFIG_BRANCH)" = "main" ]; then \
+		echo "Error: RHOAI requires a release branch (e.g. rhoai-3.4), not 'main'. Set BUILD_CONFIG_BRANCH=<release-branch>." >&2; exit 1; \
+	fi; \
+	echo "Fetching $(BUILD_CONFIG_URL)..."; \
 	patch=$$(mktemp); \
 	trap "rm -f $${patch}" EXIT; \
 	if ! curl -sfL "$(BUILD_CONFIG_URL)" -o "$${patch}"; then \
-		echo "Error: Failed to fetch $(BUILD_CONFIG_URL)", does the branch exist? >&2; exit 1; \
+		echo "Error: Failed to fetch $(BUILD_CONFIG_URL). Does the branch '$(BUILD_CONFIG_BRANCH)' exist in $(BUILD_CONFIG_REPO)?" >&2; exit 1; \
 	fi; \
 	override="$(XKS_CHART_PATH)/values-$(BUILD_CONFIG_BRANCH).yaml"; \
 	cp "$(XKS_CHART_PATH)/values.yaml" "$${override}" && \
