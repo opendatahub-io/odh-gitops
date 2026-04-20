@@ -240,6 +240,24 @@ The chart generates its templates from the [opendatahub-operator](https://github
 ./charts/rhai-on-xks-chart/scripts/update-bundle.sh v2.19.0 --odh-operator-dir /path/to/opendatahub-operator
 ```
 
+#### Updating Operator Images
+
+Use `make update-image` to generate a branch-specific values file with operator images from the Build-Config repo. This creates `values-<branch>.yaml`.
+
+```bash
+# ODH (default): fetches from ODH-Build-Config main branch
+# Currently not supported yet
+#make update-image
+
+# RHOAI release 3.4
+make update-image OPERATOR_TYPE=rhoai BUILD_CONFIG_BRANCH=rhoai-3.4
+
+# Use the generated file with helm install for RHOAI 3.4
+helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
+  -f charts/rhai-on-xks-chart/values-rhoai-3.4.yaml \
+  -n rhai-on-xks --create-namespace --set azure.enabled=true
+```
+
 The script:
 
 1. Clones (or uses a local) opendatahub-operator repo and runs `make manifests-all`

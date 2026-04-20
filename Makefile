@@ -57,7 +57,9 @@ KUSTOMIZE_MODE ?= true # If false, patches the Authorino CR directly instead of 
 # Operator type for helm installation (odh or rhoai)
 OPERATOR_TYPE ?= odh
 # Branch to fetch images from Build-Config repo
-BUILD_CONFIG_BRANCH ?= main # for RHOAI use rhoai-3.4 or rhoai-3.5-ea.1
+# example for RHOAI: rhoai-3.4 or rhoai-3.5-ea.1
+BUILD_CONFIG_BRANCH ?= main
+BUILD_CONFIG_BRANCH := $(strip $(BUILD_CONFIG_BRANCH))
 
 # Applications namespace based on operator type
 ifeq ($(OPERATOR_TYPE),rhoai)
@@ -298,17 +300,18 @@ helm-uninstall: ## Uninstall helm chart and all dependencies
 	./scripts/uninstall-helm-chart.sh
 
 .PHONY: update-image
-update-image: yq ## Update xks chart images from Build-Config repo
+update-image: yq ## Update xks chart images from Build-Config repo into values-$(BUILD_CONFIG_BRANCH).yaml
 	@echo "Fetching $(BUILD_CONFIG_URL)..."; \
 	patch=$$(mktemp); \
 	trap "rm -f $${patch}" EXIT; \
 	if ! curl -sfL "$(BUILD_CONFIG_URL)" -o "$${patch}"; then \
 		echo "Error: Failed to fetch $(BUILD_CONFIG_URL)", does the branch exist? >&2; exit 1; \
 	fi; \
-	values="$(XKS_CHART_PATH)/values.yaml"; \
-	$(SED_COMMAND) -i '/^  # Example:$$/,/^  #.*value:.*$$/d' "$${values}" && \
-	$(YQ) -i '.rhaiOperator.image = load("'"$${patch}"'").rhaiOperator.image' "$${values}" && \
-	$(YQ) -i '.rhaiOperator.relatedImages = load("'"$${patch}"'").rhaiOperator.relatedImages' "$${values}" && \
-	echo "Updated $${values}:" && \
-	echo "  image: $$($(YQ) '.rhaiOperator.image' "$${values}")" && \
-	echo "  relatedImages: $$($(YQ) '.rhaiOperator.relatedImages | length' "$${values}") entries"
+	override="$(XKS_CHART_PATH)/values-$(BUILD_CONFIG_BRANCH).yaml"; \
+	cp "$(XKS_CHART_PATH)/values.yaml" "$${override}" && \
+	$(SED_COMMAND) -i '/^  # Example:$$/,/^  #.*value:.*$$/d' "$${override}" && \
+	$(YQ) -i '.rhaiOperator.image = load("'"$${patch}"'").rhaiOperator.image' "$${override}" && \
+	$(YQ) -i '.rhaiOperator.relatedImages = load("'"$${patch}"'").rhaiOperator.relatedImages' "$${override}" && \
+	echo "Created $${override}:" && \
+	echo "  image: $$($(YQ) '.rhaiOperator.image' "$${override}")" && \
+	echo "  relatedImages: $$($(YQ) '.rhaiOperator.relatedImages | length' "$${override}") entries"
