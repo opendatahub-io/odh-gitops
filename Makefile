@@ -54,6 +54,22 @@ KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/k
 KUADRANT_NS ?= kuadrant-system # (RHCL operator-related) should match the namespace in Kuadrant CR yaml (default is kuadrant-system)
 KUSTOMIZE_MODE ?= true # If false, patches the Authorino CR directly instead of updating the kustomization.yaml
 
+# Operator type for helm installation (odh or rhoai)
+OPERATOR_TYPE ?= odh
+# Branch to fetch images from Build-Config repo
+BUILD_CONFIG_BRANCH ?= main # for RHOAI use rhoai-3.4 or rhoai-3.5-ea.1
+
+# Applications namespace based on operator type
+ifeq ($(OPERATOR_TYPE),rhoai)
+	APPLICATIONS_NAMESPACE := redhat-ods-applications
+	BUILD_CONFIG_REPO := red-hat-data-services/RHOAI-Build-Config
+else
+	APPLICATIONS_NAMESPACE := opendatahub
+	BUILD_CONFIG_REPO := opendatahub-io/ODH-Build-Config
+endif
+
+BUILD_CONFIG_URL := https://raw.githubusercontent.com/$(BUILD_CONFIG_REPO)/$(BUILD_CONFIG_BRANCH)/helm/xks-values-patch.yaml
+
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
@@ -220,15 +236,6 @@ $(HELM_DOCS): $(LOCALBIN)
 helm-docs: helm-docs-ensure ## Run helm-docs for all charts.
 	$(HELM_DOCS) --chart-search-root $(shell pwd)/$(CHARTS_DIR) -o api-docs.md
 
-# Operator type for helm installation (odh or rhoai)
-OPERATOR_TYPE ?= odh
-
-# Applications namespace based on operator type
-ifeq ($(OPERATOR_TYPE),rhoai)
-	APPLICATIONS_NAMESPACE := redhat-ods-applications
-else
-	APPLICATIONS_NAMESPACE := opendatahub
-endif
 
 .PHONY: helm-verify
 helm-verify: ## Verify helm chart installation and DSC components
@@ -289,3 +296,19 @@ helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies
 	./scripts/uninstall-helm-chart.sh
+
+.PHONY: update-image
+update-image: yq ## Update xks chart images from Build-Config repo
+	@echo "Fetching $(BUILD_CONFIG_URL)..."; \
+	patch=$$(mktemp); \
+	trap "rm -f $${patch}" EXIT; \
+	if ! curl -sfL "$(BUILD_CONFIG_URL)" -o "$${patch}"; then \
+		echo "Error: Failed to fetch $(BUILD_CONFIG_URL)", does the branch exist? >&2; exit 1; \
+	fi; \
+	values="$(XKS_CHART_PATH)/values.yaml"; \
+	$(SED_COMMAND) -i '/^  # Example:$$/,/^  #.*value:.*$$/d' "$${values}" && \
+	$(YQ) -i '.rhaiOperator.image = load("'"$${patch}"'").rhaiOperator.image' "$${values}" && \
+	$(YQ) -i '.rhaiOperator.relatedImages = load("'"$${patch}"'").rhaiOperator.relatedImages' "$${values}" && \
+	echo "Updated $${values}:" && \
+	echo "  image: $$($(YQ) '.rhaiOperator.image' "$${values}")" && \
+	echo "  relatedImages: $$($(YQ) '.rhaiOperator.relatedImages | length' "$${values}") entries"
