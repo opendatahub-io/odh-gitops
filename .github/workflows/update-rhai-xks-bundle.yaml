@@ -1,0 +1,97 @@
+name: Update RHAI XKS Bundle
+
+on:
+  # Run daily at 6:00 AM UTC
+  schedule:
+    - cron: '0 6 * * *'
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (e.g., 3.4.0-ea.2). If not provided, uses "plus one" detection'
+        required: false
+        type: string
+      branch:
+        description: 'Branch to use from rhods-operator. If not provided, uses "plus one" detection'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-rhai-xks-bundle:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          echo "Installing required tools via make..."
+          make tools
+          echo "Dependencies installed successfully"
+
+      - name: Detect Target Version and Configure
+        id: version-detection
+        run: ./scripts/detect-rhoai-version.sh "${{ github.event.inputs.version }}" "${{ github.event.inputs.branch }}"
+
+      - name: Execute Bundle Update
+        run: |
+          echo "Executing bundle update..."
+          echo "Working directory: $(pwd)"
+          echo "Executing: ${{ github.workspace }}/charts/rhai-on-xks-chart/scripts/update-bundle.sh ${{ env.VERSION }} --branch ${{ env.BRANCH }}"
+
+          ${{ github.workspace }}/charts/rhai-on-xks-chart/scripts/update-bundle.sh "${{ env.VERSION }}" --branch "${{ env.BRANCH }}"
+
+          echo "Bundle update completed successfully"
+
+      - name: Fix Working Directory and Regenerate Chart Snapshots
+        run: |
+          echo "Regenerating chart snapshots..."
+          echo "Working directory: $(pwd)"
+
+          # Ensure we're in repository root for make command
+          cd ${{ github.workspace }}
+
+          # Regenerate snapshots for the XKS chart
+          make chart-snapshots CHART_NAME=rhai-on-xks-chart
+
+          echo "Chart snapshots regenerated successfully"
+
+      - name: Create Pull Request with Reusable Action
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "chore: update RHAI XKS chart bundle to version ${{ env.VERSION }}"
+          body: |
+            ## Automated RHAI XKS Bundle Update
+
+            **Version**: ${{ env.VERSION }}
+            **Branch**: ${{ env.BRANCH }}
+            **Latest Released**: ${{ env.LATEST_RELEASED }}
+            **Triggered by**: ${{ github.event_name == 'schedule' && 'Scheduled run' || 'Manual trigger' }}
+
+            This PR updates the RHAI XKS chart templates and snapshots to stay current with the rhods-operator repository.
+
+            ### Changes
+            - Updated Helm templates from rhods-operator ${{ env.BRANCH }} branch
+            - Regenerated chart snapshots for testing
+            - Applied RHOAI "plus one" release progression logic
+
+            ### RHOAI Release Progression
+            - **Latest Released**: ${{ env.LATEST_RELEASED }}
+            - **Target Version**: ${{ env.VERSION }}
+            - **Target Branch**: ${{ env.BRANCH }}
+
+            This is an automated update using [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request)
+
+            ### Testing
+            This PR automatically includes the `run-xks-e2e` label to trigger end-to-end tests.
+          branch: automated-xks-bundle-update
+          labels: run-xks-e2e
+          commit-message: "chore: update RHAI XKS chart bundle to version ${{ env.VERSION }}"
+          author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+          delete-branch: false
