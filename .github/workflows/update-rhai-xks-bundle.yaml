@@ -16,17 +16,16 @@ on:
         required: false
         type: string
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   update-rhai-xks-bundle:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
       - name: Install Dependencies
         run: |
@@ -34,9 +33,29 @@ jobs:
           make tools
           echo "Dependencies installed successfully"
 
+      - name: Validate Inputs
+        id: input-validation
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          BRANCH_INPUT: ${{ github.event.inputs.branch }}
+        run: |
+          # Validate version format (only allow semver with optional ea suffix)
+          if [[ -n "$VERSION_INPUT" ]]; then
+            if ! [[ "$VERSION_INPUT" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-ea\.[0-9]+)?$ ]]; then
+              echo "ERROR: Invalid version format: $VERSION_INPUT"
+              echo "Expected format: X.Y.Z or X.Y.Z-ea.N"
+              exit 1
+            fi
+          fi
+
+          echo "Input validation passed"
+
       - name: Detect Target Version and Configure
         id: version-detection
-        run: ./scripts/detect-rhoai-version.sh "${{ github.event.inputs.version }}" "${{ github.event.inputs.branch }}"
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          BRANCH_INPUT: ${{ github.event.inputs.branch }}
+        run: ./scripts/detect-rhoai-version.sh "$VERSION_INPUT" "$BRANCH_INPUT"
 
       - name: Execute Bundle Update
         run: |
@@ -62,7 +81,7 @@ jobs:
           echo "Chart snapshots regenerated successfully"
 
       - name: Create Pull Request with Reusable Action
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "chore: update RHAI XKS chart bundle to version ${{ env.VERSION }}"
