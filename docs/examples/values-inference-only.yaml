@@ -14,12 +14,12 @@
 #
 # Usage with profile:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
-#     --set profile=rhaii -n rhaii-gitops --create-namespace
+#     --set profile=rhaii -n rhai-gitops --create-namespace
 #
 # Usage with values file:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
 #     -f docs/examples/values-inference-only.yaml \
-#     -n rhaii-gitops --create-namespace
+#     -n rhai-gitops --create-namespace
 # =============================================================================
 
 # -- Set skipCrdCheck to true for ArgoCD (see docs/inference-only-stack.md)

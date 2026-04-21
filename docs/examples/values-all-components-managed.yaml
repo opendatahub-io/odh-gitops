@@ -10,7 +10,7 @@
 # Usage:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
 #     -f docs/examples/values-all-components-managed.yaml \
-#     -n rhaii-gitops --create-namespace
+#     -n rhai-gitops --create-namespace
 # =============================================================================
 
 # -- Enable monitoring

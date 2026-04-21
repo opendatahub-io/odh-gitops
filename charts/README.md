@@ -214,7 +214,7 @@ kubectl annotate validatingwebhookconfiguration istio-validator-istio-system sai
 
 ## Updating Charts
 
-### RHAI On XKS Helm Chart
+### RHAI on XKS Helm Chart
 
 See the [`rhai-on-xks-chart` README](rhai-on-xks-chart/README.md) for installation and usage details.
 

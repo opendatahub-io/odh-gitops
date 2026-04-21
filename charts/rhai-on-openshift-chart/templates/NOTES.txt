@@ -36,8 +36,7 @@ Profile: {{ .Values.profile | default "default" }}
 1. Wait for operators to be ready:
    kubectl get csv -A | grep -E "(rhods|opendatahub|cert-manager|leader-worker)"
 
-2. If CRs were not created (first install), run again:
-   helm upgrade --install {{ .Release.Name }} ./chart -n {{ .Release.Namespace }}
+2. If CRs were not created (first install), run the same helm upgrade command again.
 
 3. Check DataScienceCluster status:
    kubectl get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
