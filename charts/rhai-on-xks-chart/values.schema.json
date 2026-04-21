@@ -76,6 +76,18 @@
             "spec": {
               "type": "object",
               "description": "Kserve CR spec"
+            },
+            "gateway": {
+              "type": "object",
+              "description": "Gateway configuration for KServe inference",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Create Gateway and ConfigMaps via post-install hook",
+                  "default": true
+                }
+              },
+              "additionalProperties": false
             }
           }
         }
@@ -139,11 +151,16 @@
             "namespace": {
               "type": "string",
               "description": "Cloud Manager operator namespace",
-              "default": "cloudmanager-operator-system"
+              "default": "rhai-cloudmanager-system"
             },
             "image": {
               "type": "string",
               "description": "Cloud Manager container image"
+            },
+            "imagePullPolicy": {
+              "type": "string",
+              "description": "Image pull policy for the Cloud Manager container",
+              "enum": ["Always", "IfNotPresent", "Never"]
             }
           }
         },
@@ -200,11 +217,16 @@
             "namespace": {
               "type": "string",
               "description": "Cloud Manager operator namespace",
-              "default": "cloudmanager-operator-system"
+              "default": "rhai-cloudmanager-system"
             },
             "image": {
               "type": "string",
               "description": "Cloud Manager container image"
+            },
+            "imagePullPolicy": {
+              "type": "string",
+              "description": "Image pull policy for the Cloud Manager container",
+              "enum": ["Always", "IfNotPresent", "Never"]
             }
           }
         },
