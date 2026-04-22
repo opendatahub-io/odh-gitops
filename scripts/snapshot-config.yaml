@@ -107,3 +107,8 @@ charts:
           - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
 
+      - name: azure-with-gateway-hostname
+        setFlags:
+          - azure.enabled=true
+          - components.kserve.gateway.hostname=*.redhat.com
+

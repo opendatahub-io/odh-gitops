@@ -84,12 +84,8 @@ spec:
               echo "CA secret is available."
 
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
-              kubectl get secret rhai-ca -n cert-manager \
-                -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-              kubectl create configmap rhai-ca-bundle \
-                --from-file=ca.crt=/tmp/ca.crt \
-                -n {{ $appNs }} \
-                --dry-run=client -o yaml | kubectl apply -f -
+              kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n {{ $appNs }} --dry-run=client -o yaml | kubectl apply -f -
               echo "CA bundle ConfigMap created."
 
               echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
@@ -123,7 +119,43 @@ spec:
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
 
-              echo "Step 5: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
+              echo "Step 5: Creating Certificate for Gateway TLS..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: inference-gateway-cert
+                namespace: {{ $appNs }}
+              spec:
+                secretName: inference-gateway-cert-secret
+                issuerRef:
+                  name: rhai-ca-issuer  # need match RHAI_ISSUER_REF_NAME
+                  kind: ClusterIssuer
+                  group: cert-manager.io
+                dnsNames:
+                  - "*.{{ $appNs }}.svc.cluster.local"
+                  - "*.{{ $appNs }}.svc"
+                  {{- if .Values.components.kserve.gateway.hostname }}
+                  - {{ .Values.components.kserve.gateway.hostname | quote }}
+                  - {{ .Values.components.kserve.gateway.hostname | replace "*." "" | quote }}
+                  {{- end }}
+              EOF
+              echo "Certificate 'inference-gateway-cert' created."
+
+              echo "Waiting for inference-gateway-cert-secret Secret to be created by cert-manager..."
+              ELAPSED=0
+              until kubectl get secret inference-gateway-cert-secret -n {{ $appNs }} >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for inference-gateway-cert-secret Secret after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "Secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "inference-gateway-cert-secret Secret is available."
+
+              echo "Step 6: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
               ELAPSED=0
               until kubectl get gatewayclass istio >/dev/null 2>&1; do
                 if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
@@ -136,7 +168,7 @@ spec:
               done
               echo "GatewayClass 'istio' is available."
 
-              echo "Step 6: Creating Gateway CR 'inference-gateway'..."
+              echo "Step 7: Creating Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: gateway.networking.k8s.io/v1
               kind: Gateway
@@ -152,6 +184,18 @@ spec:
                     allowedRoutes:
                       namespaces:
                         from: All
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
+                    allowedRoutes:
+                      namespaces:
+                        from: All
+                    tls:
+                      certificateRefs:
+                        - group: ''
+                          kind: Secret
+                          name: inference-gateway-cert-secret
+                      mode: Terminate
                 infrastructure:
                   labels:
                     serving.kserve.io/gateway: kserve-ingress-gateway
