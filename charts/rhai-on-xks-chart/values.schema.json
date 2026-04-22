@@ -213,6 +213,11 @@
                       }
                     }
                   }
+                },
+                "hostname": {
+                  "type": "string",
+                  "description": "External hostname for TLS certificate (e.g. *.mycompany.com). If not set, only cluster-internal DNS is used.",
+                  "default": ""
                 }
               }
             }

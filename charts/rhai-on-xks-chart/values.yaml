@@ -80,6 +80,8 @@ components:
           # selector:
           #   matchLabels:
           #     inference-gateway-access: "true"
+      # External hostname for TLS certificate (e.g. "*.mycompany.com"). If not set, only cluster-internal DNS is used.
+      hostname: ""
 
 # Azure cloud configuration
 azure:
