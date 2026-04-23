@@ -518,6 +518,7 @@ rules:
     resources:
       - events
     verbs:
+      - create
       - get
       - list
       - patch
@@ -1221,6 +1222,7 @@ rules:
     resources:
       - events
     verbs:
+      - create
       - delete
       - get
       - list
