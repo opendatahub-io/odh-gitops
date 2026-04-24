@@ -8,16 +8,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version for versioned branches (e.g., 3.4.0-ea.2).'
+        description: 'Version for versioned branches (e.g., 3.4.0-ea.2). Defaults to RHOAI_VERSION from Makefile.'
         required: false
         type: string
-        default: 'main'
       branch:
-        description: 'Source branch (main for latest code, or rhoai-X.Y for specific version)'
+        description: 'Source branch (main for latest code, or rhoai-X.Y for specific version). Defaults to main.'
         required: false
         type: string
         default: 'main'
-
 jobs:
   update-rhai-xks-bundle:
     runs-on: ubuntu-latest
@@ -44,9 +42,17 @@ jobs:
         run: |
           echo "=== RHAI XKS Bundle Configuration ==="
 
-          # Set defaults and validate with simple regex grouping
+          # Set defaults and override with inputs if provided
           BRANCH="${BRANCH_INPUT:-main}"
-          VERSION="${VERSION_INPUT:-main}"
+          if [[ -z "$VERSION_INPUT" ]]; then
+            VERSION=$(make -s print-rhoai-version)
+            echo "Using RHOAI_VERSION from Makefile: $VERSION"
+          else
+            VERSION="$VERSION_INPUT"
+            echo "Using provided version: $VERSION"
+          fi
+
+          echo "Final configuration - VERSION: $VERSION, BRANCH: $BRANCH"
 
           # Validate branch format (main or rhoai-X.Y or rhoai-X.Y-ea.N)
           [[ ! "$BRANCH" =~ ^(main|rhoai-[0-9]+\.[0-9]+(-ea\.[0-9]+)?)$ ]] && {
@@ -55,10 +61,10 @@ jobs:
             exit 1
           }
 
-          # Validate version format (main or X.Y.Z or X.Y.Z-ea.N)
-          [[ ! "$VERSION" =~ ^(main|[0-9]+\.[0-9]+\.[0-9]+(-ea\.[0-9]+)?)$ ]] && {
+          # Validate version format (X.Y.Z or X.Y.Z-ea.N)
+          [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-ea\.[0-9]+)?$ ]] && {
             echo "ERROR: Invalid version format: $VERSION"
-            echo "Expected: main or X.Y.Z or X.Y.Z-ea.N"
+            echo "Expected: X.Y.Z or X.Y.Z-ea.N"
             exit 1
           }
 
@@ -82,14 +88,9 @@ jobs:
           echo "BRANCH: $BRANCH"
           echo "VERSION: $VERSION"
 
-          # For main branch, use latest code without version specification
-          if [[ "$BRANCH" == "main" ]]; then
-            echo "Using main branch for latest code (VERSION=$VERSION is metadata only)"
-            ${{ github.workspace }}/charts/rhai-on-xks-chart/scripts/update-bundle.sh --branch "$BRANCH"
-          else
-            echo "Using versioned branch: $BRANCH with version: $VERSION"
-            ${{ github.workspace }}/charts/rhai-on-xks-chart/scripts/update-bundle.sh "$VERSION" --branch "$BRANCH"
-          fi
+          # Execute bundle update with consistent argument pattern
+          echo "Using branch: $BRANCH with version: $VERSION"
+          ${{ github.workspace }}/charts/rhai-on-xks-chart/scripts/update-bundle.sh "$VERSION" --branch "$BRANCH"
 
           echo "Bundle update completed successfully"
 
