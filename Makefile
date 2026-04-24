@@ -5,6 +5,16 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
+##@ Version Management
+
+.PHONY: print-rhoai-version
+print-rhoai-version: ## Print current RHOAI_VERSION from Makefile
+	@echo $(RHOAI_VERSION)
+
+.PHONY: update-rhoai-version
+update-rhoai-version: yq ## Update RHOAI_VERSION from ODH-Build-Config
+	@./scripts/update-rhoai-version.sh
+
 ##@ Tools
 
 ## Detect OS and Architecture
@@ -42,6 +52,10 @@ KUBE_LINTER ?= $(LOCALBIN)/kube-linter
 YAMLLINT ?= $(LOCALBIN)/yamllint
 K8S_CLI ?= kubectl
 YQ ?= $(LOCALBIN)/yq
+
+## Application Versions
+# RHOAI version to use for bundle updates - update this when new catalog folder appears in RHOAI-Build-Config
+RHOAI_VERSION ?= 3.5.0-ea.1
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.0

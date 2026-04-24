@@ -2,5 +2,5 @@ apiVersion: v2
 name: rhai-on-xks-chart
 description: RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes services (Azure, CoreWeave).
 type: application
-version: 3.4.0
-appVersion: 3.4.0
+version: 3.5.0-ea.1
+appVersion: 3.5.0-ea.1

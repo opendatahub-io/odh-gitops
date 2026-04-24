@@ -1,0 +1,139 @@
+name: Update RHAI XKS Bundle
+
+on:
+  # Run daily at 6:00 AM UTC
+  schedule:
+    - cron: '0 6 * * *'
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for versioned branches (e.g., 3.4.0-ea.2). Defaults to RHOAI_VERSION from Makefile.'
+        required: false
+        type: string
+      branch:
+        description: 'Source branch (main for latest code, or rhoai-X.Y for specific version). Defaults to main.'
+        required: false
+        type: string
+        default: 'main'
+jobs:
+  update-rhai-xks-bundle:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Dependencies
+        run: |
+          echo "Installing required tools via make..."
+          make tools
+          echo "Dependencies installed successfully"
+
+
+      - name: Configure Version and Branch
+        id: version-detection
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          BRANCH_INPUT: ${{ github.event.inputs.branch }}
+        run: |
+          echo "=== RHAI XKS Bundle Configuration ==="
+
+          # Set defaults and override with inputs if provided
+          BRANCH="${BRANCH_INPUT:-main}"
+          if [[ -z "$VERSION_INPUT" ]]; then
+            VERSION=$(make -s print-rhoai-version)
+            echo "Using RHOAI_VERSION from Makefile: $VERSION"
+          else
+            VERSION="$VERSION_INPUT"
+            echo "Using provided version: $VERSION"
+          fi
+
+          echo "Final configuration - VERSION: $VERSION, BRANCH: $BRANCH"
+
+          # Validate branch format (main or rhoai-X.Y or rhoai-X.Y-ea.N)
+          [[ ! "$BRANCH" =~ ^(main|rhoai-[0-9]+\.[0-9]+(-ea\.[0-9]+)?)$ ]] && {
+            echo "ERROR: Invalid branch format: $BRANCH"
+            echo "Expected: main or rhoai-X.Y or rhoai-X.Y-ea.N"
+            exit 1
+          }
+
+          # Validate version format (X.Y.Z or X.Y.Z-ea.N)
+          [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-ea\.[0-9]+)?$ ]] && {
+            echo "ERROR: Invalid version format: $VERSION"
+            echo "Expected: X.Y.Z or X.Y.Z-ea.N"
+            exit 1
+          }
+
+          echo "Final configuration:"
+          echo "  BRANCH: $BRANCH"
+          echo "  VERSION: $VERSION"
+
+          # Export environment variables securely
+          printf 'VERSION=%s\n' "$VERSION" >> "$GITHUB_ENV"
+          printf 'BRANCH=%s\n' "$BRANCH" >> "$GITHUB_ENV"
+
+          echo "Configuration completed successfully"
+
+      - name: Execute Bundle Update
+        env:
+          VERSION: ${{ env.VERSION }}
+          BRANCH: ${{ env.BRANCH }}
+        run: |
+          echo "Executing bundle update..."
+          echo "Working directory: $(pwd)"
+          echo "BRANCH: $BRANCH"
+          echo "VERSION: $VERSION"
+
+          # Execute bundle update with consistent argument pattern
+          echo "Using branch: $BRANCH with version: $VERSION"
+          ${{ github.workspace }}/charts/rhai-on-xks-chart/scripts/update-bundle.sh "$VERSION" --branch "$BRANCH"
+
+          echo "Bundle update completed successfully"
+
+      - name: Fix Working Directory and Regenerate Chart Snapshots
+        run: |
+          echo "Regenerating chart snapshots..."
+          echo "Working directory: $(pwd)"
+
+          # Ensure we're in repository root for make command
+          cd ${{ github.workspace }}
+
+          # Regenerate snapshots for the XKS chart
+          make chart-snapshots CHART_NAME=rhai-on-xks-chart
+
+          echo "Chart snapshots regenerated successfully"
+
+      - name: Create Pull Request with Reusable Action
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "chore: update RHAI XKS chart bundle from rhods-operator ${{ env.BRANCH }}"
+          body: |
+            ## Automated RHAI XKS Bundle Update
+
+            **Source Branch**: ${{ env.BRANCH }}
+            **Version**: ${{ env.VERSION }}
+            **Triggered by**: ${{ github.event_name == 'schedule' && 'Scheduled run' || 'Manual trigger' }}
+
+            This PR updates the RHAI XKS chart templates and snapshots to stay current with the rhods-operator repository.
+
+            ### Changes
+            - Updated Helm templates from rhods-operator `${{ env.BRANCH }}` branch
+            - Regenerated chart snapshots for testing
+
+            ### Update Strategy
+            ${{ env.BRANCH == 'main' && '- **Main Branch**: Using latest code from main branch for cutting-edge features' || format('- **Versioned Branch**: Using specific version {0} from {1} branch', env.VERSION, env.BRANCH) }}
+
+            This is an automated update using [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request)
+
+            ### Testing
+            This PR automatically includes the `run-xks-e2e` label to trigger end-to-end tests.
+          branch: automated-xks-bundle-update
+          labels: run-xks-e2e
+          commit-message: "chore: update RHAI XKS chart bundle from rhods-operator ${{ env.BRANCH }}"
+          author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+          delete-branch: false
