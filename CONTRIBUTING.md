@@ -166,7 +166,7 @@ See [Testing Your Changes](#testing-your-changes) section below.
 
 ## Contributing to the Helm Chart
 
-The repository includes a Helm chart (`chart/`) that provides an alternative installation method alongside Kustomize. When adding or modifying dependencies, you should also update the Helm chart.
+The repository includes Helm charts (in `charts/`) that provide an alternative installation method alongside Kustomize. When adding or modifying dependencies, you should also update the relevant Helm chart.
 
 ### Adding a New Dependency to the Helm Chart
 
@@ -174,7 +174,7 @@ When adding a new dependency operator, follow these steps:
 
 #### Step 1: Add Values Configuration
 
-Add your dependency to `chart/values.yaml` under the `dependencies` section.
+Add your dependency to `charts/rhai-on-openshift-chart/values.yaml` under the `dependencies` section.
 
 Structure:
 
@@ -204,7 +204,7 @@ dependencies:
 
 #### Step 2: Create Dependency Templates
 
-Create a new directory `chart/templates/dependencies/your-operator/` with:
+Create a new directory `charts/rhai-on-openshift-chart/templates/dependencies/your-operator/` with:
 
 **operator.yaml** - OLM installation:
 
@@ -240,11 +240,11 @@ spec:
 
 #### Step 3: Update JSON Schema
 
-Add your dependency to [`chart/values.schema.json`](./chart/values.schema.json) to enable validation.
+Add your dependency to [`charts/rhai-on-openshift-chart/values.schema.json`](./charts/rhai-on-openshift-chart/values.schema.json) to enable validation.
 
 #### Step 4: Update Documentation
 
-Run `make helm-docs` to regenerate `chart/api-docs.md`.
+Run `make helm-docs` to regenerate `charts/rhai-on-openshift-chart/api-docs.md`.
 
 ### Adding a New Component to the Helm Chart
 
@@ -252,7 +252,7 @@ Components are high-level features (like kserve, kueue, aipipelines) that config
 
 #### Step 1: Add Component Configuration
 
-Add your component to `chart/values.yaml` under the `components` section.
+Add your component to `charts/rhai-on-openshift-chart/values.yaml` under the `components` section.
 
 Structure:
 
@@ -281,7 +281,7 @@ components:
 
 #### Step 2: Update DataScienceCluster Template
 
-Add your component to `chart/templates/operator/datasciencecluster.yaml`:
+Add your component to `charts/rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml`:
 
 ```yaml
 spec:
@@ -294,7 +294,7 @@ spec:
 
 #### Step 3: Update JSON Schema
 
-Add your component to `chart/values.schema.json` under the `components` section.
+Add your component to `charts/rhai-on-openshift-chart/values.schema.json` under the `components` section.
 
 #### Step 4: Update All-Components Values File
 
@@ -314,8 +314,8 @@ CI pipeline for cluster validation.
 
 #### Step 5: Update Documentation
 
-1. Update `chart/README.md` with component information
-2. Run `make helm-docs` to regenerate `chart/api-docs.md`
+1. Update `charts/rhai-on-openshift-chart/README.md` with component information
+2. Run `make helm-docs` to regenerate `charts/rhai-on-openshift-chart/api-docs.md`
 
 ### Adding a New Deploy Profile
 
@@ -430,7 +430,7 @@ Always test your changes before submitting a PR.
 1. **Lint the chart**:
 
    ```bash
-   helm lint ./chart
+   helm lint ./charts/rhai-on-openshift-chart
    ```
 
 2. **Update snapshots**:

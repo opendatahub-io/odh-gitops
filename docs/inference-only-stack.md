@@ -65,7 +65,7 @@ The simplest way to deploy the inference-only stack is using the built-in `rhaii
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   --set profile=rhaii \
   --set operator.type=rhoai \
-  -n rhaii-gitops --create-namespace
+  -n rhai-gitops --create-namespace
 ```
 
 The `rhaii` profile automatically enables KServe with its required dependencies and disables unnecessary ones
@@ -100,12 +100,12 @@ CRDs do not exist yet.
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   --set profile=rhaii \
   --set operator.type=rhoai \
-  -n rhaii-gitops --create-namespace
+  -n rhai-gitops --create-namespace
 
 # Or using values file for full control
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   -f docs/examples/values-inference-only.yaml \
-  -n rhaii-gitops --create-namespace
+  -n rhai-gitops --create-namespace
 ```
 
 ### 3. Wait for CRDs
@@ -139,12 +139,12 @@ LeaderWorkerSetOperator, etc.):
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   --set profile=rhaii \
   --set operator.type=rhoai \
-  -n rhaii-gitops
+  -n rhai-gitops
 
 # Or using values file
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   -f docs/examples/values-inference-only.yaml \
-  -n rhaii-gitops
+  -n rhai-gitops
 ```
 
 ### 5. Enable Authorino TLS (post-install)
@@ -233,7 +233,7 @@ install:
    ```bash
    helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
      --set profile=rhaii --set operator.type=rhoai \
-     -n rhaii-gitops
+     -n rhai-gitops
    ```
 
 ### Authorino TLS issues

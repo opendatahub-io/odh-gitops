@@ -1,23 +1,28 @@
-# RHAII Helm Chart
+# RHAI on XKS Helm Chart
 
-Red Hat AI Inference Helm chart for non-OLM installation.
+Red Hat AI Inference Helm chart for non-OLM installation on external Kubernetes services (Azure, CoreWeave).
 
 This chart installs the RHAI operator and its cloud manager components. Exactly one cloud provider (Azure or CoreWeave) must be enabled.
 
 ## Table of Contents
 
-- [RHAI On XKS Helm Chart](#rhai-on-xks-chart)
+- [RHAI on XKS Helm Chart](#rhai-on-xks-helm-chart)
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Pull Secrets](#pull-secrets)
+    - [Obtaining credentials](#obtaining-credentials)
+    - [What the pull secret does](#what-the-pull-secret-does)
   - [Installation](#installation)
     - [Azure](#azure)
     - [CoreWeave](#coreweave)
   - [How It Works](#how-it-works)
+    - [Inference Gateway](#inference-gateway)
   - [Managed Dependencies](#managed-dependencies)
   - [Configuration Reference](#configuration-reference)
   - [Testing with kind](#testing-with-kind)
   - [Uninstall](#uninstall)
+    - [Clean up CRDs](#clean-up-crds)
+    - [Clean up namespaces](#clean-up-namespaces)
 
 ## Prerequisites
 

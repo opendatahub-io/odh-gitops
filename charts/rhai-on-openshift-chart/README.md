@@ -1,4 +1,4 @@
-# RHOAI Dependencies Helm Chart
+# RHAI on OpenShift Helm Chart
 
 A Helm chart for installing ODH/RHOAI dependencies and component configurations on OpenShift.
 
@@ -505,7 +505,7 @@ spec:
   source:
     repoURL: https://github.com/your-org/odh-gitops
     targetRevision: main
-    path: chart
+    path: charts/rhai-on-openshift-chart
     helm:
       values: |
         global:

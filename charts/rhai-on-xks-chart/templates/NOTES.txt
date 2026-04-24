@@ -1,4 +1,4 @@
-RHAII Helm Chart has been installed.
+RHAI on XKS Helm Chart has been installed.
 
 {{- if .Values.azure.enabled }}
 Cloud provider: Azure
