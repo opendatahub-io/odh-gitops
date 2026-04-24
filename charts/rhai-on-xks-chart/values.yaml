@@ -55,17 +55,19 @@ azure:
     spec:
       dependencies:
         certManager:
-          configuration: {}
           managementPolicy: Managed
+          configuration: {}
         gatewayAPI:
-          configuration: {}
           managementPolicy: Managed
+          configuration: {}
         lws:
-          configuration: {}
           managementPolicy: Managed
+          configuration:
+            namespace: openshift-lws-operator
         sailOperator:
-          configuration: {}
           managementPolicy: Managed
+          configuration:
+            namespace: istio-system
 
 # CoreWeave cloud configuration
 coreweave:
@@ -83,17 +85,19 @@ coreweave:
     spec:
       dependencies:
         certManager:
-          configuration: {}
           managementPolicy: Managed
+          configuration: {}
         gatewayAPI:
-          configuration: {}
           managementPolicy: Managed
+          configuration: {}
         lws:
-          configuration: {}
           managementPolicy: Managed
+          configuration:
+            namespace: openshift-lws-operator
         sailOperator:
-          configuration: {}
           managementPolicy: Managed
+          configuration:
+            namespace: istio-system
 
 # Pull secret for private registries
 # Use --set-file imagePullSecret.dockerConfigJson=path/to/auth.json
@@ -107,5 +111,3 @@ imagePullSecret:
   dependencyNamespaces:
     - cert-manager-operator
     - cert-manager
-    - openshift-lws-operator
-    - istio-system

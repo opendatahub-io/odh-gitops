@@ -17,12 +17,46 @@ kind: Namespace
 metadata:
   name: rhai-operator
 ---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager-operator
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-lws
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-istio
+---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
+imagePullSecrets:
+  - name: rhai-pull-secret
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+# TODO: This is a temporary solution to inject the pull secret into the llmisvc-controller-manager service account.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llmisvc-controller-manager
+  namespace: rhai-applications
 imagePullSecrets:
   - name: rhai-pull-secret
 ---
@@ -34,6 +68,110 @@ metadata:
   namespace: rhai-operator
 imagePullSecrets:
   - name: rhai-pull-secret
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: rhai-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: rhai-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: rhai-cloudmanager-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: cert-manager-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: cert-manager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: custom-lws
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: custom-istio
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -133,7 +271,18 @@ spec:
                       description: LWS defines the LeaderWorkerSet operator dependency.
                       properties:
                         configuration:
+                          default: {}
                           description: Configuration for the LWS operator.
+                          properties:
+                            namespace:
+                              default: openshift-lws-operator
+                              description: Namespace is the namespace where the LWS operator is deployed.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
                           type: object
                         managementPolicy:
                           default: Managed
@@ -150,7 +299,18 @@ spec:
                       description: SailOperator defines the Sail operator (Istio) dependency.
                       properties:
                         configuration:
+                          default: {}
                           description: Configuration for the Sail operator.
+                          properties:
+                            namespace:
+                              default: istio-system
+                              description: Namespace is the namespace where the Sail operator (Istio) is deployed.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
                           type: object
                         managementPolicy:
                           default: Managed
@@ -2732,10 +2892,12 @@ spec:
                     configuration: {}
                     managementPolicy: Managed
                   lws:
-                    configuration: {}
+                    configuration:
+                      namespace: custom-lws
                     managementPolicy: Managed
                   sailOperator:
-                    configuration: {}
+                    configuration:
+                      namespace: custom-istio
                     managementPolicy: Managed
               EOF
               echo "Done."

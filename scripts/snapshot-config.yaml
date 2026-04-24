@@ -90,8 +90,11 @@ charts:
       - name: with-custom-namespace
         setFlags:
           - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
           - rhaiOperator.namespace=rhai-operator
           - rhaiOperator.applicationsNamespace=rhai-applications
+          - azure.kubernetesEngine.spec.dependencies.lws.configuration.namespace=custom-lws
+          - azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace=custom-istio
 
       - name: coreweave
         setFlags:
@@ -106,4 +109,3 @@ charts:
         setFlags:
           - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
-
