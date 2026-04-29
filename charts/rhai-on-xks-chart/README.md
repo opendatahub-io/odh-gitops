@@ -64,7 +64,7 @@ The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 ```bash
 helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
-  --namespace rhaii \
+  --namespace rhai-gitops \
   --set azure.enabled=true \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
@@ -74,7 +74,7 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
 ```bash
 helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
-  --namespace rhaii \
+  --namespace rhai-gitops \
   --set coreweave.enabled=true \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
@@ -150,7 +150,7 @@ kind create cluster --name rhoai
 # Install the chart (see "Pull Secrets" section for private registry auth)
 helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
-  --namespace rhaii \
+  --namespace rhai-gitops \
   --set azure.enabled=true \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
@@ -158,7 +158,7 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
 ## Uninstall
 
 ```bash
-helm uninstall rhaii -n rhaii
+helm uninstall rhaii -n rhai-gitops
 ```
 
 ### Clean up CRDs
