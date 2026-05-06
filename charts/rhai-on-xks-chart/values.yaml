@@ -24,7 +24,7 @@ rhaiOperator:
   #     value: quay.io/opendatahub/kserve-controller:latest
 
 hooks:
-  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1
+  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:20e1fd3f0dd3fd28d5bb9c3067ceb8752a63ebd1a07c24873ba13e3e96c98413
   postInstallCrs:
     enabled: true
 
