@@ -285,7 +285,7 @@ rules:
       - feastoperators
       - kserves
       - kueues
-      - llamastackoperators
+      - ogxs
       - mlflowoperators
       - modelcontrollers
       - modelmeshservings
@@ -325,7 +325,7 @@ rules:
       - feastoperators/status
       - kserves/status
       - kueues/status
-      - llamastackoperators/status
+      - ogxs/status
       - mlflowoperators/status
       - modelcontrollers/status
       - modelmeshservings/status
@@ -348,7 +348,7 @@ rules:
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
-      - llamastackoperators/finalizers
+      - ogxs/finalizers
       - mlflowoperators/finalizers
       - modelcontrollers/finalizers
       - modelmeshservings/finalizers

@@ -44,10 +44,6 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.kueue.dependencies | object | `{"certManager":true,"kueue":true}` | Dependencies required by Kueue |
 | components.kueue.dsc | object | `{"defaultClusterQueueName":"default","defaultLocalQueueName":"default","managementState":null}` | DSC configuration for Kueue |
 | components.kueue.dsc.managementState | string | `nil` | Management state for Kueue. Null uses profile default. |
-| components.llamastackoperator | object | `{"dependencies":{"nfd":true,"nvidiaGPUOperator":true},"dsc":{"managementState":null}}` | LlamaStack Operator component |
-| components.llamastackoperator.dependencies | object | `{"nfd":true,"nvidiaGPUOperator":true}` | Dependencies required by LlamaStack Operator |
-| components.llamastackoperator.dsc | object | `{"managementState":null}` | DSC configuration for LlamaStack Operator |
-| components.llamastackoperator.dsc.managementState | string | `nil` | Management state for LlamaStack Operator. Null uses profile default. |
 | components.mlflowoperator | object | `{"dependencies":{},"dsc":{"managementState":null}}` | MLflow Operator component |
 | components.mlflowoperator.dependencies | object | `{}` | Dependencies required by MLflow Operator |
 | components.mlflowoperator.dsc | object | `{"managementState":null}` | DSC configuration for MLflow Operator |
@@ -58,6 +54,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.modelregistry.dsc | object | `{"managementState":null,"registriesNamespace":null}` | DSC configuration for Model Registry |
 | components.modelregistry.dsc.managementState | string | `nil` | Management state for Model Registry. Null uses profile default. |
 | components.modelregistry.dsc.registriesNamespace | string | `nil` | Registries namespace for Model Registry (overrides defaults) |
+| components.ogx | object | `{"dependencies":{"nfd":true,"nvidiaGPUOperator":true},"dsc":{"managementState":null}}` | OGX component |
+| components.ogx.dependencies | object | `{"nfd":true,"nvidiaGPUOperator":true}` | Dependencies required by OGX |
+| components.ogx.dsc | object | `{"managementState":null}` | DSC configuration for OGX |
+| components.ogx.dsc.managementState | string | `nil` | Management state for OGX. Null uses profile default. |
 | components.ray | object | `{"dependencies":{"certManager":true},"dsc":{"managementState":null}}` | Ray component |
 | components.ray.dependencies | object | `{"certManager":true}` | Dependencies required by Ray |
 | components.ray.dsc | object | `{"managementState":null}` | DSC configuration for Ray |

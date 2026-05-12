@@ -11,7 +11,7 @@ components:
   - ../../components/operators/tempo-product
   - ../../components/operators/openshift-custom-metrics-autoscaler
   - ../../components/operators/rhcl-operator
-  # TODO: The following operators need a manual configuration. It needs to be added if used llamastackoperator.
+  # TODO: The following operators need a manual configuration. It needs to be added if used ogx.
   # - ../../components/operators/nfd
   # - ../../components/operators/nvidia-gpu-operator
   # MariaDB operator is an optional dependency for TrustyAI in Database mode, check README.md for more details

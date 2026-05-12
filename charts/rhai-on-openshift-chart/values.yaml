@@ -338,15 +338,15 @@ components:
       # -- Management state for MLflow Operator. Null uses profile default.
       managementState:
 
-  # -- LlamaStack Operator component
-  llamastackoperator:
-    # -- Dependencies required by LlamaStack Operator
+  # -- OGX component
+  ogx:
+    # -- Dependencies required by OGX
     dependencies:
       nfd: true
       nvidiaGPUOperator: true
-    # -- DSC configuration for LlamaStack Operator
+    # -- DSC configuration for OGX
     dsc:
-      # -- Management state for LlamaStack Operator. Null uses profile default.
+      # -- Management state for OGX. Null uses profile default.
       managementState:
 
   # -- Spark Operator component

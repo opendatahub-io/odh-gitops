@@ -200,21 +200,21 @@ High-level features that:
 | `Unmanaged` | Yes |
 | `Removed` | No |
 
-| Component | Description | Default State | Dependencies |
-|-----------|-------------|---------------|--------------|
-| `aipipelines` | AI Pipelines | Removed | - |
-| `dashboard` | Dashboard | Removed | - |
-| `feastoperator` | Feast feature store operator | Removed | - |
-| `kserve` | KServe model serving | Removed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
-| `kueue` | Kueue job queuing | Removed | certManager, kueue |
-| `llamastackoperator` | LlamaStack Operator | Removed | nfd, nvidiaGPUOperator |
-| `mlflowoperator` | MLflow tracking and model registry | Removed | - |
-| `modelregistry` | Model Registry | Removed | - |
-| `ray` | Ray distributed computing | Removed | certManager |
-| `trainer` | Trainer | Removed | certManager, jobSet |
-| `trainingoperator` | Kubeflow Training Operator | Removed | - |
-| `trustyai` | TrustyAI | Removed | - |
-| `workbenches` | Workbenches | Removed | - |
+| Component          | Description                        | Default State | Dependencies |
+|--------------------|------------------------------------|---------------|--------------|
+| `aipipelines`      | AI Pipelines                       | Removed | - |
+| `dashboard`        | Dashboard                          | Removed | - |
+| `feastoperator`    | Feast feature store operator       | Removed | - |
+| `kserve`           | KServe model serving               | Removed | certManager, leaderWorkerSet, jobSet, rhcl, customMetricsAutoscaler |
+| `kueue`            | Kueue job queuing                  | Removed | certManager, kueue |
+| `ogx`              | OGX                                | Removed | nfd, nvidiaGPUOperator |
+| `mlflowoperator`   | MLflow tracking and model registry | Removed | - |
+| `modelregistry`    | Model Registry                     | Removed | - |
+| `ray`              | Ray distributed computing          | Removed | certManager |
+| `trainer`          | Trainer                            | Removed | certManager, jobSet |
+| `trainingoperator` | Kubeflow Training Operator         | Removed | - |
+| `trustyai`         | TrustyAI                           | Removed | - |
+| `workbenches`      | Workbenches                        | Removed | - |
 
 ### Dependencies
 

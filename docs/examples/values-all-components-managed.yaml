@@ -86,6 +86,6 @@ components:
     dsc:
       managementState: Managed
 
-  llamastackoperator:
+  ogx:
     dsc:
       managementState: Managed

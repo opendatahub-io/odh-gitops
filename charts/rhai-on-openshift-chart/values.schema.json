@@ -138,7 +138,7 @@
         "workbenches": {
           "$ref": "#/definitions/workbenchesComponent"
         },
-        "llamastackoperator": {
+        "ogx": {
           "$ref": "#/definitions/component"
         },
         "sparkoperator": {

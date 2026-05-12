@@ -260,9 +260,9 @@ helm-verify: ## Verify helm chart installation and DSC components
 # Extra arguments to pass to helm commands (e.g., --set olm.source=custom-catalog)
 HELM_EXTRA_ARGS ?=
 HELM_INSTALL_VALUES_FILE ?= docs/examples/values-all-components-managed.yaml
-# Remove llamastackoperator to avoid nfd and nvidiaGPUOperator dependencies installation on tests.
+# Remove ogx to avoid nfd and nvidiaGPUOperator dependencies installation on tests.
 # TODO: Remove modelsAsService as it depends on PostgreSQL, need to support it in the chart
-HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.llamastackoperator.dsc.managementState=Removed --set components.kserve.dsc.modelsAsService.managementState=Removed
+HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.kserve.dsc.modelsAsService.managementState=Removed
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation

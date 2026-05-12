@@ -1017,7 +1017,7 @@ rules:
       - feastoperators
       - kserves
       - kueues
-      - llamastackoperators
+      - ogxs
       - mlflowoperators
       - modelcontrollers
       - modelmeshservings
@@ -1057,7 +1057,7 @@ rules:
       - feastoperators/status
       - kserves/status
       - kueues/status
-      - llamastackoperators/status
+      - ogxs/status
       - mlflowoperators/status
       - modelcontrollers/status
       - modelmeshservings/status
@@ -1080,7 +1080,7 @@ rules:
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
-      - llamastackoperators/finalizers
+      - ogxs/finalizers
       - mlflowoperators/finalizers
       - modelcontrollers/finalizers
       - modelmeshservings/finalizers
@@ -2378,7 +2378,7 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_KUEUE_COMPONENT
               value: "true"
-            - name: RHAI_DISABLE_LLAMASTACKOPERATOR_COMPONENT
+            - name: RHAI_DISABLE_OGX_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_MLFLOWOPERATOR_COMPONENT
               value: "true"

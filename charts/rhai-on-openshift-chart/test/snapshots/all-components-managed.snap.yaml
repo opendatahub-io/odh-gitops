@@ -144,13 +144,13 @@ spec:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
       managementState: Unmanaged
-    llamastackoperator:
-      managementState: Managed
     mlflowoperator:
       managementState: Managed
     modelregistry:
       managementState: Managed
       registriesNamespace: odh-model-registry
+    ogx:
+      managementState: Managed
     ray:
       managementState: Managed
     sparkoperator:
