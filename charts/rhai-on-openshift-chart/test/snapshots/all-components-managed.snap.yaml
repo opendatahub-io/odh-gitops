@@ -487,7 +487,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
-  channel: stable-v1.2
+  channel: stable-v1.3
   installPlanApproval: Automatic
   name: kueue-operator
   source: redhat-operators

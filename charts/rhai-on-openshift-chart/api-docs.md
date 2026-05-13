@@ -98,7 +98,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
 | dependencies.jobSet.dependencies | object | `{"certManager":true}` | Dependencies required by job-set |
 | dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |
-| dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.2","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
+| dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.3","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
 | dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
 | dependencies.kueue.dependencies | object | `{"certManager":true}` | Dependencies required by kueue |
 | dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) |

@@ -460,7 +460,7 @@ dependencies:
     dependencies:
       certManager: true
     olm:
-      channel: stable-v1.2
+      channel: stable-v1.3
       name: kueue-operator
       namespace: openshift-kueue-operator
     config:
