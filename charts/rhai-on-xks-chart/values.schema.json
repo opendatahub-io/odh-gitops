@@ -17,6 +17,36 @@
           "default": "Managed"
         }
       }
+    },
+    "resourceRequirements": {
+      "type": "object",
+      "description": "Kubernetes resource requirements (requests and limits)",
+      "properties": {
+        "limits": {
+          "type": "object",
+          "description": "Resource limits",
+          "properties": {
+            "cpu": { "type": "string", "description": "CPU limit (e.g. 500m, 1000m)" },
+            "memory": { "type": "string", "description": "Memory limit (e.g. 256Mi, 4Gi)" }
+          },
+          "additionalProperties": false
+        },
+        "requests": {
+          "type": "object",
+          "description": "Resource requests",
+          "properties": {
+            "cpu": { "type": "string", "description": "CPU request (e.g. 100m, 500m)" },
+            "memory": { "type": "string", "description": "Memory request (e.g. 64Mi, 256Mi)" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "replicas": {
+      "type": "integer",
+      "description": "Number of pod replicas",
+      "minimum": 1
     }
   },
   "properties": {
@@ -116,6 +146,19 @@
           "description": "Image pull policy for the manager container",
           "enum": ["Always", "IfNotPresent", "Never"]
         },
+        "replicas": {
+          "$ref": "#/$defs/replicas",
+          "description": "Number of operator replicas",
+          "default": 3
+        },
+        "resources": {
+          "$ref": "#/$defs/resourceRequirements",
+          "description": "Resources for the main manager container"
+        },
+        "initResources": {
+          "$ref": "#/$defs/resourceRequirements",
+          "description": "Resources for the copy-manifests init container"
+        },
         "relatedImages": {
           "type": "array",
           "description": "Related images env vars (RELATED_IMAGE_*) for disconnected environments",
@@ -161,6 +204,15 @@
               "type": "string",
               "description": "Image pull policy for the Cloud Manager container",
               "enum": ["Always", "IfNotPresent", "Never"]
+            },
+            "replicas": {
+              "$ref": "#/$defs/replicas",
+              "description": "Number of cloud manager replicas",
+              "default": 1
+            },
+            "resources": {
+              "$ref": "#/$defs/resourceRequirements",
+              "description": "Resources for the cloud manager container"
             }
           }
         },
@@ -227,6 +279,15 @@
               "type": "string",
               "description": "Image pull policy for the Cloud Manager container",
               "enum": ["Always", "IfNotPresent", "Never"]
+            },
+            "replicas": {
+              "$ref": "#/$defs/replicas",
+              "description": "Number of cloud manager replicas",
+              "default": 1
+            },
+            "resources": {
+              "$ref": "#/$defs/resourceRequirements",
+              "description": "Resources for the cloud manager container"
             }
           }
         },
