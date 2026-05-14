@@ -90,6 +90,19 @@ rules:
           - name: {{ $item.name | quote }}
             value: {{ $item.value | quote }}
           {{- end }}
+      # Replace replicas with Helm value
+      - path: .spec.replicas
+        value: '{{ .Values.rhaiOperator.replicas }}'
+      # Replace main container resources with Helm value
+      - path: .spec.template.spec.containers[name=rhods-operator].resources
+        replaceWith: |
+          resources:
+            {{- toYaml .Values.rhaiOperator.resources | nindent 12 }}
+      # Replace init container resources with Helm value
+      - path: .spec.template.spec.initContainers[name=copy-manifests].resources
+        replaceWith: |
+          resources:
+            {{- toYaml .Values.rhaiOperator.initResources | nindent 12 }}
       # Replace manager container image with Helm template value
       - path: .spec.template.spec.containers[name=rhods-operator].image
         value: '{{ .Values.rhaiOperator.image }}'

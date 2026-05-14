@@ -33,11 +33,19 @@ rules:
       - path: .subjects[0].namespace
         value: '{{ .Values.CLOUD_NAME.cloudManager.namespace }}'
 
-  # Replace container image with Helm value and update webhook references
+  # Replace container image, resources, replicas with Helm values
   - match:
       kinds:
         - Deployment
     changes:
+      # Replace replicas with Helm value
+      - path: .spec.replicas
+        value: '{{ .Values.CLOUD_NAME.cloudManager.replicas }}'
+      # Replace container resources with Helm value
+      - path: .spec.template.spec.containers[name=manager].resources
+        replaceWith: |
+          resources:
+            {{- toYaml .Values.CLOUD_NAME.cloudManager.resources | nindent 12 }}
       - path: .spec.template.spec.containers[name=manager].image
         value: '{{ .Values.CLOUD_NAME.cloudManager.image }}'
       - path: .spec.template.spec.containers[name=manager].imagePullPolicy
