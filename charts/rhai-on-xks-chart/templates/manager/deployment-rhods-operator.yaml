@@ -7,7 +7,7 @@ metadata:
   name: rhai-operator
   namespace: {{ .Values.rhaiOperator.namespace }}
 spec:
-  replicas: 3
+  replicas: {{ .Values.rhaiOperator.replicas }}
   selector:
     matchLabels:
       name: rhai-operator
@@ -141,12 +141,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
-            limits:
-              cpu: 500m
-              memory: 4Gi
-            requests:
-              cpu: 500m
-              memory: 256Mi
+            {{- toYaml .Values.rhaiOperator.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -171,12 +166,7 @@ spec:
           imagePullPolicy: {{ .Values.rhaiOperator.imagePullPolicy }}
           name: copy-manifests
           resources:
-            limits:
-              cpu: 100m
-              memory: 256Mi
-            requests:
-              cpu: 10m
-              memory: 64Mi
+            {{- toYaml .Values.rhaiOperator.initResources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

@@ -8,7 +8,7 @@ metadata:
   name: azure-cloud-manager-operator
   namespace: {{ .Values.azure.cloudManager.namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.azure.cloudManager.replicas }}
   selector:
     matchLabels:
       control-plane: controller-manager
@@ -90,12 +90,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
-            limits:
-              cpu: 1000m
-              memory: 4Gi
-            requests:
-              cpu: 100m
-              memory: 780Mi
+            {{- toYaml .Values.azure.cloudManager.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

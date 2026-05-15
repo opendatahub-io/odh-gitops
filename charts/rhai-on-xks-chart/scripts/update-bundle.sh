@@ -39,7 +39,9 @@ CLOUD_TARGETS=(
 
 # Defaults
 ODH_REPO_URL="https://github.com/red-hat-data-services/rhods-operator.git"
-ODH_BRANCH="rhoai-3.4"
+VERSION_NO_V="${VERSION#v}"
+# Strip patch from major.minor.patch (e.g. 3.4.0-ea.2 → 3.4-ea.2, 3.4.0 → 3.4)
+ODH_BRANCH="rhoai-$(echo "${VERSION_NO_V}" | sed 's/^\([0-9]*\.[0-9]*\)\.[0-9]*/\1/')"
 ODH_OPERATOR_DIR=""
 LOCAL_MODE=false
 
