@@ -86,7 +86,7 @@ spec:
                 namespace: istio-system
                 updateStrategy:
                   type: InPlace
-                version: v1.27.8
+                version: v1.28.6
               description: IstioSpec defines the desired state of Istio
               properties:
                 namespace:
@@ -1144,6 +1144,16 @@ spec:
                           type: object
                         remotePilotAddress:
                           description: Specifies the Istio control plane’s pilot Pod IP address or remote cluster DNS resolvable hostname.
+                          type: string
+                        resourceScope:
+                          description: |-
+                            Specifies resource scope for discovery selectors.
+                            This is useful when installing Istio on a cluster where some resources need to be owned by a cluster administrator and some can be owned by the mesh administrator.
+                          enum:
+                            - undefined
+                            - all
+                            - cluster
+                            - namespace
                           type: string
                         revision:
                           description: Configures the revision this control plane is a part of
@@ -3478,6 +3488,25 @@ spec:
                                         true.
                                       type: boolean
                                   type: object
+                                xForwardedHost:
+                                  description: |-
+                                    Controls the `X-Forwarded-Host` header. If enabled, the `X-Forwarded-Host` header is appended
+                                    with the original host when it is rewritten.
+                                    This header is disabled by default.
+                                  properties:
+                                    enabled:
+                                      type: boolean
+                                  type: object
+                                xForwardedPort:
+                                  description: |-
+                                    Controls the `X-Forwarded-Port` header. If enabled, the `X-Forwarded-Port` header is header with the port value
+                                    client used to connect to Envoy. It will be ignored if the “x-forwarded-port“ header has been set by any
+                                    trusted proxy in front of Envoy.
+                                    This header is disabled by default.
+                                  properties:
+                                    enabled:
+                                      type: boolean
+                                  type: object
                               type: object
                             proxyMetadata:
                               additionalProperties:
@@ -5310,6 +5339,15 @@ spec:
                                       service defined by the Kubernetes service or ServiceEntry.
 
                                       Example: "zipkin.default.svc.cluster.local" or "bar/zipkin.example.com".
+                                    type: string
+                                  traceContextOption:
+                                    description: |-
+                                      Optional. Determines which trace context format to use for trace header extraction and propagation.
+                                      This controls both downstream request header extraction and upstream request header injection.
+                                      The default value is USE_B3 to maintain backward compatibility.
+                                    enum:
+                                      - USE_B3
+                                      - USE_B3_WITH_W3C_PROPAGATION
                                     type: string
                                 required:
                                   - port
@@ -9756,12 +9794,17 @@ spec:
                       type: object
                   type: object
                 version:
-                  default: v1.27.8
+                  default: v1.28.6
                   description: |-
                     Defines the version of Istio to install.
-                    Must be one of: v1.27-latest, v1.27.8, v1.27.5, v1.27.3, v1.26-latest, v1.26.8, v1.26.6, v1.26.4, v1.26.3, v1.26.2, v1.24-latest, v1.24.6, v1.24.5, v1.24.4, v1.24.3.
+                    Must be one of: v1.28-latest, v1.28.6, v1.28.5, v1.28.4, v1.27-latest, v1.27.9, v1.27.8, v1.27.5, v1.27.3, v1.26-latest, v1.26.8, v1.26.6, v1.26.4, v1.26.3, v1.26.2.
                   enum:
+                    - v1.28-latest
+                    - v1.28.6
+                    - v1.28.5
+                    - v1.28.4
                     - v1.27-latest
+                    - v1.27.9
                     - v1.27.8
                     - v1.27.5
                     - v1.27.3
@@ -9771,11 +9814,6 @@ spec:
                     - v1.26.4
                     - v1.26.3
                     - v1.26.2
-                    - v1.24-latest
-                    - v1.24.6
-                    - v1.24.5
-                    - v1.24.4
-                    - v1.24.3
                   type: string
               required:
                 - namespace

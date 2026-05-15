@@ -125,7 +125,7 @@ components:
     # -- Dependencies required by KServe (set to false to disable)
     dependencies:
       certManager: true
-      leaderWorkerSet: true
+      leaderWorkerSet: false # Only required when run with WideEP , set this to true
       # -- JobSet dependency. Null uses profile default (true for default, false for rhaii).
       jobSet:
       rhcl: true
@@ -427,7 +427,7 @@ dependencies:
     # -- Dependencies required by rhcl
     dependencies:
       certManager: true
-      leaderWorkerSet: true
+      leaderWorkerSet: false
     olm:
       channel: stable
       name: rhcl-operator

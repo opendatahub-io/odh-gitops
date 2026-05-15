@@ -18,7 +18,7 @@ Red Hat Sail Operator (OSSM 3.x) for Kubernetes
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| bundle.version | string | `"3.2.3"` |  |
+| bundle.version | string | `"3.3.3"` |  |
 | imagePullSecrets[0].name | string | `"rhai-pull-secret"` |  |
 | namespace | string | `"istio-system"` |  |
 

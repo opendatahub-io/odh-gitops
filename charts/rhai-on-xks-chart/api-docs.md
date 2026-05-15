@@ -18,7 +18,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | azure.kubernetesEngine.spec.dependencies.gatewayAPI.configuration | object | `{}` |  |
 | azure.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | azure.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
-| azure.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Managed"` |  |
+| azure.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | components.kserve.enabled | bool | `true` |  |
@@ -34,7 +34,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | coreweave.kubernetesEngine.spec.dependencies.gatewayAPI.configuration | object | `{}` |  |
 | coreweave.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
-| coreweave.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Managed"` |  |
+| coreweave.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | enabled | bool | `true` |  |

@@ -143,9 +143,9 @@ spec:
           resources:
             limits:
               cpu: 500m
-              memory: 4Gi
+              memory: 1Gi
             requests:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false

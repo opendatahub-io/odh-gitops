@@ -61,7 +61,7 @@ azure:
           managementPolicy: Managed
           configuration: {}
         lws:
-          managementPolicy: Managed
+          managementPolicy: Unmanaged   # Required only when need run WideEP, set to Managed then
           configuration:
             namespace: openshift-lws-operator
         sailOperator:
@@ -91,7 +91,7 @@ coreweave:
           managementPolicy: Managed
           configuration: {}
         lws:
-          managementPolicy: Managed
+          managementPolicy: Unmanaged  # Required only when need run WideEP, set to Managed then
           configuration:
             namespace: openshift-lws-operator
         sailOperator:

@@ -33,12 +33,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: custom-lws
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
   name: custom-istio
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
@@ -140,19 +134,6 @@ kind: Secret
 metadata:
   name: rhai-pull-secret
   namespace: cert-manager
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: custom-lws
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2436,11 +2417,11 @@ spec:
             periodSeconds: 10
           resources:
             limits:
-              cpu: 1000m
-              memory: 4Gi
+              cpu: 500m
+              memory: 1Gi
             requests:
               cpu: 100m
-              memory: 780Mi
+              memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -2595,9 +2576,9 @@ spec:
           resources:
             limits:
               cpu: 500m
-              memory: 4Gi
+              memory: 1Gi
             requests:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -2894,7 +2875,7 @@ spec:
                   lws:
                     configuration:
                       namespace: custom-lws
-                    managementPolicy: Managed
+                    managementPolicy: Unmanaged
                   sailOperator:
                     configuration:
                       namespace: custom-istio

@@ -2298,11 +2298,11 @@ spec:
             periodSeconds: 10
           resources:
             limits:
-              cpu: 1000m
-              memory: 4Gi
+              cpu: 500m
+              memory: 1Gi
             requests:
               cpu: 100m
-              memory: 780Mi
+              memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -2459,9 +2459,9 @@ spec:
           resources:
             limits:
               cpu: 500m
-              memory: 4Gi
+              memory: 1Gi
             requests:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -2758,7 +2758,7 @@ spec:
                   lws:
                     configuration:
                       namespace: openshift-lws-operator
-                    managementPolicy: Managed
+                    managementPolicy: Unmanaged
                   sailOperator:
                     configuration:
                       namespace: istio-system
