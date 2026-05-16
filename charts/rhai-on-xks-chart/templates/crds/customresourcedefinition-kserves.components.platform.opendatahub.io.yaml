@@ -49,6 +49,90 @@ spec:
             spec:
               description: KserveSpec defines the desired state of Kserve
               properties:
+                modelCache:
+                  description: Configures and enables Model Cache integration
+                  properties:
+                    cacheSize:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        CacheSize specifies the storage capacity for the model cache PersistentVolume
+                        and PersistentVolumeClaim (e.g., "100Gi", "500Gi", "1Ti").
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    managementState:
+                      default: Removed
+                      enum:
+                        - Managed
+                        - Removed
+                      pattern: ^(Managed|Unmanaged|Force|Removed)$
+                      type: string
+                    nodeNames:
+                      description: |-
+                        NodeNames is a list of specific node names to enable model caching on.
+                        The operator will label these nodes with kserve/localmodel=worker.
+                        Mutually exclusive with NodeSelector.
+                      items:
+                        type: string
+                      minItems: 1
+                      type: array
+                    nodeSelector:
+                      description: |-
+                        NodeSelector is a label selector that identifies nodes for model caching
+                        using pre-existing node labels (e.g., nvidia.com/gpu).
+                        The operator will label matching nodes with kserve/localmodel=worker.
+                        Mutually exclusive with NodeNames.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                              - key
+                              - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  type: object
+                  x-kubernetes-validations:
+                    - message: cacheSize is required when managementState is Managed
+                      rule: self.managementState != 'Managed' || has(self.cacheSize)
+                    - message: one non-empty nodeNames or nodeSelector is required when managementState is Managed
+                      rule: self.managementState != 'Managed' || (has(self.nodeNames) && size(self.nodeNames) > 0) || (has(self.nodeSelector) && ((has(self.nodeSelector.matchLabels) && size(self.nodeSelector.matchLabels) > 0) || (has(self.nodeSelector.matchExpressions) && size(self.nodeSelector.matchExpressions) > 0)))
+                    - message: nodeNames and nodeSelector are mutually exclusive
+                      rule: '!(has(self.nodeNames) && has(self.nodeSelector))'
                 modelsAsService:
                   description: Configures and enables Models as a Service integration
                   properties:
