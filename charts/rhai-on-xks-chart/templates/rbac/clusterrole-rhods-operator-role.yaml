@@ -8,7 +8,6 @@ rules:
       - ""
     resources:
       - clusterversions
-      - nodes
       - rhmis
     verbs:
       - get
@@ -63,6 +62,16 @@ rules:
       - namespaces/finalizers
     verbs:
       - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
       - get
       - list
       - patch
@@ -146,6 +155,7 @@ rules:
   - apiGroups:
       - apps
     resources:
+      - daemonsets
       - deployments
       - deployments/finalizers
       - statefulsets
@@ -285,12 +295,12 @@ rules:
       - feastoperators
       - kserves
       - kueues
-      - ogxs
       - mlflowoperators
       - modelcontrollers
       - modelmeshservings
       - modelregistries
       - modelsasservices
+      - ogxs
       - rays
       - sparkoperators
       - trainers
@@ -325,12 +335,12 @@ rules:
       - feastoperators/status
       - kserves/status
       - kueues/status
-      - ogxs/status
       - mlflowoperators/status
       - modelcontrollers/status
       - modelmeshservings/status
       - modelregistries/status
       - modelsasservices/status
+      - ogxs/status
       - rays/status
       - sparkoperators/status
       - trainers/status
@@ -348,12 +358,12 @@ rules:
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
-      - ogxs/finalizers
       - mlflowoperators/finalizers
       - modelcontrollers/finalizers
       - modelmeshservings/finalizers
       - modelregistries/finalizers
       - modelsasservices/finalizers
+      - ogxs/finalizers
       - rays/finalizers
       - sparkoperators/finalizers
       - trainers/finalizers
@@ -766,6 +776,47 @@ rules:
       - patch
       - update
   - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - configs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - configs/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - configs/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - tenants
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - tenants/status
+    verbs:
+      - get
+  - apiGroups:
       - machinelearning.seldon.io
     resources:
       - seldondeployments
@@ -1168,35 +1219,11 @@ rules:
       - securitycontextconstraints
     verbs:
       - create
+      - delete
       - get
       - list
       - patch
-      - use
-      - watch
-  - apiGroups:
-      - security.openshift.io
-    resourceNames:
-      - anyuid
-    resources:
-      - securitycontextconstraints
-    verbs:
-      - create
-      - get
-      - list
-      - patch
-      - use
-      - watch
-  - apiGroups:
-      - security.openshift.io
-    resourceNames:
-      - restricted
-    resources:
-      - securitycontextconstraints
-    verbs:
-      - create
-      - get
-      - list
-      - patch
+      - update
       - use
       - watch
   - apiGroups:
@@ -1242,6 +1269,7 @@ rules:
       - inferenceservices
       - inferenceservices/finalizers
       - llminferenceserviceconfigs
+      - localmodelnodegroups
       - predictors
       - servingruntimes
       - servingruntimes/finalizers
