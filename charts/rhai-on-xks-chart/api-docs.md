@@ -25,10 +25,10 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | azure.cloudManager.imagePullPolicy | string | `"Always"` |  |
 | azure.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | azure.cloudManager.replicas | int | `1` |  |
-| azure.cloudManager.resources.limits.cpu | string | `"1000m"` |  |
-| azure.cloudManager.resources.limits.memory | string | `"4Gi"` |  |
+| azure.cloudManager.resources.limits.cpu | string | `"500m"` |  |
+| azure.cloudManager.resources.limits.memory | string | `"1Gi"` |  |
 | azure.cloudManager.resources.requests.cpu | string | `"100m"` |  |
-| azure.cloudManager.resources.requests.memory | string | `"780Mi"` |  |
+| azure.cloudManager.resources.requests.memory | string | `"256Mi"` |  |
 | azure.enabled | bool | `false` |  |
 | azure.kubernetesEngine.enabled | bool | `true` |  |
 | azure.kubernetesEngine.spec.dependencies.certManager.configuration | object | `{}` |  |
@@ -46,10 +46,10 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | coreweave.cloudManager.imagePullPolicy | string | `"Always"` |  |
 | coreweave.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | coreweave.cloudManager.replicas | int | `1` |  |
-| coreweave.cloudManager.resources.limits.cpu | string | `"1000m"` |  |
-| coreweave.cloudManager.resources.limits.memory | string | `"4Gi"` |  |
+| coreweave.cloudManager.resources.limits.cpu | string | `"500m"` |  |
+| coreweave.cloudManager.resources.limits.memory | string | `"1Gi"` |  |
 | coreweave.cloudManager.resources.requests.cpu | string | `"100m"` |  |
-| coreweave.cloudManager.resources.requests.memory | string | `"780Mi"` |  |
+| coreweave.cloudManager.resources.requests.memory | string | `"256Mi"` |  |
 | coreweave.enabled | bool | `false` |  |
 | coreweave.kubernetesEngine.enabled | bool | `true` |  |
 | coreweave.kubernetesEngine.spec.dependencies.certManager.configuration | object | `{}` |  |
@@ -78,9 +78,9 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | rhaiOperator.initResources.requests.memory | string | `"64Mi"` |  |
 | rhaiOperator.namespace | string | `"redhat-ods-operator"` |  |
 | rhaiOperator.relatedImages | list | `[]` |  |
-| rhaiOperator.replicas | int | `3` |  |
+| rhaiOperator.replicas | int | `1` |  |
 | rhaiOperator.resources.limits.cpu | string | `"500m"` |  |
-| rhaiOperator.resources.limits.memory | string | `"4Gi"` |  |
-| rhaiOperator.resources.requests.cpu | string | `"500m"` |  |
+| rhaiOperator.resources.limits.memory | string | `"1Gi"` |  |
+| rhaiOperator.resources.requests.cpu | string | `"300m"` |  |
 | rhaiOperator.resources.requests.memory | string | `"256Mi"` |  |
 
