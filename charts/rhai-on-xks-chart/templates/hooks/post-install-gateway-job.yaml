@@ -152,7 +152,7 @@ spec:
                     allowedRoutes:
                       namespaces:
                         from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") .Values.components.kserve.gateway.allowedRoutes.namespaces.selector }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") .Values.components.kserve.gateway.allowedRoutes.namespaces.selector.matchLabels }}
                         selector:
                           {{- toYaml .Values.components.kserve.gateway.allowedRoutes.namespaces.selector | nindent 26 }}
               {{- end }}
