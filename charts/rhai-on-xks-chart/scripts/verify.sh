@@ -207,7 +207,7 @@ wait_for_all_deployments_in_namespace "cert-manager"
 
 # --- Step 4: rhai-operator ---
 echo "--- RHAI Operator ---"
-wait_for_deployment "rhai-operator" "redhat-ods-operator" 3
+wait_for_deployment "rhai-operator" "redhat-ods-operator" 1
 
 # --- Step 5: KServe component CR status ---
 echo "--- KServe Component ---"
