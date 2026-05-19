@@ -38,6 +38,14 @@ components:
     gateway:
       # Create Gateway and ConfigMaps via post-install hook
       create: true
+      allowedRoutes:
+        namespaces:
+          from: All
+          # The following is an example of how to restrict the namespaces to the interested ones.
+          # from: Selector
+          # selector:
+          #   matchLabels:
+          #     inference-gateway-access: "true"
 
 # Azure cloud configuration
 azure:
