@@ -17,14 +17,14 @@ rhaiOperator:
   # Image pull policy
   imagePullPolicy: Always
   # Number of operator replicas
-  replicas: 3
+  replicas: 1
   # Resources for the main manager container
   resources:
     limits:
       cpu: 500m
-      memory: 4Gi
+      memory: 1Gi
     requests:
-      cpu: 500m
+      cpu: 300m
       memory: 256Mi
   # Resources for the copy-manifests init container
   initResources:
@@ -72,11 +72,11 @@ azure:
     # Resources for the cloud manager container
     resources:
       limits:
-        cpu: 1000m
-        memory: 4Gi
+        cpu: 500m
+        memory: 1Gi
       requests:
         cpu: 100m
-        memory: 780Mi
+        memory: 256Mi
   kubernetesEngine:
     # Create AzureKubernetesEngine CR via post-install hook
     enabled: true
@@ -112,11 +112,11 @@ coreweave:
     # Resources for the cloud manager container
     resources:
       limits:
-        cpu: 1000m
-        memory: 4Gi
+        cpu: 500m
+        memory: 1Gi
       requests:
         cpu: 100m
-        memory: 780Mi
+        memory: 256Mi
   kubernetesEngine:
     # Create CoreWeaveKubernetesEngine CR via post-install hook
     enabled: true
