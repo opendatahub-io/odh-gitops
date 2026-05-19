@@ -24,6 +24,7 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
@@ -78,6 +79,7 @@ spec:
     workbenches:
       managementState: Removed
       workbenchNamespace: opendatahub
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
