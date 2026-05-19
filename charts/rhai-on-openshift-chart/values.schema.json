@@ -378,7 +378,6 @@
               "$ref": "#/definitions/defaultManagementState"
             }
           },
-          "required": ["managementState"],
           "additionalProperties": false
         },
         "defaults": {
@@ -412,7 +411,6 @@
               }
             }
           },
-          "required": ["managementState"],
           "additionalProperties": false
         },
         "defaults": {
@@ -455,7 +453,7 @@
               "description": "Default cluster queue name"
             }
           },
-          "required": ["managementState", "defaultLocalQueueName", "defaultClusterQueueName"],
+          "required": ["defaultLocalQueueName", "defaultClusterQueueName"],
           "additionalProperties": false
         },
         "defaults": {
@@ -493,7 +491,6 @@
                   "$ref": "#/definitions/defaultManagementState"
                 }
               },
-              "required": ["managementState"],
               "additionalProperties": false
             },
             "wva": {
@@ -504,7 +501,6 @@
                   "$ref": "#/definitions/defaultManagementState"
                 }
               },
-              "required": ["managementState"],
               "additionalProperties": false
             },
             "modelsAsService": {
@@ -517,7 +513,6 @@
               }
             }
           },
-          "required": ["managementState"],
           "additionalProperties": false
         },
         "gatewayClass": {
@@ -561,7 +556,6 @@
               "description": "Namespace for model registries. Overrides defaults if set."
             }
           },
-          "required": ["managementState"],
           "additionalProperties": false
         },
         "defaults": {
@@ -590,7 +584,6 @@
               "description": "Namespace for workbenches. Overrides defaults if set."
             }
           },
-          "required": ["managementState"],
           "additionalProperties": false
         },
         "defaults": {
@@ -643,7 +636,6 @@
               "additionalProperties": false
             }
           },
-          "required": ["managementState"],
           "additionalProperties": false
         },
         "defaults": {
