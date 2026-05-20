@@ -217,6 +217,10 @@ wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" 
 echo "--- Inference Gateway Istio ---"
 wait_for_deployment "inference-gateway-istio" "redhat-ods-applications"
 
+# --- All pods ---
+echo "--- All Pods ---"
+kubectl get pods -A -o wide 2>/dev/null || true
+
 # --- Summary ---
 echo ""
 echo "==============================="
