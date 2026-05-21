@@ -47,6 +47,70 @@
       "type": "integer",
       "description": "Number of pod replicas",
       "minimum": 1
+    },
+    "cloudManager": {
+      "type": "object",
+      "description": "Cloud Manager operator configuration",
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "description": "Cloud Manager operator namespace",
+          "default": "rhai-cloudmanager-system"
+        },
+        "image": {
+          "type": "string",
+          "description": "Cloud Manager container image"
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "description": "Image pull policy for the Cloud Manager container",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        },
+        "replicas": {
+          "$ref": "#/$defs/replicas",
+          "description": "Number of cloud manager replicas",
+          "default": 1
+        },
+        "resources": {
+          "$ref": "#/$defs/resourceRequirements",
+          "description": "Resources for the cloud manager container"
+        }
+      }
+    },
+    "kubernetesEngine": {
+      "type": "object",
+      "description": "KubernetesEngine CR configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Create KubernetesEngine CR via post-install hook",
+          "default": true
+        },
+        "spec": {
+          "type": "object",
+          "description": "KubernetesEngine CR spec",
+          "properties": {
+            "dependencies": {
+              "type": "object",
+              "description": "Dependency configurations",
+              "properties": {
+                "certManager": {
+                  "$ref": "#/$defs/dependency"
+                },
+                "gatewayAPI": {
+                  "$ref": "#/$defs/dependency"
+                },
+                "lws": {
+                  "$ref": "#/$defs/dependency"
+                },
+                "sailOperator": {
+                  "$ref": "#/$defs/dependency"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "properties": {
@@ -74,6 +138,10 @@
         "cliImage": {
           "type": "string",
           "description": "CLI container image used by all post-install hook jobs"
+        },
+        "resources": {
+          "$ref": "#/$defs/resourceRequirements",
+          "description": "Default resources for all hook job containers"
         },
         "postInstallCrs": {
           "type": "object",
@@ -188,68 +256,12 @@
           "default": false
         },
         "cloudManager": {
-          "type": "object",
-          "description": "Azure Cloud Manager configuration",
-          "properties": {
-            "namespace": {
-              "type": "string",
-              "description": "Cloud Manager operator namespace",
-              "default": "rhai-cloudmanager-system"
-            },
-            "image": {
-              "type": "string",
-              "description": "Cloud Manager container image"
-            },
-            "imagePullPolicy": {
-              "type": "string",
-              "description": "Image pull policy for the Cloud Manager container",
-              "enum": ["Always", "IfNotPresent", "Never"]
-            },
-            "replicas": {
-              "$ref": "#/$defs/replicas",
-              "description": "Number of cloud manager replicas",
-              "default": 1
-            },
-            "resources": {
-              "$ref": "#/$defs/resourceRequirements",
-              "description": "Resources for the cloud manager container"
-            }
-          }
+          "$ref": "#/$defs/cloudManager",
+          "description": "Azure Cloud Manager configuration"
         },
         "kubernetesEngine": {
-          "type": "object",
-          "description": "AzureKubernetesEngine CR configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Create AzureKubernetesEngine CR via post-install hook",
-              "default": true
-            },
-            "spec": {
-              "type": "object",
-              "description": "AzureKubernetesEngine CR spec",
-              "properties": {
-                "dependencies": {
-                  "type": "object",
-                  "description": "Dependency configurations",
-                  "properties": {
-                    "certManager": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "gatewayAPI": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "lws": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "sailOperator": {
-                      "$ref": "#/$defs/dependency"
-                    }
-                  }
-                }
-              }
-            }
-          }
+          "$ref": "#/$defs/kubernetesEngine",
+          "description": "AzureKubernetesEngine CR configuration"
         }
       }
     },
@@ -263,68 +275,12 @@
           "default": false
         },
         "cloudManager": {
-          "type": "object",
-          "description": "CoreWeave Cloud Manager configuration",
-          "properties": {
-            "namespace": {
-              "type": "string",
-              "description": "Cloud Manager operator namespace",
-              "default": "rhai-cloudmanager-system"
-            },
-            "image": {
-              "type": "string",
-              "description": "Cloud Manager container image"
-            },
-            "imagePullPolicy": {
-              "type": "string",
-              "description": "Image pull policy for the Cloud Manager container",
-              "enum": ["Always", "IfNotPresent", "Never"]
-            },
-            "replicas": {
-              "$ref": "#/$defs/replicas",
-              "description": "Number of cloud manager replicas",
-              "default": 1
-            },
-            "resources": {
-              "$ref": "#/$defs/resourceRequirements",
-              "description": "Resources for the cloud manager container"
-            }
-          }
+          "$ref": "#/$defs/cloudManager",
+          "description": "CoreWeave Cloud Manager configuration"
         },
         "kubernetesEngine": {
-          "type": "object",
-          "description": "CoreWeaveKubernetesEngine CR configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Create CoreWeaveKubernetesEngine CR via post-install hook",
-              "default": true
-            },
-            "spec": {
-              "type": "object",
-              "description": "CoreWeaveKubernetesEngine CR spec",
-              "properties": {
-                "dependencies": {
-                  "type": "object",
-                  "description": "Dependency configurations",
-                  "properties": {
-                    "certManager": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "gatewayAPI": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "lws": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "sailOperator": {
-                      "$ref": "#/$defs/dependency"
-                    }
-                  }
-                }
-              }
-            }
-          }
+          "$ref": "#/$defs/kubernetesEngine",
+          "description": "CoreWeaveKubernetesEngine CR configuration"
         }
       }
     },
@@ -338,59 +294,12 @@
           "default": false
         },
         "cloudManager": {
-          "type": "object",
-          "description": "Amazon Cloud Manager configuration",
-          "properties": {
-            "namespace": {
-              "type": "string",
-              "description": "Cloud Manager operator namespace",
-              "default": "rhai-cloudmanager-system"
-            },
-            "image": {
-              "type": "string",
-              "description": "Cloud Manager container image"
-            },
-            "imagePullPolicy": {
-              "type": "string",
-              "description": "Image pull policy for the Cloud Manager container",
-              "enum": ["Always", "IfNotPresent", "Never"]
-            }
-          }
+          "$ref": "#/$defs/cloudManager",
+          "description": "AWS Cloud Manager configuration"
         },
         "kubernetesEngine": {
-          "type": "object",
-          "description": "AWSKubernetesEngine CR configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Create AWSKubernetesEngine CR via post-install hook",
-              "default": true
-            },
-            "spec": {
-              "type": "object",
-              "description": "AWSKubernetesEngine CR spec",
-              "properties": {
-                "dependencies": {
-                  "type": "object",
-                  "description": "Dependency configurations",
-                  "properties": {
-                    "certManager": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "gatewayAPI": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "lws": {
-                      "$ref": "#/$defs/dependency"
-                    },
-                    "sailOperator": {
-                      "$ref": "#/$defs/dependency"
-                    }
-                  }
-                }
-              }
-            }
-          }
+          "$ref": "#/$defs/kubernetesEngine",
+          "description": "AWSKubernetesEngine CR configuration"
         }
       }
     },

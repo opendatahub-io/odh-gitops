@@ -25,6 +25,12 @@ declare -A PROVIDER_CRDS=(
   [aws]="awskubernetesengines.infrastructure.opendatahub.io"
 )
 
+declare -A PROVIDER_CR_DISPLAY=(
+  [azure]="AzureKubernetesEngine"
+  [coreweave]="CoreWeaveKubernetesEngine"
+  [aws]="AWSKubernetesEngine"
+)
+
 if [[ -z "${PROVIDER_CRDS[$CLOUD_PROVIDER]+_}" ]]; then
   echo "ERROR: unsupported CLOUD_PROVIDER '${CLOUD_PROVIDER}'. Valid values: ${!PROVIDER_CRDS[*]}" >&2
   exit 1
@@ -35,6 +41,28 @@ ERROR_MESSAGES=()
 
 log_ok()   { echo "  OK: $1"; }
 log_fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); ERROR_MESSAGES+=("$1"); }
+
+debug_namespace() {
+  local ns="$1"
+  local filter="${2:-}"
+  local filter_args=()
+  if [ -n "${filter}" ]; then
+    filter_args=(-l "${filter}")
+  fi
+  echo "  DEBUG: pods in '${ns}'${filter:+ (filter: ${filter})}:"
+  kubectl get pods -n "${ns}" "${filter_args[@]}" -o wide 2>/dev/null || true
+  for pod in $(kubectl get pods -n "${ns}" "${filter_args[@]}" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+    local phase
+    phase=$(kubectl get pod "${pod}" -n "${ns}" -o jsonpath='{.status.phase}' 2>/dev/null)
+    echo "  --- pod: ${pod} (${phase}) ---"
+    if [ "${phase}" != "Running" ] && [ "${phase}" != "Succeeded" ]; then
+      echo "  DEBUG: describe pod ${pod}:"
+      kubectl describe pod "${pod}" -n "${ns}" 2>/dev/null || true
+    else
+      kubectl logs "${pod}" -n "${ns}" --tail=50 --all-containers 2>/dev/null || true
+    fi
+  done
+}
 
 wait_for() {
   local description="$1"
@@ -140,10 +168,7 @@ fi
 
 # --- Namespaces ---
 echo "--- Namespaces ---"
-EXPECTED_NAMESPACES=("redhat-ods-operator" "redhat-ods-applications" "${NAMESPACE}")
-if [ "${CLOUD_PROVIDER}" = "azure" ] || [ "${CLOUD_PROVIDER}" = "coreweave" ] || [ "${CLOUD_PROVIDER}" = "aws" ]; then
-  EXPECTED_NAMESPACES+=("rhai-cloudmanager-system")
-fi
+EXPECTED_NAMESPACES=("redhat-ods-operator" "redhat-ods-applications" "${NAMESPACE}" "rhai-cloudmanager-system")
 
 for ns in "${EXPECTED_NAMESPACES[@]}"; do
   if kubectl get namespace "${ns}" >/dev/null 2>&1; then
@@ -196,12 +221,9 @@ done
 
 # --- Step 2: Cloud provider CR status ---
 echo "--- Cloud Provider CR ---"
-if [ "${CLOUD_PROVIDER}" = "azure" ]; then
-  wait_for_cr_ready "azurekubernetesengines.infrastructure.opendatahub.io" "default-azurekubernetesengine" "AzureKubernetesEngine 'default-azurekubernetesengine'"
-elif [ "${CLOUD_PROVIDER}" = "coreweave" ]; then
-  wait_for_cr_ready "coreweavekubernetesengines.infrastructure.opendatahub.io" "default-coreweavekubernetesengine" "CoreWeaveKubernetesEngine 'default-coreweavekubernetesengine'"
-elif [ "${CLOUD_PROVIDER}" = "aws" ]; then
-  wait_for_cr_ready "awskubernetesengines.infrastructure.opendatahub.io" "default-awskubernetesengine" "AWSKubernetesEngine 'default-awskubernetesengine'"
+cr_name="default-${CLOUD_PROVIDER}kubernetesengine"
+if ! wait_for_cr_ready "${PROVIDER_CRDS[$CLOUD_PROVIDER]}" "${cr_name}" "${PROVIDER_CR_DISPLAY[$CLOUD_PROVIDER]} '${cr_name}'"; then
+  debug_namespace "${CM_NS}"
 fi
 
 # --- Step 3: cert-manager deployments ---
@@ -210,11 +232,14 @@ wait_for_all_deployments_in_namespace "cert-manager"
 
 # --- Step 4: rhai-operator ---
 echo "--- RHAI Operator ---"
-wait_for_deployment "rhai-operator" "redhat-ods-operator" 1
+wait_for_deployment "rhai-operator" "redhat-ods-operator" 3
 
 # --- Step 5: KServe component CR status ---
 echo "--- KServe Component ---"
-wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
+if ! wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"; then
+  debug_namespace "redhat-ods-operator"
+  debug_namespace "redhat-ods-applications" "app.kubernetes.io/part-of=kserve"
+fi
 
 # --- Step 6: Inference Gateway Istio ---
 echo "--- Inference Gateway Istio ---"

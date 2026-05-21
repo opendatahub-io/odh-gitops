@@ -1,0 +1,61 @@
+# E2e values override matching the previous hardcoded resources from main.
+# GHA ubuntu-latest runners have only 2 CPUs, which is not enough to schedule
+# all operator-deployed pods (e.g. llmisvc, LWS operator) on a kind cluster.
+# 3 replicas is a very fragile workaround to avoid lws controller to be ready,
+# and allow llmisvc to be ready.
+# TODO: find an alternative runner with more resources and remove this file.
+rhaiOperator:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 500m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 256Mi
+  initResources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+hooks:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+azure:
+  cloudManager:
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+      requests:
+        cpu: 100m
+        memory: 780Mi
+
+coreweave:
+  cloudManager:
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+      requests:
+        cpu: 100m
+        memory: 780Mi
+
+aws:
+  cloudManager:
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+      requests:
+        cpu: 100m
+        memory: 780Mi

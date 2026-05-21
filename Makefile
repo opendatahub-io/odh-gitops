@@ -304,7 +304,8 @@ helm-verify-xks: ## Verify rhai-on-xks-chart installation
 .PHONY: helm-install-verify-xks
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
 	@echo "=== Step 1: Install rhai-on-xks-chart ==="
-	helm upgrade --install $(XKS_RELEASE_NAME) ./$(XKS_CHART_PATH) -n $(XKS_NAMESPACE) --create-namespace --set $(XKS_CLOUD_PROVIDER).enabled=true $(HELM_EXTRA_ARGS)
+	# TODO(RHOAIENG-63729): remove -f values-e2e.yaml once a runner with sufficient resources is available
+	helm upgrade --install $(XKS_RELEASE_NAME) ./$(XKS_CHART_PATH) -n $(XKS_NAMESPACE) --create-namespace --set $(XKS_CLOUD_PROVIDER).enabled=true -f $(XKS_CHART_PATH)/test/values-e2e.yaml $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 2: Verify installation ==="
 	$(MAKE) helm-verify-xks
