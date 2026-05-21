@@ -81,7 +81,7 @@ azure:
     resources:
       limits:
         cpu: 500m
-        memory: 2Gi
+        memory: 1Gi
       requests:
         cpu: 100m
         memory: 256Mi

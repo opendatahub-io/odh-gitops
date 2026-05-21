@@ -31,7 +31,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | azure.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
 | azure.cloudManager.replicas | int | `1` |  |
 | azure.cloudManager.resources.limits.cpu | string | `"500m"` |  |
-| azure.cloudManager.resources.limits.memory | string | `"2Gi"` |  |
+| azure.cloudManager.resources.limits.memory | string | `"1Gi"` |  |
 | azure.cloudManager.resources.requests.cpu | string | `"100m"` |  |
 | azure.cloudManager.resources.requests.memory | string | `"256Mi"` |  |
 | azure.enabled | bool | `false` |  |
