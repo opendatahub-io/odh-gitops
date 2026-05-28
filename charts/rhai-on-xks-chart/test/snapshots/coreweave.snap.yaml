@@ -3072,9 +3072,9 @@ spec:
                   - name: http
                     port: 80
                     protocol: HTTP
-                    allowedRoutes:
-                      namespaces:
-                        from: All
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
                 infrastructure:
                   labels:
                     serving.kserve.io/gateway: kserve-ingress-gateway

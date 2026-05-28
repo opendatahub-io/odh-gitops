@@ -194,9 +194,8 @@
                       "properties": {
                         "from": {
                           "type": "string",
-                          "description": "Which namespaces can attach routes to the Gateway (All, Same, or Selector)",
-                          "enum": ["All", "Same", "Selector"],
-                          "default": "All"
+                          "description": "Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector). If empty, defaults to Same — only from the Gateway's own namespace.",
+                          "enum": ["", "Selector", "Same", "All"]
                         },
                         "selector": {
                           "type": "object",

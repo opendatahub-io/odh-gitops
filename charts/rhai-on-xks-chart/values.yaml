@@ -66,8 +66,10 @@ components:
       create: true
       allowedRoutes:
         namespaces:
-          from: All
-          # The following is an example of how to restrict the namespaces to the interested ones.
+          # Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector).
+          # If empty, defaults to Same — only from the Gateway's own namespace.
+          from: ""
+          # Example for Selector:
           # from: Selector
           # selector:
           #   matchLabels:
