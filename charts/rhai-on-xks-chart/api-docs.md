@@ -45,7 +45,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | components.kserve.enabled | bool | `true` |  |
-| components.kserve.gateway.allowedRoutes.namespaces.from | string | `""` |  |
+| components.kserve.gateway.allowedRoutes.namespaces.from | string | `"All"` |  |
 | components.kserve.gateway.create | bool | `true` |  |
 | components.kserve.spec | object | `{}` |  |
 | coreweave.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
