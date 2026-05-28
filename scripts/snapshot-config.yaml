@@ -124,6 +124,11 @@ charts:
           - aws.enabled=true
           - components.kserve.gateway.allowedRoutes.namespaces.from=All
 
+      - name: aws-with-allowed-routes-same
+        setFlags:
+          - aws.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
       - name: coreweave-with-allowed-routes-selector
         setFlags:
           - coreweave.enabled=true

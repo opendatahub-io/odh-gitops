@@ -69,7 +69,13 @@ components:
           # Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector).
           # If empty, defaults to Same — only from the Gateway's own namespace.
           from: ""
-          # Example for Selector:
+          # Example for All (any namespace can attach routes):
+          # from: All
+          #
+          # Example for Same (only the Gateway's namespace):
+          # from: Same
+          #
+          # Example for Selector (only namespaces matching labels):
           # from: Selector
           # selector:
           #   matchLabels:

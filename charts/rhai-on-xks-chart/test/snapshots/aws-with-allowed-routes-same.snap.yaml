@@ -1,0 +1,3093 @@
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/manager/namespace-rhai-cloudmanager-system.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rhai-cloudmanager-system
+
+---
+# Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-applications.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redhat-ods-applications
+
+---
+# Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redhat-ods-operator
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/serviceaccount-aws-cloud-manager-operator.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aws-cloud-manager-operator
+  namespace: rhai-cloudmanager-system
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-operator-controller-manager
+  namespace: redhat-ods-operator
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/crds/customresourcedefinition-awskubernetesengines.infrastructure.opendatahub.io.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+    helm.sh/resource-policy: keep
+  name: awskubernetesengines.infrastructure.opendatahub.io
+spec:
+  group: infrastructure.opendatahub.io
+  names:
+    kind: AWSKubernetesEngine
+    listKind: AWSKubernetesEngineList
+    plural: awskubernetesengines
+    singular: awskubernetesengine
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - description: Ready
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - description: Reason
+          jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Reason
+          type: string
+        - description: DependenciesAvailable
+          jsonPath: .status.conditions[?(@.type=="DependenciesAvailable")].status
+          name: Deps Available
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            AWSKubernetesEngine is the Schema for the awskubernetesengines API.
+            It represents the configuration for an AWS Kubernetes Service cluster.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: AWSKubernetesEngineSpec defines the desired state of AWSKubernetesEngine.
+              properties:
+                dependencies:
+                  description: Dependencies defines the dependency configurations for the AWS Kubernetes Engine.
+                  properties:
+                    certManager:
+                      description: CertManager defines the cert-manager operator dependency.
+                      properties:
+                        configuration:
+                          description: Configuration for the cert-manager operator.
+                          type: object
+                        managementPolicy:
+                          default: Managed
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          enum:
+                            - Managed
+                            - Unmanaged
+                          type: string
+                      type: object
+                    gatewayAPI:
+                      description: GatewayAPI defines the Gateway API dependency.
+                      properties:
+                        configuration:
+                          description: Configuration for the Gateway API.
+                          type: object
+                        managementPolicy:
+                          default: Managed
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          enum:
+                            - Managed
+                            - Unmanaged
+                          type: string
+                      type: object
+                    lws:
+                      description: LWS defines the LeaderWorkerSet operator dependency.
+                      properties:
+                        configuration:
+                          default: {}
+                          description: Configuration for the LWS operator.
+                          properties:
+                            namespace:
+                              default: openshift-lws-operator
+                              description: Namespace is the namespace where the LWS operator is deployed.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
+                          type: object
+                        managementPolicy:
+                          default: Managed
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          enum:
+                            - Managed
+                            - Unmanaged
+                          type: string
+                      type: object
+                    sailOperator:
+                      description: SailOperator defines the Sail operator (Istio) dependency.
+                      properties:
+                        configuration:
+                          default: {}
+                          description: Configuration for the Sail operator.
+                          properties:
+                            namespace:
+                              default: istio-system
+                              description: Namespace is the namespace where the Sail operator (Istio) is deployed.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
+                          type: object
+                        managementPolicy:
+                          default: Managed
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          enum:
+                            - Managed
+                            - Unmanaged
+                          type: string
+                      type: object
+                  type: object
+              type: object
+            status:
+              description: AWSKubernetesEngineStatus defines the observed state of AWSKubernetesEngine.
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      lastHeartbeatTime:
+                        description: |-
+                          The last time we got an update on a given condition, this should not be set and is
+                          present only for backward compatibility reasons
+                        format: date-time
+                        type: string
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.
+                          If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: message is a human-readable message indicating details about the transition.
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          The value should be a CamelCase string.
+                        type: string
+                      severity:
+                        description: |-
+                          Severity with which to treat failures of this type of condition.
+                          When this is not specified, it defaults to Error.
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-type: atomic
+                observedGeneration:
+                  description: The generation observed by the resource controller.
+                  format: int64
+                  type: integer
+                phase:
+                  type: string
+              type: object
+          type: object
+          x-kubernetes-validations:
+            - message: AWSKubernetesEngine name must be default-awskubernetesengine
+              rule: self.metadata.name == 'default-awskubernetesengine'
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+---
+# Source: rhai-on-xks-chart/templates/crds/customresourcedefinition-kserves.components.platform.opendatahub.io.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+    helm.sh/resource-policy: keep
+  name: kserves.components.platform.opendatahub.io
+spec:
+  group: components.platform.opendatahub.io
+  names:
+    kind: Kserve
+    listKind: KserveList
+    plural: kserves
+    singular: kserve
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - description: Ready
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - description: Reason
+          jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Reason
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Kserve is the Schema for the kserves API
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: KserveSpec defines the desired state of Kserve
+              properties:
+                modelCache:
+                  description: Configures and enables Model Cache integration
+                  properties:
+                    cacheSize:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      description: |-
+                        CacheSize specifies the storage capacity for the model cache PersistentVolume
+                        and PersistentVolumeClaim (e.g., "100Gi", "500Gi", "1Ti").
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    managementState:
+                      default: Removed
+                      enum:
+                        - Managed
+                        - Removed
+                      pattern: ^(Managed|Unmanaged|Force|Removed)$
+                      type: string
+                    nodeNames:
+                      description: |-
+                        NodeNames is a list of specific node names to enable model caching on.
+                        The operator will label these nodes with kserve/localmodel=worker.
+                        Mutually exclusive with NodeSelector.
+                      items:
+                        type: string
+                      minItems: 1
+                      type: array
+                    nodeSelector:
+                      description: |-
+                        NodeSelector is a label selector that identifies nodes for model caching
+                        using pre-existing node labels (e.g., nvidia.com/gpu).
+                        The operator will label matching nodes with kserve/localmodel=worker.
+                        Mutually exclusive with NodeNames.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                              - key
+                              - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  type: object
+                  x-kubernetes-validations:
+                    - message: cacheSize is required when managementState is Managed
+                      rule: self.managementState != 'Managed' || has(self.cacheSize)
+                    - message: one non-empty nodeNames or nodeSelector is required when managementState is Managed
+                      rule: self.managementState != 'Managed' || (has(self.nodeNames) && size(self.nodeNames) > 0) || (has(self.nodeSelector) && ((has(self.nodeSelector.matchLabels) && size(self.nodeSelector.matchLabels) > 0) || (has(self.nodeSelector.matchExpressions) && size(self.nodeSelector.matchExpressions) > 0)))
+                    - message: nodeNames and nodeSelector are mutually exclusive
+                      rule: '!(has(self.nodeNames) && has(self.nodeSelector))'
+                modelsAsService:
+                  description: Configures and enables Models as a Service integration
+                  properties:
+                    managementState:
+                      default: Removed
+                      enum:
+                        - Managed
+                        - Removed
+                      pattern: ^(Managed|Unmanaged|Force|Removed)$
+                      type: string
+                  type: object
+                nim:
+                  description: Configures and enables NVIDIA NIM integration
+                  properties:
+                    airGapped:
+                      default: false
+                      description: |-
+                        When true, NIM integration assumes an air-gapped cluster. External API calls
+                        and the NIM model list ConfigMap creation are skipped, while status conditions
+                        are marked successful with an air-gapped message.
+                      type: boolean
+                    managementState:
+                      default: Managed
+                      enum:
+                        - Managed
+                        - Removed
+                      pattern: ^(Managed|Unmanaged|Force|Removed)$
+                      type: string
+                  type: object
+                oauthProxy:
+                  description: |-
+                    Configures the OAuth proxy sidecar container resources in the
+                    'inferenceservice-config' ConfigMap for KServe. Only non-nil fields
+                    override the defaults shipped with the operator manifests.
+                  properties:
+                    resources:
+                      description: Resources describes the compute resource requirements for the OAuth proxy sidecar container.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: Limits describes the maximum amount of resources allowed.
+                          type: object
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: Requests describes the minimum amount of resources required.
+                          type: object
+                      type: object
+                  type: object
+                rawDeploymentServiceConfig:
+                  default: Headless
+                  description: |-
+                    Configures the type of service that is created for InferenceServices using RawDeployment.
+                    The values for RawDeploymentServiceConfig can be "Headless" (default value) or "Headed".
+                    Headless: to set "ServiceClusterIPNone = true" in the 'inferenceservice-config' configmap for Kserve.
+                    Headed: to set "ServiceClusterIPNone = false" in the 'inferenceservice-config' configmap for Kserve.
+                  enum:
+                    - Headless
+                    - Headed
+                  type: string
+                wva:
+                  description: Configures and enables workload-variant-autoscaler (WVA) integration
+                  properties:
+                    managementState:
+                      default: Removed
+                      enum:
+                        - Managed
+                        - Removed
+                      pattern: ^(Managed|Unmanaged|Force|Removed)$
+                      type: string
+                  type: object
+              type: object
+            status:
+              description: KserveStatus defines the observed state of Kserve
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      lastHeartbeatTime:
+                        description: |-
+                          The last time we got an update on a given condition, this should not be set and is
+                          present only for backward compatibility reasons
+                        format: date-time
+                        type: string
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.
+                          If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: message is a human-readable message indicating details about the transition.
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          The value should be a CamelCase string.
+                        type: string
+                      severity:
+                        description: |-
+                          Severity with which to treat failures of this type of condition.
+                          When this is not specified, it defaults to Error.
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-type: atomic
+                observedGeneration:
+                  description: The generation observed by the resource controller.
+                  format: int64
+                  type: integer
+                phase:
+                  type: string
+                releases:
+                  items:
+                    description: ComponentRelease represents the detailed status of a component release.
+                    properties:
+                      name:
+                        type: string
+                      repoUrl:
+                        type: string
+                      version:
+                        type: string
+                    required:
+                      - name
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - name
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+          x-kubernetes-validations:
+            - message: Kserve name must be default-kserve
+              rule: self.metadata.name == 'default-kserve'
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/clusterrole-rhai-aws-cloud-manager-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-aws-cloud-manager-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - namespaces
+      - secrets
+      - serviceaccounts
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs:
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+      - clusterissuers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - awskubernetesengines
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - awskubernetesengines/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - awskubernetesengines/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - certmanagers
+      - leaderworkersetoperators
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - rolebindings
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - cert-manager-operator-controller-manager-clusterrole
+      - cert-manager-operator-metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - metrics-reader
+      - servicemesh-operator3-clusterrole
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - openshift-lws-operator-clusterrole
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+    verbs:
+      - create
+      - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - cert-manager-operator-controller-manager-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - openshift-lws-operator-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - servicemesh-operator3-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - sailoperator.io
+    resources:
+      - istios
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+---
+# Source: rhai-on-xks-chart/templates/rbac/clusterrole-redhat-ods-operator-metrics-reader.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-operator-metrics-reader
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+
+---
+# Source: rhai-on-xks-chart/templates/rbac/clusterrole-rhods-operator-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-operator-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - clusterversions
+      - rhmis
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - deployments
+      - events
+      - namespaces
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - secrets
+      - secrets/finalizers
+      - serviceaccounts
+      - services
+      - services/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps/status
+    verbs:
+      - delete
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - endpoints
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces/finalizers
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/exec
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - pods/log
+    verbs:
+      - get
+  - apiGroups:
+      - '*'
+    resources:
+      - deployments
+      - services
+      - statefulsets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - '*'
+      - apps
+      - extensions
+    resources:
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingadmissionpolicies
+      - validatingadmissionpolicybindings
+      - validatingwebhookconfigurations
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apiregistration.k8s.io
+    resources:
+      - apiservices
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - deployments/finalizers
+      - statefulsets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+      - get
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+      - get
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - autoscaling.openshift.io
+      - machine.openshift.io
+    resources:
+      - machineautoscalers
+      - machinesets
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - batch
+    resources:
+      - cronjobs
+      - jobs
+      - jobs/status
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - build.openshift.io
+    resources:
+      - buildconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - build.openshift.io
+    resources:
+      - buildconfigs/instantiate
+      - builds
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - codeflares
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - codeflares/status
+    verbs:
+      - get
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards
+      - datasciencepipelines
+      - feastoperators
+      - kserves
+      - kueues
+      - mlflowoperators
+      - modelcontrollers
+      - modelmeshservings
+      - modelregistries
+      - modelsasservices
+      - ogxs
+      - rays
+      - sparkoperators
+      - trainers
+      - trainingoperators
+      - trustyais
+      - workbenches
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards/finalizers
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - use
+      - watch
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards/status
+      - datasciencepipelines/status
+      - feastoperators/status
+      - kserves/status
+      - kueues/status
+      - mlflowoperators/status
+      - modelcontrollers/status
+      - modelmeshservings/status
+      - modelregistries/status
+      - modelsasservices/status
+      - ogxs/status
+      - rays/status
+      - sparkoperators/status
+      - trainers/status
+      - trainingoperators/status
+      - trustyais/status
+      - workbenches/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - datasciencepipelines/finalizers
+      - feastoperators/finalizers
+      - kserves/finalizers
+      - kueues/finalizers
+      - mlflowoperators/finalizers
+      - modelcontrollers/finalizers
+      - modelmeshservings/finalizers
+      - modelregistries/finalizers
+      - modelsasservices/finalizers
+      - ogxs/finalizers
+      - rays/finalizers
+      - sparkoperators/finalizers
+      - trainers/finalizers
+      - trainingoperators/finalizers
+      - trustyais/finalizers
+      - workbenches/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - authentications
+      - clusterversions
+      - infrastructures
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+  - apiGroups:
+      - console.openshift.io
+    resources:
+      - consolelinks
+      - odhquickstarts
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - controller-runtime.sigs.k8s.io
+    resources:
+      - controllermanagerconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - acceleratorprofiles
+      - odhapplications
+      - odhdocuments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - hardwareprofiles
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    resources:
+      - datascienceclusters
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    resources:
+      - datascienceclusters/finalizers
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    resources:
+      - datascienceclusters/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - datasciencepipelinesapplications.opendatahub.io
+    resources:
+      - datasciencepipelinesapplications
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - datasciencepipelinesapplications.opendatahub.io
+    resources:
+      - datasciencepipelinesapplications/finalizers
+      - datasciencepipelinesapplications/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - dscinitialization.opendatahub.io
+    resources:
+      - dscinitializations
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - dscinitialization.opendatahub.io
+    resources:
+      - dscinitializations/finalizers
+      - dscinitializations/status
+    verbs:
+      - delete
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - extensions.kuadrant.io
+    resources:
+      - telemetrypolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - features.opendatahub.io
+    resources:
+      - featuretrackers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - features.opendatahub.io
+    resources:
+      - featuretrackers/finalizers
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - features.opendatahub.io
+    resources:
+      - featuretrackers/status
+    verbs:
+      - delete
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gatewayclasses
+      - gateways
+      - httproutes
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - image.openshift.io
+    resources:
+      - imagestreams
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - image.openshift.io
+    resources:
+      - imagestreamtags
+      - registry/metrics
+    verbs:
+      - get
+  - apiGroups:
+      - inference.networking.k8s.io
+    resources:
+      - inferencepools
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - inference.networking.x-k8s.io
+    resources:
+      - inferencemodels
+      - inferencepools
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - hardwareprofiles
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - hardwareprofiles/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - hardwareprofiles/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - integreatly.org
+    resources:
+      - rhmis
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - keda.sh
+    resources:
+      - kedacontrollers
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - keda.sh
+    resources:
+      - triggerauthentications
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - authpolicies
+      - ratelimitpolicies
+      - telemetrypolicies
+      - tokenratelimitpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - notebooks
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kueue.openshift.io
+    resources:
+      - kueues
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kueue.openshift.io
+    resources:
+      - kueues/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - kueue.x-k8s.io
+    resources:
+      - clusterqueues
+      - localqueues
+      - resourceflavors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kueue.x-k8s.io
+    resources:
+      - clusterqueues/status
+      - localqueues/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - configs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - configs/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - configs/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - tenants
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - maas.opendatahub.io
+    resources:
+      - tenants/status
+    verbs:
+      - get
+  - apiGroups:
+      - machinelearning.seldon.io
+    resources:
+      - seldondeployments
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - metrics.k8s.io
+    resources:
+      - nodes
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - mlflow.opendatahub.io
+    resources:
+      - mlflows
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - mlflow.opendatahub.io
+    resources:
+      - mlflows/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - mlflow.opendatahub.io
+    resources:
+      - mlflows/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries/finalizers
+    verbs:
+      - get
+      - update
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - alertmanagerconfigs
+      - alertmanagers
+      - alertmanagers/finalizers
+      - alertmanagers/status
+      - probes
+      - prometheuses
+      - prometheuses/finalizers
+      - prometheuses/status
+      - thanosrulers
+      - thanosrulers/finalizers
+      - thanosrulers/status
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - patch
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - podmonitors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - prometheusrules
+      - servicemonitors
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - monitoring.rhobs
+    resources:
+      - monitoringstacks
+      - prometheusrules
+      - servicemonitors
+      - thanosqueriers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - monitoring.rhobs
+    resources:
+      - monitoringstacks/finalizers
+      - prometheusrules/finalizers
+      - servicemonitors/finalizers
+      - thanosqueriers/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - monitoring.rhobs
+    resources:
+      - monitoringstacks/status
+      - prometheusrules/status
+      - servicemonitors/status
+      - thanosqueriers/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - destinationrules
+      - envoyfilters
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - oauth.openshift.io
+    resources:
+      - oauthclients
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - opendatahub.io
+    resources:
+      - odhdashboardconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - opentelemetry.io
+    resources:
+      - instrumentations
+      - opentelemetrycollectors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - opentelemetry.io
+    resources:
+      - instrumentations/finalizers
+      - opentelemetrycollectors/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - opentelemetry.io
+    resources:
+      - instrumentations/status
+      - opentelemetrycollectors/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - consoles
+      - ingresscontrollers
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - jobsetoperators
+      - leaderworkersetoperators
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - catalogsources
+      - operatorconditions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - clusterserviceversions
+    verbs:
+      - delete
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - perses.dev
+    resources:
+      - perses
+      - persesdashboards
+      - persesdatasources
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - perses.dev
+    resources:
+      - perses/finalizers
+      - persesdashboards/finalizers
+      - persesdatasources/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - perses.dev
+    resources:
+      - perses/status
+      - persesdashboards/status
+      - persesdatasources/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ray.io
+    resources:
+      - rayclusters
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - ray.io
+    resources:
+      - rayjobs
+      - rayservices
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - clusterroles
+      - rolebindings
+      - roles
+    verbs:
+      - '*'
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routers/federate
+      - routers/metrics
+    verbs:
+      - get
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes/custom-host
+    verbs:
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - security.openshift.io
+    resources:
+      - securitycontextconstraints
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - use
+      - watch
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
+      - auths
+      - gatewayconfigs
+      - monitorings
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
+      - auths/finalizers
+      - gatewayconfigs/finalizers
+      - monitorings/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
+      - auths/status
+      - gatewayconfigs/status
+      - monitorings/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - clusterservingruntimes
+      - clusterservingruntimes/finalizers
+      - clusterstoragecontainers
+      - clusterstoragecontainers/finalizers
+      - inferencegraphs
+      - inferenceservices
+      - inferenceservices/finalizers
+      - llminferenceserviceconfigs
+      - localmodelnodegroups
+      - predictors
+      - servingruntimes
+      - servingruntimes/finalizers
+      - trainedmodels
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - clusterservingruntimes/status
+      - clusterstoragecontainers/status
+      - inferencegraphs/status
+      - inferenceservices/status
+      - predictors/status
+      - trainedmodels/status
+    verbs:
+      - delete
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - llminferenceserviceconfigs/status
+      - predictors/finalizers
+      - servingruntimes/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - llminferenceservices
+      - llminferenceservices/status
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - snapshot.storage.k8s.io
+    resources:
+      - volumesnapshots
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+  - apiGroups:
+      - telemetry.istio.io
+    resources:
+      - telemetries
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - template.openshift.io
+    resources:
+      - templates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - tempo.grafana.com
+    resources:
+      - tempomonolithics
+      - tempostacks
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - trainer.kubeflow.org
+    resources:
+      - clustertrainingruntimes
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - user.openshift.io
+    resources:
+      - groups
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - user.openshift.io
+    resources:
+      - users
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/clusterrolebinding-rhai-aws-cloud-manager-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-aws-cloud-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-aws-cloud-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: aws-cloud-manager-operator
+    namespace: rhai-cloudmanager-system
+
+---
+# Source: rhai-on-xks-chart/templates/rbac/clusterrolebinding-rhods-operator-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-operator-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: rhai-operator-controller-manager
+    namespace: redhat-ods-operator
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/role-aws-cloud-manager-leader-election-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aws-cloud-manager-leader-election-role
+  namespace: rhai-cloudmanager-system
+rules:
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - create
+      - update
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/rolebinding-aws-cloud-manager-leader-election-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aws-cloud-manager-leader-election-rolebinding
+  namespace: rhai-cloudmanager-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aws-cloud-manager-leader-election-role
+subjects:
+  - kind: ServiceAccount
+    name: aws-cloud-manager-operator
+    namespace: rhai-cloudmanager-system
+
+---
+# Source: rhai-on-xks-chart/templates/manager/service-redhat-ods-operator-controller-manager-metrics-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: rhods-operator
+  name: rhai-operator-controller-manager-metrics-service
+  namespace: redhat-ods-operator
+spec:
+  ports:
+    - name: http
+      port: 8443
+      protocol: TCP
+      targetPort: http
+  selector:
+    name: rhai-operator
+
+---
+# Source: rhai-on-xks-chart/templates/webhooks/service-rhai-operator-webhook-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: rhai-operator
+    app.kubernetes.io/instance: rhai-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: rhai-operator-webhook-service
+    app.kubernetes.io/part-of: rhai-operator
+  name: rhai-operator-webhook-service
+  namespace: redhat-ods-operator
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+  selector:
+    name: rhai-operator
+
+---
+# Source: rhai-on-xks-chart/templates/cloudmanager/aws/manager/deployment-aws-cloud-manager-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+    name: aws-cloud-manager-operator
+  name: aws-cloud-manager-operator
+  namespace: rhai-cloudmanager-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      name: aws-cloud-manager-operator
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+        name: aws-cloud-manager-operator
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: name
+                      operator: In
+                      values:
+                        - aws-cloud-manager-operator
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      containers:
+        - args:
+            - aws
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=0.0.0.0:8080
+            - --leader-elect
+          command:
+            - /cloudmanager
+          env:
+            - name: RHAI_OPERATOR_NAMESPACE
+              value: redhat-ods-operator
+            - name: RHAI_WEBHOOK_CERT_SECRET_NAME
+              value: rhai-operator-controller-webhook-cert
+            - name: RHAI_WEBHOOK_SERVICE_NAME
+              value: rhai-operator-webhook-service
+            - name: RHAI_WEBHOOK_CERT_NAME
+              value: rhai-operator-webhook-cert
+            - name: RHAI_CA_SECRET_NAME
+              value: rhai-ca
+            - name: RHAI_CA_SECRET_NAMESPACE
+              value: cert-manager
+            - name: RHAI_ISSUER_REF_NAME
+              value: rhai-ca-issuer
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DEFAULT_CHARTS_PATH
+              value: /opt/charts
+          image: quay.io/opendatahub/opendatahub-operator:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: manager
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: aws-cloud-manager-operator
+      terminationGracePeriodSeconds: 10
+
+---
+# Source: rhai-on-xks-chart/templates/manager/deployment-rhods-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: rhai-operator
+  name: rhai-operator
+  namespace: redhat-ods-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: rhai-operator
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: rhai-operator
+      labels:
+        name: rhai-operator
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: name
+                      operator: In
+                      values:
+                        - rhai-operator
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      containers:
+        - args:
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=0.0.0.0:8080
+            - --leader-elect
+          command:
+            - /manager
+          env:
+            - name: DISABLE_DSC_CONFIG
+              value: "true"
+            - name: RHAI_DISABLE_DSC_RESOURCE
+              value: "true"
+            - name: RHAI_DISABLE_DSCI_RESOURCE
+              value: "true"
+            - name: RHAI_DISABLE_DASHBOARD_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_DATASCIENCEPIPELINES_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_FEASTOPERATOR_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_KUEUE_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_OGX_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_MLFLOWOPERATOR_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_MODELCONTROLLER_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_MODELSASSERVICE_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_RAY_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_TRAINER_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_TRAININGOPERATOR_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_WORKBENCHES_COMPONENT
+              value: "true"
+            - name: RHAI_DISABLE_AUTH_SERVICE
+              value: "true"
+            - name: RHAI_DISABLE_CERTCONFIGMAPGENERATOR_SERVICE
+              value: "true"
+            - name: RHAI_DISABLE_GATEWAY_SERVICE
+              value: "true"
+            - name: RHAI_DISABLE_MONITORING_SERVICE
+              value: "true"
+            - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
+              value: "true"
+            - name: RHAI_APPLICATIONS_NAMESPACE
+              value: "redhat-ods-applications"
+            - name: RHAI_VERSION
+              value: "3.5.0-ea.1"
+            - name: ODH_PLATFORM_TYPE
+              value: XKS
+            - name: RHAI_CA_SECRET_NAME
+              value: rhai-ca
+            - name: RHAI_CA_SECRET_NAMESPACE
+              value: cert-manager
+            - name: RHAI_ISSUER_REF_NAME
+              value: rhai-ca-issuer
+            - name: RHAI_ISTIO_CA_CERTIFICATE_PATH
+              value: /var/run/secrets/rhai/ca.crt
+            - name: OPERATOR_NAME
+              value: rhai-operator
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DEFAULT_MANIFESTS_PATH
+              value: /opt/manifests
+          image: quay.io/opendatahub/opendatahub-operator:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: rhai-operator
+          ports:
+            - containerPort: 9443
+              name: webhook-server
+              protocol: TCP
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
+            requests:
+              cpu: 300m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+            - mountPath: /opt/manifests
+              name: manifests
+            - mountPath: /tmp
+              name: tmp
+      initContainers:
+        - command:
+            - cp
+            - -r
+            - /opt/manifests-template/.
+            - /opt/manifests/
+          image: quay.io/opendatahub/opendatahub-operator:latest
+          imagePullPolicy: Always
+          name: copy-manifests
+          resources:
+            limits:
+              cpu: 100m
+              memory: 512Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - mountPath: /opt/manifests
+              name: manifests
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: rhai-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: rhai-operator-controller-webhook-cert
+        - emptyDir:
+            sizeLimit: 256Mi
+          name: manifests
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 10Mi
+          name: tmp
+
+---
+# Source: rhai-on-xks-chart/templates/webhooks/mutatingwebhookconfiguration-rhai-operator-mutating-webhook-configuration.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
+  name: rhai-operator-mutating-webhook-configuration
+  namespace: redhat-ods-operator
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: rhai-operator-webhook-service
+        namespace: redhat-ods-operator
+        path: /platform-connection-isvc
+    failurePolicy: Fail
+    name: connection-isvc.opendatahub.io
+    rules:
+      - apiGroups:
+          - serving.kserve.io
+        apiVersions:
+          - v1beta1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - inferenceservices
+    sideEffects: NoneOnDryRun
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: rhai-operator-webhook-service
+        namespace: redhat-ods-operator
+        path: /platform-connection-llmisvc
+    failurePolicy: Fail
+    name: connection-llmisvc.opendatahub.io
+    rules:
+      - apiGroups:
+          - serving.kserve.io
+        apiVersions:
+          - v1alpha1
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - llminferenceservices
+    sideEffects: NoneOnDryRun
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-post-install-hook
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-post-install-hook
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - kserves
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines
+      - coreweavekubernetesengines
+      - awskubernetesengines
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gatewayclasses
+    verbs:
+      - get
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-post-install-hook
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-post-install-hook
+subjects:
+  - kind: ServiceAccount
+    name: rhai-post-install-hook
+    namespace: default
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-crs-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-post-install-crs
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-post-install-hook
+      imagePullSecrets:
+        - name: rhai-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: create-crs
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Creating Kserve CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: components.platform.opendatahub.io/v1alpha1
+              kind: Kserve
+              metadata:
+                name: default-kserve
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec: {}
+              EOF
+              echo "Creating AWSKubernetesEngine CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: infrastructure.opendatahub.io/v1alpha1
+              kind: AWSKubernetesEngine
+              metadata:
+                name: default-awskubernetesengine
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec:
+                dependencies:
+                  certManager:
+                    configuration: {}
+                    managementPolicy: Managed
+                  gatewayAPI:
+                    configuration: {}
+                    managementPolicy: Managed
+                  lws:
+                    configuration:
+                      namespace: openshift-lws-operator
+                    managementPolicy: Managed
+                  sailOperator:
+                    configuration:
+                      namespace: istio-system
+                    managementPolicy: Managed
+              EOF
+              echo "Done."
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-gateway-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-post-create-gateway
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "2"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-post-install-hook
+      imagePullSecrets:
+        - name: rhai-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: create-gateway
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              TIMEOUT=300
+              INTERVAL=5
+              ELAPSED=0
+
+              echo "Step 1: Waiting for Gateway API CRDs required by Gateway CR 'inference-gateway'..."
+              until kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for Gateway API CRDs after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "CRD not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "Gateway API CRDs are available."
+
+              echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
+              ELAPSED=0
+              until kubectl get secret rhai-ca -n cert-manager >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "CA secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "CA secret is available."
+
+              echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
+              kubectl get secret rhai-ca -n cert-manager \
+                -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
+              kubectl create configmap rhai-ca-bundle \
+                --from-file=ca.crt=/tmp/ca.crt \
+                -n redhat-ods-applications \
+                --dry-run=client -o yaml | kubectl apply -f -
+              echo "CA bundle ConfigMap created."
+
+              echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: inference-gateway-config
+                namespace: redhat-ods-applications
+              data:
+                deployment: |
+                  spec:
+                    template:
+                      spec:
+                        volumes:
+                        - name: rhai-ca-bundle
+                          configMap:
+                            name: rhai-ca-bundle
+                        containers:
+                        - name: istio-proxy
+                          volumeMounts:
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/rhai
+                            readOnly: true
+              EOF
+              echo "ConfigMap used by Gateway CR 'inference-gateway' created."
+
+              echo "Step 5: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
+              ELAPSED=0
+              until kubectl get gatewayclass istio >/dev/null 2>&1; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for GatewayClass 'istio' after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "GatewayClass 'istio' not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "GatewayClass 'istio' is available."
+
+              echo "Step 6: Creating Gateway CR 'inference-gateway'..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: Gateway
+              metadata:
+                name: inference-gateway
+                namespace: redhat-ods-applications
+              spec:
+                gatewayClassName: istio
+                listeners:
+                  - name: http
+                    port: 80
+                    protocol: HTTP
+                    allowedRoutes:
+                      namespaces:
+                        from: Same
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
+                    allowedRoutes:
+                      namespaces:
+                        from: Same
+                infrastructure:
+                  labels:
+                    serving.kserve.io/gateway: kserve-ingress-gateway
+                  parametersRef:
+                    group: ""
+                    kind: ConfigMap
+                    name: inference-gateway-config
+              EOF
+              echo "Gateway CR 'inference-gateway' created successfully."
+

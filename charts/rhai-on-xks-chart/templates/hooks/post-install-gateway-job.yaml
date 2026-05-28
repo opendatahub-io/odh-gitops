@@ -145,6 +145,9 @@ spec:
                     port: 80
                     protocol: HTTP
               {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") (not .Values.components.kserve.gateway.allowedRoutes.namespaces.selector) }}
+              {{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" }}
+              {{- end }}
                     allowedRoutes:
                       namespaces:
                         from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
@@ -157,6 +160,9 @@ spec:
                     port: 443
                     protocol: HTTPS
               {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") (not .Values.components.kserve.gateway.allowedRoutes.namespaces.selector) }}
+              {{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" }}
+              {{- end }}
                     allowedRoutes:
                       namespaces:
                         from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
