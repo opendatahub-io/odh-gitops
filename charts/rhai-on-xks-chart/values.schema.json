@@ -183,9 +183,38 @@
                   "type": "boolean",
                   "description": "Create Gateway and ConfigMaps via post-install hook",
                   "default": true
+                },
+                "allowedRoutes": {
+                  "type": "object",
+                  "description": "Gateway allowedRoutes configuration for controlling which namespaces can attach HTTPRoutes",
+                  "properties": {
+                    "namespaces": {
+                      "type": "object",
+                      "description": "Namespace-based route attachment policy",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "description": "Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector). If empty, defaults to Same — only from the Gateway's own namespace.",
+                          "enum": ["", "Selector", "Same", "All"]
+                        },
+                        "selector": {
+                          "type": "object",
+                          "description": "Label selector for namespaces when from is Selector",
+                          "properties": {
+                            "matchLabels": {
+                              "type": "object",
+                              "description": "Label key-value pairs that namespaces must match",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
-              },
-              "additionalProperties": false
+              }
             }
           }
         }

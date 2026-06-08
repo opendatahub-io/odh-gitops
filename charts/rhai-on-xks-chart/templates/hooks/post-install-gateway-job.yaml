@@ -144,9 +144,33 @@ spec:
                   - name: http
                     port: 80
                     protocol: HTTP
+              {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") (not .Values.components.kserve.gateway.allowedRoutes.namespaces.selector) }}
+              {{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" }}
+              {{- end }}
                     allowedRoutes:
                       namespaces:
-                        from: All
+                        from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") .Values.components.kserve.gateway.allowedRoutes.namespaces.selector }}
+                        selector:
+                          {{- toYaml .Values.components.kserve.gateway.allowedRoutes.namespaces.selector | nindent 26 }}
+              {{- end }}
+              {{- end }}
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
+              {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") (not .Values.components.kserve.gateway.allowedRoutes.namespaces.selector) }}
+              {{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" }}
+              {{- end }}
+                    allowedRoutes:
+                      namespaces:
+                        from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
+              {{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") .Values.components.kserve.gateway.allowedRoutes.namespaces.selector }}
+                        selector:
+                          {{- toYaml .Values.components.kserve.gateway.allowedRoutes.namespaces.selector | nindent 26 }}
+              {{- end }}
+              {{- end }}
                 infrastructure:
                   labels:
                     serving.kserve.io/gateway: kserve-ingress-gateway

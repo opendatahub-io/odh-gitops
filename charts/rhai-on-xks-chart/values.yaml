@@ -64,6 +64,22 @@ components:
     gateway:
       # Create Gateway and ConfigMaps via post-install hook
       create: true
+      allowedRoutes:
+        namespaces:
+          # Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector).
+          # If empty, the allowedRoutes block is omitted and the Gateway API defaults to Same.
+          from: All
+          # Example for Same (only the Gateway's namespace):
+          # from: Same
+          #
+          # Example for All (any namespace can attach routes):
+          # from: All
+          #
+          # Example for Selector (only namespaces matching labels):
+          # from: Selector
+          # selector:
+          #   matchLabels:
+          #     inference-gateway-access: "true"
 
 # Azure cloud configuration
 azure:

@@ -3075,6 +3075,12 @@ spec:
                     allowedRoutes:
                       namespaces:
                         from: All
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
+                    allowedRoutes:
+                      namespaces:
+                        from: All
                 infrastructure:
                   labels:
                     serving.kserve.io/gateway: kserve-ingress-gateway

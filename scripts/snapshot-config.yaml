@@ -118,3 +118,19 @@ charts:
         setFlags:
           - aws.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
+
+      - name: aws-with-allowed-routes-all
+        setFlags:
+          - aws.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=All
+
+      - name: aws-with-allowed-routes-same
+        setFlags:
+          - aws.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: coreweave-with-allowed-routes-selector
+        setFlags:
+          - coreweave.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Selector
+          - components.kserve.gateway.allowedRoutes.namespaces.selector.matchLabels.inference-gateway-access=enabled
