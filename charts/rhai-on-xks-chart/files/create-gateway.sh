@@ -1,4 +1,9 @@
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
+{{- $tls := .Values.gateway.tls -}}
+{{- $hostname := .Values.gateway.hostname -}}
+{{- $internalIssuer := eq $tls.issuerRef.name "rhai-ca-issuer" -}}
+{{- /* Internal secret name for the cert: created by Certificate, read by every gateway HTTPS listener. Not user-configurable. */ -}}
+{{- $certSecret := "inference-gateway-cert-secret" -}}
 set -euo pipefail
 TIMEOUT=300
 INTERVAL=5
@@ -68,8 +73,31 @@ data:
 EOF
 echo "ConfigMap used by Gateway CR 'inference-gateway' created."
 
+
+{{- if $tls.enabled }}
+echo "Waiting for {{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' to be Ready before creating the Certificate..."
+ELAPSED=0
+until [ "$(kubectl get {{ $tls.issuerRef.kind | lower }} {{ $tls.issuerRef.name }}{{ if eq $tls.issuerRef.kind "Issuer" }} -n {{ $appNs }}{{ end }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]; do
+  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+    echo "ERROR: Timed out waiting for {{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' to be Ready after ${TIMEOUT}s"
+    exit 1
+  fi
+  echo "{{ $tls.issuerRef.kind }} not yet Ready, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+  sleep "$INTERVAL"
+  ELAPSED=$((ELAPSED + INTERVAL))
+done
+echo "{{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' is Ready."
+{{- end }}
+
+{{- if $tls.enabled }}
+{{- if and (not $internalIssuer) (not $hostname) (not $tls.additionalSANs) }}
+{{- fail "gateway.tls.issuerRef is non-default (external) but neither gateway.hostname nor gateway.tls.additionalSANs is set; the certificate would have no dnsNames" }}
+{{- end }}
 ####
 echo "Step 5: Creating Certificate for Gateway TLS..."
+{{- if and $hostname $internalIssuer }}
+echo "WARNING: gateway.hostname is set but issuerRef '{{ $tls.issuerRef.name }}' is the internal CA; the certificate is only trusted inside the cluster. Set gateway.tls.issuerRef to a public/enterprise issuer for external clients."
+{{- end }}
 kubectl apply -f - <<'EOF'
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -77,34 +105,43 @@ metadata:
   name: inference-gateway-cert
   namespace: {{ $appNs }}
 spec:
-  secretName: inference-gateway-cert-secret
+  secretName: {{ $certSecret }}
   issuerRef:
-    name: rhai-ca-issuer  # need match RHAI_ISSUER_REF_NAME
-    kind: ClusterIssuer
+    name: {{ $tls.issuerRef.name }}
+    kind: {{ $tls.issuerRef.kind }}
     group: cert-manager.io
   dnsNames:
+  {{- if $internalIssuer }}  
     - "*.{{ $appNs }}.svc.cluster.local"
     - "*.{{ $appNs }}.svc"
-    {{- if .Values.components.kserve.gateway.hostname }}
-    - {{ .Values.components.kserve.gateway.hostname | quote }}
-    - {{ .Values.components.kserve.gateway.hostname | replace "*." "" | quote }}
+  {{- end }}
+  {{- if $hostname }}
+    - {{ $hostname | quote }}
+    {{- if hasPrefix "*." $hostname }}
+    - {{ $hostname | trimPrefix "*." | quote }}
     {{- end }}
+  {{- end }}
+  {{- range $tls.additionalSANs }}
+    - {{ . | quote }}
+  {{- end }}
 EOF
 echo "Certificate 'inference-gateway-cert' created."
 
-echo "Waiting for inference-gateway-cert-secret Secret to be created by cert-manager..."
+echo "Waiting for {{ $certSecret }} Secret to be created by cert-manager..."
 ELAPSED=0
-until kubectl get secret inference-gateway-cert-secret -n {{ $appNs }} >/dev/null 2>&1; do
+until kubectl get secret {{ $certSecret }} -n {{ $appNs }} >/dev/null 2>&1; do
   if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "ERROR: Timed out waiting for inference-gateway-cert-secret Secret after ${TIMEOUT}s"
+    echo "ERROR: Timed out waiting for {{ $certSecret }} Secret after ${TIMEOUT}s"
     exit 1
   fi
   echo "Secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
   sleep "$INTERVAL"
   ELAPSED=$((ELAPSED + INTERVAL))
 done
-echo "inference-gateway-cert-secret Secret is available."
+echo "{{ $certSecret }} Secret is available."
+{{- end }}
 
+####
 echo "Step 6: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
 ELAPSED=0
 until kubectl get gatewayclass istio >/dev/null 2>&1; do
@@ -118,6 +155,7 @@ until kubectl get gatewayclass istio >/dev/null 2>&1; do
 done
 echo "GatewayClass 'istio' is available."
 
+####
 echo "Step 7: Creating Gateway CR 'inference-gateway'..."
 kubectl apply -f - <<'EOF'
 apiVersion: gateway.networking.k8s.io/v1
@@ -143,6 +181,7 @@ spec:
             {{- toYaml .Values.components.kserve.gateway.allowedRoutes.namespaces.selector | nindent 12 }}
 {{- end }}
 {{- end }}
+{{- if $tls.enabled }}
     - name: https
       port: 443
       protocol: HTTPS
@@ -162,8 +201,9 @@ spec:
         certificateRefs:
           - group: ''
             kind: Secret
-            name: inference-gateway-cert-secret
+            name: {{ $certSecret }}
         mode: Terminate
+{{- end }}
   infrastructure:
     labels:
       serving.kserve.io/gateway: kserve-ingress-gateway

@@ -2590,8 +2590,6 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
-            - name: "RELATED_IMAGE_ODH_KSERVE_LLMISVC_CONTROLLER_IMAGE"
-              value: "ghcr.io/opendatahub-io/kserve/odh-kserve-llmisvc-controller:release-v0.17"
           image: quay.io/opendatahub/opendatahub-operator:latest
           imagePullPolicy: Always
           livenessProbe:
@@ -3050,50 +3048,6 @@ spec:
                       service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
-              echo "Waiting for ClusterIssuer 'rhai-ca-issuer' to be Ready before creating the Certificate..."
-              ELAPSED=0
-              until [ "$(kubectl get clusterissuer rhai-ca-issuer -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for ClusterIssuer 'rhai-ca-issuer' to be Ready after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "ClusterIssuer not yet Ready, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "ClusterIssuer 'rhai-ca-issuer' is Ready."
-              ####
-              echo "Step 5: Creating Certificate for Gateway TLS..."
-              kubectl apply -f - <<'EOF'
-              apiVersion: cert-manager.io/v1
-              kind: Certificate
-              metadata:
-                name: inference-gateway-cert
-                namespace: redhat-ods-applications
-              spec:
-                secretName: inference-gateway-cert-secret
-                issuerRef:
-                  name: rhai-ca-issuer
-                  kind: ClusterIssuer
-                  group: cert-manager.io
-                dnsNames:  
-                  - "*.redhat-ods-applications.svc.cluster.local"
-                  - "*.redhat-ods-applications.svc"
-              EOF
-              echo "Certificate 'inference-gateway-cert' created."
-              
-              echo "Waiting for inference-gateway-cert-secret Secret to be created by cert-manager..."
-              ELAPSED=0
-              until kubectl get secret inference-gateway-cert-secret -n redhat-ods-applications >/dev/null 2>&1; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for inference-gateway-cert-secret Secret after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "Secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "inference-gateway-cert-secret Secret is available."
               
               ####
               echo "Step 6: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
@@ -3126,18 +3080,6 @@ spec:
                     allowedRoutes:
                       namespaces:
                         from: Same
-                  - name: https
-                    port: 443
-                    protocol: HTTPS
-                    allowedRoutes:
-                      namespaces:
-                        from: Same
-                    tls:
-                      certificateRefs:
-                        - group: ''
-                          kind: Secret
-                          name: inference-gateway-cert-secret
-                      mode: Terminate
                 infrastructure:
                   labels:
                     serving.kserve.io/gateway: kserve-ingress-gateway

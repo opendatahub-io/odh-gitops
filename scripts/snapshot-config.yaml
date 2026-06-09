@@ -104,7 +104,21 @@ charts:
       - name: azure-with-gateway-hostname
         setFlags:
           - azure.enabled=true
-          - components.kserve.gateway.hostname=*.redhat.com
+          - gateway.hostname=*.redhat.com
+
+      - name: azure-with-tls-disabled
+        setFlags:
+          - azure.enabled=true
+          - gateway.tls.enabled=false
+
+      - name: azure-with-byo-issuer
+        setFlags:
+          - azure.enabled=true
+          - gateway.hostname=*.example.com
+          - gateway.tls.issuerRef.name=my-letsencrypt-issuer
+          - gateway.tls.additionalSANs[0]=api.example.com
+          - gateway.tls.additionalSANs[1]=a.grpc.example.com
+          - gateway.tls.additionalSANs[2]=admin.example.org
 
       - name: coreweave
         setFlags:

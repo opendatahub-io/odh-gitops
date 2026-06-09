@@ -3044,7 +3044,18 @@ spec:
                             readOnly: true
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
-              
+              echo "Waiting for ClusterIssuer 'rhai-ca-issuer' to be Ready before creating the Certificate..."
+              ELAPSED=0
+              until [ "$(kubectl get clusterissuer rhai-ca-issuer -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]; do
+                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                  echo "ERROR: Timed out waiting for ClusterIssuer 'rhai-ca-issuer' to be Ready after ${TIMEOUT}s"
+                  exit 1
+                fi
+                echo "ClusterIssuer not yet Ready, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
+                sleep "$INTERVAL"
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "ClusterIssuer 'rhai-ca-issuer' is Ready."
               ####
               echo "Step 5: Creating Certificate for Gateway TLS..."
               kubectl apply -f - <<'EOF'
@@ -3056,10 +3067,10 @@ spec:
               spec:
                 secretName: inference-gateway-cert-secret
                 issuerRef:
-                  name: rhai-ca-issuer  # need match RHAI_ISSUER_REF_NAME
+                  name: rhai-ca-issuer
                   kind: ClusterIssuer
                   group: cert-manager.io
-                dnsNames:
+                dnsNames:  
                   - "*.redhat-ods-applications.svc.cluster.local"
                   - "*.redhat-ods-applications.svc"
               EOF
@@ -3078,6 +3089,7 @@ spec:
               done
               echo "inference-gateway-cert-secret Secret is available."
               
+              ####
               echo "Step 6: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
               ELAPSED=0
               until kubectl get gatewayclass istio >/dev/null 2>&1; do
@@ -3091,6 +3103,7 @@ spec:
               done
               echo "GatewayClass 'istio' is available."
               
+              ####
               echo "Step 7: Creating Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: gateway.networking.k8s.io/v1

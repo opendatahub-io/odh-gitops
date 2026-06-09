@@ -158,6 +158,50 @@
       },
       "required": ["cliImage"]
     },
+    "gateway": {
+      "type": "object",
+      "description": "Shared inference-gateway TLS identity, used by every component gateway",
+      "properties": {
+        "hostname": {
+          "type": "string",
+          "description": "External hostname for the shared TLS certificate (e.g. *.mycompany.com). If empty, only cluster-internal DNS is covered.",
+          "default": ""
+        },
+        "tls": {
+          "type": "object",
+          "description": "TLS configuration for the shared inference-gateway certificate",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When false, gateways are HTTP only: no Certificate is created and HTTPS listeners omit TLS.",
+              "default": true
+            },
+            "issuerRef": {
+              "type": "object",
+              "description": "cert-manager issuer for the certificate. The chart does not create this issuer.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Issuer name. Defaults to the operator-managed internal CA (matches RHAI_ISSUER_REF_NAME).",
+                  "default": "rhai-ca-issuer"
+                },
+                "kind": {
+                  "type": "string",
+                  "description": "Issuer kind: ClusterIssuer (cluster-wide) or Issuer (namespace-scoped).",
+                  "enum": ["ClusterIssuer", "Issuer"],
+                  "default": "ClusterIssuer"
+                }
+              }
+            },
+            "additionalSANs": {
+              "type": "array",
+              "description": "Extra dnsNames added to the certificate (multi-domain / wildcard).",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "components": {
       "type": "object",
       "description": "Components configuration",
@@ -213,11 +257,6 @@
                       }
                     }
                   }
-                },
-                "hostname": {
-                  "type": "string",
-                  "description": "External hostname for TLS certificate (e.g. *.mycompany.com). If not set, only cluster-internal DNS is used.",
-                  "default": ""
                 }
               }
             }

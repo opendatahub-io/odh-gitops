@@ -54,6 +54,21 @@ hooks:
   postInstallCrs:
     enabled: true
 
+# Cluster wise config for gateway for tls, shared config for all components section below
+gateway:
+  # External hostname e.g. "*.mycompany.com", if empty, only cluster-internal DNS (svc.cluster.local) to use
+  hostname: ""
+  tls:
+    # When false, gateways are HTTP only
+    enabled: true
+    # Default is set to use rhai managed internal CA, handled by operator
+    # to bring your own ClusterIssuer/Issuer (e.g. Let's Encrypt), ensure it is Ready in the cluster before config it below
+    issuerRef:
+      name: rhai-ca-issuer
+      kind: ClusterIssuer
+    # Extra dnsNames added to the certificate (multi-domain / wildcard).
+    additionalSANs: []
+
 # Components configuration
 components:
   kserve:
@@ -67,11 +82,8 @@ components:
       allowedRoutes:
         namespaces:
           # Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector).
-          # If empty, the allowedRoutes block is omitted and the Gateway API defaults to Same.
-          from: All
-          # Example for Same (only the Gateway's namespace):
-          # from: Same
-          #
+          # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
+          from: Same
           # Example for All (any namespace can attach routes):
           # from: All
           #
@@ -80,8 +92,6 @@ components:
           # selector:
           #   matchLabels:
           #     inference-gateway-access: "true"
-      # External hostname for TLS certificate (e.g. "*.mycompany.com"). If not set, only cluster-internal DNS is used.
-      hostname: ""
 
 # Azure cloud configuration
 azure:
