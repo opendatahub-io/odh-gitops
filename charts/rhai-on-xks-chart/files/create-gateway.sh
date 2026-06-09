@@ -7,41 +7,35 @@
 set -euo pipefail
 TIMEOUT=300
 INTERVAL=5
-ELAPSED=0
 
-echo "Step 1: Waiting for Gateway API CRDs required by Gateway CR 'inference-gateway'..."
-until kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; do
-  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "ERROR: Timed out waiting for Gateway API CRDs after ${TIMEOUT}s"
-    exit 1
-  fi
-  echo "CRD not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-  sleep "$INTERVAL"
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
-echo "Gateway API CRDs are available."
+# general wait function for resource to be ready in the cluster
+wait_for() {
+  local desc="$1"; shift
+  local elapsed=0
+  echo "Waiting for ${desc}..."
+  until "$@" >/dev/null 2>&1; do
+    if [ "$elapsed" -ge "$TIMEOUT" ]; then
+      echo "ERROR: Timed out waiting for ${desc} after ${TIMEOUT}s"
+      exit 1
+    fi
+    echo "${desc} not yet available, retrying in ${INTERVAL}s... (${elapsed}/${TIMEOUT}s)"
+    sleep "$INTERVAL"
+    elapsed=$((elapsed + INTERVAL))
+  done
+  echo "${desc} is available."
+}
 
-####
-echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
-ELAPSED=0
-until kubectl get secret rhai-ca -n cert-manager >/dev/null 2>&1; do
-  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
-    exit 1
-  fi
-  echo "CA secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-  sleep "$INTERVAL"
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
-echo "CA secret is available."
+echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
+wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
 
-####
+echo "Step 2: cert-manager CA secret required by Gateway CR 'inference-gateway'..."
+wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
+
 echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
 kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
 kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n {{ $appNs }} --dry-run=client -o yaml | kubectl apply -f -
 echo "CA bundle ConfigMap created."
 
-####
 echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
 kubectl apply -f - <<'EOF'
 apiVersion: v1
@@ -75,25 +69,16 @@ echo "ConfigMap used by Gateway CR 'inference-gateway' created."
 
 
 {{- if $tls.enabled }}
-echo "Waiting for {{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' to be Ready before creating the Certificate..."
-ELAPSED=0
-until [ "$(kubectl get {{ $tls.issuerRef.kind | lower }} {{ $tls.issuerRef.name }}{{ if eq $tls.issuerRef.kind "Issuer" }} -n {{ $appNs }}{{ end }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]; do
-  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "ERROR: Timed out waiting for {{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' to be Ready after ${TIMEOUT}s"
-    exit 1
-  fi
-  echo "{{ $tls.issuerRef.kind }} not yet Ready, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-  sleep "$INTERVAL"
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
-echo "{{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' is Ready."
+issuer_ready() {
+  [ "$(kubectl get {{ $tls.issuerRef.kind | lower }} {{ $tls.issuerRef.name }}{{ if eq $tls.issuerRef.kind "Issuer" }} -n {{ $appNs }}{{ end }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+}
+wait_for "{{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' to be Ready" issuer_ready
 {{- end }}
 
 {{- if $tls.enabled }}
 {{- if and (not $internalIssuer) (not $hostname) (not $tls.additionalSANs) }}
 {{- fail "gateway.tls.issuerRef is non-default (external) but neither gateway.hostname nor gateway.tls.additionalSANs is set; the certificate would have no dnsNames" }}
 {{- end }}
-####
 echo "Step 5: Creating Certificate for Gateway TLS..."
 {{- if and $hostname $internalIssuer }}
 echo "WARNING: gateway.hostname is set but issuerRef '{{ $tls.issuerRef.name }}' is the internal CA; the certificate is only trusted inside the cluster. Set gateway.tls.issuerRef to a public/enterprise issuer for external clients."
@@ -111,7 +96,7 @@ spec:
     kind: {{ $tls.issuerRef.kind }}
     group: cert-manager.io
   dnsNames:
-  {{- if $internalIssuer }}  
+  {{- if $internalIssuer }}
     - "*.{{ $appNs }}.svc.cluster.local"
     - "*.{{ $appNs }}.svc"
   {{- end }}
@@ -127,35 +112,12 @@ spec:
 EOF
 echo "Certificate 'inference-gateway-cert' created."
 
-echo "Waiting for {{ $certSecret }} Secret to be created by cert-manager..."
-ELAPSED=0
-until kubectl get secret {{ $certSecret }} -n {{ $appNs }} >/dev/null 2>&1; do
-  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "ERROR: Timed out waiting for {{ $certSecret }} Secret after ${TIMEOUT}s"
-    exit 1
-  fi
-  echo "Secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-  sleep "$INTERVAL"
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
-echo "{{ $certSecret }} Secret is available."
+wait_for "{{ $certSecret }} Secret" kubectl get secret {{ $certSecret }} -n {{ $appNs }}
 {{- end }}
 
-####
-echo "Step 6: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
-ELAPSED=0
-until kubectl get gatewayclass istio >/dev/null 2>&1; do
-  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "ERROR: Timed out waiting for GatewayClass 'istio' after ${TIMEOUT}s"
-    exit 1
-  fi
-  echo "GatewayClass 'istio' not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-  sleep "$INTERVAL"
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
-echo "GatewayClass 'istio' is available."
+echo "Step 6: GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
+wait_for "GatewayClass 'istio'" kubectl get gatewayclass istio
 
-####
 echo "Step 7: Creating Gateway CR 'inference-gateway'..."
 kubectl apply -f - <<'EOF'
 apiVersion: gateway.networking.k8s.io/v1
@@ -170,32 +132,14 @@ spec:
       port: 80
       protocol: HTTP
 {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-{{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") (not .Values.components.kserve.gateway.allowedRoutes.namespaces.selector) }}
-{{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" }}
-{{- end }}
-      allowedRoutes:
-        namespaces:
-          from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-{{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") .Values.components.kserve.gateway.allowedRoutes.namespaces.selector }}
-          selector:
-            {{- toYaml .Values.components.kserve.gateway.allowedRoutes.namespaces.selector | nindent 12 }}
-{{- end }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" . | nindent 6 }}
 {{- end }}
 {{- if $tls.enabled }}
     - name: https
       port: 443
       protocol: HTTPS
 {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-{{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") (not .Values.components.kserve.gateway.allowedRoutes.namespaces.selector) }}
-{{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" }}
-{{- end }}
-      allowedRoutes:
-        namespaces:
-          from: {{ .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-{{- if and (eq .Values.components.kserve.gateway.allowedRoutes.namespaces.from "Selector") .Values.components.kserve.gateway.allowedRoutes.namespaces.selector }}
-          selector:
-            {{- toYaml .Values.components.kserve.gateway.allowedRoutes.namespaces.selector | nindent 12 }}
-{{- end }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" . | nindent 6 }}
 {{- end }}
       tls:
         certificateRefs:

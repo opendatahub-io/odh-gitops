@@ -2985,41 +2985,35 @@ spec:
               set -euo pipefail
               TIMEOUT=300
               INTERVAL=5
-              ELAPSED=0
               
-              echo "Step 1: Waiting for Gateway API CRDs required by Gateway CR 'inference-gateway'..."
-              until kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for Gateway API CRDs after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "CRD not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "Gateway API CRDs are available."
+              # general wait function for resource to be ready in the cluster
+              wait_for() {
+                local desc="$1"; shift
+                local elapsed=0
+                echo "Waiting for ${desc}..."
+                until "$@" >/dev/null 2>&1; do
+                  if [ "$elapsed" -ge "$TIMEOUT" ]; then
+                    echo "ERROR: Timed out waiting for ${desc} after ${TIMEOUT}s"
+                    exit 1
+                  fi
+                  echo "${desc} not yet available, retrying in ${INTERVAL}s... (${elapsed}/${TIMEOUT}s)"
+                  sleep "$INTERVAL"
+                  elapsed=$((elapsed + INTERVAL))
+                done
+                echo "${desc} is available."
+              }
               
-              ####
-              echo "Step 2: Waiting for cert-manager CA secret required by Gateway CR 'inference-gateway'..."
-              ELAPSED=0
-              until kubectl get secret rhai-ca -n cert-manager >/dev/null 2>&1; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for CA secret after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "CA secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "CA secret is available."
+              echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
+              wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
               
-              ####
+              echo "Step 2: cert-manager CA secret required by Gateway CR 'inference-gateway'..."
+              wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
+              
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
               kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
               kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n redhat-ods-applications --dry-run=client -o yaml | kubectl apply -f -
               echo "CA bundle ConfigMap created."
               
-              ####
               echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: v1
@@ -3044,19 +3038,10 @@ spec:
                             readOnly: true
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
-              echo "Waiting for ClusterIssuer 'rhai-ca-issuer' to be Ready before creating the Certificate..."
-              ELAPSED=0
-              until [ "$(kubectl get clusterissuer rhai-ca-issuer -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for ClusterIssuer 'rhai-ca-issuer' to be Ready after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "ClusterIssuer not yet Ready, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "ClusterIssuer 'rhai-ca-issuer' is Ready."
-              ####
+              issuer_ready() {
+                [ "$(kubectl get clusterissuer rhai-ca-issuer -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              wait_for "ClusterIssuer 'rhai-ca-issuer' to be Ready" issuer_ready
               echo "Step 5: Creating Certificate for Gateway TLS..."
               kubectl apply -f - <<'EOF'
               apiVersion: cert-manager.io/v1
@@ -3070,40 +3055,17 @@ spec:
                   name: rhai-ca-issuer
                   kind: ClusterIssuer
                   group: cert-manager.io
-                dnsNames:  
+                dnsNames:
                   - "*.redhat-ods-applications.svc.cluster.local"
                   - "*.redhat-ods-applications.svc"
               EOF
               echo "Certificate 'inference-gateway-cert' created."
               
-              echo "Waiting for inference-gateway-cert-secret Secret to be created by cert-manager..."
-              ELAPSED=0
-              until kubectl get secret inference-gateway-cert-secret -n redhat-ods-applications >/dev/null 2>&1; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for inference-gateway-cert-secret Secret after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "Secret not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "inference-gateway-cert-secret Secret is available."
+              wait_for "inference-gateway-cert-secret Secret" kubectl get secret inference-gateway-cert-secret -n redhat-ods-applications
               
-              ####
-              echo "Step 6: Waiting for GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
-              ELAPSED=0
-              until kubectl get gatewayclass istio >/dev/null 2>&1; do
-                if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-                  echo "ERROR: Timed out waiting for GatewayClass 'istio' after ${TIMEOUT}s"
-                  exit 1
-                fi
-                echo "GatewayClass 'istio' not yet available, retrying in ${INTERVAL}s... (${ELAPSED}/${TIMEOUT}s)"
-                sleep "$INTERVAL"
-                ELAPSED=$((ELAPSED + INTERVAL))
-              done
-              echo "GatewayClass 'istio' is available."
+              echo "Step 6: GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
+              wait_for "GatewayClass 'istio'" kubectl get gatewayclass istio
               
-              ####
               echo "Step 7: Creating Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: gateway.networking.k8s.io/v1

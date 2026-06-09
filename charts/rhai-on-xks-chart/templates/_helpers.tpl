@@ -49,6 +49,24 @@ imagePullSecrets:
 {{- end -}}
 
 {{/*
+Add the allowedRoutes block for a Gateway listener can be used by both HTTP and HTTPS listeners
+currently is only for kserve, might need adapt for other components
+*/}}
+{{- define "rhai-on-xks-chart.gatewayAllowedRoutes" -}}
+{{- $ns := .Values.components.kserve.gateway.allowedRoutes.namespaces -}}
+{{- if and (eq $ns.from "Selector") (not $ns.selector) -}}
+{{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" -}}
+{{- end -}}
+allowedRoutes:
+  namespaces:
+    from: {{ $ns.from }}
+{{- if and (eq $ns.from "Selector") $ns.selector }}
+    selector:
+      {{- toYaml $ns.selector | nindent 6 }}
+{{- end }}
+{{- end -}}
+
+{{/*
 Validate that exactly one cloud provider is enabled.
 */}}
 {{- define "rhai-on-xks-chart.validateCloudProvider" -}}
