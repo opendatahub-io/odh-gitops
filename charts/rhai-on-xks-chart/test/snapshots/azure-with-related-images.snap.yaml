@@ -2814,6 +2814,22 @@ rules:
       - create
       - patch
       - update
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+      - clusterissuers
+    verbs:
+      - get
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1

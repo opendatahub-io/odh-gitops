@@ -5,6 +5,7 @@
 {{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
 {{- $createAwsKE := and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled }}
 {{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
+{{- $gatewayTls := and $createGateway .Values.gateway.tls.enabled }}
 {{- if or $createKserve $createAzureKE $createCoreweaveKE $createAwsKE $createGateway }}
 apiVersion: v1
 kind: ServiceAccount
@@ -86,6 +87,24 @@ rules:
       - create
       - patch
       - update
+  {{- if $gatewayTls }}
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+      - clusterissuers
+    verbs:
+      - get
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  {{- end }}
   {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
