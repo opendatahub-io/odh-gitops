@@ -2917,7 +2917,7 @@ spec:
                   lws:
                     configuration:
                       namespace: openshift-lws-operator
-                    managementPolicy: Managed
+                    managementPolicy: Unmanaged
                   sailOperator:
                     configuration:
                       namespace: istio-system

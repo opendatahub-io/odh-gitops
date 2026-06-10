@@ -23,7 +23,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | aws.kubernetesEngine.spec.dependencies.gatewayAPI.configuration | object | `{}` |  |
 | aws.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | aws.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
-| aws.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Managed"` |  |
+| aws.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
 | aws.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | aws.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | azure.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
