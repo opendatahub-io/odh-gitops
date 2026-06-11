@@ -1,6 +1,6 @@
 # rhai-on-xks-chart
 
-![Version: 3.5.0-ea.2](https://img.shields.io/badge/Version-3.5.0--ea.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.5.0-ea.2](https://img.shields.io/badge/AppVersion-3.5.0--ea.1-informational?style=flat-square)
+![Version: 3.5.0-ea.2](https://img.shields.io/badge/Version-3.5.0--ea.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.5.0-ea.2](https://img.shields.io/badge/AppVersion-3.5.0--ea.2-informational?style=flat-square)
 
 RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes services (Azure, CoreWeave).
 
@@ -23,7 +23,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | aws.kubernetesEngine.spec.dependencies.gatewayAPI.configuration | object | `{}` |  |
 | aws.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | aws.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
-| aws.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Managed"` |  |
+| aws.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
 | aws.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | aws.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | azure.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |

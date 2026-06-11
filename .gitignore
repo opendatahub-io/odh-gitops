@@ -24,3 +24,6 @@ flymd.*
 
 # Ignore temporary files created by the Makefile
 *.mktmp.*
+
+# Ignore version-specific values files
+charts/rhai-on-xks-chart/values-rhoai-*.yaml

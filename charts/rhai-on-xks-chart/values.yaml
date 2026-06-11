@@ -205,7 +205,7 @@ aws:
           managementPolicy: Managed
           configuration: {}
         lws:
-          managementPolicy: Managed
+          managementPolicy: Unmanaged
           configuration:
             namespace: openshift-lws-operator
         sailOperator:
