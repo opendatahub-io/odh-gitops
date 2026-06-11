@@ -55,7 +55,7 @@ YQ ?= $(LOCALBIN)/yq
 
 ## Application Versions
 # RHOAI version to use for bundle updates - update this when new catalog folder appears in RHOAI-Build-Config
-RHOAI_VERSION ?= 3.5.0-ea.1
+RHOAI_VERSION ?= 3.5.0-ea.2
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.0
