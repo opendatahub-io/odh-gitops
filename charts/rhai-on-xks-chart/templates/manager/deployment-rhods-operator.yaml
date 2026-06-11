@@ -114,6 +114,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULT_MANIFESTS_PATH
               value: /opt/manifests
+            - name: DEFAULT_CHARTS_PATH
+              value: /opt/charts
             {{- range $item := .Values.rhaiOperator.relatedImages }}
             - name: {{ $item.name | quote }}
               value: {{ $item.value | quote }}

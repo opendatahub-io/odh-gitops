@@ -373,6 +373,28 @@ rules:
     verbs:
       - update
   - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
       - config.openshift.io
     resources:
       - authentications
