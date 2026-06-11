@@ -165,7 +165,8 @@
         "hostname": {
           "type": "string",
           "description": "External hostname for the shared TLS certificate (e.g. *.mycompany.com). If empty, only cluster-internal DNS is covered.",
-          "default": ""
+          "default": "",
+          "pattern": "^$|^(\\*\\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$"
         },
         "tls": {
           "type": "object",
@@ -196,7 +197,10 @@
             "additionalSANs": {
               "type": "array",
               "description": "Extra dnsNames added to the certificate (multi-domain / wildcard).",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string",
+                "pattern": "^(\\*\\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$"
+              }
             }
           }
         }

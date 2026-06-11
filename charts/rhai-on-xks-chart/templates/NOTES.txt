@@ -8,6 +8,26 @@ Cloud provider: CoreWeave
 Cloud provider: AWS
 {{- end }}
 
+{{- $tls := .Values.gateway.tls }}
+{{- $hostname := .Values.gateway.hostname }}
+{{- $internalIssuer := eq $tls.issuerRef.name "rhai-ca-issuer" }}
+{{- if or (not $tls.enabled) (and $hostname $internalIssuer) }}
+
+== Gateway TLS ==
+{{- if not $tls.enabled }}
+
+TLS is disabled (gateway.tls.enabled=false). Gateways serve HTTP only on
+port 80; no Certificate is created and the HTTPS listener is omitted. Set
+gateway.tls.enabled=true to terminate TLS at the gateway.
+{{- else if and $hostname $internalIssuer }}
+
+WARNING: gateway.hostname is set ("{{ $hostname }}") but gateway.tls.issuerRef
+is the internal CA ("{{ $tls.issuerRef.name }}"); the certificate is only
+trusted inside the cluster. Set gateway.tls.issuerRef to a public/enterprise
+issuer for external clients to trust it.
+{{- end }}
+{{- end }}
+
 == Custom Resources ==
 
 {{- if .Values.components.kserve.enabled }}

@@ -6,6 +6,9 @@
 {{- $createAwsKE := and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled }}
 {{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
 {{- $gatewayTls := and $createGateway .Values.gateway.tls.enabled }}
+{{- $appNs := .Values.rhaiOperator.applicationsNamespace }}
+{{- $issuerName := .Values.gateway.tls.issuerRef.name }}
+{{- $issuerKind := .Values.gateway.tls.issuerRef.kind }}
 {{- if or $createKserve $createAzureKE $createCoreweaveKE $createAwsKE $createGateway }}
 apiVersion: v1
 kind: ServiceAccount
@@ -87,23 +90,17 @@ rules:
       - create
       - patch
       - update
-  {{- if $gatewayTls }}
+  {{- if and $gatewayTls (eq $issuerKind "ClusterIssuer") }}
+  # ClusterIssuers are cluster-scoped, so the read must live on the ClusterRole,
+  # but it is restricted to the single issuer the gateway Certificate references.
   - apiGroups:
       - cert-manager.io
     resources:
-      - issuers
       - clusterissuers
+    resourceNames:
+      - {{ $issuerName }}
     verbs:
       - get
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - certificates
-    verbs:
-      - get
-      - create
-      - patch
-      - update
   {{- end }}
   {{- end }}
 ---
@@ -125,6 +122,61 @@ subjects:
   - kind: ServiceAccount
     name: rhai-post-install-hook
     namespace: {{ .Release.Namespace }}
+{{- if $gatewayTls }}
+---
+# Certificate is namespaced to the applications namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rhai-post-install-hook-cert
+  namespace: {{ $appNs }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  {{- if eq $issuerKind "Issuer" }}
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+    resourceNames:
+      - {{ $issuerName }}
+    verbs:
+      - get
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rhai-post-install-hook-cert
+  namespace: {{ $appNs }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rhai-post-install-hook-cert
+subjects:
+  - kind: ServiceAccount
+    name: rhai-post-install-hook
+    namespace: {{ .Release.Namespace }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

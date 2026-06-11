@@ -2814,22 +2814,16 @@ rules:
       - create
       - patch
       - update
+  # ClusterIssuers are cluster-scoped, so the read must live on the ClusterRole,
+  # but it is restricted to the single issuer the gateway Certificate references.
   - apiGroups:
       - cert-manager.io
     resources:
-      - issuers
       - clusterissuers
+    resourceNames:
+      - rhai-ca-issuer
     verbs:
       - get
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - certificates
-    verbs:
-      - get
-      - create
-      - patch
-      - update
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2847,6 +2841,53 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: rhai-post-install-hook
+subjects:
+  - kind: ServiceAccount
+    name: rhai-post-install-hook
+    namespace: default
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
+# Certificate is namespaced to the applications namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rhai-post-install-hook-cert
+  namespace: redhat-ods-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rhai-post-install-hook-cert
+  namespace: redhat-ods-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rhai-post-install-hook-cert
 subjects:
   - kind: ServiceAccount
     name: rhai-post-install-hook
@@ -3004,6 +3045,9 @@ spec:
               TIMEOUT=300
               INTERVAL=5
               
+              # Quoted once here so untrusted values can never reach the shell unquoted.
+              APP_NAMESPACE="redhat-ods-applications"
+              
               # general wait function for resource to be ready in the cluster
               wait_for() {
                 local desc="$1"; shift
@@ -3021,6 +3065,16 @@ spec:
                 echo "${desc} is available."
               }
               
+              # Readiness predicates for wait_for (only invoked when TLS is enabled).
+              # ISSUER_ARGS is built in the TLS step below, before issuer_ready is called.
+              issuer_ready() {
+                [ "$(kubectl get "${ISSUER_ARGS[@]}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              # Wait on the Certificate's Ready condition, not just Secret existence.
+              cert_ready() {
+                [ "$(kubectl get certificate inference-gateway-cert -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              
               echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
               wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
               
@@ -3029,7 +3083,7 @@ spec:
               
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
               kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n redhat-ods-applications --dry-run=client -o yaml | kubectl apply -f -
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
               echo "CA bundle ConfigMap created."
               
               echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
@@ -3038,7 +3092,7 @@ spec:
               kind: ConfigMap
               metadata:
                 name: inference-gateway-config
-                namespace: redhat-ods-applications
+                namespace: "redhat-ods-applications"
               data:
                 deployment: |
                   spec:
@@ -3060,22 +3114,22 @@ spec:
                       service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
-              issuer_ready() {
-                [ "$(kubectl get clusterissuer rhai-ca-issuer -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
-              }
-              wait_for "ClusterIssuer 'rhai-ca-issuer' to be Ready" issuer_ready
+              ISSUER_NAME="rhai-ca-issuer"
+              ISSUER_KIND="clusterissuer"
+              ISSUER_ARGS=("$ISSUER_KIND" "$ISSUER_NAME")
+              wait_for "${ISSUER_KIND} ${ISSUER_NAME} to be Ready" issuer_ready
               echo "Step 5: Creating Certificate for Gateway TLS..."
               kubectl apply -f - <<'EOF'
               apiVersion: cert-manager.io/v1
               kind: Certificate
               metadata:
                 name: inference-gateway-cert
-                namespace: redhat-ods-applications
+                namespace: "redhat-ods-applications"
               spec:
-                secretName: inference-gateway-cert-secret
+                secretName: "inference-gateway-cert-secret"
                 issuerRef:
-                  name: rhai-ca-issuer
-                  kind: ClusterIssuer
+                  name: "rhai-ca-issuer"
+                  kind: "ClusterIssuer"
                   group: cert-manager.io
                 dnsNames:
                   - "*.redhat-ods-applications.svc.cluster.local"
@@ -3083,7 +3137,7 @@ spec:
               EOF
               echo "Certificate 'inference-gateway-cert' created."
               
-              wait_for "inference-gateway-cert-secret Secret" kubectl get secret inference-gateway-cert-secret -n redhat-ods-applications
+              wait_for "Certificate 'inference-gateway-cert' to be Ready" cert_ready
               
               echo "Step 6: GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
               wait_for "GatewayClass 'istio'" kubectl get gatewayclass istio
@@ -3094,7 +3148,7 @@ spec:
               kind: Gateway
               metadata:
                 name: inference-gateway
-                namespace: redhat-ods-applications
+                namespace: "redhat-ods-applications"
               spec:
                 gatewayClassName: istio
                 listeners:
@@ -3114,7 +3168,7 @@ spec:
                       certificateRefs:
                         - group: ''
                           kind: Secret
-                          name: inference-gateway-cert-secret
+                          name: "inference-gateway-cert-secret"
                       mode: Terminate
                 infrastructure:
                   labels:

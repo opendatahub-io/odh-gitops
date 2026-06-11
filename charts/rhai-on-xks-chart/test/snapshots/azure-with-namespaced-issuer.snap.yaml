@@ -10,33 +10,15 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: rhai-applications
+  name: redhat-ods-applications
 
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: rhai-operator
+  name: redhat-ods-operator
 
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager-operator
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: custom-istio
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
@@ -48,117 +30,15 @@ imagePullSecrets:
   - name: rhai-pull-secret
 
 ---
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-# TODO: This is a temporary solution to inject the pull secret into the llmisvc-controller-manager service account.
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: llmisvc-controller-manager
-  namespace: rhai-applications
-imagePullSecrets:
-  - name: rhai-pull-secret
-
----
 # Source: rhai-on-xks-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: rhai-operator-controller-manager
-  namespace: rhai-operator
+  namespace: redhat-ods-operator
 imagePullSecrets:
   - name: rhai-pull-secret
 
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: rhai-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: rhai-applications
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: rhai-cloudmanager-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: cert-manager-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: cert-manager
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: custom-istio
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -2398,7 +2278,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rhai-operator-controller-manager
-    namespace: rhai-operator
+    namespace: redhat-ods-operator
 
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/role-azure-cloud-manager-leader-election-role.yaml
@@ -2449,7 +2329,7 @@ metadata:
   labels:
     name: rhods-operator
   name: rhai-operator-controller-manager-metrics-service
-  namespace: rhai-operator
+  namespace: redhat-ods-operator
 spec:
   ports:
     - name: http
@@ -2472,7 +2352,7 @@ metadata:
     app.kubernetes.io/name: rhai-operator-webhook-service
     app.kubernetes.io/part-of: rhai-operator
   name: rhai-operator-webhook-service
-  namespace: rhai-operator
+  namespace: redhat-ods-operator
 spec:
   ports:
     - port: 443
@@ -2535,7 +2415,7 @@ spec:
             - /cloudmanager
           env:
             - name: RHAI_OPERATOR_NAMESPACE
-              value: rhai-operator
+              value: redhat-ods-operator
             - name: RHAI_WEBHOOK_CERT_SECRET_NAME
               value: rhai-operator-controller-webhook-cert
             - name: RHAI_WEBHOOK_SERVICE_NAME
@@ -2601,7 +2481,7 @@ metadata:
   labels:
     name: rhai-operator
   name: rhai-operator
-  namespace: rhai-operator
+  namespace: redhat-ods-operator
 spec:
   replicas: 1
   selector:
@@ -2689,7 +2569,7 @@ spec:
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
               value: "true"
             - name: RHAI_APPLICATIONS_NAMESPACE
-              value: "rhai-applications"
+              value: "redhat-ods-applications"
             - name: RHAI_VERSION
               value: "3.5.0-ea.1"
             - name: ODH_PLATFORM_TYPE
@@ -2803,16 +2683,16 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: rhai-operator/rhai-operator-webhook-cert
+    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
   name: rhai-operator-mutating-webhook-configuration
-  namespace: rhai-operator
+  namespace: redhat-ods-operator
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
         name: rhai-operator-webhook-service
-        namespace: rhai-operator
+        namespace: redhat-ods-operator
         path: /platform-connection-isvc
     failurePolicy: Fail
     name: connection-isvc.opendatahub.io
@@ -2832,7 +2712,7 @@ webhooks:
     clientConfig:
       service:
         name: rhai-operator-webhook-service
-        namespace: rhai-operator
+        namespace: redhat-ods-operator
         path: /platform-connection-llmisvc
     failurePolicy: Fail
     name: connection-llmisvc.opendatahub.io
@@ -2932,16 +2812,6 @@ rules:
       - create
       - patch
       - update
-  # ClusterIssuers are cluster-scoped, so the read must live on the ClusterRole,
-  # but it is restricted to the single issuer the gateway Certificate references.
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - clusterissuers
-    resourceNames:
-      - rhai-ca-issuer
-    verbs:
-      - get
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2970,7 +2840,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: rhai-post-install-hook-cert
-  namespace: rhai-applications
+  namespace: redhat-ods-applications
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2988,13 +2858,21 @@ rules:
       - create
       - patch
       - update
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+    resourceNames:
+      - my-namespaced-issuer
+    verbs:
+      - get
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: rhai-post-install-hook-cert
-  namespace: rhai-applications
+  namespace: redhat-ods-applications
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -3093,11 +2971,11 @@ spec:
                     managementPolicy: Managed
                   lws:
                     configuration:
-                      namespace: custom-lws
+                      namespace: openshift-lws-operator
                     managementPolicy: Unmanaged
                   sailOperator:
                     configuration:
-                      namespace: custom-istio
+                      namespace: istio-system
                     managementPolicy: Managed
               EOF
               echo "Done."
@@ -3164,7 +3042,7 @@ spec:
               INTERVAL=5
               
               # Quoted once here so untrusted values can never reach the shell unquoted.
-              APP_NAMESPACE="rhai-applications"
+              APP_NAMESPACE="redhat-ods-applications"
               
               # general wait function for resource to be ready in the cluster
               wait_for() {
@@ -3210,7 +3088,7 @@ spec:
               kind: ConfigMap
               metadata:
                 name: inference-gateway-config
-                namespace: "rhai-applications"
+                namespace: "redhat-ods-applications"
               data:
                 deployment: |
                   spec:
@@ -3232,9 +3110,10 @@ spec:
                       service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
-              ISSUER_NAME="rhai-ca-issuer"
-              ISSUER_KIND="clusterissuer"
+              ISSUER_NAME="my-namespaced-issuer"
+              ISSUER_KIND="issuer"
               ISSUER_ARGS=("$ISSUER_KIND" "$ISSUER_NAME")
+              ISSUER_ARGS+=(-n "$APP_NAMESPACE")
               wait_for "${ISSUER_KIND} ${ISSUER_NAME} to be Ready" issuer_ready
               echo "Step 5: Creating Certificate for Gateway TLS..."
               kubectl apply -f - <<'EOF'
@@ -3242,16 +3121,16 @@ spec:
               kind: Certificate
               metadata:
                 name: inference-gateway-cert
-                namespace: "rhai-applications"
+                namespace: "redhat-ods-applications"
               spec:
                 secretName: "inference-gateway-cert-secret"
                 issuerRef:
-                  name: "rhai-ca-issuer"
-                  kind: "ClusterIssuer"
+                  name: "my-namespaced-issuer"
+                  kind: "Issuer"
                   group: cert-manager.io
                 dnsNames:
-                  - "*.rhai-applications.svc.cluster.local"
-                  - "*.rhai-applications.svc"
+                  - "*.example.com"
+                  - "example.com"
               EOF
               echo "Certificate 'inference-gateway-cert' created."
               
@@ -3266,7 +3145,7 @@ spec:
               kind: Gateway
               metadata:
                 name: inference-gateway
-                namespace: "rhai-applications"
+                namespace: "redhat-ods-applications"
               spec:
                 gatewayClassName: istio
                 listeners:

@@ -2986,6 +2986,9 @@ spec:
               TIMEOUT=300
               INTERVAL=5
               
+              # Quoted once here so untrusted values can never reach the shell unquoted.
+              APP_NAMESPACE="redhat-ods-applications"
+              
               # general wait function for resource to be ready in the cluster
               wait_for() {
                 local desc="$1"; shift
@@ -3003,6 +3006,16 @@ spec:
                 echo "${desc} is available."
               }
               
+              # Readiness predicates for wait_for (only invoked when TLS is enabled).
+              # ISSUER_ARGS is built in the TLS step below, before issuer_ready is called.
+              issuer_ready() {
+                [ "$(kubectl get "${ISSUER_ARGS[@]}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              # Wait on the Certificate's Ready condition, not just Secret existence.
+              cert_ready() {
+                [ "$(kubectl get certificate inference-gateway-cert -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              
               echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
               wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
               
@@ -3011,7 +3024,7 @@ spec:
               
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
               kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n redhat-ods-applications --dry-run=client -o yaml | kubectl apply -f -
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
               echo "CA bundle ConfigMap created."
               
               echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
@@ -3020,7 +3033,7 @@ spec:
               kind: ConfigMap
               metadata:
                 name: inference-gateway-config
-                namespace: redhat-ods-applications
+                namespace: "redhat-ods-applications"
               data:
                 deployment: |
                   spec:
@@ -3052,7 +3065,7 @@ spec:
               kind: Gateway
               metadata:
                 name: inference-gateway
-                namespace: redhat-ods-applications
+                namespace: "redhat-ods-applications"
               spec:
                 gatewayClassName: istio
                 listeners:

@@ -8,6 +8,9 @@ set -euo pipefail
 TIMEOUT=300
 INTERVAL=5
 
+# Quoted once here so untrusted values can never reach the shell unquoted.
+APP_NAMESPACE={{ $appNs | quote }}
+
 # general wait function for resource to be ready in the cluster
 wait_for() {
   local desc="$1"; shift
@@ -25,6 +28,16 @@ wait_for() {
   echo "${desc} is available."
 }
 
+# Readiness predicates for wait_for (only invoked when TLS is enabled).
+# ISSUER_ARGS is built in the TLS step below, before issuer_ready is called.
+issuer_ready() {
+  [ "$(kubectl get "${ISSUER_ARGS[@]}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+}
+# Wait on the Certificate's Ready condition, not just Secret existence.
+cert_ready() {
+  [ "$(kubectl get certificate inference-gateway-cert -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+}
+
 echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
 wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
 
@@ -33,7 +46,7 @@ wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
 
 echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
 kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n {{ $appNs }} --dry-run=client -o yaml | kubectl apply -f -
+kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 echo "CA bundle ConfigMap created."
 
 echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
@@ -42,7 +55,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: inference-gateway-config
-  namespace: {{ $appNs }}
+  namespace: {{ $appNs | quote }}
 data:
   deployment: |
     spec:
@@ -69,31 +82,32 @@ echo "ConfigMap used by Gateway CR 'inference-gateway' created."
 
 
 {{- if $tls.enabled }}
-issuer_ready() {
-  [ "$(kubectl get {{ $tls.issuerRef.kind | lower }} {{ $tls.issuerRef.name }}{{ if eq $tls.issuerRef.kind "Issuer" }} -n {{ $appNs }}{{ end }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
-}
-wait_for "{{ $tls.issuerRef.kind }} '{{ $tls.issuerRef.name }}' to be Ready" issuer_ready
+ISSUER_NAME={{ $tls.issuerRef.name | quote }}
+ISSUER_KIND={{ $tls.issuerRef.kind | lower | quote }}
+ISSUER_ARGS=("$ISSUER_KIND" "$ISSUER_NAME")
+{{- if eq $tls.issuerRef.kind "Issuer" }}
+ISSUER_ARGS+=(-n "$APP_NAMESPACE")
 {{- end }}
+wait_for "${ISSUER_KIND} ${ISSUER_NAME} to be Ready" issuer_ready
 
-{{- if $tls.enabled }}
 {{- if and (not $internalIssuer) (not $hostname) (not $tls.additionalSANs) }}
 {{- fail "gateway.tls.issuerRef is non-default (external) but neither gateway.hostname nor gateway.tls.additionalSANs is set; the certificate would have no dnsNames" }}
 {{- end }}
 echo "Step 5: Creating Certificate for Gateway TLS..."
 {{- if and $hostname $internalIssuer }}
-echo "WARNING: gateway.hostname is set but issuerRef '{{ $tls.issuerRef.name }}' is the internal CA; the certificate is only trusted inside the cluster. Set gateway.tls.issuerRef to a public/enterprise issuer for external clients."
+echo "WARNING: gateway.hostname is set but issuerRef ${ISSUER_NAME} is the internal CA; the certificate is only trusted inside the cluster. Set gateway.tls.issuerRef to a public/enterprise issuer for external clients."
 {{- end }}
 kubectl apply -f - <<'EOF'
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: inference-gateway-cert
-  namespace: {{ $appNs }}
+  namespace: {{ $appNs | quote }}
 spec:
-  secretName: {{ $certSecret }}
+  secretName: {{ $certSecret | quote }}
   issuerRef:
-    name: {{ $tls.issuerRef.name }}
-    kind: {{ $tls.issuerRef.kind }}
+    name: {{ $tls.issuerRef.name | quote }}
+    kind: {{ $tls.issuerRef.kind | quote }}
     group: cert-manager.io
   dnsNames:
   {{- if $internalIssuer }}
@@ -112,7 +126,7 @@ spec:
 EOF
 echo "Certificate 'inference-gateway-cert' created."
 
-wait_for "{{ $certSecret }} Secret" kubectl get secret {{ $certSecret }} -n {{ $appNs }}
+wait_for "Certificate 'inference-gateway-cert' to be Ready" cert_ready
 {{- end }}
 
 echo "Step 6: GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
@@ -124,7 +138,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: inference-gateway
-  namespace: {{ $appNs }}
+  namespace: {{ $appNs | quote }}
 spec:
   gatewayClassName: istio
   listeners:
@@ -145,7 +159,7 @@ spec:
         certificateRefs:
           - group: ''
             kind: Secret
-            name: {{ $certSecret }}
+            name: {{ $certSecret | quote }}
         mode: Terminate
 {{- end }}
   infrastructure:

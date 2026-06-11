@@ -120,6 +120,13 @@ charts:
           - gateway.tls.additionalSANs[1]=a.grpc.example.com
           - gateway.tls.additionalSANs[2]=admin.example.org
 
+      - name: azure-with-namespaced-issuer
+        setFlags:
+          - azure.enabled=true
+          - gateway.hostname=*.example.com
+          - gateway.tls.issuerRef.kind=Issuer
+          - gateway.tls.issuerRef.name=my-namespaced-issuer
+
       - name: coreweave
         setFlags:
           - coreweave.enabled=true
