@@ -1,0 +1,1369 @@
+---
+# Source: rhcl-operator/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuadrant-operators
+---
+# Source: rhcl-operator/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuadrant-system
+---
+# Source: rhcl-operator/templates/poddisruptionbudgets.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kuadrant-operator-pdb
+  namespace: kuadrant-operators
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: kuadrant-operator
+---
+# Source: rhcl-operator/templates/poddisruptionbudgets.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: authorino-operator-pdb
+  namespace: kuadrant-operators
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: authorino-operator
+---
+# Source: rhcl-operator/templates/poddisruptionbudgets.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: limitador-operator-pdb
+  namespace: kuadrant-operators
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: limitador-operator
+---
+# Source: rhcl-operator/templates/serviceaccount-components.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authorino-authorino
+  namespace: kuadrant-system
+imagePullSecrets:
+  - name: rhai-pull-secret
+---
+# Source: rhcl-operator/templates/serviceaccount-operators.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuadrant-operator-controller-manager
+  namespace: kuadrant-operators
+imagePullSecrets:
+  - name: rhai-pull-secret
+---
+# Source: rhcl-operator/templates/serviceaccount-operators.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authorino-operator
+  namespace: kuadrant-operators
+imagePullSecrets:
+  - name: rhai-pull-secret
+---
+# Source: rhcl-operator/templates/serviceaccount-operators.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: limitador-operator-controller-manager
+  namespace: kuadrant-operators
+imagePullSecrets:
+  - name: rhai-pull-secret
+---
+# Source: rhcl-operator/templates/serviceaccount-operators.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dns-operator-controller-manager
+  namespace: kuadrant-operators
+imagePullSecrets:
+  - name: rhai-pull-secret
+---
+# Source: rhcl-operator/templates/clusterrole-authorino-component.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorino-manager-role
+rules:
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - get
+      - list
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+---
+# Source: rhcl-operator/templates/clusterrole-authorino-component.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorino-manager-k8s-auth-role
+rules:
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+# Source: rhcl-operator/templates/clusterrole-authorino-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorino-operator-manager-role
+rules:
+  # Core API resources
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - configmaps
+      - secrets
+      - services
+      - serviceaccounts
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  # Apps
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Coordination
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # AuthConfigs
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Authorinos
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos/finalizers
+    verbs:
+      - update
+  # RBAC
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Auth
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+# Source: rhcl-operator/templates/clusterrole-dns-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dns-operator-manager-role
+rules:
+  # Core API resources
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - configmaps
+      - secrets
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - endpoints
+    verbs:
+      - get
+      - list
+      - watch
+  # Coordination
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # DNS CRDs
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - dnsrecords
+      - dnshealthcheckprobes
+      - dnspolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - dnsrecords/status
+      - dnshealthcheckprobes/status
+      - dnspolicies/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - dnsrecords/finalizers
+      - dnshealthcheckprobes/finalizers
+      - dnspolicies/finalizers
+    verbs:
+      - update
+  # Gateway API
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+      - httproutes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways/status
+    verbs:
+      - get
+  # Auth
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+# Source: rhcl-operator/templates/clusterrole-kuadrant-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuadrant-operator-manager-role
+rules:
+  # Core API resources
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - configmaps
+      - secrets
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  # Apps
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Coordination
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Kuadrant CRDs
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants
+      - authpolicies
+      - ratelimitpolicies
+      - dnspolicies
+      - tlspolicies
+      - dnsrecords
+      - dnshealthcheckprobes
+      - tokenratelimitpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants/status
+      - authpolicies/status
+      - ratelimitpolicies/status
+      - dnspolicies/status
+      - tlspolicies/status
+      - dnsrecords/status
+      - dnshealthcheckprobes/status
+      - tokenratelimitpolicies/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants/finalizers
+      - authpolicies/finalizers
+      - ratelimitpolicies/finalizers
+      - dnspolicies/finalizers
+      - tlspolicies/finalizers
+      - dnsrecords/finalizers
+      - dnshealthcheckprobes/finalizers
+      - tokenratelimitpolicies/finalizers
+    verbs:
+      - update
+  # Kuadrant extension CRDs
+  - apiGroups:
+      - extensions.kuadrant.io
+    resources:
+      - oidcpolicies
+      - planpolicies
+      - telemetrypolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - extensions.kuadrant.io
+    resources:
+      - oidcpolicies/status
+      - planpolicies/status
+      - telemetrypolicies/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Sub-operator: Authorino
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos/finalizers
+    verbs:
+      - update
+  # Sub-operator: Limitador
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors/finalizers
+    verbs:
+      - update
+  # AuthConfigs
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Gateway API
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+      - httproutes
+      - gatewayclasses
+      - referencegrants
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways/status
+      - gateways/finalizers
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - httproutes/status
+    verbs:
+      - get
+      - patch
+      - update
+  # cert-manager
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+      - issuers
+      - clusterissuers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Istio
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - envoyfilters
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - extensions.istio.io
+    resources:
+      - wasmplugins
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - security.istio.io
+    resources:
+      - peerauthentications
+      - authorizationpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Envoy Gateway
+  - apiGroups:
+      - gateway.envoyproxy.io
+    resources:
+      - envoyextensionpolicies
+      - envoypatchpolicies
+      - securitypolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Auth
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+# Source: rhcl-operator/templates/clusterrole-limitador-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: limitador-operator-manager-role
+rules:
+  # Core API resources
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - configmaps
+      - secrets
+      - services
+      - serviceaccounts
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  # Apps
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Coordination
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Limitadors
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors/finalizers
+    verbs:
+      - update
+  # PVCs
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Monitoring
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+      - podmonitors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Policy
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Auth
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+# Source: rhcl-operator/templates/clusterrole-metrics-reader.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: limitador-operator-metrics-reader
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+---
+# Source: rhcl-operator/templates/clusterrole-user-facing.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorino-authconfig-editor-role
+rules:
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs/status
+    verbs:
+      - get
+---
+# Source: rhcl-operator/templates/clusterrole-user-facing.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorino-authconfig-viewer-role
+rules:
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs/status
+    verbs:
+      - get
+---
+# Source: rhcl-operator/templates/clusterrole-authorino-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: authorino-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: authorino-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: authorino-operator
+    namespace: kuadrant-operators
+---
+# Source: rhcl-operator/templates/clusterrole-dns-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dns-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dns-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: dns-operator-controller-manager
+    namespace: kuadrant-operators
+---
+# Source: rhcl-operator/templates/clusterrole-kuadrant-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kuadrant-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuadrant-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: kuadrant-operator-controller-manager
+    namespace: kuadrant-operators
+---
+# Source: rhcl-operator/templates/clusterrole-limitador-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: limitador-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: limitador-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: limitador-operator-controller-manager
+    namespace: kuadrant-operators
+---
+# Source: rhcl-operator/templates/deployment-authorino-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorino-operator
+  namespace: kuadrant-operators
+  labels:
+    app.kubernetes.io/component: authorino-operator
+    control-plane: controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: authorino-operator
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        app.kubernetes.io/component: authorino-operator
+    spec:
+      serviceAccountName: authorino-operator
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: registry.redhat.io/rhcl-1/authorino-rhel9-operator@sha256:0b60bb9afa31a549d0eac9331f6024e461ab3aed5b1fb2d461dd4db8ddeebeb9
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RELATED_IMAGE_AUTHORINO
+              value: registry.redhat.io/rhcl-1/authorino-rhel9@sha256:be77901b29529646bbec6baf0d1a7c350be0db291b07a845f353181c25d89f78
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: sku
+                operator: NotIn
+                values: ["gpu"]
+---
+# Source: rhcl-operator/templates/deployment-dns-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns-operator-controller-manager
+  namespace: kuadrant-operators
+  labels:
+    app.kubernetes.io/component: dns-operator
+    control-plane: controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: dns-operator
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        app.kubernetes.io/component: dns-operator
+    spec:
+      serviceAccountName: dns-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: registry.redhat.io/rhcl-1/dns-rhel9-operator@sha256:61e8a471cf20273fe879031eb302a1c7179b5423db4f0a8b9dccefae753ffdf4
+          imagePullPolicy: IfNotPresent
+          args:
+            - --metrics-bind-address=:8080
+            - --leader-elect
+          env:
+            - name: WATCH_NAMESPACES
+              value: ""
+            - name: CLUSTER_SECRET_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: sku
+                operator: NotIn
+                values: ["gpu"]
+---
+# Source: rhcl-operator/templates/deployment-kuadrant-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuadrant-operator-controller-manager
+  namespace: kuadrant-operators
+  labels:
+    app.kubernetes.io/component: kuadrant-operator
+    control-plane: controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: kuadrant-operator
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        app.kubernetes.io/component: kuadrant-operator
+    spec:
+      serviceAccountName: kuadrant-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: registry.redhat.io/rhcl-1/rhcl-rhel9-operator@sha256:1afb2fe0fe38bb0ef02c4b8cb9edb83f7847da47f8ddad766223664dc05ce272
+          imagePullPolicy: IfNotPresent
+          args:
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=:8080
+            - --leader-elect
+          env:
+            - name: EXTENSIONS_DIR
+              value: /extensions
+            - name: RELATED_IMAGE_WASMSHIM
+              value: registry.access.redhat.com/rhcl-1/wasm-shim-rhel9@sha256:aa524e9278976aa3ef0f2d3aeb981e28d2ea6ed6fc5fede05a5dd33db0bb3de2
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp-kuadrant
+              mountPath: /tmp/kuadrant
+      volumes:
+        - name: tmp-kuadrant
+          emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: sku
+                operator: NotIn
+                values: ["gpu"]
+---
+# Source: rhcl-operator/templates/deployment-limitador-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: limitador-operator-controller-manager
+  namespace: kuadrant-operators
+  labels:
+    app.kubernetes.io/component: limitador-operator
+    control-plane: controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/component: limitador-operator
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        app.kubernetes.io/component: limitador-operator
+    spec:
+      serviceAccountName: limitador-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: registry.redhat.io/rhcl-1/limitador-rhel9-operator@sha256:6092c510b04a4cee253a52c07b77b625e90d863fa9ccd8727eb901bd81b4e071
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RELATED_IMAGE_LIMITADOR
+              value: registry.redhat.io/rhcl-1/limitador-rhel9@sha256:aff28d76f9cfeefafd6b652e055bb25e1a2bf250e062e3e9b5e54db873f9eeb7
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: sku
+                operator: NotIn
+                values: ["gpu"]
+---
+# Source: rhcl-operator/templates/kuadrant.yaml
+apiVersion: kuadrant.io/v1beta1
+kind: Kuadrant
+metadata:
+  name: kuadrant
+  namespace: kuadrant-system
+spec: {}
+---
+# Source: rhcl-operator/templates/servicemonitors.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kuadrant-operator-metrics
+  namespace: kuadrant-operators
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kuadrant-operator
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+---
+# Source: rhcl-operator/templates/servicemonitors.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: authorino-operator-metrics
+  namespace: kuadrant-operators
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: authorino-operator
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+---
+# Source: rhcl-operator/templates/servicemonitors.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: limitador-operator-metrics
+  namespace: kuadrant-operators
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: limitador-operator
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

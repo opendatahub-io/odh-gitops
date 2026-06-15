@@ -1,0 +1,20 @@
+# RHCL Operator Helm Chart
+operatorNamespace: kuadrant-operators
+operandNamespace: kuadrant-system
+
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+bundle:
+  version: "1.3.0"
+
+images:
+  operators:
+    authorino: "registry.redhat.io/rhcl-1/authorino-rhel9-operator@sha256:0b60bb9afa31a549d0eac9331f6024e461ab3aed5b1fb2d461dd4db8ddeebeb9"
+    kuadrant: "registry.redhat.io/rhcl-1/rhcl-rhel9-operator@sha256:1afb2fe0fe38bb0ef02c4b8cb9edb83f7847da47f8ddad766223664dc05ce272"
+    limitador: "registry.redhat.io/rhcl-1/limitador-rhel9-operator@sha256:6092c510b04a4cee253a52c07b77b625e90d863fa9ccd8727eb901bd81b4e071"
+    dns: "registry.redhat.io/rhcl-1/dns-rhel9-operator@sha256:61e8a471cf20273fe879031eb302a1c7179b5423db4f0a8b9dccefae753ffdf4"
+  components:
+    authorino: "registry.redhat.io/rhcl-1/authorino-rhel9@sha256:be77901b29529646bbec6baf0d1a7c350be0db291b07a845f353181c25d89f78"
+    limitador: "registry.redhat.io/rhcl-1/limitador-rhel9@sha256:aff28d76f9cfeefafd6b652e055bb25e1a2bf250e062e3e9b5e54db873f9eeb7"
+    wasmshim: "registry.access.redhat.com/rhcl-1/wasm-shim-rhel9@sha256:aa524e9278976aa3ef0f2d3aeb981e28d2ea6ed6fc5fede05a5dd33db0bb3de2"

@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kuadrant-operator-metrics
+  namespace: {{ .Values.operatorNamespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kuadrant-operator
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: authorino-operator-metrics
+  namespace: {{ .Values.operatorNamespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: authorino-operator
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: limitador-operator-metrics
+  namespace: {{ .Values.operatorNamespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: limitador-operator
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

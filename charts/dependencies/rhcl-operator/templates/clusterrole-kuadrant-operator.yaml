@@ -1,0 +1,328 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuadrant-operator-manager-role
+rules:
+  # Core API resources
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - configmaps
+      - secrets
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  # Apps
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Coordination
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Kuadrant CRDs
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants
+      - authpolicies
+      - ratelimitpolicies
+      - dnspolicies
+      - tlspolicies
+      - dnsrecords
+      - dnshealthcheckprobes
+      - tokenratelimitpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants/status
+      - authpolicies/status
+      - ratelimitpolicies/status
+      - dnspolicies/status
+      - tlspolicies/status
+      - dnsrecords/status
+      - dnshealthcheckprobes/status
+      - tokenratelimitpolicies/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants/finalizers
+      - authpolicies/finalizers
+      - ratelimitpolicies/finalizers
+      - dnspolicies/finalizers
+      - tlspolicies/finalizers
+      - dnsrecords/finalizers
+      - dnshealthcheckprobes/finalizers
+      - tokenratelimitpolicies/finalizers
+    verbs:
+      - update
+  # Kuadrant extension CRDs
+  - apiGroups:
+      - extensions.kuadrant.io
+    resources:
+      - oidcpolicies
+      - planpolicies
+      - telemetrypolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - extensions.kuadrant.io
+    resources:
+      - oidcpolicies/status
+      - planpolicies/status
+      - telemetrypolicies/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Sub-operator: Authorino
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos/finalizers
+    verbs:
+      - update
+  # Sub-operator: Limitador
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - limitador.kuadrant.io
+    resources:
+      - limitadors/finalizers
+    verbs:
+      - update
+  # AuthConfigs
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - authorino.kuadrant.io
+    resources:
+      - authconfigs/status
+    verbs:
+      - get
+      - patch
+      - update
+  # Gateway API
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+      - httproutes
+      - gatewayclasses
+      - referencegrants
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways/status
+      - gateways/finalizers
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - httproutes/status
+    verbs:
+      - get
+      - patch
+      - update
+  # cert-manager
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+      - issuers
+      - clusterissuers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Istio
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - envoyfilters
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - extensions.istio.io
+    resources:
+      - wasmplugins
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - security.istio.io
+    resources:
+      - peerauthentications
+      - authorizationpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Envoy Gateway
+  - apiGroups:
+      - gateway.envoyproxy.io
+    resources:
+      - envoyextensionpolicies
+      - envoypatchpolicies
+      - securitypolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Auth
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kuadrant-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuadrant-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: kuadrant-operator-controller-manager
+    namespace: {{ .Values.operatorNamespace }}
