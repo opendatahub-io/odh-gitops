@@ -325,7 +325,6 @@ rules:
       - list
       - patch
       - update
-      - use
       - watch
   - apiGroups:
       - components.platform.opendatahub.io
@@ -397,6 +396,7 @@ rules:
   - apiGroups:
       - config.openshift.io
     resources:
+      - apiservers
       - authentications
       - clusterversions
       - infrastructures
@@ -1246,7 +1246,6 @@ rules:
       - list
       - patch
       - update
-      - use
       - watch
   - apiGroups:
       - services.platform.opendatahub.io

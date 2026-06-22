@@ -118,6 +118,8 @@ rules:
         value: rhai-operator
       - path: .spec.template.metadata.annotations["kubectl.kubernetes.io/default-container"]
         value: rhai-operator
+      - action: delete
+        path: .spec.template.metadata.annotations["openshift.io/required-scc"]
       # Update podAntiAffinity label selector
       - path: .spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchExpressions[0].values[0]
         value: rhai-operator
