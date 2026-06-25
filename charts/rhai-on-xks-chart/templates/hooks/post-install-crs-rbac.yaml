@@ -4,6 +4,7 @@
 {{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
 {{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
 {{- $createAwsKE := and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled }}
+{{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
 {{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
 {{- $gatewayTls := and $createGateway .Values.gateway.tls.enabled }}
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace }}
@@ -19,7 +20,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -30,9 +30,9 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
+  {{- if $createKserve }}
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
@@ -42,17 +42,18 @@ rules:
       - create
       - patch
       - update
+  {{- end }}
+  {{- if $keResource }}
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - azurekubernetesengines
-      - coreweavekubernetesengines
-      - awskubernetesengines
+      - {{ $keResource }}
     verbs:
       - get
       - create
       - patch
       - update
+  {{- end }}
   {{- if $createGateway }}
   - apiGroups:
       - gateway.networking.k8s.io
@@ -112,7 +113,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -134,7 +134,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups:
@@ -166,7 +165,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 roleRef:
   apiGroup: rbac.authorization.k8s.io

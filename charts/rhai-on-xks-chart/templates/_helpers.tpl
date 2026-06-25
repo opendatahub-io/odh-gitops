@@ -40,6 +40,27 @@ Return the imagePullSecret name.
 {{- end -}}
 
 {{/*
+Render a dockerconfigjson Secret for a given namespace.
+Pass a dict with "root" (top-level context), "namespace", and optional "annotations" (dict).
+*/}}
+{{- define "rhai-on-xks-chart.imagePullSecretResource" -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "rhai-on-xks-chart.imagePullSecretName" .root }}
+  namespace: {{ .namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" .root | nindent 4 }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ .root.Values.imagePullSecret.dockerConfigJson | b64enc }}
+{{- end -}}
+
+{{/*
 Render imagePullSecrets block for pod specs.
 Always outputs the block so that pre-created secrets are picked up.
 */}}
@@ -64,6 +85,41 @@ allowedRoutes:
     selector:
       {{- toYaml $ns.selector | nindent 6 }}
 {{- end }}
+{{- end -}}
+
+{{/*
+Collect dependency namespaces from enabled providers.
+Pass a dict with "root" (top-level context) and optional "managedOnly" (bool).
+When managedOnly is true, only dependencies with managementPolicy: Managed are included.
+Returns a JSON object with key "items" containing unique namespace strings.
+Usage:
+  (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items
+*/}}
+{{- define "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" -}}
+{{- $namespaces := list }}
+{{- $managedOnly := .managedOnly | default false }}
+{{- range $provider := list .root.Values.azure .root.Values.coreweave .root.Values.aws }}
+  {{- if $provider.enabled }}
+    {{- range $depName, $dep := (dig "kubernetesEngine" "spec" "dependencies" (dict) $provider) }}
+      {{- if or (not $managedOnly) (eq (dig "managementPolicy" "" $dep) "Managed") }}
+        {{- with (dig "configuration" "namespace" "" $dep) }}
+          {{- $namespaces = append $namespaces . }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- dict "items" ($namespaces | uniq) | toJson }}
+{{- end -}}
+
+{{/*
+Return the KubernetesEngine CRD plural resource name for the active cloud provider.
+*/}}
+{{- define "rhai-on-xks-chart.keResourceName" -}}
+{{- if and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled -}}azurekubernetesengines
+{{- else if and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled -}}coreweavekubernetesengines
+{{- else if and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled -}}awskubernetesengines
+{{- end -}}
 {{- end -}}
 
 {{/*

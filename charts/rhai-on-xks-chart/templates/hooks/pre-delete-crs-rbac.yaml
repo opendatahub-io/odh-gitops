@@ -1,0 +1,83 @@
+{{- if .Values.enabled }}
+{{- if .Values.hooks.postInstallCrs.enabled }}
+{{- $createKserve := .Values.components.kserve.enabled }}
+{{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
+{{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
+{{- $createAwsKE := and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled }}
+{{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
+{{- if or $createKserve $createAzureKE $createCoreweaveKE $createAwsKE }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-delete-hook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-delete-hook
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  {{- if .Values.uninstall.cleanupNamespaces }}
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  {{- end }}
+  {{- if $createKserve }}
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - kserves
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  {{- end }}
+  {{- if $keResource }}
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - {{ $keResource }}
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-delete-hook
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-pre-delete-hook
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-delete-hook
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}

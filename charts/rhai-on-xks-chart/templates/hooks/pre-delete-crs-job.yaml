@@ -1,0 +1,78 @@
+{{- if .Values.enabled }}
+{{- if .Values.hooks.postInstallCrs.enabled }}
+{{- $createKserve := .Values.components.kserve.enabled }}
+{{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
+{{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
+{{- $createAwsKE := and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled }}
+{{- $depNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" .) | fromJson).items }}
+{{- if or $createKserve $createAzureKE $createCoreweaveKE $createAwsKE }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-delete-crs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-delete-hook
+      {{- include "rhai-on-xks-chart.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: delete-crs
+          image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
+          resources:
+            {{- toYaml .Values.hooks.resources | nindent 12 }}
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              {{- if $createKserve }}
+              echo "Deleting Kserve CR 'default-kserve'..."
+              kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
+              {{- end }}
+
+              {{- if $createAzureKE }}
+              echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
+              kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
+              {{- end }}
+              {{- if $createCoreweaveKE }}
+              echo "Deleting CoreWeaveKubernetesEngine CR 'default-coreweavekubernetesengine'..."
+              kubectl delete coreweavekubernetesengine default-coreweavekubernetesengine --ignore-not-found --timeout=300s
+              {{- end }}
+              {{- if $createAwsKE }}
+              echo "Deleting AWSKubernetesEngine CR 'default-awskubernetesengine'..."
+              kubectl delete awskubernetesengine default-awskubernetesengine --ignore-not-found --timeout=300s
+              {{- end }}
+
+              {{- if $.Values.uninstall.cleanupNamespaces }}
+              {{- range $ns := $depNamespaces }}
+              echo "Deleting namespace {{ $ns }}..."
+              kubectl delete namespace {{ $ns }} --ignore-not-found --timeout=60s
+              {{- end }}
+              {{- end }}
+              echo "Done."
+{{- end }}
+{{- end }}
+{{- end }}

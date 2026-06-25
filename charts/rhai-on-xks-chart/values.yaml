@@ -7,6 +7,12 @@ installCRDs: true
 # Common labels applied to all resources
 labels: {}
 
+# Behavior on helm uninstall
+uninstall:
+  # Delete dependency namespaces (e.g. istio-system) created by pre-install hooks.
+  # Disabled by default: these namespaces may contain user workloads.
+  cleanupNamespaces: false
+
 # RHAI Operator configuration
 rhaiOperator:
   # Operator namespace

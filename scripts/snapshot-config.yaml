@@ -88,7 +88,19 @@ charts:
           - rhaiOperator.namespace=rhai-operator
           - rhaiOperator.applicationsNamespace=rhai-applications
           - azure.kubernetesEngine.spec.dependencies.lws.configuration.namespace=custom-lws
+          - azure.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
           - azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace=custom-istio
+
+      - name: azure-with-cleanup-namespaces
+        setFlags:
+          - azure.enabled=true
+          - uninstall.cleanupNamespaces=true
+
+      - name: azure-with-all-deps-managed
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - azure.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
 
       - name: azure-with-related-images
         setFlags:
@@ -136,6 +148,12 @@ charts:
           - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
 
+      - name: coreweave-with-all-deps-managed
+        setFlags:
+          - coreweave.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - coreweave.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
+
       - name: coreweave-with-allowed-routes-selector
         setFlags:
           - coreweave.enabled=true
@@ -150,6 +168,12 @@ charts:
         setFlags:
           - aws.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
+
+      - name: aws-with-all-deps-managed
+        setFlags:
+          - aws.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - aws.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
 
       - name: aws-with-allowed-routes-all
         setFlags:
