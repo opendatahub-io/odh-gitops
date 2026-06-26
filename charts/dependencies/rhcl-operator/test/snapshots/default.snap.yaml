@@ -739,6 +739,19 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - podmonitors
+      - servicemonitors
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 ---
 # Source: rhcl-operator/templates/clusterrole-limitador-operator.yaml
 apiVersion: rbac.authorization.k8s.io/v1
