@@ -18,6 +18,10 @@ spec:
         control-plane: controller-manager
         app.kubernetes.io/component: authorino-operator
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: authorino-operator
       terminationGracePeriodSeconds: 10
       securityContext:

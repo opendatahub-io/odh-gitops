@@ -1034,6 +1034,8 @@ spec:
         control-plane: controller-manager
         app.kubernetes.io/component: authorino-operator
     spec:
+      imagePullSecrets:
+        - name: rhai-pull-secret
       serviceAccountName: authorino-operator
       terminationGracePeriodSeconds: 10
       securityContext:
@@ -1108,6 +1110,8 @@ spec:
         control-plane: controller-manager
         app.kubernetes.io/component: dns-operator
     spec:
+      imagePullSecrets:
+        - name: rhai-pull-secret
       serviceAccountName: dns-operator-controller-manager
       terminationGracePeriodSeconds: 10
       securityContext:
@@ -1189,6 +1193,8 @@ spec:
         control-plane: controller-manager
         app.kubernetes.io/component: kuadrant-operator
     spec:
+      imagePullSecrets:
+        - name: rhai-pull-secret
       serviceAccountName: kuadrant-operator-controller-manager
       terminationGracePeriodSeconds: 10
       securityContext:
@@ -1275,6 +1281,8 @@ spec:
         control-plane: controller-manager
         app.kubernetes.io/component: limitador-operator
     spec:
+      imagePullSecrets:
+        - name: rhai-pull-secret
       serviceAccountName: limitador-operator-controller-manager
       terminationGracePeriodSeconds: 10
       securityContext:

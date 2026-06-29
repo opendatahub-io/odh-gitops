@@ -18,6 +18,10 @@ spec:
         control-plane: controller-manager
         app.kubernetes.io/component: dns-operator
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: dns-operator-controller-manager
       terminationGracePeriodSeconds: 10
       securityContext:
