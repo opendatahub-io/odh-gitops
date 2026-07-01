@@ -1,5 +1,9 @@
 #!/bin/bash
 # Update Helm chart with new RHCL bundle version
+# Extracts manifests from both the Kuadrant and Authorino operator bundles
+# since the Kuadrant bundle depends on Authorino/Limitador operators that
+# are distributed as separate OLM subscriptions.
+#
 # Usage: ./update-bundle.sh [version]
 # Examples:
 #   ./update-bundle.sh 1.3.0
@@ -10,14 +14,17 @@ VERSION="${1:-1.3.0}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHART_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Bundle image from registry.redhat.io
-BUNDLE_IMAGE="registry.redhat.io/rhcl-1/rhcl-operator-bundle:${VERSION}"
+# Bundle images from registry.redhat.io
+KUADRANT_BUNDLE="registry.redhat.io/rhcl-1/rhcl-operator-bundle:${VERSION}"
+AUTHORINO_BUNDLE="registry.redhat.io/rhcl-1/authorino-operator-bundle:${VERSION}"
 
 echo "============================================"
 echo "  Updating RHCL Operator Helm Chart"
 echo "============================================"
 echo "Version: $VERSION"
-echo "Bundle: $BUNDLE_IMAGE"
+echo "Bundles:"
+echo "  - $KUADRANT_BUNDLE"
+echo "  - $AUTHORINO_BUNDLE"
 echo ""
 
 # Check for auth (persistent location first, then session)
@@ -38,11 +45,13 @@ AUTH_ARG="-v ${AUTH_FILE}:/root/.docker/config.json:z"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-# Extract manifests using olm-extractor
-echo "[1/3] Extracting manifests..."
+EXCLUDE_ARGS='--exclude .kind == "ConsoleCLIDownload" --exclude .kind == "ConsolePlugin" --exclude .kind == "Route" --exclude .kind == "SecurityContextConstraints" --exclude .kind == "ConsoleYAMLSample"'
+
+# Extract manifests from Kuadrant bundle
+echo "[1/4] Extracting Kuadrant operator manifests..."
 podman run --rm --pull=always $AUTH_ARG \
   quay.io/lburgazzoli/olm-extractor:main \
-  run "$BUNDLE_IMAGE" \
+  run "$KUADRANT_BUNDLE" \
   -n kuadrant-operators \
   --watch-namespace="" \
   --exclude '.kind == "ConsoleCLIDownload"' \
@@ -50,18 +59,39 @@ podman run --rm --pull=always $AUTH_ARG \
   --exclude '.kind == "Route"' \
   --exclude '.kind == "SecurityContextConstraints"' \
   --exclude '.kind == "ConsoleYAMLSample"' \
-  2>/dev/null | grep -v "^time=" > "$TMP_DIR/manifests.yaml"
+  2>/dev/null | grep -v "^time=" > "$TMP_DIR/kuadrant-manifests.yaml"
+
+echo "  Kuadrant: $(wc -l < "$TMP_DIR/kuadrant-manifests.yaml") lines"
+
+# Extract manifests from Authorino bundle
+echo "[2/4] Extracting Authorino operator manifests..."
+podman run --rm --pull=always $AUTH_ARG \
+  quay.io/lburgazzoli/olm-extractor:main \
+  run "$AUTHORINO_BUNDLE" \
+  -n kuadrant-operators \
+  --watch-namespace="" \
+  --exclude '.kind == "ConsoleCLIDownload"' \
+  --exclude '.kind == "ConsolePlugin"' \
+  --exclude '.kind == "Route"' \
+  --exclude '.kind == "SecurityContextConstraints"' \
+  --exclude '.kind == "ConsoleYAMLSample"' \
+  2>/dev/null | grep -v "^time=" > "$TMP_DIR/authorino-manifests.yaml"
+
+echo "  Authorino: $(wc -l < "$TMP_DIR/authorino-manifests.yaml") lines"
+
+# Merge both manifests
+cat "$TMP_DIR/kuadrant-manifests.yaml" "$TMP_DIR/authorino-manifests.yaml" > "$TMP_DIR/manifests.yaml"
 
 # Validate extraction produced output
 if [ ! -s "$TMP_DIR/manifests.yaml" ]; then
-  echo "ERROR: Extraction produced empty manifests. Check bundle image and registry access."
+  echo "ERROR: Extraction produced empty manifests. Check bundle images and registry access."
   exit 1
 fi
 
-echo "Extracted $(wc -l < "$TMP_DIR/manifests.yaml") lines"
+echo "  Combined: $(wc -l < "$TMP_DIR/manifests.yaml") lines"
 
 # Clean: remove all CRDs and templates (only after successful extraction)
-echo "[2/3] Cleaning old manifests..."
+echo "[3/4] Cleaning old manifests..."
 find "$CHART_DIR/crds" -name "*.yaml" -delete 2>/dev/null || true
 find "$CHART_DIR/templates" -name "*.yaml" \
   ! -name "namespace.yaml" \
@@ -70,7 +100,7 @@ find "$CHART_DIR/templates" -name "*.yaml" \
   -delete 2>/dev/null || true
 
 # Split manifests into CRDs and templates, templatize namespace references
-echo "[3/3] Splitting into CRDs and templates..."
+echo "[4/4] Splitting into CRDs and templates..."
 
 export TMP_DIR CHART_DIR
 python3 << 'PYEOF'
@@ -94,6 +124,7 @@ docs = content.split('\n---\n')
 crd_count = 0
 other_count = 0
 skipped = []
+seen = set()
 
 # OpenShift-specific resources to skip
 skip_kinds = [
@@ -120,6 +151,12 @@ for doc in docs:
             skipped.append(f"{kind}/{name}")
             continue
 
+        # Deduplicate (same resource from multiple bundles)
+        key = f"{kind}/{name}"
+        if key in seen:
+            continue
+        seen.add(key)
+
         filename = f"{kind.lower()}-{name.replace('.', '-')[:50]}.yaml"
 
         if kind == 'CustomResourceDefinition':
@@ -140,6 +177,12 @@ for doc in docs:
             # Add imagePullSecrets to ServiceAccounts
             if kind == 'ServiceAccount':
                 content += '\n{{- with .Values.imagePullSecrets }}\nimagePullSecrets:\n  {{- toYaml . | nindent 2 }}\n{{- end }}'
+            # Add imagePullSecrets to Deployments
+            if kind == 'Deployment':
+                content = content.replace(
+                    '    spec:\n      containers:',
+                    '    spec:\n      {{- with .Values.imagePullSecrets }}\n      imagePullSecrets:\n        {{- toYaml . | nindent 8 }}\n      {{- end }}\n      containers:'
+                )
             with open(filepath, 'w') as out:
                 out.write(content + '\n')
 
@@ -168,4 +211,6 @@ echo "New version: $VERSION"
 echo ""
 echo "Next steps:"
 echo "  1. Review extracted manifests"
-echo "  2. Test with: helm template rhcl-operator $CHART_DIR"
+echo "  2. Update images.operator in values.yaml if the image SHA changed"
+echo "  3. Regenerate snapshots: make chart-snapshots CHART_NAME=dependencies/rhcl-operator"
+echo "  4. Test with: helm template rhcl-operator $CHART_DIR"
