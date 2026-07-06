@@ -43,7 +43,8 @@ Component CRs (e.g. Kserve from `components.platform.opendatahub.io`) are create
 
 - `providerRegistry` / `componentCRRegistry`: static YAML maps — CR kind, resource name (plural + singular), default CR name, API group.
 - `activeProvider`: returns YAML dict for the one enabled provider. Parse with `| fromYaml`. Fields: `name`, `keKind`, `keResource`, `keResourceSingular`, `keName`, `keEnabled` (bool), `keSpec`, `cloudManagerNamespace`. Returns empty map if no provider enabled.
-- `enabledProviderKECR` / `enabledComponentCRs`: JSON lists used for guard conditions only (`if or $componentCRs $providerKECR`). Do not inspect contents.
+- `enabledProviderKECR`: returns `"true"` (truthy) or empty string when provider + KE are both enabled. Used as a boolean guard only — do not parse or inspect contents.
+- `enabledComponentCRs`: returns a JSON list of enabled component names. Parse with `fromJson` before use in guards (`if or $componentCRs $providerKECR`). Do not range over or access fields — use `crApplyCommands` / `crDeleteCommands` instead.
 - `crApplyCommands` / `crDeleteCommands`: emit kubectl apply/delete bash commands for all enabled CRs. Include with `| trimPrefix "\n" | nindent 14`.
 
 ### Image updates

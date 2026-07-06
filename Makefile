@@ -300,7 +300,7 @@ XKS_PULL_SECRET ?=
 
 .PHONY: helm-verify-xks
 helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test
-	RELEASE_NAME=$(XKS_RELEASE_NAME) NAMESPACE=$(XKS_NAMESPACE) CLOUD_PROVIDER=$(XKS_CLOUD_PROVIDER) PULL_SECRET=$(XKS_PULL_SECRET) bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
+	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
 
 .PHONY: helm-install-verify-xks
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart

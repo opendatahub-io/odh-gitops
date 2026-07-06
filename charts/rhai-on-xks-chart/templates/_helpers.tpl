@@ -99,7 +99,7 @@ Usage:
 {{- $namespaces := list }}
 {{- $managedOnly := .managedOnly | default false }}
 {{- $provider := include "rhai-on-xks-chart.activeProvider" .root | fromYaml }}
-{{- if $provider }}
+{{- if and $provider (index $provider "keEnabled") }}
   {{- $provVals := index $.root.Values (index $provider "name") | default dict }}
   {{- range $depName, $dep := (dig "kubernetesEngine" "spec" "dependencies" (dict) $provVals) }}
     {{- if or (not $managedOnly) (eq (dig "managementPolicy" "" $dep) "Managed") }}

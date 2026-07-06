@@ -45,8 +45,8 @@ spec:
             - |
               set -euo pipefail
               {{- range $ns := $namespaces }}
-              echo "Ensuring namespace {{ $ns }} exists..."
-              kubectl create namespace {{ $ns }} --dry-run=client -o yaml | kubectl apply -f -
+              echo "Ensuring namespace '{{ $ns }}' exists..."
+              kubectl create namespace '{{ $ns }}' --dry-run=client -o yaml | kubectl apply -f -
               {{- end }}
               echo "Done."
 {{- end }}

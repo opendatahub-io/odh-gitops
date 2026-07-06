@@ -4,6 +4,8 @@
 {{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
 {{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
 {{- if or $componentCRs $providerKECR }}
+{{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
+{{- $depNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -25,14 +27,17 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
-  {{- if .Values.uninstall.cleanupNamespaces }}
+  {{- if and .Values.uninstall.cleanupNamespaces $depNamespaces }}
   - apiGroups:
       - ""
     resources:
       - namespaces
+    resourceNames:
+      {{- range $ns := $depNamespaces }}
+      - {{ $ns }}
+      {{- end }}
     verbs:
       - get
-      - list
       - watch
       - delete
   {{- end }}
@@ -47,19 +52,17 @@ rules:
       - {{ index $meta "resource" }}
     verbs:
       - get
-      - list
       - watch
       - delete
     {{- end }}
   {{- end }}
-  {{- if $keResource }}
+  {{- if and $keResource $provider }}
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
       - {{ $keResource }}
     verbs:
       - get
-      - list
       - watch
       - delete
   {{- end }}

@@ -3034,7 +3034,6 @@ rules:
       - kserves
     verbs:
       - get
-      - list
       - watch
       - delete
   - apiGroups:
@@ -3043,7 +3042,6 @@ rules:
       - azurekubernetesengines
     verbs:
       - get
-      - list
       - watch
       - delete
 ---

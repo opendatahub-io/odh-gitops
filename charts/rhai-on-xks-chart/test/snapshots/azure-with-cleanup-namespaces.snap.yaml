@@ -3030,9 +3030,10 @@ rules:
       - ""
     resources:
       - namespaces
+    resourceNames:
+      - istio-system
     verbs:
       - get
-      - list
       - watch
       - delete
   - apiGroups:
@@ -3041,7 +3042,6 @@ rules:
       - kserves
     verbs:
       - get
-      - list
       - watch
       - delete
   - apiGroups:
@@ -3050,7 +3050,6 @@ rules:
       - azurekubernetesengines
     verbs:
       - get
-      - list
       - watch
       - delete
 ---
@@ -3484,9 +3483,7 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
-              echo "Deleting namespace openshift-lws-operator..."
-              kubectl delete namespace openshift-lws-operator --ignore-not-found --timeout=60s
-              echo "Deleting namespace istio-system..."
-              kubectl delete namespace istio-system --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'istio-system'..."
+              kubectl delete namespace 'istio-system' --ignore-not-found --timeout=60s
               echo "Done."
 

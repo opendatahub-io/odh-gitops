@@ -17,7 +17,7 @@
 #   DELETE_TIMEOUT   - Helm uninstall timeout (default: 360s)
 #   CLEANUP_WAIT     - Seconds to wait for reconciliation (default: 90)
 
-set -uo pipefail
+set -euo pipefail
 
 # ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ wait_for() {
   shift
   local elapsed=0
   local interval=$INTERVAL_INIT
-  while [ $elapsed -lt "$TIMEOUT" ]; do
+  while [ "$elapsed" -lt "$TIMEOUT" ]; do
     if "$@" >/dev/null 2>&1; then
       return 0
     fi
@@ -129,7 +129,7 @@ wait_for() {
     sleep "$interval"
     elapsed=$((elapsed + interval))
     interval=$((interval * 2))
-    if [ $interval -gt $INTERVAL_MAX ]; then
+    if [ "$interval" -gt "$INTERVAL_MAX" ]; then
       interval=$INTERVAL_MAX
     fi
   done
@@ -344,7 +344,7 @@ ensure_deployed() {
     | jq -r '.info.status' 2>/dev/null || echo "not-installed")
   if [[ "$status" != "deployed" && "$status" != "not-installed" ]]; then
     log "Release in broken state '$status' — cleaning up..."
-    helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --no-hooks 2>/dev/null || true
+    helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout 120s 2>/dev/null || true
     kubectl patch "$KE_KIND/$KE_NAME" --type=merge \
       -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
     kubectl wait --for=delete "$KE_KIND/$KE_NAME" --timeout=60s 2>/dev/null || true
@@ -376,8 +376,10 @@ run_test() {
   header "Test $test_num: $test_name"
   ASSERT_FAILED=0
 
-  if $test_fn; then
-    :
+  local test_exit=0
+  $test_fn || test_exit=$?
+  if [[ "$test_exit" -ne 0 ]]; then
+    ASSERT_FAILED=1
   fi
 
   if [[ "$ASSERT_FAILED" -eq 0 ]]; then

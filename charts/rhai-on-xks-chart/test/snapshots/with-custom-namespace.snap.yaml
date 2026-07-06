@@ -3188,7 +3188,6 @@ rules:
       - kserves
     verbs:
       - get
-      - list
       - watch
       - delete
   - apiGroups:
@@ -3197,7 +3196,6 @@ rules:
       - azurekubernetesengines
     verbs:
       - get
-      - list
       - watch
       - delete
 ---
@@ -3727,9 +3725,9 @@ spec:
             - -c
             - |
               set -euo pipefail
-              echo "Ensuring namespace custom-lws exists..."
-              kubectl create namespace custom-lws --dry-run=client -o yaml | kubectl apply -f -
-              echo "Ensuring namespace custom-istio exists..."
-              kubectl create namespace custom-istio --dry-run=client -o yaml | kubectl apply -f -
+              echo "Ensuring namespace 'custom-lws' exists..."
+              kubectl create namespace 'custom-lws' --dry-run=client -o yaml | kubectl apply -f -
+              echo "Ensuring namespace 'custom-istio' exists..."
+              kubectl create namespace 'custom-istio' --dry-run=client -o yaml | kubectl apply -f -
               echo "Done."
 

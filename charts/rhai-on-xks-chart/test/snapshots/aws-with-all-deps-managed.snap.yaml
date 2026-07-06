@@ -3188,7 +3188,6 @@ rules:
       - kserves
     verbs:
       - get
-      - list
       - watch
       - delete
   - apiGroups:
@@ -3197,7 +3196,6 @@ rules:
       - awskubernetesengines
     verbs:
       - get
-      - list
       - watch
       - delete
 ---
@@ -3723,9 +3721,9 @@ spec:
             - -c
             - |
               set -euo pipefail
-              echo "Ensuring namespace openshift-lws-operator exists..."
-              kubectl create namespace openshift-lws-operator --dry-run=client -o yaml | kubectl apply -f -
-              echo "Ensuring namespace istio-system exists..."
-              kubectl create namespace istio-system --dry-run=client -o yaml | kubectl apply -f -
+              echo "Ensuring namespace 'openshift-lws-operator' exists..."
+              kubectl create namespace 'openshift-lws-operator' --dry-run=client -o yaml | kubectl apply -f -
+              echo "Ensuring namespace 'istio-system' exists..."
+              kubectl create namespace 'istio-system' --dry-run=client -o yaml | kubectl apply -f -
               echo "Done."
 
