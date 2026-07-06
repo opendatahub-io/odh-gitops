@@ -3034,6 +3034,7 @@ rules:
       - kserves
     verbs:
       - get
+      - list
       - watch
       - delete
   - apiGroups:

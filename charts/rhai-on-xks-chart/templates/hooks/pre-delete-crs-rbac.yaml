@@ -38,6 +38,7 @@ rules:
       {{- end }}
     verbs:
       - get
+      - list
       - watch
       - delete
   {{- end }}
@@ -52,6 +53,7 @@ rules:
       - {{ index $meta "resource" }}
     verbs:
       - get
+      - list
       - watch
       - delete
     {{- end }}
