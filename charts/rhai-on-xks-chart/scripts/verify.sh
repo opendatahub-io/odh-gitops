@@ -14,6 +14,7 @@
 #   CHART            - Path to chart directory (default: ./charts/rhai-on-xks-chart)
 #   VALUES_FILE      - Extra values file for helm deploy (default: empty)
 #   PULL_SECRET      - Path to dockerconfigjson for image pull secret (default: empty)
+#   HELM_EXTRA_ARGS  - Extra args passed to every helm deploy (default: empty, TODO: remove)
 #   DELETE_TIMEOUT   - Helm uninstall timeout (default: 360s)
 #   CLEANUP_WAIT     - Seconds to wait for reconciliation (default: 90)
 
@@ -28,6 +29,8 @@ TIMEOUT="${TIMEOUT:-300}"
 CHART="${CHART:-./charts/rhai-on-xks-chart}"
 VALUES_FILE="${VALUES_FILE:-}"
 PULL_SECRET="${PULL_SECRET:-}"
+# TODO: remove HELM_EXTRA_ARGS once workflows pass PULL_SECRET directly
+HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS:-}"
 DELETE_TIMEOUT="${DELETE_TIMEOUT:-360s}"
 CLEANUP_WAIT="${CLEANUP_WAIT:-90}"
 
@@ -322,12 +325,17 @@ helm_deploy() {
   if [[ -n "$PULL_SECRET" ]]; then
     secret_args+=(--set-file "imagePullSecret.dockerConfigJson=${PULL_SECRET}")
   fi
+  local helm_extra=()
+  if [[ -n "$HELM_EXTRA_ARGS" ]]; then
+    read -ra helm_extra <<< "$HELM_EXTRA_ARGS"
+  fi
   log "helm upgrade --install $RELEASE_NAME"
   helm upgrade --install "$RELEASE_NAME" "$CHART" \
     -n "$NAMESPACE" --create-namespace \
     --set "${CLOUD_PROVIDER}.enabled=true" \
     ${values_args[@]+"${values_args[@]}"} \
     ${secret_args[@]+"${secret_args[@]}"} \
+    ${helm_extra[@]+"${helm_extra[@]}"} \
     ${extra_args[@]+"${extra_args[@]}"} \
     --timeout 10m
 }
