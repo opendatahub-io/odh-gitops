@@ -1,15 +1,14 @@
 {{- if .Values.enabled }}
 {{- if .Values.hooks.postInstallCrs.enabled }}
-{{- $createKserve := .Values.components.kserve.enabled }}
-{{- $createAzureKE := and .Values.azure.enabled .Values.azure.kubernetesEngine.enabled }}
-{{- $createCoreweaveKE := and .Values.coreweave.enabled .Values.coreweave.kubernetesEngine.enabled }}
-{{- $createAwsKE := and .Values.aws.enabled .Values.aws.kubernetesEngine.enabled }}
+{{- $componentCRs := include "rhai-on-xks-chart.enabledComponentCRs" . | fromJson }}
+{{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
+{{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
 {{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
 {{- $gatewayTls := and $createGateway .Values.gateway.tls.enabled }}
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace }}
 {{- $issuerName := .Values.gateway.tls.issuerRef.name }}
 {{- $issuerKind := .Values.gateway.tls.issuerRef.kind }}
-{{- if or $createKserve $createAzureKE $createCoreweaveKE $createAwsKE $createGateway }}
+{{- if or $componentCRs $providerKECR $createGateway }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -19,7 +18,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -30,29 +28,35 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
+  {{- $compRegistry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
+  {{- range $name := keys $compRegistry | sortAlpha }}
+    {{- $meta := index $compRegistry $name }}
+    {{- $compVals := index $.Values.components $name | default dict }}
+    {{- if $compVals.enabled }}
   - apiGroups:
-      - components.platform.opendatahub.io
+      - {{ index $meta "apiGroup" }}
     resources:
-      - kserves
+      - {{ index $meta "resource" }}
     verbs:
       - get
       - create
       - patch
       - update
+    {{- end }}
+  {{- end }}
+  {{- if $keResource }}
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - azurekubernetesengines
-      - coreweavekubernetesengines
-      - awskubernetesengines
+      - {{ $keResource }}
     verbs:
       - get
       - create
       - patch
       - update
+  {{- end }}
   {{- if $createGateway }}
   - apiGroups:
       - gateway.networking.k8s.io
@@ -112,7 +116,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -134,7 +137,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups:
@@ -166,7 +168,6 @@ metadata:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 roleRef:
   apiGroup: rbac.authorization.k8s.io

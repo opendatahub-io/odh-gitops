@@ -98,4 +98,5 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | rhaiOperator.resources.limits.memory | string | `"1Gi"` |  |
 | rhaiOperator.resources.requests.cpu | string | `"300m"` |  |
 | rhaiOperator.resources.requests.memory | string | `"256Mi"` |  |
+| uninstall.cleanupNamespaces | bool | `false` |  |
 

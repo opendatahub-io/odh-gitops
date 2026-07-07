@@ -296,19 +296,16 @@ XKS_CHART_PATH ?= $(CHARTS_DIR)/rhai-on-xks-chart
 XKS_RELEASE_NAME ?= rhai-on-xks
 XKS_NAMESPACE ?= rhai-on-xks
 XKS_CLOUD_PROVIDER ?= azure
+XKS_PULL_SECRET ?=
 
 .PHONY: helm-verify-xks
-helm-verify-xks: ## Verify rhai-on-xks-chart installation
-	RELEASE_NAME=$(XKS_RELEASE_NAME) NAMESPACE=$(XKS_NAMESPACE) CLOUD_PROVIDER=$(XKS_CLOUD_PROVIDER) ./charts/rhai-on-xks-chart/scripts/verify.sh
+helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test
+	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
 
 .PHONY: helm-install-verify-xks
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
-	@echo "=== Step 1: Install rhai-on-xks-chart ==="
 	# TODO(RHOAIENG-63729): remove -f values-e2e.yaml once a runner with sufficient resources is available
-	helm upgrade --install $(XKS_RELEASE_NAME) ./$(XKS_CHART_PATH) -n $(XKS_NAMESPACE) --create-namespace --set $(XKS_CLOUD_PROVIDER).enabled=true -f $(XKS_CHART_PATH)/test/values-e2e.yaml $(HELM_EXTRA_ARGS)
-	@echo ""
-	@echo "=== Step 2: Verify installation ==="
-	$(MAKE) helm-verify-xks
+	VALUES_FILE=$(XKS_CHART_PATH)/test/values-e2e.yaml $(MAKE) helm-verify-xks
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies

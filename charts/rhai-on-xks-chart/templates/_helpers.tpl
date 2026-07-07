@@ -40,6 +40,27 @@ Return the imagePullSecret name.
 {{- end -}}
 
 {{/*
+Render a dockerconfigjson Secret for a given namespace.
+Pass a dict with "root" (top-level context), "namespace", and optional "annotations" (dict).
+*/}}
+{{- define "rhai-on-xks-chart.imagePullSecretResource" -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "rhai-on-xks-chart.imagePullSecretName" .root }}
+  namespace: {{ .namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" .root | nindent 4 }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ .root.Values.imagePullSecret.dockerConfigJson | b64enc }}
+{{- end -}}
+
+{{/*
 Render imagePullSecrets block for pod specs.
 Always outputs the block so that pre-created secrets are picked up.
 */}}
@@ -67,17 +88,58 @@ allowedRoutes:
 {{- end -}}
 
 {{/*
+Collect dependency namespaces from enabled providers.
+Pass a dict with "root" (top-level context) and optional "managedOnly" (bool).
+When managedOnly is true, only dependencies with managementPolicy: Managed are included.
+Returns a JSON object with key "items" containing unique namespace strings.
+Usage:
+  (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items
+*/}}
+{{- define "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" -}}
+{{- $namespaces := list }}
+{{- $managedOnly := .managedOnly | default false }}
+{{- $provider := include "rhai-on-xks-chart.activeProvider" .root | fromYaml }}
+{{- if and $provider (index $provider "keEnabled") }}
+  {{- $provVals := index $.root.Values (index $provider "name") | default dict }}
+  {{- range $depName, $dep := (dig "kubernetesEngine" "spec" "dependencies" (dict) $provVals) }}
+    {{- if or (not $managedOnly) (eq (dig "managementPolicy" "" $dep) "Managed") }}
+      {{- with (dig "configuration" "namespace" "" $dep) }}
+        {{- $namespaces = append $namespaces . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- dict "items" ($namespaces | uniq) | toJson }}
+{{- end -}}
+
+{{/*
+Return the KubernetesEngine CRD plural resource name for the active cloud provider.
+*/}}
+{{- define "rhai-on-xks-chart.keResourceName" -}}
+{{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
+{{- if and $provider (index $provider "keEnabled") -}}
+  {{- index $provider "keResource" -}}
+{{- end }}
+{{- end -}}
+
+{{/*
 Validate that exactly one cloud provider is enabled.
 */}}
 {{- define "rhai-on-xks-chart.validateCloudProvider" -}}
-{{- if and .Values.enabled (not (or .Values.azure.enabled .Values.coreweave.enabled .Values.aws.enabled)) -}}
-{{- fail "Exactly one cloud provider must be enabled: set azure.enabled=true, coreweave.enabled=true, or aws.enabled=true" -}}
-{{- end -}}
+{{- $registry := include "rhai-on-xks-chart.providerRegistry" . | fromYaml }}
 {{- $enabledCount := 0 -}}
-{{- if .Values.azure.enabled }}{{- $enabledCount = add $enabledCount 1 -}}{{- end -}}
-{{- if .Values.coreweave.enabled }}{{- $enabledCount = add $enabledCount 1 -}}{{- end -}}
-{{- if .Values.aws.enabled }}{{- $enabledCount = add $enabledCount 1 -}}{{- end -}}
+{{- $enabledNames := list -}}
+{{- range $name := keys $registry | sortAlpha }}
+  {{- $providerVals := index $.Values $name | default dict }}
+  {{- if $providerVals.enabled }}
+    {{- $enabledCount = add $enabledCount 1 }}
+    {{- $enabledNames = append $enabledNames $name }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.enabled (eq (int $enabledCount) 0) -}}
+{{- fail (printf "Exactly one cloud provider must be enabled: set %s" (join ".enabled=true, " (keys $registry | sortAlpha) | printf "%s.enabled=true")) -}}
+{{- end -}}
 {{- if and .Values.enabled (gt (int $enabledCount) 1) -}}
-{{- fail "Only one cloud provider can be enabled at a time: set either azure.enabled=true, coreweave.enabled=true, or aws.enabled=true, not multiple" -}}
+{{- fail (printf "Only one cloud provider can be enabled at a time: set either %s, not multiple" (join ".enabled=true, " $enabledNames | printf "%s.enabled=true")) -}}
 {{- end -}}
 {{- end -}}

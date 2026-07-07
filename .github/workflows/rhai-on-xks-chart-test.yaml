@@ -48,7 +48,7 @@ jobs:
           printf '%s' "${RHAI_PULL_SECRET}" > "${PULL_SECRET_FILE}"
           make helm-install-verify-xks \
             XKS_CLOUD_PROVIDER=${{ matrix.cloud_provider }} \
-            HELM_EXTRA_ARGS="--set-file imagePullSecret.dockerConfigJson=${PULL_SECRET_FILE}"
+            XKS_PULL_SECRET="${PULL_SECRET_FILE}"
 
       - name: Dump custom resources on failure
         if: failure()

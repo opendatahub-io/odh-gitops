@@ -20,12 +20,35 @@ metadata:
   name: redhat-ods-operator
 
 ---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager-operator
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+---
 # Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/rbac/serviceaccount-coreweave-cloud-manager-operator.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: coreweave-cloud-manager-operator
   namespace: rhai-cloudmanager-system
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+# TODO: This is a temporary solution to inject the pull secret into the llmisvc-controller-manager service account.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llmisvc-controller-manager
+  namespace: redhat-ods-applications
 imagePullSecrets:
   - name: rhai-pull-secret
 
@@ -39,6 +62,110 @@ metadata:
 imagePullSecrets:
   - name: rhai-pull-secret
 
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: redhat-ods-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: redhat-ods-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: rhai-cloudmanager-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: cert-manager-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: cert-manager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: openshift-lws-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: istio-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/crds/customresourcedefinition-coreweavekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -2937,6 +3064,51 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-install-namespaces-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-install-namespaces-hook
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-install-namespaces-rbac.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -3044,6 +3216,27 @@ rules:
       - watch
       - delete
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-install-namespaces-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-install-namespaces-hook
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - create
+      - patch
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -3082,6 +3275,27 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rhai-pre-delete-hook
+    namespace: default
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-install-namespaces-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-install-namespaces-hook
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-pre-install-namespaces-hook
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-install-namespaces-hook
     namespace: default
 
 ---
@@ -3213,7 +3427,7 @@ spec:
                   lws:
                     configuration:
                       namespace: openshift-lws-operator
-                    managementPolicy: Unmanaged
+                    managementPolicy: Managed
                   sailOperator:
                     configuration:
                       namespace: istio-system
@@ -3390,19 +3604,13 @@ spec:
                     protocol: HTTP
                     allowedRoutes:
                       namespaces:
-                        from: Selector
-                        selector:
-                          matchLabels:
-                            inference-gateway-access: enabled
+                        from: Same
                   - name: https
                     port: 443
                     protocol: HTTPS
                     allowedRoutes:
                       namespaces:
-                        from: Selector
-                        selector:
-                          matchLabels:
-                            inference-gateway-access: enabled
+                        from: Same
                     tls:
                       certificateRefs:
                         - group: ''
@@ -3476,5 +3684,63 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting CoreWeaveKubernetesEngine CR 'default-coreweavekubernetesengine'..."
               kubectl delete coreweavekubernetesengine default-coreweavekubernetesengine --ignore-not-found --timeout=300s
+              echo "Done."
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-install-namespaces-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-install-namespaces
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-install-namespaces-hook
+      imagePullSecrets:
+        - name: rhai-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: create-namespaces
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Ensuring namespace 'openshift-lws-operator' exists..."
+              kubectl create namespace 'openshift-lws-operator' --dry-run=client -o yaml | kubectl apply -f -
+              echo "Ensuring namespace 'istio-system' exists..."
+              kubectl create namespace 'istio-system' --dry-run=client -o yaml | kubectl apply -f -
               echo "Done."
 

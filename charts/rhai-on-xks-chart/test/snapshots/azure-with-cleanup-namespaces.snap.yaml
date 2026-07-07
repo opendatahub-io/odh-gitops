@@ -1,5 +1,5 @@
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/manager/namespace-rhai-cloudmanager-system.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/manager/namespace-rhai-cloudmanager-system.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -20,11 +20,11 @@ metadata:
   name: redhat-ods-operator
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/rbac/serviceaccount-coreweave-cloud-manager-operator.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: coreweave-cloud-manager-operator
+  name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 imagePullSecrets:
   - name: rhai-pull-secret
@@ -40,21 +40,21 @@ imagePullSecrets:
   - name: rhai-pull-secret
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/crds/customresourcedefinition-coreweavekubernetesengines.infrastructure.opendatahub.io.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.3
     helm.sh/resource-policy: keep
-  name: coreweavekubernetesengines.infrastructure.opendatahub.io
+  name: azurekubernetesengines.infrastructure.opendatahub.io
 spec:
   group: infrastructure.opendatahub.io
   names:
-    kind: CoreWeaveKubernetesEngine
-    listKind: CoreWeaveKubernetesEngineList
-    plural: coreweavekubernetesengines
-    singular: coreweavekubernetesengine
+    kind: AzureKubernetesEngine
+    listKind: AzureKubernetesEngineList
+    plural: azurekubernetesengines
+    singular: azurekubernetesengine
   scope: Cluster
   versions:
     - additionalPrinterColumns:
@@ -74,8 +74,8 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            CoreWeaveKubernetesEngine is the Schema for the CoreWeaveKubernetesEngines API.
-            It represents the configuration for a CoreWeave Kubernetes Engine cluster.
+            AzureKubernetesEngine is the Schema for the azurekubernetesengines API.
+            It represents the configuration for an Azure Kubernetes Service (AKS) cluster.
           properties:
             apiVersion:
               description: |-
@@ -95,10 +95,10 @@ spec:
             metadata:
               type: object
             spec:
-              description: CoreWeaveKubernetesEngineSpec defines the desired state of CoreWeaveKubernetesEngine.
+              description: AzureKubernetesEngineSpec defines the desired state of AzureKubernetesEngine.
               properties:
                 dependencies:
-                  description: Dependencies defines the dependency configurations for the CoreWeave Kubernetes Engine.
+                  description: Dependencies defines the dependency configurations for the Azure Kubernetes Engine.
                   properties:
                     certManager:
                       description: CertManager defines the cert-manager operator dependency.
@@ -193,7 +193,7 @@ spec:
                   type: object
               type: object
             status:
-              description: CoreWeaveKubernetesEngineStatus defines the observed state of CoreWeaveKubernetesEngine.
+              description: AzureKubernetesEngineStatus defines the observed state of AzureKubernetesEngine.
               properties:
                 conditions:
                   items:
@@ -259,8 +259,8 @@ spec:
               type: object
           type: object
           x-kubernetes-validations:
-            - message: CoreWeaveKubernetesEngine name must be default-coreweavekubernetesengine
-              rule: self.metadata.name == 'default-coreweavekubernetesengine'
+            - message: AzureKubernetesEngine name must be default-azurekubernetesengine
+              rule: self.metadata.name == 'default-azurekubernetesengine'
       served: true
       storage: true
       subresources:
@@ -734,11 +734,11 @@ spec:
         status: {}
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/rbac/clusterrole-rhai-coreweave-cloud-manager-role.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/clusterrole-rhai-azure-cloud-manager-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhai-coreweave-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 rules:
   - apiGroups:
       - ""
@@ -827,7 +827,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines
+      - azurekubernetesengines
     verbs:
       - create
       - delete
@@ -839,13 +839,13 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines/finalizers
+      - azurekubernetesengines/finalizers
     verbs:
       - update
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines/status
+      - azurekubernetesengines/status
     verbs:
       - get
       - patch
@@ -2431,18 +2431,18 @@ rules:
       - watch
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/rbac/clusterrolebinding-rhai-coreweave-cloud-manager-rolebinding.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/clusterrolebinding-rhai-azure-cloud-manager-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhai-coreweave-cloud-manager-rolebinding
+  name: rhai-azure-cloud-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhai-coreweave-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 subjects:
   - kind: ServiceAccount
-    name: coreweave-cloud-manager-operator
+    name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
 
 ---
@@ -2461,11 +2461,11 @@ subjects:
     namespace: redhat-ods-operator
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/rbac/role-coreweave-cloud-manager-leader-election-role.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/role-azure-cloud-manager-leader-election-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: coreweave-cloud-manager-leader-election-role
+  name: azure-cloud-manager-leader-election-role
   namespace: rhai-cloudmanager-system
 rules:
   - apiGroups:
@@ -2486,19 +2486,19 @@ rules:
       - patch
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/rbac/rolebinding-coreweave-cloud-manager-leader-election-rolebinding.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/rolebinding-azure-cloud-manager-leader-election-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: coreweave-cloud-manager-leader-election-rolebinding
+  name: azure-cloud-manager-leader-election-rolebinding
   namespace: rhai-cloudmanager-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: coreweave-cloud-manager-leader-election-role
+  name: azure-cloud-manager-leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: coreweave-cloud-manager-operator
+    name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
 
 ---
@@ -2542,28 +2542,28 @@ spec:
     name: rhai-operator
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/manager/deployment-coreweave-cloud-manager-operator.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/manager/deployment-azure-cloud-manager-operator.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-    name: coreweave-cloud-manager-operator
-  name: coreweave-cloud-manager-operator
+    name: azure-cloud-manager-operator
+  name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: coreweave-cloud-manager-operator
+      name: azure-cloud-manager-operator
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: controller-manager
-        name: coreweave-cloud-manager-operator
+        name: azure-cloud-manager-operator
     spec:
       affinity:
         nodeAffinity:
@@ -2582,12 +2582,12 @@ spec:
                     - key: name
                       operator: In
                       values:
-                        - coreweave-cloud-manager-operator
+                        - azure-cloud-manager-operator
                 topologyKey: kubernetes.io/hostname
               weight: 100
       containers:
         - args:
-            - coreweave
+            - azure
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
             - --leader-elect
@@ -2650,7 +2650,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: coreweave-cloud-manager-operator
+      serviceAccountName: azure-cloud-manager-operator
       terminationGracePeriodSeconds: 10
 
 ---
@@ -2961,7 +2961,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines
+      - azurekubernetesengines
     verbs:
       - get
       - create
@@ -3027,6 +3027,17 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    resourceNames:
+      - istio-system
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  - apiGroups:
       - components.platform.opendatahub.io
     resources:
       - kserves
@@ -3038,7 +3049,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - coreweavekubernetesengines
+      - azurekubernetesengines
     verbs:
       - get
       - watch
@@ -3193,12 +3204,12 @@ spec:
                   app.kubernetes.io/managed-by: Helm
               spec: {}
               EOF
-              echo "Creating CoreWeaveKubernetesEngine CR..."
+              echo "Creating AzureKubernetesEngine CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: infrastructure.opendatahub.io/v1alpha1
-              kind: CoreWeaveKubernetesEngine
+              kind: AzureKubernetesEngine
               metadata:
-                name: default-coreweavekubernetesengine
+                name: default-azurekubernetesengine
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
@@ -3345,6 +3356,10 @@ spec:
                           - name: rhai-ca-bundle
                             mountPath: /var/run/secrets/rhai
                             readOnly: true
+                service: |
+                  metadata:
+                    annotations:
+                      service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
               ISSUER_NAME="rhai-ca-issuer"
@@ -3390,19 +3405,13 @@ spec:
                     protocol: HTTP
                     allowedRoutes:
                       namespaces:
-                        from: Selector
-                        selector:
-                          matchLabels:
-                            inference-gateway-access: enabled
+                        from: Same
                   - name: https
                     port: 443
                     protocol: HTTPS
                     allowedRoutes:
                       namespaces:
-                        from: Selector
-                        selector:
-                          matchLabels:
-                            inference-gateway-access: enabled
+                        from: Same
                     tls:
                       certificateRefs:
                         - group: ''
@@ -3474,7 +3483,9 @@ spec:
               set -euo pipefail
               echo "Deleting Kserve CR 'default-kserve'..."
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
-              echo "Deleting CoreWeaveKubernetesEngine CR 'default-coreweavekubernetesengine'..."
-              kubectl delete coreweavekubernetesengine default-coreweavekubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
+              kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting namespace 'istio-system'..."
+              kubectl delete namespace 'istio-system' --ignore-not-found --timeout=60s
               echo "Done."
 

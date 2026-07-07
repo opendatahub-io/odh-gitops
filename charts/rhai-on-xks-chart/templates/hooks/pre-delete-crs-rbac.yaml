@@ -1,0 +1,96 @@
+{{- if .Values.enabled }}
+{{- if .Values.hooks.postInstallCrs.enabled }}
+{{- $componentCRs := include "rhai-on-xks-chart.enabledComponentCRs" . | fromJson }}
+{{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
+{{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
+{{- if or $componentCRs $providerKECR }}
+{{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
+{{- if include "rhai-on-xks-chart.imagePullSecretEnabled" . }}
+{{- $hookAnnotations := dict "helm.sh/hook" "pre-delete" "helm.sh/hook-delete-policy" "before-hook-creation,hook-succeeded" }}
+{{ include "rhai-on-xks-chart.imagePullSecretResource" (dict "root" . "namespace" .Release.Namespace "annotations" $hookAnnotations) }}
+---
+{{- end }}
+{{- $depNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-delete-hook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-delete-hook
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  {{- if and .Values.uninstall.cleanupNamespaces $depNamespaces }}
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    resourceNames:
+      {{- range $ns := $depNamespaces }}
+      - {{ $ns }}
+      {{- end }}
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  {{- end }}
+  {{- $compRegistry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
+  {{- range $name := keys $compRegistry | sortAlpha }}
+    {{- $meta := index $compRegistry $name }}
+    {{- $compVals := index $.Values.components $name | default dict }}
+    {{- if $compVals.enabled }}
+  - apiGroups:
+      - {{ index $meta "apiGroup" }}
+    resources:
+      - {{ index $meta "resource" }}
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+    {{- end }}
+  {{- end }}
+  {{- if and $keResource $provider }}
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - {{ $keResource }}
+    verbs:
+      - get
+      - watch
+      - delete
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-delete-hook
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-pre-delete-hook
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-delete-hook
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}
