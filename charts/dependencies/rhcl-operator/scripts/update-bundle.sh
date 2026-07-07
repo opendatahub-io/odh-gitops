@@ -157,9 +157,9 @@ for doc in docs:
             continue
         seen.add(key)
 
-        filename = f"{kind.lower()}-{name.replace('.', '-')[:50]}.yaml"
-
         if kind == 'CustomResourceDefinition':
+            # Convention: customresourcedefinition-<name-with-dots-as-dashes>.yaml
+            filename = f"customresourcedefinition-{name.replace('.', '-')}.yaml"
             filepath = os.path.join(crds_dir, filename)
             crd_count += 1
             with open(filepath, 'w') as out:
@@ -168,6 +168,8 @@ for doc in docs:
             # Skip — managed by templates/namespace.yaml
             continue
         else:
+            # Convention: <kind-lowercase>-<name-truncated>.yaml
+            filename = f"{kind.lower()}-{name[:60]}.yaml"
             filepath = os.path.join(templates_dir, filename)
             other_count += 1
             # Templatize namespace references
