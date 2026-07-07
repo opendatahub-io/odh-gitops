@@ -17,6 +17,8 @@ CHART_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Bundle images from registry.redhat.io
 KUADRANT_BUNDLE="registry.redhat.io/rhcl-1/rhcl-operator-bundle:${VERSION}"
 AUTHORINO_BUNDLE="registry.redhat.io/rhcl-1/authorino-operator-bundle:${VERSION}"
+LIMITADOR_BUNDLE="registry.redhat.io/rhcl-1/limitador-operator-bundle:${VERSION}"
+DNS_BUNDLE="registry.redhat.io/rhcl-1/dns-operator-bundle:${VERSION}"
 
 echo "============================================"
 echo "  Updating RHCL Operator Helm Chart"
@@ -25,6 +27,8 @@ echo "Version: $VERSION"
 echo "Bundles:"
 echo "  - $KUADRANT_BUNDLE"
 echo "  - $AUTHORINO_BUNDLE"
+echo "  - $LIMITADOR_BUNDLE"
+echo "  - $DNS_BUNDLE"
 echo ""
 
 # Check for auth (persistent location first, then session)
@@ -79,8 +83,41 @@ podman run --rm --pull=always $AUTH_ARG \
 
 echo "  Authorino: $(wc -l < "$TMP_DIR/authorino-manifests.yaml") lines"
 
-# Merge both manifests
-cat "$TMP_DIR/kuadrant-manifests.yaml" "$TMP_DIR/authorino-manifests.yaml" > "$TMP_DIR/manifests.yaml"
+# Extract manifests from Limitador bundle
+echo "[2b/4] Extracting Limitador operator manifests..."
+podman run --rm --pull=always $AUTH_ARG \
+  quay.io/lburgazzoli/olm-extractor:main \
+  run "$LIMITADOR_BUNDLE" \
+  -n kuadrant-operators \
+  --watch-namespace="" \
+  --exclude '.kind == "ConsoleCLIDownload"' \
+  --exclude '.kind == "ConsolePlugin"' \
+  --exclude '.kind == "Route"' \
+  --exclude '.kind == "SecurityContextConstraints"' \
+  --exclude '.kind == "ConsoleYAMLSample"' \
+  2>/dev/null | grep -v "^time=" > "$TMP_DIR/limitador-manifests.yaml"
+
+echo "  Limitador: $(wc -l < "$TMP_DIR/limitador-manifests.yaml") lines"
+
+# Extract manifests from DNS bundle
+echo "[2c/4] Extracting DNS operator manifests..."
+podman run --rm --pull=always $AUTH_ARG \
+  quay.io/lburgazzoli/olm-extractor:main \
+  run "$DNS_BUNDLE" \
+  -n kuadrant-operators \
+  --watch-namespace="" \
+  --exclude '.kind == "ConsoleCLIDownload"' \
+  --exclude '.kind == "ConsolePlugin"' \
+  --exclude '.kind == "Route"' \
+  --exclude '.kind == "SecurityContextConstraints"' \
+  --exclude '.kind == "ConsoleYAMLSample"' \
+  2>/dev/null | grep -v "^time=" > "$TMP_DIR/dns-manifests.yaml"
+
+echo "  DNS: $(wc -l < "$TMP_DIR/dns-manifests.yaml") lines"
+
+# Merge all manifests
+cat "$TMP_DIR/kuadrant-manifests.yaml" "$TMP_DIR/authorino-manifests.yaml" \
+    "$TMP_DIR/limitador-manifests.yaml" "$TMP_DIR/dns-manifests.yaml" > "$TMP_DIR/manifests.yaml"
 
 # Validate extraction produced output
 if [ ! -s "$TMP_DIR/manifests.yaml" ]; then

@@ -2,18 +2,26 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    control-plane: authorino-operator
-  name: authorino-operator
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/created-by: dns-operator
+    app.kubernetes.io/instance: controller-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: deployment
+    app.kubernetes.io/part-of: dns-operator
+    control-plane: dns-operator-controller-manager
+  name: dns-operator-controller-manager
   namespace: {{ .Values.operatorNamespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: authorino-operator
+      control-plane: dns-operator-controller-manager
   template:
     metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
       labels:
-        control-plane: authorino-operator
+        control-plane: dns-operator-controller-manager
       namespace: {{ .Values.operatorNamespace }}
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -22,13 +30,20 @@ spec:
       {{- end }}
       containers:
         - args:
+            - --metrics-bind-address=:8080
             - --leader-elect
           command:
             - /manager
           env:
-            - name: RELATED_IMAGE_AUTHORINO
-              value: registry.redhat.io/rhcl-1/authorino-rhel9@sha256:c2208382e16c501e4ed58aea83f54d108567f36853cf79f7ffdf8ee54ff4ace8
-          image: registry.redhat.io/rhcl-1/authorino-rhel9-operator@sha256:4e581c0172549df72c6ef8978e96d771645bc36298d2ccf9240af4e71c088733
+            - name: WATCH_NAMESPACES
+            - name: CLUSTER_SECRET_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+            - configMapRef:
+                name: dns-operator-controller-env
+          image: registry.redhat.io/rhcl-1/dns-rhel9-operator@sha256:b4e7ba67509320ca9ac5d63cc4add987fad05b098c4a7cd8dd91f264731177cf
           livenessProbe:
             httpGet:
               path: /healthz
@@ -39,6 +54,8 @@ spec:
           ports:
             - containerPort: 8080
               name: metrics
+            - containerPort: 8082
+              name: pprof
           readinessProbe:
             httpGet:
               path: /readyz
@@ -48,19 +65,16 @@ spec:
           resources:
             limits:
               cpu: 200m
-              memory: 300Mi
+              memory: 128Mi
             requests:
-              cpu: 200m
-              memory: 200Mi
+              cpu: 10m
+              memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: true
-            seccompProfile:
-              type: RuntimeDefault
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: authorino-operator
+      serviceAccountName: dns-operator-controller-manager
       terminationGracePeriodSeconds: 10
