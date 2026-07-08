@@ -4,18 +4,21 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: rhai-cloudmanager-system
+
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-applications.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-applications
+
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-operator
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
@@ -25,6 +28,7 @@ metadata:
   namespace: rhai-cloudmanager-system
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
@@ -34,6 +38,7 @@ metadata:
   namespace: redhat-ods-operator
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -260,6 +265,7 @@ spec:
       storage: true
       subresources:
         status: {}
+
 ---
 # Source: rhai-on-xks-chart/templates/crds/customresourcedefinition-kserves.components.platform.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -568,6 +574,7 @@ spec:
       storage: true
       subresources:
         status: {}
+
 ---
 # Source: rhai-on-xks-chart/templates/crds/customresourcedefinition-platforms.config.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -743,6 +750,7 @@ spec:
       storage: true
       subresources:
         status: {}
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/clusterrole-rhai-azure-cloud-manager-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1007,6 +1015,7 @@ rules:
       - patch
       - update
       - watch
+
 ---
 # Source: rhai-on-xks-chart/templates/rbac/clusterrole-redhat-ods-operator-metrics-reader.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1018,6 +1027,7 @@ rules:
       - /metrics
     verbs:
       - get
+
 ---
 # Source: rhai-on-xks-chart/templates/rbac/clusterrole-rhods-operator-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2440,6 +2450,7 @@ rules:
       - patch
       - update
       - watch
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/clusterrolebinding-rhai-azure-cloud-manager-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2454,6 +2465,7 @@ subjects:
   - kind: ServiceAccount
     name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
+
 ---
 # Source: rhai-on-xks-chart/templates/rbac/clusterrolebinding-rhods-operator-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2468,6 +2480,7 @@ subjects:
   - kind: ServiceAccount
     name: rhai-operator-controller-manager
     namespace: redhat-ods-operator
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/role-azure-cloud-manager-leader-election-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2492,6 +2505,7 @@ rules:
     verbs:
       - create
       - patch
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/rolebinding-azure-cloud-manager-leader-election-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2507,6 +2521,7 @@ subjects:
   - kind: ServiceAccount
     name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
+
 ---
 # Source: rhai-on-xks-chart/templates/manager/service-redhat-ods-operator-controller-manager-metrics-service.yaml
 apiVersion: v1
@@ -2524,6 +2539,7 @@ spec:
       targetPort: http
   selector:
     name: rhai-operator
+
 ---
 # Source: rhai-on-xks-chart/templates/webhooks/service-rhai-operator-webhook-service.yaml
 apiVersion: v1
@@ -2545,6 +2561,7 @@ spec:
       targetPort: 9443
   selector:
     name: rhai-operator
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/manager/deployment-azure-cloud-manager-operator.yaml
 apiVersion: apps/v1
@@ -2656,6 +2673,7 @@ spec:
           type: RuntimeDefault
       serviceAccountName: azure-cloud-manager-operator
       terminationGracePeriodSeconds: 10
+
 ---
 # Source: rhai-on-xks-chart/templates/manager/deployment-rhods-operator.yaml
 apiVersion: apps/v1
@@ -2861,6 +2879,7 @@ spec:
             medium: Memory
             sizeLimit: 10Mi
           name: tmp
+
 ---
 # Source: rhai-on-xks-chart/templates/webhooks/mutatingwebhookconfiguration-rhai-operator-mutating-webhook-configuration.yaml
 apiVersion: admissionregistration.k8s.io/v1
@@ -3055,6 +3074,7 @@ subjects:
   - kind: ServiceAccount
     name: rhai-post-install-hook
     namespace: default
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3075,6 +3095,7 @@ subjects:
   - kind: ServiceAccount
     name: rhai-pre-delete-hook
     namespace: default
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-job.yaml
 apiVersion: batch/v1
@@ -3165,6 +3186,7 @@ spec:
                     managementPolicy: Managed
               EOF
               echo "Done."
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-gateway-job.yaml
 apiVersion: batch/v1
@@ -3324,6 +3346,8 @@ spec:
                     name: inference-gateway-config
               EOF
               echo "Gateway CR 'inference-gateway' created successfully."
+              
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-job.yaml
 apiVersion: batch/v1
@@ -3381,3 +3405,4 @@ spec:
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
+
