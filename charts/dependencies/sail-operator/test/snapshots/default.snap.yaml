@@ -4,7 +4,6 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: istio-system
-
 ---
 # Source: sail-operator/templates/serviceaccount-servicemesh-operator3.yaml
 apiVersion: v1
@@ -14,7 +13,6 @@ metadata:
   namespace: istio-system
 imagePullSecrets:
   - name: rhai-pull-secret
-
 ---
 # Source: sail-operator/templates/clusterrole-servicemesh-operator3-clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -280,7 +278,6 @@ rules:
       - get
       - patch
       - update
-
 ---
 # Source: sail-operator/templates/clusterrole-servicemeshoperator3-metrics-reader.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -299,7 +296,6 @@ rules:
       - /metrics
     verbs:
       - get
-
 ---
 # Source: sail-operator/templates/clusterrolebinding-servicemesh-operator3-clusterrolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -315,7 +311,6 @@ subjects:
   - kind: ServiceAccount
     name: servicemesh-operator3
     namespace: istio-system
-
 ---
 # Source: sail-operator/templates/role-servicemesh-operator3-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -355,7 +350,6 @@ rules:
     verbs:
       - create
       - patch
-
 ---
 # Source: sail-operator/templates/rolebinding-servicemesh-operator3-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -371,7 +365,6 @@ subjects:
   - kind: ServiceAccount
     name: servicemesh-operator3
     namespace: istio-system
-
 ---
 # Source: sail-operator/templates/service-servicemesh-operator3-metrics-service.yaml
 apiVersion: v1
@@ -396,7 +389,6 @@ spec:
       targetPort: 8443
   selector:
     control-plane: servicemesh-operator3
-
 ---
 # Source: sail-operator/templates/deployment-servicemesh-operator3.yaml
 apiVersion: apps/v1
@@ -556,7 +548,6 @@ spec:
                   fieldPath: metadata.annotations
                 path: config.properties
           name: operator-config
-
 ---
 # Source: sail-operator/templates/istio.yaml
 apiVersion: sailoperator.io/v1

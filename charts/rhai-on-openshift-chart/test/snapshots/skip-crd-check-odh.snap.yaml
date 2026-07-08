@@ -24,7 +24,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
@@ -44,13 +43,10 @@ spec:
       managementState: Removed
     kserve:
       managementState: Removed
-      modelsAsService:
-        managementState: Removed
-      nim:
-        managementState: Removed
+      modelsAsService: {}
+      nim: {}
       rawDeploymentServiceConfig: Headless
-      wva:
-        managementState: Removed
+      wva: {}
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -79,7 +75,6 @@ spec:
     workbenches:
       managementState: Removed
       workbenchNamespace: opendatahub
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
