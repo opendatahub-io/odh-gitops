@@ -276,20 +276,7 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - codeflares
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - components.platform.opendatahub.io
-    resources:
-      - codeflares/status
-    verbs:
-      - get
-  - apiGroups:
-      - components.platform.opendatahub.io
-    resources:
+      - aigateways
       - dashboards
       - datasciencepipelines
       - feastoperators
@@ -318,17 +305,29 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - dashboards/finalizers
+      - aigateways/finalizers
+      - datasciencepipelines/finalizers
+      - feastoperators/finalizers
+      - kserves/finalizers
+      - kueues/finalizers
+      - mlflowoperators/finalizers
+      - modelcontrollers/finalizers
+      - modelmeshservings/finalizers
+      - modelregistries/finalizers
+      - modelsasservices/finalizers
+      - ogxs/finalizers
+      - rays/finalizers
+      - sparkoperators/finalizers
+      - trainers/finalizers
+      - trainingoperators/finalizers
+      - trustyais/finalizers
+      - workbenches/finalizers
     verbs:
-      - create
-      - get
-      - list
-      - patch
       - update
-      - watch
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
+      - aigateways/status
       - dashboards/status
       - datasciencepipelines/status
       - feastoperators/status
@@ -353,24 +352,28 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - datasciencepipelines/finalizers
-      - feastoperators/finalizers
-      - kserves/finalizers
-      - kueues/finalizers
-      - mlflowoperators/finalizers
-      - modelcontrollers/finalizers
-      - modelmeshservings/finalizers
-      - modelregistries/finalizers
-      - modelsasservices/finalizers
-      - ogxs/finalizers
-      - rays/finalizers
-      - sparkoperators/finalizers
-      - trainers/finalizers
-      - trainingoperators/finalizers
-      - trustyais/finalizers
-      - workbenches/finalizers
+      - codeflares
     verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - codeflares/status
+    verbs:
+      - get
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards/finalizers
+    verbs:
+      - create
+      - get
+      - list
+      - patch
       - update
+      - watch
   - apiGroups:
       - config.opendatahub.io
     resources:
