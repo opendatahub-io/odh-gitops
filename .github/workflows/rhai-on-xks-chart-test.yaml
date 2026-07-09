@@ -15,16 +15,48 @@ permissions:
 
 jobs:
   e2e-test:
-    if: >-
-      github.event_name == 'push' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'run-xks-e2e') ||
-      (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'run-xks-e2e'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         cloud_provider: [azure, coreweave, aws]
     steps:
+      - name: Check authorization
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+          EVENT_ACTION: ${{ github.event.action }}
+          LABEL_NAME: ${{ github.event.label.name }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'run-xks-e2e') }}
+        run: |
+          TRUSTED_BOTS=("github-actions[bot]" "red-hat-konflux[bot]" "jira-autofix[bot]")
+
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            echo "Push to main — running automatically"
+            exit 0
+          fi
+          if [[ "$AUTHOR_ASSOCIATION" =~ ^(OWNER|MEMBER|COLLABORATOR)$ ]]; then
+            echo "Trusted contributor — running automatically"
+            exit 0
+          fi
+          for bot in "${TRUSTED_BOTS[@]}"; do
+            if [[ "$AUTHOR_LOGIN" == "$bot" ]]; then
+              echo "Trusted bot — running automatically"
+              exit 0
+            fi
+          done
+          if [[ "$EVENT_ACTION" == "labeled" && ( "$LABEL_NAME" == "lgtm" || "$LABEL_NAME" == "approved" ) ]]; then
+            echo "Reviewer approval ($LABEL_NAME) — running automatically"
+            exit 0
+          fi
+          if [[ "$HAS_LABEL" == "true" ]]; then
+            echo "External contributor — approved via 'run-xks-e2e' label"
+            exit 0
+          fi
+          echo "::error::xKS e2e tests required. A maintainer must add the 'run-xks-e2e' label after reviewing the code."
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
