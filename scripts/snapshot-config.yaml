@@ -79,6 +79,10 @@ charts:
     snapshots:
       - name: default
 
+  dependencies/rhcl-operator:
+    snapshots:
+      - name: default
+
   rhai-on-xks-chart:
     snapshots:
       - name: with-custom-namespace
