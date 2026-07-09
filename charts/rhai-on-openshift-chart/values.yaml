@@ -133,6 +133,15 @@ components:
               allowedRoutes:
                 namespaces:
                   from: All
+              # Uncomment to enable client-facing TLS termination (required for HTTPS).
+              # security.opendatahub.io/authorino-tls-bootstrap handles Gateway-to-Authorino
+              # TLS only; it does not supply client-facing certificates.
+              # tls:
+              #   mode: Terminate
+              #   certificateRefs:
+              #   - group: ''
+              #     kind: Secret
+              #     name: <YOUR_TLS_SECRET>
 
   # -- AI Pipelines component
   aipipelines:
