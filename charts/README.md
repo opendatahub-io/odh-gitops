@@ -217,7 +217,7 @@ kubectl annotate validatingwebhookconfiguration istio-validator-istio-system sai
 
 See the [`rhai-on-xks-chart` README](rhai-on-xks-chart/README.md) for installation and usage details.
 
-The chart generates its templates from the [opendatahub-operator](https://github.com/opendatahub-io/opendatahub-operator) repository using kustomize and [helmtemplate-generator](https://github.com/davidebianchi/helmtemplate-generator). It also generates cloud-specific (Azure, CoreWeave) cloudmanager templates.
+The chart generates its templates from the [opendatahub-operator](https://github.com/opendatahub-io/opendatahub-operator) repository using kustomize and [helmtemplate-generator](https://github.com/davidebianchi/helmtemplate-generator). It also generates cloud-specific (AWS, Azure, CoreWeave) cloudmanager templates.
 
 **Prerequisites:** `go`, `kustomize`, and access to the ODH `opendatahub-operator` git repo.
 
@@ -264,7 +264,7 @@ The script:
 1. Clones (or uses a local) opendatahub-operator repo and runs `make manifests-all`
 2. Builds kustomize manifests from `config/rhaii/rhoai/default/`
 3. Pipes them through `helmtemplate-generator` to produce Helm templates
-4. Repeats for each cloudmanager target (Azure, CoreWeave) from `config/cloudmanager/<cloud>/rhoai/`
+4. Repeats for each cloudmanager target (AWS, Azure, CoreWeave) from `config/cloudmanager/<cloud>/rhoai/`
 5. Updates `Chart.yaml` with the new `appVersion`
 
 ### Dependency Operator Charts (bundle-derived)

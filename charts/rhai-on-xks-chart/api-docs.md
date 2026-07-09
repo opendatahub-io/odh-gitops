@@ -2,7 +2,7 @@
 
 ![Version: 3.5.0-ea.2](https://img.shields.io/badge/Version-3.5.0--ea.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.5.0-ea.2](https://img.shields.io/badge/AppVersion-3.5.0--ea.2-informational?style=flat-square)
 
-RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes services (Azure, CoreWeave).
+RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes services (AWS, Azure, CoreWeave).
 
 ## Values
 

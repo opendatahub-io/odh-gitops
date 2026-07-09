@@ -1,8 +1,8 @@
 # RHAI on XKS Helm Chart
 
-Red Hat AI Inference Helm chart for non-OLM installation on external Kubernetes services (Azure, CoreWeave).
+Red Hat AI Inference Helm chart for non-OLM installation on external Kubernetes services (AWS, Azure, CoreWeave).
 
-This chart installs the RHAI operator and its cloud manager components. Exactly one cloud provider (Azure or CoreWeave) must be enabled.
+This chart installs the RHAI operator and its cloud manager components. Exactly one cloud provider (AWS, Azure, or CoreWeave) must be enabled.
 
 ## Table of Contents
 
@@ -13,6 +13,7 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
     - [Obtaining credentials](#obtaining-credentials)
     - [What the pull secret does](#what-the-pull-secret-does)
   - [Installation](#installation)
+    - [AWS](#aws)
     - [Azure](#azure)
     - [CoreWeave](#coreweave)
   - [How It Works](#how-it-works)
@@ -58,6 +59,16 @@ The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
 > [!NOTE]
 > All commands below assume you are in the repository root directory.
+
+### AWS
+
+```bash
+helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
+  --install --create-namespace \
+  --namespace rhai-gitops \
+  --set aws.enabled=true \
+  --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
+```
 
 ### Azure
 
@@ -114,7 +125,7 @@ components:
 
 ## Managed Dependencies
 
-The KubernetesEngine CRs (Azure or CoreWeave) manage the following dependencies. Each can be set to `Managed` (operator handles installation and lifecycle) or `Unmanaged` (you manage it yourself):
+The KubernetesEngine CRs (AWS, Azure, or CoreWeave) manage the following dependencies. Each can be set to `Managed` (operator handles installation and lifecycle) or `Unmanaged` (you manage it yourself):
 
 | Dependency | Description |
 | --- | --- |
@@ -173,6 +184,11 @@ kubectl delete crd kserves.components.platform.opendatahub.io
 ```bash
 kubectl delete crd llminferenceservices.serving.kserve.io
 kubectl delete crd llminferenceserviceconfigs.serving.kserve.io
+```
+
+**AWS:**
+```bash
+kubectl delete crd awskubernetesengines.infrastructure.opendatahub.io
 ```
 
 **Azure:**
