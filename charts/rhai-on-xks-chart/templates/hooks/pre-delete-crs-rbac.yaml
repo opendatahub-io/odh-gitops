@@ -10,7 +10,8 @@
 {{ include "rhai-on-xks-chart.imagePullSecretResource" (dict "root" . "namespace" .Release.Namespace "annotations" $hookAnnotations) }}
 ---
 {{- end }}
-{{- $depNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
+{{- $managedDepNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
+{{- $depNamespaces := concat (.Values.imagePullSecret.dependencyNamespaces | default list) $managedDepNamespaces | uniq }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -70,6 +71,7 @@ rules:
       - {{ $keResource }}
     verbs:
       - get
+      - list
       - watch
       - delete
   {{- end }}

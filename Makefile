@@ -297,6 +297,7 @@ XKS_RELEASE_NAME ?= rhai-on-xks
 XKS_NAMESPACE ?= rhai-on-xks
 XKS_CLOUD_PROVIDER ?= azure
 XKS_PULL_SECRET ?=
+XKS_VALUES_FILE ?=
 
 .PHONY: helm-verify-xks
 helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test

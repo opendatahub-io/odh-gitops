@@ -2,7 +2,8 @@
 {{- if .Values.hooks.postInstallCrs.enabled }}
 {{- $componentCRs := include "rhai-on-xks-chart.enabledComponentCRs" . | fromJson }}
 {{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
-{{- $depNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
+{{- $managedDepNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
+{{- $depNamespaces := concat (.Values.imagePullSecret.dependencyNamespaces | default list) $managedDepNamespaces | uniq }}
 {{- if or $componentCRs $providerKECR }}
 apiVersion: batch/v1
 kind: Job

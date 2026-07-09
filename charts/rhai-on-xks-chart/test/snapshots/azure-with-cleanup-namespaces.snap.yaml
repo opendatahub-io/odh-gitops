@@ -3052,6 +3052,8 @@ rules:
     resources:
       - namespaces
     resourceNames:
+      - cert-manager-operator
+      - cert-manager
       - istio-system
     verbs:
       - get
@@ -3073,6 +3075,7 @@ rules:
       - azurekubernetesengines
     verbs:
       - get
+      - list
       - watch
       - delete
 ---
@@ -3506,6 +3509,10 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting namespace 'cert-manager-operator'..."
+              kubectl delete namespace 'cert-manager-operator' --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'cert-manager'..."
+              kubectl delete namespace 'cert-manager' --ignore-not-found --timeout=60s
               echo "Deleting namespace 'istio-system'..."
               kubectl delete namespace 'istio-system' --ignore-not-found --timeout=60s
               echo "Done."
