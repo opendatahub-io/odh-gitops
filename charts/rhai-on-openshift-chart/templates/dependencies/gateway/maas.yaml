@@ -1,10 +1,10 @@
-{{- $kserve := .Values.components.kserve | default dict -}}
-{{- $kserveDscMerged := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "kserve" "component" $kserve "root" .) | fromYaml -}}
-{{- $maas := $kserve.modelsAsService | default dict -}}
+{{- $aigateway := .Values.components.aigateway | default dict -}}
+{{- $aigatewayDscMerged := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "aigateway" "component" $aigateway "root" .) | fromYaml -}}
+{{- $maas := $aigateway.modelsAsAService | default dict -}}
 {{- $gateway := $maas.gateway | default dict -}}
-{{- $effectiveKserveState := $kserveDscMerged.managementState | default "Removed" -}}
-{{- $effectiveMaaSState := ($kserveDscMerged.modelsAsService | default dict).managementState | default "Removed" -}}
-{{- $isMaaSEnabled := and (eq $effectiveMaaSState "Managed") (eq $effectiveKserveState "Managed") -}}
+{{- $effectiveAIGatewayState := $aigatewayDscMerged.managementState | default "Removed" -}}
+{{- $effectiveMaaSState := ($aigatewayDscMerged.modelsAsAService | default dict).managementState | default "Removed" -}}
+{{- $isMaaSEnabled := and (eq $effectiveMaaSState "Managed") (eq $effectiveAIGatewayState "Managed") -}}
 {{- $gatewayClass := $maas.gatewayClass | default dict -}}
 {{- if or (eq ($gatewayClass.create | toString) "true") (and $isMaaSEnabled (eq ($gatewayClass.create | toString) "auto")) -}}
 apiVersion: gateway.networking.k8s.io/v1

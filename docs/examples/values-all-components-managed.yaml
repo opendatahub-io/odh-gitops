@@ -35,20 +35,24 @@ components:
     dsc:
       managementState: Managed
 
+  aigateway:
+    dsc:
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
+    modelsAsAService:
+      gatewayClass:
+        create: true
+      gateway:
+        create: true
+
   kserve:
     dsc:
       managementState: Managed
       nim:
         managementState: Managed
-      modelsAsService:
-        managementState: Managed
       wva:
         managementState: Managed
-    modelsAsService:
-      gatewayClass:
-        create: true
-      gateway:
-        create: true
 
   kueue:
     dsc:
