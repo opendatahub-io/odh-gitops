@@ -3062,6 +3062,7 @@ rules:
       - azurekubernetesengines
     verbs:
       - get
+      - list
       - watch
       - delete
 ---
