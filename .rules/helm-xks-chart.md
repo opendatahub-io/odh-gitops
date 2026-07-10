@@ -13,7 +13,7 @@ Template prefix: `rhai-on-xks-chart.` for all helpers.
 - `templates/hooks/` — post-install Jobs (CRs creation, gateway setup).
   - `_crs-definitions.tpl` — **single source of truth** for provider and component CR metadata; add new providers/CRs here only. All templates update automatically.
 - `templates/webhooks/` — MutatingWebhookConfiguration.
-- `templates/cloudmanager/{azure,coreweave}/` — cloud-specific resources (RBAC, CRDs, deployment).
+- `templates/cloudmanager/{aws,azure,coreweave}/` — cloud-specific resources (RBAC, CRDs, deployment).
 - `templates/pull-secret.yaml` — optional image pull secret.
 - `templates/validation.yaml` — calls `validateCloudProvider`.
 

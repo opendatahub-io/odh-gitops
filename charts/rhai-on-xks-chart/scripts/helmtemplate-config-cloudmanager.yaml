@@ -1,8 +1,8 @@
 # helmtemplate-generator configuration for cloudmanager resources
 #
 # Placeholders (replaced by update-bundle.sh via sed):
-#   CLOUD_NAME - cloud name (azure or coreweave)
-#   CLOUD_DIR  - output subdirectory (cloudmanager/azure or cloudmanager/coreweave)
+#   CLOUD_NAME - cloud name (aws, azure or coreweave)
+#   CLOUD_DIR  - output subdirectory (cloudmanager/aws, cloudmanager/azure or cloudmanager/coreweave)
 
 rules:
   # Replace namespace references with Helm template
