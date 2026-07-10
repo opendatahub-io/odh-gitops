@@ -3062,6 +3062,7 @@ rules:
       - awskubernetesengines
     verbs:
       - get
+      - list
       - watch
       - delete
 ---

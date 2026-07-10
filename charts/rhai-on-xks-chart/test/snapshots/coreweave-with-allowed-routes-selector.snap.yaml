@@ -3062,6 +3062,7 @@ rules:
       - coreweavekubernetesengines
     verbs:
       - get
+      - list
       - watch
       - delete
 ---
