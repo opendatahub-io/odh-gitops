@@ -306,7 +306,7 @@ helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS
 .PHONY: helm-install-verify-xks
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
 	# TODO(RHOAIENG-63729): remove -f values-e2e.yaml once a runner with sufficient resources is available
-	VALUES_FILE=$(XKS_CHART_PATH)/test/values-e2e.yaml $(MAKE) helm-verify-xks
+	VALUES_FILE=$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml) $(MAKE) helm-verify-xks
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies
