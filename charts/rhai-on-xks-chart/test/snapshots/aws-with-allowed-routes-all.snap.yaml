@@ -4,6 +4,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: rhai-cloudmanager-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
 
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-applications.yaml
@@ -11,6 +16,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
 
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-operator.yaml
@@ -18,6 +28,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
 
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/serviceaccount-aws-cloud-manager-operator.yaml
@@ -641,6 +656,24 @@ spec:
                   properties:
                     aigateway:
                       description: AIGateway controls the ai-gateway-operator module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    mcplifecycleoperator:
+                      description: MCPLifecycleOperator controls the MCP Lifecycle Operator module lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -1313,6 +1346,7 @@ rules:
       - feastoperators
       - kserves
       - kueues
+      - mcplifecycleoperators
       - mlflowoperators
       - modelcontrollers
       - modelmeshservings
@@ -1341,6 +1375,7 @@ rules:
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
+      - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelcontrollers/finalizers
       - modelmeshservings/finalizers
@@ -1364,6 +1399,7 @@ rules:
       - feastoperators/status
       - kserves/status
       - kueues/status
+      - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelcontrollers/status
       - modelmeshservings/status
@@ -2879,58 +2915,6 @@ spec:
             medium: Memory
             sizeLimit: 10Mi
           name: tmp
-
----
-# Source: rhai-on-xks-chart/templates/webhooks/mutatingwebhookconfiguration-rhai-operator-mutating-webhook-configuration.yaml
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
-  name: rhai-operator-mutating-webhook-configuration
-  namespace: redhat-ods-operator
-webhooks:
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: rhai-operator-webhook-service
-        namespace: redhat-ods-operator
-        path: /platform-connection-isvc
-    failurePolicy: Fail
-    name: connection-isvc.opendatahub.io
-    rules:
-      - apiGroups:
-          - serving.kserve.io
-        apiVersions:
-          - v1beta1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - inferenceservices
-    sideEffects: NoneOnDryRun
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: rhai-operator-webhook-service
-        namespace: redhat-ods-operator
-        path: /platform-connection-llmisvc
-    failurePolicy: Fail
-    name: connection-llmisvc.opendatahub.io
-    rules:
-      - apiGroups:
-          - serving.kserve.io
-        apiVersions:
-          - v1alpha1
-          - v1alpha2
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - llminferenceservices
-    sideEffects: NoneOnDryRun
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: v1

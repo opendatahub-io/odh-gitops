@@ -538,17 +538,10 @@ test_4_uninstall_lifecycle() {
   assert_not_exists "istiod deployment" deployment/istiod -n istio-system
   assert_no_stuck_istiorevision
 
-  # Dependency namespaces persist (cleanupNamespaces=false)
+  # All namespaces persist (cleanupNamespaces=false, keep annotation)
   assert_exists "istio-system namespace (persists)" namespace/istio-system
-
-  # Wait for helm-managed namespaces to finish terminating before re-install
-  log "Waiting for terminating namespaces to be fully gone..."
   for ns in redhat-ods-operator redhat-ods-applications "${CM_NS}"; do
-    if kubectl get namespace "$ns" &>/dev/null; then
-      log "  waiting for namespace/$ns to terminate..."
-      kubectl wait --for=delete "namespace/$ns" --timeout=120s 2>/dev/null \
-        || warn "namespace/$ns still terminating after 120s"
-    fi
+    assert_exists "${ns} namespace (persists)" "namespace/${ns}"
   done
 
   # Phase B: reinstall with cleanupNamespaces=true, then uninstall
@@ -564,6 +557,8 @@ test_4_uninstall_lifecycle() {
   assert_not_exists "${CM_NS} namespace" "namespace/${CM_NS}"
   assert_not_exists "istio-system namespace" namespace/istio-system
   assert_not_exists "cert-manager-operator namespace" namespace/cert-manager-operator
+  assert_not_exists "redhat-ods-operator namespace" namespace/redhat-ods-operator
+  assert_not_exists "redhat-ods-applications namespace" namespace/redhat-ods-applications
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────
