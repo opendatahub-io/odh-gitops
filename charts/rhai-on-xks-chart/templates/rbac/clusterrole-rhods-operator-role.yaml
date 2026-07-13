@@ -282,6 +282,7 @@ rules:
       - feastoperators
       - kserves
       - kueues
+      - mcplifecycleoperators
       - mlflowoperators
       - modelcontrollers
       - modelmeshservings
@@ -310,6 +311,7 @@ rules:
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
+      - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelcontrollers/finalizers
       - modelmeshservings/finalizers
@@ -333,6 +335,7 @@ rules:
       - feastoperators/status
       - kserves/status
       - kueues/status
+      - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelcontrollers/status
       - modelmeshservings/status
