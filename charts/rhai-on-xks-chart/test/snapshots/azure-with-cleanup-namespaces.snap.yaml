@@ -4,6 +4,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: rhai-cloudmanager-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
 
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-applications.yaml
@@ -11,6 +16,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
 
 ---
 # Source: rhai-on-xks-chart/templates/manager/namespace-redhat-ods-operator.yaml
@@ -18,6 +28,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
 
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
@@ -3024,6 +3039,9 @@ rules:
       - cert-manager-operator
       - cert-manager
       - istio-system
+      - redhat-ods-operator
+      - redhat-ods-applications
+      - rhai-cloudmanager-system
     verbs:
       - get
       - list
@@ -3484,5 +3502,11 @@ spec:
               kubectl delete namespace 'cert-manager' --ignore-not-found --timeout=60s
               echo "Deleting namespace 'istio-system'..."
               kubectl delete namespace 'istio-system' --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'redhat-ods-operator'..."
+              kubectl delete namespace 'redhat-ods-operator' --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'redhat-ods-applications'..."
+              kubectl delete namespace 'redhat-ods-applications' --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'rhai-cloudmanager-system'..."
+              kubectl delete namespace 'rhai-cloudmanager-system' --ignore-not-found --timeout=60s
               echo "Done."
 

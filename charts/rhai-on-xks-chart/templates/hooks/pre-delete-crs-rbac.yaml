@@ -5,6 +5,12 @@
 {{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
 {{- if or $componentCRs $providerKECR }}
 {{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
+{{- $coreNamespaces := list .Values.rhaiOperator.namespace .Values.rhaiOperator.applicationsNamespace }}
+{{- if $provider }}
+  {{- with (index $provider "cloudManagerNamespace") }}
+    {{- $coreNamespaces = append $coreNamespaces . }}
+  {{- end }}
+{{- end }}
 {{- if include "rhai-on-xks-chart.imagePullSecretEnabled" . }}
 {{- $hookAnnotations := dict "helm.sh/hook" "pre-delete" "helm.sh/hook-delete-policy" "before-hook-creation,hook-succeeded" }}
 {{ include "rhai-on-xks-chart.imagePullSecretResource" (dict "root" . "namespace" .Release.Namespace "annotations" $hookAnnotations) }}
@@ -33,13 +39,15 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
-  {{- if and .Values.uninstall.cleanupNamespaces $depNamespaces }}
+  {{- if .Values.uninstall.cleanupNamespaces }}
+  {{- $allCleanupNamespaces := concat $depNamespaces $coreNamespaces | uniq }}
+  {{- if $allCleanupNamespaces }}
   - apiGroups:
       - ""
     resources:
       - namespaces
     resourceNames:
-      {{- range $ns := $depNamespaces }}
+      {{- range $ns := $allCleanupNamespaces }}
       - {{ $ns }}
       {{- end }}
     verbs:
@@ -47,6 +55,7 @@ rules:
       - list
       - watch
       - delete
+  {{- end }}
   {{- end }}
   {{- $compRegistry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
   {{- range $name := keys $compRegistry | sortAlpha }}
