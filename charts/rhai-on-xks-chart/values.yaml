@@ -99,6 +99,17 @@ components:
           #   matchLabels:
           #     inference-gateway-access: "true"
 
+  maas:
+    # Enable operator-managed MaaS (Models as a Service)
+    enabled: false
+    spec: {}
+    # MaaS gateway configuration
+    gateway:
+      # Create MaaS Gateway, certs, and CA bundles via post-install hook
+      create: true
+      # Namespace for the MaaS gateway (must match MaaS controller GATEWAY_NAMESPACE)
+      namespace: openshift-ingress
+
 # Azure cloud configuration
 azure:
   enabled: false

@@ -35,56 +35,12 @@ metadata:
     helm.sh/resource-policy: keep
 
 ---
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/resource-policy: keep
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/resource-policy: keep
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: istio-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/resource-policy: keep
----
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
-imagePullSecrets:
-  - name: rhai-pull-secret
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-# TODO: This is a temporary solution to inject the pull secret into the llmisvc-controller-manager service account.
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: llmisvc-controller-manager
-  namespace: redhat-ods-applications
 imagePullSecrets:
   - name: rhai-pull-secret
 
@@ -98,97 +54,6 @@ metadata:
 imagePullSecrets:
   - name: rhai-pull-secret
 
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: redhat-ods-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: redhat-ods-applications
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: rhai-cloudmanager-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: cert-manager-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: cert-manager
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: istio-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -553,7 +418,6 @@ spec:
                     - message: nodeNames and nodeSelector are mutually exclusive
                       rule: '!(has(self.nodeNames) && has(self.nodeSelector))'
                 modelsAsService:
-                  default: {}
                   description: Configures and enables Models as a Service integration
                   properties:
                     managementState:
@@ -624,7 +488,6 @@ spec:
                     - Headed
                   type: string
                 wva:
-                  default: {}
                   description: Configures and enables workload-variant-autoscaler (WVA) integration
                   properties:
                     managementState:
@@ -2033,7 +1896,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - maastenantconfigs
+      - tenants
     verbs:
       - delete
       - get
@@ -2042,7 +1905,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - maastenantconfigs/status
+      - tenants/status
     verbs:
       - get
   - apiGroups:
@@ -2919,7 +2782,7 @@ spec:
             - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_MODELSASSERVICE_COMPONENT
-              value: "true"
+              value: "false"
             - name: RHAI_DISABLE_RAY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
@@ -3079,22 +2942,6 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
-# Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-delete
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
----
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -3111,6 +2958,15 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - kserves
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - modelsasservices
     verbs:
       - get
       - create
@@ -3169,6 +3025,29 @@ rules:
       - rhai-ca-issuer
     verbs:
       - get
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - get
+      - patch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+    verbs:
+      - get
+      - list
+      - create
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3186,6 +3065,15 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - kserves
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - modelsasservices
     verbs:
       - get
       - list
@@ -3345,6 +3233,17 @@ spec:
               kind: Kserve
               metadata:
                 name: default-kserve
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec: {}
+              EOF
+              echo "Creating ModelsAsService CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: components.platform.opendatahub.io/v1alpha1
+              kind: ModelsAsService
+              metadata:
+                name: default-modelsasservice
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
@@ -3576,6 +3475,270 @@ spec:
               
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-maas-gateway-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-post-create-maas-gateway
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-post-install-hook
+      imagePullSecrets:
+        - name: rhai-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: create-maas-gateway
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              TIMEOUT=300
+              INTERVAL=5
+              
+              APP_NAMESPACE="redhat-ods-applications"
+              MAAS_GW_NAMESPACE="openshift-ingress"
+              
+              wait_for() {
+                local desc="$1"; shift
+                local elapsed=0
+                echo "Waiting for ${desc}..."
+                until "$@" >/dev/null 2>&1; do
+                  if [ "$elapsed" -ge "$TIMEOUT" ]; then
+                    echo "ERROR: Timed out waiting for ${desc} after ${TIMEOUT}s"
+                    exit 1
+                  fi
+                  echo "${desc} not yet available, retrying in ${INTERVAL}s... (${elapsed}/${TIMEOUT}s)"
+                  sleep "$INTERVAL"
+                  elapsed=$((elapsed + INTERVAL))
+                done
+                echo "${desc} is available."
+              }
+              
+              webhook_cert_ready() {
+                [ "$(kubectl get certificate maas-controller-webhook-cert -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              
+              maas_gw_cert_ready() {
+                [ "$(kubectl get certificate maas-gateway-cert -n "$MAAS_GW_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              
+              echo "=== MaaS Gateway & Webhook Certificate Setup ==="
+              
+              echo "Step 1: Create MaaS gateway namespace..."
+              kubectl create namespace "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+              
+              echo "Step 2: Create CA bundle ConfigMaps..."
+              wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
+              kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
+              if kubectl get secret opendatahub-ca -n cert-manager >/dev/null 2>&1; then
+                kubectl get secret opendatahub-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d >> /tmp/ca.crt
+                echo "Included opendatahub-ca in CA bundle."
+              fi
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+              echo "CA bundle ConfigMaps created."
+              
+              echo "Step 3: Create MaaS gateway config ConfigMap..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: maas-gateway-config
+                namespace: "openshift-ingress"
+              data:
+                deployment: |
+                  spec:
+                    template:
+                      spec:
+                        volumes:
+                        - name: rhai-ca-bundle
+                          configMap:
+                            name: rhai-ca-bundle
+                        containers:
+                        - name: istio-proxy
+                          volumeMounts:
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/opendatahub
+                            readOnly: true
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/rhai
+                            readOnly: true
+                service: |
+                  metadata:
+                    annotations:
+                      service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
+              EOF
+              echo "MaaS gateway ConfigMap created."
+              echo "Step 4: Create MaaS gateway TLS Certificate..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: maas-gateway-cert
+                namespace: "openshift-ingress"
+              spec:
+                secretName: "maas-gateway-cert-secret"
+                issuerRef:
+                  name: "rhai-ca-issuer"
+                  kind: "ClusterIssuer"
+                  group: cert-manager.io
+                dnsNames:
+                  - "*.openshift-ingress.svc.cluster.local"
+                  - "*.openshift-ingress.svc"
+              EOF
+              wait_for "MaaS gateway Certificate to be Ready" maas_gw_cert_ready
+              
+              echo "Step 5: Create MaaS controller webhook Certificate..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: maas-controller-webhook-cert
+                namespace: "redhat-ods-applications"
+              spec:
+                secretName: maas-controller-webhook-cert
+                issuerRef:
+                  name: "rhai-ca-issuer"
+                  kind: "ClusterIssuer"
+                  group: cert-manager.io
+                dnsNames:
+                  - "maas-controller-webhook-service.redhat-ods-applications.svc"
+                  - "maas-controller-webhook-service.redhat-ods-applications.svc.cluster.local"
+              EOF
+              wait_for "MaaS webhook Certificate to be Ready" webhook_cert_ready
+              
+              echo "Step 6: Create MaaS API serving Certificate..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: maas-api-serving-cert
+                namespace: "redhat-ods-applications"
+              spec:
+                secretName: maas-api-serving-cert
+                issuerRef:
+                  name: "rhai-ca-issuer"
+                  kind: "ClusterIssuer"
+                  group: cert-manager.io
+                dnsNames:
+                  - "maas-api.redhat-ods-applications.svc"
+                  - "maas-api.redhat-ods-applications.svc.cluster.local"
+              EOF
+              
+              echo "Step 7: Create MaaS Gateway..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: Gateway
+              metadata:
+                name: maas-default-gateway
+                namespace: "openshift-ingress"
+              spec:
+                gatewayClassName: istio
+                listeners:
+                  - name: http
+                    port: 80
+                    protocol: HTTP
+                    allowedRoutes:
+                      namespaces:
+                        from: All
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
+                    allowedRoutes:
+                      namespaces:
+                        from: All
+                    tls:
+                      certificateRefs:
+                        - group: ''
+                          kind: Secret
+                          name: "maas-gateway-cert-secret"
+                      mode: Terminate
+                infrastructure:
+                  parametersRef:
+                    group: ""
+                    kind: ConfigMap
+                    name: maas-gateway-config
+              EOF
+              echo "MaaS Gateway created successfully."
+              
+              echo "Step 8: Copy pull secret to MaaS gateway namespace..."
+              if kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" >/dev/null 2>&1; then
+                DOCKER_CONFIG=$(kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" -o jsonpath='{.data.\.dockerconfigjson}')
+                kubectl create secret docker-registry rhai-pull-secret \
+                  --from-literal=.dockerconfigjson="$(echo "$DOCKER_CONFIG" | base64 -d)" \
+                  -n "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+                echo "Pull secret copied."
+              else
+                echo "No rhai-pull-secret found, skipping."
+              fi
+              
+              echo "Step 9: Configure Authorino CA trust for MaaS API callbacks..."
+              KUADRANT_NS="kuadrant-system"
+              if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
+                kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt \
+                  -n "$KUADRANT_NS" --dry-run=client -o yaml | kubectl apply -f -
+              
+                SYSTEM_CA=$(kubectl exec -n "$KUADRANT_NS" deploy/authorino -- cat /etc/pki/tls/certs/ca-bundle.crt 2>/dev/null || true)
+                RHAI_CA=$(cat /tmp/ca.crt)
+                if [ -n "$SYSTEM_CA" ]; then
+                  printf '%s\n%s' "$SYSTEM_CA" "$RHAI_CA" > /tmp/combined-ca.crt
+                  kubectl create configmap authorino-ca-bundle --from-file=ca-bundle.crt=/tmp/combined-ca.crt \
+                    -n "$KUADRANT_NS" --dry-run=client -o yaml | kubectl apply -f -
+              
+                  kubectl patch authorino authorino -n "$KUADRANT_NS" --type='merge' -p='{"spec":{"volumes":{"items":[{"name":"combined-ca","mountPath":"/etc/pki/tls/custom","configMaps":["authorino-ca-bundle"],"items":[{"key":"ca-bundle.crt","path":"ca-bundle.crt"}]}]}}}'
+                  kubectl set env deployment/authorino -n "$KUADRANT_NS" SSL_CERT_FILE=/etc/pki/tls/custom/ca-bundle.crt
+                  echo "Authorino CA trust configured."
+                else
+                  echo "WARNING: Could not read Authorino system CA, skipping combined CA bundle."
+                fi
+              else
+                echo "Kuadrant namespace not found, skipping Authorino CA trust."
+              fi
+              
+              echo "=== MaaS Gateway setup complete ==="
+              
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-job.yaml
 apiVersion: batch/v1
 kind: Job
@@ -3629,6 +3792,8 @@ spec:
               set -euo pipefail
               echo "Deleting Kserve CR 'default-kserve'..."
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
+              echo "Deleting ModelsAsService CR 'default-modelsasservice'..."
+              kubectl delete modelsasservice default-modelsasservice --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."

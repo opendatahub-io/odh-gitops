@@ -188,3 +188,8 @@ charts:
         setFlags:
           - aws.enabled=true
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-maas
+        setFlags:
+          - azure.enabled=true
+          - components.maas.enabled=true

@@ -95,8 +95,6 @@ rules:
       - patch
       - update
   {{- if and $gatewayTls (eq $issuerKind "ClusterIssuer") }}
-  # ClusterIssuers are cluster-scoped, so the read must live on the ClusterRole,
-  # but it is restricted to the single issuer the gateway Certificate references.
   - apiGroups:
       - cert-manager.io
     resources:
@@ -105,6 +103,31 @@ rules:
       - {{ $issuerName }}
     verbs:
       - get
+  {{- end }}
+  {{- if and .Values.components.maas.enabled .Values.components.maas.gateway.create }}
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - get
+      - patch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+    verbs:
+      - get
+      - list
+      - create
   {{- end }}
   {{- end }}
 ---

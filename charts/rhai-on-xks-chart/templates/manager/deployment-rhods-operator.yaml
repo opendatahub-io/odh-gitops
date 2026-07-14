@@ -69,7 +69,7 @@ spec:
             - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_MODELSASSERVICE_COMPONENT
-              value: "true"
+              value: {{ not .Values.components.maas.enabled | quote }}
             - name: RHAI_DISABLE_RAY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT

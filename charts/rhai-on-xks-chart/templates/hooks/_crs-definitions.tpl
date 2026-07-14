@@ -33,6 +33,12 @@ kserve:
   resourceSingular: kserve
   crName: default-kserve
   apiGroup: components.platform.opendatahub.io
+maas:
+  kind: ModelsAsService
+  resource: modelsasservices
+  resourceSingular: modelsasservice
+  crName: default-modelsasservice
+  apiGroup: components.platform.opendatahub.io
 {{- end -}}
 
 {{/*
