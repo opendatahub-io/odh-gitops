@@ -24,6 +24,12 @@ rules:
         value: '{{ .Values.rhaiOperator.namespace }}'
       - action: delete
         path: .metadata.labels
+      - path: .metadata.labels
+        replaceWith: |
+          labels:
+            {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+      - path: .metadata.annotations["helm.sh/resource-policy"]
+        value: keep
 
   - match:
       kinds:
@@ -34,6 +40,14 @@ rules:
     changes:
       - path: .metadata.name
         value: '{{ .Values.rhaiOperator.applicationsNamespace }}'
+      - action: delete
+        path: .metadata.labels
+      - path: .metadata.labels
+        replaceWith: |
+          labels:
+            {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+      - path: .metadata.annotations["helm.sh/resource-policy"]
+        value: keep
 
   # Replace namespace in RoleBinding/ClusterRoleBinding subjects
   - match:
