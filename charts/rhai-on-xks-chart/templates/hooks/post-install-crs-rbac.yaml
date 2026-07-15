@@ -109,6 +109,8 @@ rules:
       - ""
     resources:
       - namespaces
+    resourceNames:
+      - openshift-ingress
     verbs:
       - get
       - create
@@ -116,6 +118,8 @@ rules:
       - apps
     resources:
       - deployments
+    resourceNames:
+      - authorino
     verbs:
       - get
       - patch

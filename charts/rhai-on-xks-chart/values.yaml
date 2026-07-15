@@ -114,9 +114,10 @@ components:
       allowedRoutes:
         namespaces:
           # Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector).
-          from: All
-          # Example for Same (only the Gateway's own namespace):
-          # from: Same
+          # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
+          from: Same
+          # Example for All (any namespace can attach routes):
+          # from: All
           #
           # Example for Selector (only namespaces matching labels):
           # from: Selector

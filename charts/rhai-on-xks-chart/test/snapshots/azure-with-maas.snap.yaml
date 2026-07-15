@@ -3029,6 +3029,8 @@ rules:
       - ""
     resources:
       - namespaces
+    resourceNames:
+      - openshift-ingress
     verbs:
       - get
       - create
@@ -3036,6 +3038,8 @@ rules:
       - apps
     resources:
       - deployments
+    resourceNames:
+      - authorino
     verbs:
       - get
       - patch
@@ -3667,13 +3671,13 @@ spec:
                     protocol: HTTP
                     allowedRoutes:
                       namespaces:
-                        from: All
+                        from: Same
                   - name: https
                     port: 443
                     protocol: HTTPS
                     allowedRoutes:
                       namespaces:
-                        from: All
+                        from: Same
                     tls:
                       certificateRefs:
                         - group: ''
