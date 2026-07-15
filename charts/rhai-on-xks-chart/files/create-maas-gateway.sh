@@ -1,6 +1,8 @@
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
 {{- $tls := .Values.gateway.tls -}}
-{{- $maasGwNs := .Values.components.maas.gateway.namespace -}}
+{{- $maasGwNs := "openshift-ingress" -}}
+{{- $maasGwName := .Values.components.maas.gateway.name -}}
+{{- $maasGwClass := .Values.components.maas.gateway.gatewayClassName -}}
 {{- $certSecret := "maas-gateway-cert-secret" -}}
 {{- $webhookCertSecret := "maas-controller-webhook-cert" -}}
 set -euo pipefail
@@ -42,10 +44,6 @@ kubectl create namespace "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl
 echo "Step 2: Create CA bundle ConfigMaps..."
 wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
 kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
-if kubectl get secret opendatahub-ca -n cert-manager >/dev/null 2>&1; then
-  kubectl get secret opendatahub-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d >> /tmp/ca.crt
-  echo "Included opendatahub-ca in CA bundle."
-fi
 kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 echo "CA bundle ConfigMaps created."
@@ -147,24 +145,24 @@ kubectl apply -f - <<'EOF'
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: maas-default-gateway
+  name: {{ $maasGwName | quote }}
   namespace: {{ $maasGwNs | quote }}
 spec:
-  gatewayClassName: istio
+  gatewayClassName: {{ $maasGwClass | quote }}
   listeners:
     - name: http
       port: 80
       protocol: HTTP
-      allowedRoutes:
-        namespaces:
-          from: All
+{{- if .Values.components.maas.gateway.allowedRoutes.namespaces.from }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.maas.gateway.allowedRoutes) | nindent 6 }}
+{{- end }}
 {{- if $tls.enabled }}
     - name: https
       port: 443
       protocol: HTTPS
-      allowedRoutes:
-        namespaces:
-          from: All
+{{- if .Values.components.maas.gateway.allowedRoutes.namespaces.from }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.maas.gateway.allowedRoutes) | nindent 6 }}
+{{- end }}
       tls:
         certificateRefs:
           - group: ''
@@ -197,19 +195,12 @@ if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
   kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt \
     -n "$KUADRANT_NS" --dry-run=client -o yaml | kubectl apply -f -
 
-  SYSTEM_CA=$(kubectl exec -n "$KUADRANT_NS" deploy/authorino -- cat /etc/pki/tls/certs/ca-bundle.crt 2>/dev/null || true)
-  RHAI_CA=$(cat /tmp/ca.crt)
-  if [ -n "$SYSTEM_CA" ]; then
-    printf '%s\n%s' "$SYSTEM_CA" "$RHAI_CA" > /tmp/combined-ca.crt
-    kubectl create configmap authorino-ca-bundle --from-file=ca-bundle.crt=/tmp/combined-ca.crt \
-      -n "$KUADRANT_NS" --dry-run=client -o yaml | kubectl apply -f -
-
-    kubectl patch authorino authorino -n "$KUADRANT_NS" --type='merge' -p='{"spec":{"volumes":{"items":[{"name":"combined-ca","mountPath":"/etc/pki/tls/custom","configMaps":["authorino-ca-bundle"],"items":[{"key":"ca-bundle.crt","path":"ca-bundle.crt"}]}]}}}'
-    kubectl set env deployment/authorino -n "$KUADRANT_NS" SSL_CERT_FILE=/etc/pki/tls/custom/ca-bundle.crt
-    echo "Authorino CA trust configured."
-  else
-    echo "WARNING: Could not read Authorino system CA, skipping combined CA bundle."
-  fi
+  kubectl patch deployment authorino -n "$KUADRANT_NS" --type=json -p='[
+    {"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"rhai-ca","configMap":{"name":"rhai-ca-bundle"}}},
+    {"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"rhai-ca","mountPath":"/etc/pki/tls/custom","readOnly":true}},
+    {"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{"name":"SSL_CERT_FILE","value":"/etc/pki/tls/custom/ca.crt"}}
+  ]'
+  echo "Authorino CA trust configured."
 else
   echo "Kuadrant namespace not found, skipping Authorino CA trust."
 fi

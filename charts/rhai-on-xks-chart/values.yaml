@@ -107,8 +107,22 @@ components:
     gateway:
       # Create MaaS Gateway, certs, and CA bundles via post-install hook
       create: true
-      # Namespace for the MaaS gateway (must match MaaS controller GATEWAY_NAMESPACE)
-      namespace: openshift-ingress
+      # Name for the MaaS Gateway resource
+      name: maas-default-gateway
+      # GatewayClass to use for the MaaS Gateway
+      gatewayClassName: istio
+      allowedRoutes:
+        namespaces:
+          # Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector).
+          from: All
+          # Example for Same (only the Gateway's own namespace):
+          # from: Same
+          #
+          # Example for Selector (only namespaces matching labels):
+          # from: Selector
+          # selector:
+          #   matchLabels:
+          #     maas-gateway-access: "true"
 
 # Azure cloud configuration
 azure:

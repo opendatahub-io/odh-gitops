@@ -106,12 +106,12 @@ rules:
   {{- end }}
   {{- if and .Values.components.maas.enabled .Values.components.maas.gateway.create }}
   - apiGroups:
-      - operator.authorino.kuadrant.io
+      - ""
     resources:
-      - authorinos
+      - namespaces
     verbs:
       - get
-      - patch
+      - create
   - apiGroups:
       - apps
     resources:
@@ -119,15 +119,6 @@ rules:
     verbs:
       - get
       - patch
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - pods/exec
-    verbs:
-      - get
-      - list
-      - create
   {{- end }}
   {{- end }}
 ---
