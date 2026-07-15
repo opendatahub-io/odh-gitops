@@ -48,6 +48,12 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | components.kserve.gateway.allowedRoutes.namespaces.from | string | `"Same"` |  |
 | components.kserve.gateway.create | bool | `true` |  |
 | components.kserve.spec | object | `{}` |  |
+| components.maas.enabled | bool | `false` |  |
+| components.maas.gateway.allowedRoutes.namespaces.from | string | `"Same"` |  |
+| components.maas.gateway.create | bool | `true` |  |
+| components.maas.gateway.gatewayClassName | string | `"istio"` |  |
+| components.maas.gateway.name | string | `"maas-default-gateway"` |  |
+| components.maas.spec | object | `{}` |  |
 | coreweave.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | coreweave.cloudManager.imagePullPolicy | string | `"Always"` |  |
 | coreweave.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |
