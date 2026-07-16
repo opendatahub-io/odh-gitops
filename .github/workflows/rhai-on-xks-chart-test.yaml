@@ -14,12 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  e2e-test:
+  authorize:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cloud_provider: [azure, coreweave, aws]
     steps:
       - name: Check authorization
         env:
@@ -57,10 +53,19 @@ jobs:
           echo "::error::xKS e2e tests required. A maintainer must add the 'run-xks-e2e' label after reviewing the code."
           exit 1
 
+  e2e-test:
+    needs: authorize
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud_provider: [azure, coreweave, aws]
+    steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Setup Helm
         uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
@@ -79,6 +84,58 @@ jobs:
           chmod 600 "${PULL_SECRET_FILE}"
           printf '%s' "${RHAI_PULL_SECRET}" > "${PULL_SECRET_FILE}"
           make helm-install-verify-xks \
+            XKS_CLOUD_PROVIDER=${{ matrix.cloud_provider }} \
+            XKS_PULL_SECRET="${PULL_SECRET_FILE}"
+
+      - name: Dump custom resources on failure
+        if: failure()
+        run: |
+          echo "=== KServe CR ==="
+          kubectl get kserves.components.platform.opendatahub.io -A -o yaml 2>/dev/null || echo "No KServe CRs found"
+          echo ""
+          if [ "${{ matrix.cloud_provider }}" = "azure" ]; then
+            echo "=== AzureKubernetesEngine CR ==="
+            kubectl get azurekubernetesengines.infrastructure.opendatahub.io -A -o yaml 2>/dev/null || echo "No AzureKubernetesEngine CRs found"
+          elif [ "${{ matrix.cloud_provider }}" = "coreweave" ]; then
+            echo "=== CoreWeaveKubernetesEngine CR ==="
+            kubectl get coreweavekubernetesengines.infrastructure.opendatahub.io -A -o yaml 2>/dev/null || echo "No CoreWeaveKubernetesEngine CRs found"
+          elif [ "${{ matrix.cloud_provider }}" = "aws" ]; then
+            echo "=== AWSKubernetesEngine CR ==="
+            kubectl get awskubernetesengines.infrastructure.opendatahub.io -A -o yaml 2>/dev/null || echo "No AWSKubernetesEngine CRs found"
+          fi
+
+  upgrade-test:
+    needs: authorize
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud_provider: [azure, coreweave] # TODO: add aws once 3.5 GA is the starting version, as AWS is not supported in 3.4.x
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Setup Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+
+      - name: Create kind cluster
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+
+      - name: Upgrade test
+        timeout-minutes: 30
+        env:
+          RHAI_PULL_SECRET: ${{ secrets.RHAI_PULL_SECRET }}
+        run: |
+          set -euo pipefail
+          PULL_SECRET_FILE="$(mktemp)"
+          trap 'rm -f "${PULL_SECRET_FILE}"' EXIT
+          chmod 600 "${PULL_SECRET_FILE}"
+          printf '%s' "${RHAI_PULL_SECRET}" > "${PULL_SECRET_FILE}"
+          HELM_REGISTRY_CONFIG="${PULL_SECRET_FILE}" \
+          make helm-upgrade-verify-xks \
             XKS_CLOUD_PROVIDER=${{ matrix.cloud_provider }} \
             XKS_PULL_SECRET="${PULL_SECRET_FILE}"
 

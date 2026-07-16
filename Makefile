@@ -55,7 +55,7 @@ YQ ?= $(LOCALBIN)/yq
 
 ## Application Versions
 # RHOAI version to use for bundle updates - update this when new catalog folder appears in RHOAI-Build-Config
-RHOAI_VERSION ?= 3.5.0-ea.2
+RHOAI_VERSION ?= 3.5.0
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.0
@@ -298,6 +298,8 @@ XKS_NAMESPACE ?= rhai-on-xks
 XKS_CLOUD_PROVIDER ?= azure
 XKS_PULL_SECRET ?=
 XKS_VALUES_FILE ?=
+XKS_UPGRADE_FROM_CHART ?= oci://registry.redhat.io/rhai/rhai-on-xks-chart
+XKS_UPGRADE_FROM_VERSION ?= v3.4.2
 
 .PHONY: helm-verify-xks
 helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test
@@ -307,6 +309,10 @@ helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
 	# TODO(RHOAIENG-63729): remove -f values-e2e.yaml once a runner with sufficient resources is available
 	VALUES_FILE=$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml) $(MAKE) helm-verify-xks
+
+.PHONY: helm-upgrade-verify-xks
+helm-upgrade-verify-xks: ## Upgrade test: install previous version, upgrade to current, verify
+	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" UPGRADE_FROM_CHART="$(XKS_UPGRADE_FROM_CHART)" UPGRADE_FROM_VERSION="$(XKS_UPGRADE_FROM_VERSION)" VALUES_FILE="$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml)" bash ./charts/rhai-on-xks-chart/scripts/verify-upgrade.sh
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall helm chart and all dependencies
