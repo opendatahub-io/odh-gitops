@@ -3139,6 +3139,14 @@ rules:
       - patch
       - update
   - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - infrastructure.opendatahub.io
     resources:
       - awskubernetesengines
@@ -3370,6 +3378,8 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Waiting for CRD kserves.components.platform.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/kserves.components.platform.opendatahub.io
               echo "Creating Kserve CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: components.platform.opendatahub.io/v1alpha1

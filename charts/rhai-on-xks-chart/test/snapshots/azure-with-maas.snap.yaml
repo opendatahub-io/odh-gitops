@@ -2960,6 +2960,14 @@ rules:
       - patch
       - update
   - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - infrastructure.opendatahub.io
     resources:
       - azurekubernetesengines
@@ -3218,6 +3226,8 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Waiting for CRD aigateways.components.platform.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/aigateways.components.platform.opendatahub.io
               echo "Creating AIGateway CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: components.platform.opendatahub.io/v1alpha1
@@ -3231,6 +3241,8 @@ spec:
                 modelsAsAService:
                   managementState: Managed
               EOF
+              echo "Waiting for CRD kserves.components.platform.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/kserves.components.platform.opendatahub.io
               echo "Creating Kserve CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: components.platform.opendatahub.io/v1alpha1
@@ -3269,6 +3281,8 @@ spec:
                     managementPolicy: Managed
               EOF
               
+              echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
               echo "Creating Platform CR with module configuration..."
               kubectl apply -f - <<'EOF'
               apiVersion: config.opendatahub.io/v1alpha1

@@ -84,6 +84,8 @@ Include with: {{- include "rhai-on-xks-chart.moduleApplyCommands" . | nindent 14
   {{- end }}
 {{- end }}
 {{- if $modulesSpec }}
+echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
+kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
 echo "Creating Platform CR with module configuration..."
 kubectl apply -f - <<'EOF'
 apiVersion: config.opendatahub.io/v1alpha1
@@ -179,6 +181,8 @@ Component CRs are applied before provider KE CRs.
   {{- $meta := index $compRegistry $name }}
   {{- $compVals := index $.Values.components $name | default dict }}
   {{- if $compVals.enabled }}
+echo "Waiting for CRD {{ index $meta "resource" }}.{{ index $meta "apiGroup" }} to be established..."
+kubectl wait --for condition=established --timeout=300s crd/{{ index $meta "resource" }}.{{ index $meta "apiGroup" }}
 echo "Creating {{ index $meta "kind" }} CR..."
 kubectl apply -f - <<'EOF'
 apiVersion: {{ index $meta "apiGroup" }}/v1alpha1
