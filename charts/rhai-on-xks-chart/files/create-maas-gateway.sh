@@ -4,7 +4,6 @@
 {{- $maasGwName := .Values.components.aigateway.modelsAsAService.gateway.name -}}
 {{- $maasGwClass := .Values.components.aigateway.modelsAsAService.gateway.gatewayClassName -}}
 {{- $certSecret := "maas-gateway-cert-secret" -}}
-{{- $webhookCertSecret := "maas-controller-webhook-cert" -}}
 set -euo pipefail
 TIMEOUT=300
 INTERVAL=5
@@ -28,15 +27,11 @@ wait_for() {
   echo "${desc} is available."
 }
 
-webhook_cert_ready() {
-  [ "$(kubectl get certificate {{ $webhookCertSecret }} -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
-}
-
 maas_gw_cert_ready() {
   [ "$(kubectl get certificate maas-gateway-cert -n "$MAAS_GW_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
 }
 
-echo "=== MaaS Gateway & Webhook Certificate Setup ==="
+echo "=== MaaS Gateway Setup ==="
 
 echo "Step 1: Create MaaS gateway namespace..."
 kubectl create namespace "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
@@ -103,26 +98,7 @@ EOF
 wait_for "MaaS gateway Certificate to be Ready" maas_gw_cert_ready
 {{- end }}
 
-echo "Step 5: Create MaaS controller webhook Certificate..."
-kubectl apply -f - <<'EOF'
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: {{ $webhookCertSecret }}
-  namespace: {{ $appNs | quote }}
-spec:
-  secretName: {{ $webhookCertSecret }}
-  issuerRef:
-    name: {{ $tls.issuerRef.name | quote }}
-    kind: {{ $tls.issuerRef.kind | quote }}
-    group: cert-manager.io
-  dnsNames:
-    - "maas-controller-webhook-service.{{ $appNs }}.svc"
-    - "maas-controller-webhook-service.{{ $appNs }}.svc.cluster.local"
-EOF
-wait_for "MaaS webhook Certificate to be Ready" webhook_cert_ready
-
-echo "Step 6: Create MaaS API serving Certificate..."
+echo "Step 5: Create MaaS API serving Certificate..."
 kubectl apply -f - <<'EOF'
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -140,7 +116,7 @@ spec:
     - "maas-api.{{ $appNs }}.svc.cluster.local"
 EOF
 
-echo "Step 7: Create MaaS Gateway..."
+echo "Step 6: Create MaaS Gateway..."
 kubectl apply -f - <<'EOF'
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
@@ -178,7 +154,7 @@ spec:
 EOF
 echo "MaaS Gateway created successfully."
 
-echo "Step 8: Copy pull secret to MaaS gateway namespace..."
+echo "Step 7: Copy pull secret to MaaS gateway namespace..."
 if kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" >/dev/null 2>&1; then
   DOCKER_CONFIG=$(kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" -o jsonpath='{.data.\.dockerconfigjson}')
   kubectl create secret docker-registry rhai-pull-secret \
@@ -189,7 +165,7 @@ else
   echo "No rhai-pull-secret found, skipping."
 fi
 
-echo "Step 9: Configure Authorino CA trust for MaaS API callbacks..."
+echo "Step 8: Configure Authorino CA trust for MaaS API callbacks..."
 KUADRANT_NS="kuadrant-system"
 if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
   kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt \
