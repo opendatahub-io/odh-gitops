@@ -114,6 +114,23 @@ rules:
   {{- end }}
   {{- if and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
   - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - create
+      - patch
+  - apiGroups:
       - ""
     resources:
       - namespaces
@@ -122,6 +139,7 @@ rules:
     verbs:
       - get
       - create
+      - patch
   - apiGroups:
       - apps
     resources:

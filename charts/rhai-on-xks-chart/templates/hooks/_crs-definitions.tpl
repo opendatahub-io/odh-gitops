@@ -91,7 +91,7 @@ kubectl apply -f - <<'EOF'
 apiVersion: config.opendatahub.io/v1alpha1
 kind: Platform
 metadata:
-  name: default-platform
+  name: default
   labels:
     {{- include "rhai-on-xks-chart.labels" $root | nindent 4 }}
 spec:
@@ -110,8 +110,8 @@ Include with: {{- include "rhai-on-xks-chart.moduleDeleteCommands" . | nindent 1
 {{- range $name := keys $registry | sortAlpha }}
   {{- $modVals := index $.Values.components $name | default dict }}
   {{- if $modVals.enabled }}
-echo "Deleting Platform CR 'default-platform'..."
-kubectl delete platform default-platform --ignore-not-found --timeout=300s
+echo "Deleting Platform CR 'default'..."
+kubectl delete platform default --ignore-not-found --timeout=300s
     {{- break }}
   {{- end }}
 {{- end }}

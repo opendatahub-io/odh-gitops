@@ -157,8 +157,9 @@ echo "MaaS Gateway created successfully."
 echo "Step 7: Copy pull secret to MaaS gateway namespace..."
 if kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" >/dev/null 2>&1; then
   DOCKER_CONFIG=$(kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" -o jsonpath='{.data.\.dockerconfigjson}')
-  kubectl create secret docker-registry rhai-pull-secret \
+  kubectl create secret generic rhai-pull-secret \
     --from-literal=.dockerconfigjson="$(echo "$DOCKER_CONFIG" | base64 -d)" \
+    --type=kubernetes.io/dockerconfigjson \
     -n "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
   echo "Pull secret copied."
 else
