@@ -417,17 +417,6 @@ spec:
                       rule: self.managementState != 'Managed' || (has(self.nodeNames) && size(self.nodeNames) > 0) || (has(self.nodeSelector) && ((has(self.nodeSelector.matchLabels) && size(self.nodeSelector.matchLabels) > 0) || (has(self.nodeSelector.matchExpressions) && size(self.nodeSelector.matchExpressions) > 0)))
                     - message: nodeNames and nodeSelector are mutually exclusive
                       rule: '!(has(self.nodeNames) && has(self.nodeSelector))'
-                modelsAsService:
-                  description: Configures and enables Models as a Service integration
-                  properties:
-                    managementState:
-                      default: Removed
-                      enum:
-                        - Managed
-                        - Removed
-                      pattern: ^(Managed|Unmanaged|Force|Removed)$
-                      type: string
-                  type: object
                 nim:
                   default: {}
                   description: Configures and enables NVIDIA NIM integration
@@ -2781,8 +2770,6 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
               value: "true"
-            - name: RHAI_DISABLE_MODELSASSERVICE_COMPONENT
-              value: "false"
             - name: RHAI_DISABLE_RAY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
@@ -2957,7 +2944,7 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - kserves
+      - aigateways
     verbs:
       - get
       - create
@@ -2966,7 +2953,7 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - modelsasservices
+      - kserves
     verbs:
       - get
       - create
@@ -3043,6 +3030,15 @@ rules:
     verbs:
       - get
       - patch
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
+      - create
+      - patch
+      - update
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3059,7 +3055,7 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - kserves
+      - aigateways
     verbs:
       - get
       - list
@@ -3068,7 +3064,7 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
-      - modelsasservices
+      - kserves
     verbs:
       - get
       - list
@@ -3222,23 +3218,25 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Creating AIGateway CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: components.platform.opendatahub.io/v1alpha1
+              kind: AIGateway
+              metadata:
+                name: default-aigateway
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec:
+                modelsAsAService:
+                  managementState: Managed
+              EOF
               echo "Creating Kserve CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: components.platform.opendatahub.io/v1alpha1
               kind: Kserve
               metadata:
                 name: default-kserve
-                labels:
-                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
-                  app.kubernetes.io/managed-by: Helm
-              spec: {}
-              EOF
-              echo "Creating ModelsAsService CR..."
-              kubectl apply -f - <<'EOF'
-              apiVersion: components.platform.opendatahub.io/v1alpha1
-              kind: ModelsAsService
-              metadata:
-                name: default-modelsasservice
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
@@ -3269,6 +3267,21 @@ spec:
                     configuration:
                       namespace: istio-system
                     managementPolicy: Managed
+              EOF
+              
+              echo "Creating Platform CR with module configuration..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: config.opendatahub.io/v1alpha1
+              kind: Platform
+              metadata:
+                name: default-platform
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec:
+                modules:
+                  aigateway:
+                    managementState: Managed
               EOF
               echo "Done."
 
@@ -3774,10 +3787,10 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Deleting AIGateway CR 'default-aigateway'..."
+              kubectl delete aigateway default-aigateway --ignore-not-found --timeout=300s
               echo "Deleting Kserve CR 'default-kserve'..."
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
-              echo "Deleting ModelsAsService CR 'default-modelsasservice'..."
-              kubectl delete modelsasservice default-modelsasservice --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."

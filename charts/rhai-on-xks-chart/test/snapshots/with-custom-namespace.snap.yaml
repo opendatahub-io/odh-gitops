@@ -2942,8 +2942,6 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
               value: "true"
-            - name: RHAI_DISABLE_MODELSASSERVICE_COMPONENT
-              value: "true"
             - name: RHAI_DISABLE_RAY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
@@ -3193,6 +3191,15 @@ rules:
       - rhai-ca-issuer
     verbs:
       - get
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
+      - create
+      - patch
+      - update
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3400,6 +3407,7 @@ spec:
                       namespace: custom-istio
                     managementPolicy: Managed
               EOF
+              
               echo "Done."
 
 ---

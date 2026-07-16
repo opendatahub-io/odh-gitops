@@ -99,31 +99,36 @@ components:
           #   matchLabels:
           #     inference-gateway-access: "true"
 
-  maas:
-    # Enable operator-managed MaaS (Models as a Service)
+  aigateway:
+    # Enable operator-managed AIGateway module (includes Models as a Service)
     enabled: false
-    spec: {}
-    # MaaS gateway configuration
-    gateway:
-      # Create MaaS Gateway, certs, and CA bundles via post-install hook
-      create: true
-      # Name for the MaaS Gateway resource
-      name: maas-default-gateway
-      # GatewayClass to use for the MaaS Gateway
-      gatewayClassName: istio
-      allowedRoutes:
-        namespaces:
-          # Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector).
-          # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
-          from: Same
-          # Example for All (any namespace can attach routes):
-          # from: All
-          #
-          # Example for Selector (only namespaces matching labels):
-          # from: Selector
-          # selector:
-          #   matchLabels:
-          #     maas-gateway-access: "true"
+    # AIGateway component CR spec — sets modelsAsAService.managementState: Managed on the AIGateway CR
+    spec:
+      modelsAsAService:
+        managementState: Managed
+    # Models as a Service (MaaS) configuration
+    modelsAsAService:
+      # MaaS gateway configuration
+      gateway:
+        # Create MaaS Gateway, certs, and CA bundles via post-install hook
+        create: true
+        # Name for the MaaS Gateway resource
+        name: maas-default-gateway
+        # GatewayClass to use for the MaaS Gateway
+        gatewayClassName: istio
+        allowedRoutes:
+          namespaces:
+            # Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector).
+            # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
+            from: Same
+            # Example for All (any namespace can attach routes):
+            # from: All
+            #
+            # Example for Selector (only namespaces matching labels):
+            # from: Selector
+            # selector:
+            #   matchLabels:
+            #     maas-gateway-access: "true"
 
 # Azure cloud configuration
 azure:

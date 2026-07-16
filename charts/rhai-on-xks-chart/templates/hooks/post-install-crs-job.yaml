@@ -1,8 +1,9 @@
 {{- if .Values.enabled }}
 {{- if .Values.hooks.postInstallCrs.enabled }}
 {{- $componentCRs := include "rhai-on-xks-chart.enabledComponentCRs" . | fromJson }}
+{{- $moduleCRs := include "rhai-on-xks-chart.enabledModuleCRs" . | fromJson }}
 {{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
-{{- if or $componentCRs $providerKECR }}
+{{- if or $componentCRs $moduleCRs $providerKECR }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -46,6 +47,7 @@ spec:
             - |
               set -euo pipefail
               {{- include "rhai-on-xks-chart.crApplyCommands" . | trimPrefix "\n" | nindent 14 }}
+              {{- include "rhai-on-xks-chart.moduleApplyCommands" . | nindent 14 }}
               echo "Done."
 {{- end }}
 {{- end }}

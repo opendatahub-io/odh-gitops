@@ -104,7 +104,7 @@ rules:
     verbs:
       - get
   {{- end }}
-  {{- if and .Values.components.maas.enabled .Values.components.maas.gateway.create }}
+  {{- if and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
   - apiGroups:
       - ""
     resources:
@@ -123,6 +123,18 @@ rules:
     verbs:
       - get
       - patch
+  {{- end }}
+  {{- $moduleCRs := include "rhai-on-xks-chart.enabledModuleCRs" . | fromJson }}
+  {{- if $moduleCRs }}
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
+      - create
+      - patch
+      - update
   {{- end }}
   {{- end }}
 ---

@@ -88,9 +88,6 @@ rules:
       # Replace RHAI_APPLICATIONS_NAMESPACE with templated value
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_APPLICATIONS_NAMESPACE].value
         value: '{{ .Values.rhaiOperator.applicationsNamespace | quote }}'
-      # MaaS component toggle — must be kept in sync when regenerating from upstream
-      - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_DISABLE_MODELSASSERVICE_COMPONENT].value
-        value: '{{ not .Values.components.maas.enabled | quote }}'
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_VERSION].value
         value: '{{ .Chart.AppVersion | quote }}'
       # Add related images env vars

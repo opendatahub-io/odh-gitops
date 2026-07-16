@@ -266,60 +266,66 @@
             }
           }
         },
-        "maas": {
+        "aigateway": {
           "type": "object",
-          "description": "MaaS (Models as a Service) component configuration",
+          "description": "AIGateway module configuration (includes Models as a Service)",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable operator-managed MaaS",
+              "description": "Enable operator-managed AIGateway module (includes MaaS)",
               "default": false
             },
             "spec": {
               "type": "object",
-              "description": "ModelsAsService CR spec"
+              "description": "AIGateway component CR spec"
             },
-            "gateway": {
+            "modelsAsAService": {
               "type": "object",
-              "description": "MaaS gateway configuration",
+              "description": "Models as a Service configuration",
               "properties": {
-                "create": {
-                  "type": "boolean",
-                  "description": "Create MaaS Gateway, certs, and CA bundles via post-install hook",
-                  "default": true
-                },
-                "name": {
-                  "type": "string",
-                  "description": "Name for the MaaS Gateway resource",
-                  "default": "maas-default-gateway"
-                },
-                "gatewayClassName": {
-                  "type": "string",
-                  "description": "GatewayClass to use for the MaaS Gateway",
-                  "default": "istio"
-                },
-                "allowedRoutes": {
+                "gateway": {
                   "type": "object",
-                  "description": "Gateway allowedRoutes configuration for controlling which namespaces can attach HTTPRoutes",
+                  "description": "MaaS gateway configuration",
                   "properties": {
-                    "namespaces": {
+                    "create": {
+                      "type": "boolean",
+                      "description": "Create MaaS Gateway, certs, and CA bundles via post-install hook",
+                      "default": true
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Name for the MaaS Gateway resource",
+                      "default": "maas-default-gateway"
+                    },
+                    "gatewayClassName": {
+                      "type": "string",
+                      "description": "GatewayClass to use for the MaaS Gateway",
+                      "default": "istio"
+                    },
+                    "allowedRoutes": {
                       "type": "object",
-                      "description": "Namespace-based route attachment policy",
+                      "description": "Gateway allowedRoutes configuration for controlling which namespaces can attach HTTPRoutes",
                       "properties": {
-                        "from": {
-                          "type": "string",
-                          "description": "Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector). Defaults to Same.",
-                          "enum": ["", "Selector", "Same", "All"]
-                        },
-                        "selector": {
+                        "namespaces": {
                           "type": "object",
-                          "description": "Label selector for namespaces when from is Selector",
+                          "description": "Namespace-based route attachment policy",
                           "properties": {
-                            "matchLabels": {
+                            "from": {
+                              "type": "string",
+                              "description": "Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector). Defaults to Same.",
+                              "enum": ["", "Selector", "Same", "All"]
+                            },
+                            "selector": {
                               "type": "object",
-                              "description": "Label key-value pairs that namespaces must match",
-                              "additionalProperties": {
-                                "type": "string"
+                              "description": "Label selector for namespaces when from is Selector",
+                              "properties": {
+                                "matchLabels": {
+                                  "type": "object",
+                                  "description": "Label key-value pairs that namespaces must match",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                }
                               }
                             }
                           }

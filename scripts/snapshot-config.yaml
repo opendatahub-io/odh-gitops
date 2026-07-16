@@ -192,4 +192,4 @@ charts:
       - name: azure-with-maas
         setFlags:
           - azure.enabled=true
-          - components.maas.enabled=true
+          - components.aigateway.enabled=true

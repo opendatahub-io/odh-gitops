@@ -1,8 +1,8 @@
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
 {{- $tls := .Values.gateway.tls -}}
 {{- $maasGwNs := "openshift-ingress" -}}
-{{- $maasGwName := .Values.components.maas.gateway.name -}}
-{{- $maasGwClass := .Values.components.maas.gateway.gatewayClassName -}}
+{{- $maasGwName := .Values.components.aigateway.modelsAsAService.gateway.name -}}
+{{- $maasGwClass := .Values.components.aigateway.modelsAsAService.gateway.gatewayClassName -}}
 {{- $certSecret := "maas-gateway-cert-secret" -}}
 {{- $webhookCertSecret := "maas-controller-webhook-cert" -}}
 set -euo pipefail
@@ -153,15 +153,15 @@ spec:
     - name: http
       port: 80
       protocol: HTTP
-{{- if .Values.components.maas.gateway.allowedRoutes.namespaces.from }}
-{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.maas.gateway.allowedRoutes) | nindent 6 }}
+{{- if .Values.components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.aigateway.modelsAsAService.gateway.allowedRoutes) | nindent 6 }}
 {{- end }}
 {{- if $tls.enabled }}
     - name: https
       port: 443
       protocol: HTTPS
-{{- if .Values.components.maas.gateway.allowedRoutes.namespaces.from }}
-{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.maas.gateway.allowedRoutes) | nindent 6 }}
+{{- if .Values.components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.aigateway.modelsAsAService.gateway.allowedRoutes) | nindent 6 }}
 {{- end }}
       tls:
         certificateRefs:

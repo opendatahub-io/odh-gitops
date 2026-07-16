@@ -1,5 +1,5 @@
 {{- if .Values.enabled }}
-{{- if and .Values.components.maas.enabled .Values.components.maas.gateway.create }}
+{{- if and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
 apiVersion: batch/v1
 kind: Job
 metadata:
