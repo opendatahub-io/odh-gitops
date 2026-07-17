@@ -832,7 +832,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - tenants
+      - maastenantconfigs
     verbs:
       - delete
       - get
@@ -841,7 +841,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - tenants/status
+      - maastenantconfigs/status
     verbs:
       - get
   - apiGroups:

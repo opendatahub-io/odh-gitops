@@ -577,6 +577,7 @@ spec:
                     - message: nodeNames and nodeSelector are mutually exclusive
                       rule: '!(has(self.nodeNames) && has(self.nodeSelector))'
                 modelsAsService:
+                  default: {}
                   description: Configures and enables Models as a Service integration
                   properties:
                     managementState:
@@ -647,6 +648,7 @@ spec:
                     - Headed
                   type: string
                 wva:
+                  default: {}
                   description: Configures and enables workload-variant-autoscaler (WVA) integration
                   properties:
                     managementState:
@@ -2055,7 +2057,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - tenants
+      - maastenantconfigs
     verbs:
       - delete
       - get
@@ -2064,7 +2066,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - tenants/status
+      - maastenantconfigs/status
     verbs:
       - get
   - apiGroups:
