@@ -5,10 +5,10 @@
 {{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
 {{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
 {{- $gatewayTls := and $createGateway .Values.gateway.tls.enabled }}
+{{- $createMaasGateway := and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace }}
 {{- $issuerName := .Values.gateway.tls.issuerRef.name }}
 {{- $issuerKind := .Values.gateway.tls.issuerRef.kind }}
-{{- if or $componentCRs $providerKECR $createGateway }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -82,12 +82,6 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-  - apiGroups:
       - ""
     resources:
       - secrets
@@ -112,7 +106,27 @@ rules:
     verbs:
       - get
   {{- end }}
-  {{- if and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
+  {{- end }}
+  {{- if $createMaasGateway }}
+  {{- $maasGwNs := .Values.components.aigateway.modelsAsAService.gateway.namespace | default $appNs }}
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
   - apiGroups:
       - cert-manager.io
     resources:
@@ -135,7 +149,7 @@ rules:
     resources:
       - namespaces
     resourceNames:
-      - openshift-ingress
+      - {{ $maasGwNs }}
     verbs:
       - get
       - create
@@ -150,8 +164,6 @@ rules:
       - get
       - patch
   {{- end }}
-  {{- $moduleCRs := include "rhai-on-xks-chart.enabledModuleCRs" . | fromJson }}
-  {{- if $moduleCRs }}
   - apiGroups:
       - config.opendatahub.io
     resources:
@@ -161,8 +173,6 @@ rules:
       - create
       - patch
       - update
-  {{- end }}
-  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -233,7 +243,6 @@ subjects:
   - kind: ServiceAccount
     name: rhai-post-install-hook
     namespace: {{ .Release.Namespace }}
-{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

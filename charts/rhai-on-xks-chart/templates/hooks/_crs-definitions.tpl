@@ -68,7 +68,11 @@ Returns a JSON list of enabled module names for guard conditions.
 {{- end -}}
 
 {{/*
-Emit a single kubectl apply for the Platform CR that includes all enabled modules.
+Emit a single kubectl apply for the Platform CR.
+The CR is always created (even with an empty modules spec) so it is present
+in the cluster for the operator to reconcile. Enabled modules get
+spec.modules.<key>.managementState: Managed; if none are enabled the CR is
+created with an empty spec.
 Include with: {{- include "rhai-on-xks-chart.moduleApplyCommands" . | nindent 14 }}
 */}}
 {{- define "rhai-on-xks-chart.moduleApplyCommands" -}}
@@ -83,10 +87,9 @@ Include with: {{- include "rhai-on-xks-chart.moduleApplyCommands" . | nindent 14
     {{- $modulesSpec = merge $modulesSpec (dict $key (dict "managementState" "Managed")) }}
   {{- end }}
 {{- end }}
-{{- if $modulesSpec }}
 echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
 kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
-echo "Creating Platform CR with module configuration..."
+echo "Creating Platform CR..."
 kubectl apply -f - <<'EOF'
 apiVersion: config.opendatahub.io/v1alpha1
 kind: Platform
@@ -94,27 +97,24 @@ metadata:
   name: default
   labels:
     {{- include "rhai-on-xks-chart.labels" $root | nindent 4 }}
+{{- if $modulesSpec }}
 spec:
   modules:
     {{- $modulesSpec | toYaml | nindent 4 }}
-EOF
+{{- else }}
+spec: {}
 {{- end }}
+EOF
 {{- end -}}
 
 {{/*
-Emit kubectl delete for the Platform CR when any module is enabled.
+Emit kubectl delete for the Platform CR. Always runs on uninstall since the
+Platform CR is always created (even with an empty modules spec).
 Include with: {{- include "rhai-on-xks-chart.moduleDeleteCommands" . | nindent 14 }}
 */}}
 {{- define "rhai-on-xks-chart.moduleDeleteCommands" -}}
-{{- $registry := include "rhai-on-xks-chart.moduleCRRegistry" . | fromYaml }}
-{{- range $name := keys $registry | sortAlpha }}
-  {{- $modVals := index $.Values.components $name | default dict }}
-  {{- if $modVals.enabled }}
 echo "Deleting Platform CR 'default'..."
 kubectl delete platform default --ignore-not-found --timeout=300s
-    {{- break }}
-  {{- end }}
-{{- end }}
 {{- end -}}
 
 {{/*

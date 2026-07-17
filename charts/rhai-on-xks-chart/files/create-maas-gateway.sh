@@ -1,6 +1,6 @@
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
 {{- $tls := .Values.gateway.tls -}}
-{{- $maasGwNs := "openshift-ingress" -}}
+{{- $maasGwNs := .Values.components.aigateway.modelsAsAService.gateway.namespace | default $appNs -}}
 {{- $maasGwName := .Values.components.aigateway.modelsAsAService.gateway.name -}}
 {{- $maasGwClass := .Values.components.aigateway.modelsAsAService.gateway.gatewayClassName -}}
 {{- $certSecret := "maas-gateway-cert-secret" -}}

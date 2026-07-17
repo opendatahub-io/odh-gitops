@@ -112,6 +112,8 @@ components:
       gateway:
         # Create MaaS Gateway, certs, and CA bundles via post-install hook
         create: true
+        # Namespace for the MaaS Gateway (defaults to the applications namespace)
+        namespace: ""
         # Name for the MaaS Gateway resource
         name: maas-default-gateway
         # GatewayClass to use for the MaaS Gateway

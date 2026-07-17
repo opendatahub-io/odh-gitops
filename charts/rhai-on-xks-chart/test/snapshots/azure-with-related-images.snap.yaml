@@ -2075,6 +2075,14 @@ rules:
       - update
       - watch
   - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - networking.k8s.io
     resources:
       - ingresses
@@ -2998,12 +3006,6 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-  - apiGroups:
       - ""
     resources:
       - secrets
@@ -3065,6 +3067,13 @@ rules:
       - get
       - list
       - watch
+      - delete
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
       - delete
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
@@ -3245,6 +3254,19 @@ spec:
                     managementPolicy: Managed
               EOF
               
+              echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
+              echo "Creating Platform CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: config.opendatahub.io/v1alpha1
+              kind: Platform
+              metadata:
+                name: default
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec: {}
+              EOF
               echo "Done."
 
 ---
@@ -3500,5 +3522,7 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting Platform CR 'default'..."
+              kubectl delete platform default --ignore-not-found --timeout=300s
               echo "Done."
 

@@ -1,7 +1,5 @@
 {{- if .Values.enabled }}
 {{- if .Values.hooks.postInstallCrs.enabled }}
-{{- $componentCRs := include "rhai-on-xks-chart.enabledComponentCRs" . | fromJson }}
-{{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
 {{- $managedDepNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
 {{- $depNamespaces := concat (.Values.imagePullSecret.dependencyNamespaces | default list) $managedDepNamespaces | uniq }}
 {{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
@@ -11,7 +9,6 @@
     {{- $coreNamespaces = append $coreNamespaces . }}
   {{- end }}
 {{- end }}
-{{- if or $componentCRs $providerKECR }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -55,6 +52,7 @@ spec:
             - |
               set -euo pipefail
               {{- include "rhai-on-xks-chart.crDeleteCommands" . | trimPrefix "\n" | nindent 14 }}
+              {{- include "rhai-on-xks-chart.moduleDeleteCommands" . | nindent 14 }}
 
               {{- if $.Values.uninstall.cleanupNamespaces }}
               {{- range $ns := $depNamespaces }}
@@ -73,6 +71,5 @@ spec:
               {{- end }}
               {{- end }}
               echo "Done."
-{{- end }}
 {{- end }}
 {{- end }}

@@ -292,6 +292,11 @@
                       "description": "Create MaaS Gateway, certs, and CA bundles via post-install hook",
                       "default": true
                     },
+                    "namespace": {
+                      "type": "string",
+                      "description": "Namespace for the MaaS Gateway. If empty, defaults to rhaiOperator.applicationsNamespace.",
+                      "default": ""
+                    },
                     "name": {
                       "type": "string",
                       "description": "Name for the MaaS Gateway resource",

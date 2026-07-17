@@ -417,6 +417,18 @@ spec:
                       rule: self.managementState != 'Managed' || (has(self.nodeNames) && size(self.nodeNames) > 0) || (has(self.nodeSelector) && ((has(self.nodeSelector.matchLabels) && size(self.nodeSelector.matchLabels) > 0) || (has(self.nodeSelector.matchExpressions) && size(self.nodeSelector.matchExpressions) > 0)))
                     - message: nodeNames and nodeSelector are mutually exclusive
                       rule: '!(has(self.nodeNames) && has(self.nodeSelector))'
+                modelsAsService:
+                  default: {}
+                  description: Configures and enables Models as a Service integration
+                  properties:
+                    managementState:
+                      default: Removed
+                      enum:
+                        - Managed
+                        - Removed
+                      pattern: ^(Managed|Unmanaged|Force|Removed)$
+                      type: string
+                  type: object
                 nim:
                   default: {}
                   description: Configures and enables NVIDIA NIM integration
@@ -477,6 +489,7 @@ spec:
                     - Headed
                   type: string
                 wva:
+                  default: {}
                   description: Configures and enables workload-variant-autoscaler (WVA) integration
                   properties:
                     managementState:
@@ -1885,7 +1898,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - tenants
+      - maastenantconfigs
     verbs:
       - delete
       - get
@@ -1894,7 +1907,7 @@ rules:
   - apiGroups:
       - maas.opendatahub.io
     resources:
-      - tenants/status
+      - maastenantconfigs/status
     verbs:
       - get
   - apiGroups:
@@ -2060,6 +2073,14 @@ rules:
       - list
       - patch
       - update
+      - watch
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
       - watch
   - apiGroups:
       - networking.k8s.io
@@ -2992,12 +3013,6 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-  - apiGroups:
       - ""
     resources:
       - secrets
@@ -3021,6 +3036,24 @@ rules:
     verbs:
       - get
   - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
       - cert-manager.io
     resources:
       - certificates
@@ -3042,7 +3075,7 @@ rules:
     resources:
       - namespaces
     resourceNames:
-      - openshift-ingress
+      - redhat-ods-applications
     verbs:
       - get
       - create
@@ -3104,6 +3137,13 @@ rules:
       - get
       - list
       - watch
+      - delete
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
       - delete
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
@@ -3301,7 +3341,7 @@ spec:
               
               echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
               kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
-              echo "Creating Platform CR with module configuration..."
+              echo "Creating Platform CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: config.opendatahub.io/v1alpha1
               kind: Platform
@@ -3576,7 +3616,7 @@ spec:
               INTERVAL=5
               
               APP_NAMESPACE="redhat-ods-applications"
-              MAAS_GW_NAMESPACE="openshift-ingress"
+              MAAS_GW_NAMESPACE="redhat-ods-applications"
               
               wait_for() {
                 local desc="$1"; shift
@@ -3616,7 +3656,7 @@ spec:
               kind: ConfigMap
               metadata:
                 name: maas-gateway-config
-                namespace: "openshift-ingress"
+                namespace: "redhat-ods-applications"
               data:
                 deployment: |
                   spec:
@@ -3647,7 +3687,7 @@ spec:
               kind: Certificate
               metadata:
                 name: maas-gateway-cert
-                namespace: "openshift-ingress"
+                namespace: "redhat-ods-applications"
               spec:
                 secretName: "maas-gateway-cert-secret"
                 issuerRef:
@@ -3655,8 +3695,8 @@ spec:
                   kind: "ClusterIssuer"
                   group: cert-manager.io
                 dnsNames:
-                  - "*.openshift-ingress.svc.cluster.local"
-                  - "*.openshift-ingress.svc"
+                  - "*.redhat-ods-applications.svc.cluster.local"
+                  - "*.redhat-ods-applications.svc"
               EOF
               wait_for "MaaS gateway Certificate to be Ready" maas_gw_cert_ready
               
@@ -3684,7 +3724,7 @@ spec:
               kind: Gateway
               metadata:
                 name: "maas-default-gateway"
-                namespace: "openshift-ingress"
+                namespace: "redhat-ods-applications"
               spec:
                 gatewayClassName: "istio"
                 listeners:
@@ -3803,5 +3843,7 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting Platform CR 'default'..."
+              kubectl delete platform default --ignore-not-found --timeout=300s
               echo "Done."
 

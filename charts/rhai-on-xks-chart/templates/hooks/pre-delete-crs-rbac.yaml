@@ -3,7 +3,6 @@
 {{- $componentCRs := include "rhai-on-xks-chart.enabledComponentCRs" . | fromJson }}
 {{- $providerKECR := include "rhai-on-xks-chart.enabledProviderKECR" . }}
 {{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
-{{- if or $componentCRs $providerKECR }}
 {{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
 {{- $coreNamespaces := list .Values.rhaiOperator.namespace .Values.rhaiOperator.applicationsNamespace }}
 {{- if $provider }}
@@ -84,6 +83,13 @@ rules:
       - watch
       - delete
   {{- end }}
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -102,6 +108,5 @@ subjects:
   - kind: ServiceAccount
     name: rhai-pre-delete-hook
     namespace: {{ .Release.Namespace }}
-{{- end }}
 {{- end }}
 {{- end }}
