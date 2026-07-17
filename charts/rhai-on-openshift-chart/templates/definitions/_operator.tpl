@@ -16,6 +16,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .namespace }}
+  annotations:
+    helm.sh/resource-policy: keep
   labels:
     {{- include "rhoai-dependencies.labels" .root | nindent 4 }}
 {{- end }}
