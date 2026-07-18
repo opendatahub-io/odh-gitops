@@ -40,11 +40,7 @@ components:
       managementState: Managed
       modelsAsAService:
         managementState: Managed
-    modelsAsAService:
-      gatewayClass:
-        create: true
-      gateway:
-        create: true
+    # Gateway/GatewayClass create defaults to auto (created when modelsAsAService is Managed)
 
   kserve:
     dsc:

@@ -99,23 +99,33 @@ The script can be customized with environment variables:
 
 ### Enable Models as Service
 
-To enable Models as Service, Gateway and GatewayClass are needed. They could be created manually or with the chart.
-To create them with the chart, you need to manually set the gateway hostname, and the certificate secret name.
-By default, the Gateway creation is disabled. To enable it, you need to set the `components.kserve.modelsAsService.gateway.create`
-and `components.kserve.modelsAsService.gatewayClass.create` to `true`.
+To enable Models as Service, set `components.aigateway.dsc.managementState` and
+`components.aigateway.dsc.modelsAsAService.managementState` to `Managed`.
 
-For example, it is possible to enable Models as Service with the following values,
-configuring correctly the `<HOSTNAME>`, `<SECRET_NAME>` and correctly define the `allowedRoutes`:
+Gateway and GatewayClass are created automatically when MaaS is Managed
+(`components.aigateway.modelsAsAService.gateway.create` / `gatewayClass.create`
+default to `auto`, matching the KServe gateway pattern). Set either flag to
+`false` to skip chart-managed creation and supply your own resources, or to
+`true` to always create them.
+
+When using the chart-managed Gateway, customize the listener for your
+environment (hostname, `allowedRoutes`, and TLS / certificate secret as needed).
+The default annotations (`security.opendatahub.io/authorino-tls-bootstrap` and
+`opendatahub.io/managed`) should be kept unless you intentionally change MaaS
+TLS / ownership behavior.
+
+For example:
 
 ```yaml
 # values.yaml
 components:
-  kserve:
-    modelsAsService:
-      gatewayClass:
-        create: true
+  aigateway:
+    dsc:
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
+    modelsAsAService:
       gateway:
-        create: true
         spec:
           gatewayClassName: maas-gateway-class
           listeners:

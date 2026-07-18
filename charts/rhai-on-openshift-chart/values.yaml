@@ -110,15 +110,15 @@ components:
     modelsAsAService:
       # -- GatewayClass configuration for the LLMInferenceService.
       gatewayClass:
-        # -- Flag to create the GatewayClass (auto, true, false). If auto, created when modelsAsAService is Managed.
-        create: false
+        # -- Create the GatewayClass: auto (if modelsAsAService is Managed), true (always), false (never)
+        create: auto
         name: maas-gateway-class
         spec:
           controllerName: "openshift.io/gateway-controller/v1"
       # -- Gateway configuration for the LLMInferenceService.
       gateway:
-        # -- Flag to create the Gateway (auto, true, false). If auto, created when modelsAsAService is Managed.
-        create: false
+        # -- Create the Gateway: auto (if modelsAsAService is Managed), true (always), false (never)
+        create: auto
         name: maas-default-gateway
         namespace: openshift-ingress
         annotations:
