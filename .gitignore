@@ -27,3 +27,6 @@ flymd.*
 
 # Ignore version-specific values files
 charts/rhai-on-xks-chart/values-rhoai-*.yaml
+
+# graphify output
+graphify-out/

@@ -2965,6 +2965,15 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
+      - aigateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
       - kserves
     verbs:
       - get
@@ -3027,6 +3036,60 @@ rules:
     verbs:
       - get
   - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    resourceNames:
+      - redhat-ods-applications
+    verbs:
+      - get
+      - create
+      - patch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    resourceNames:
+      - authorino
+    verbs:
+      - get
+      - patch
+  - apiGroups:
       - config.opendatahub.io
     resources:
       - platforms
@@ -3048,6 +3111,15 @@ metadata:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - aigateways
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
@@ -3212,6 +3284,21 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Waiting for CRD aigateways.components.platform.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/aigateways.components.platform.opendatahub.io
+              echo "Creating AIGateway CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: components.platform.opendatahub.io/v1alpha1
+              kind: AIGateway
+              metadata:
+                name: default-aigateway
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec:
+                modelsAsAService:
+                  managementState: Managed
+              EOF
               echo "Waiting for CRD kserves.components.platform.opendatahub.io to be established..."
               kubectl wait --for condition=established --timeout=300s crd/kserves.components.platform.opendatahub.io
               echo "Creating Kserve CR..."
@@ -3263,7 +3350,10 @@ spec:
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
-              spec: {}
+              spec:
+                modules:
+                  aigateway:
+                    managementState: Managed
               EOF
               echo "Done."
 
@@ -3402,7 +3492,6 @@ spec:
               ISSUER_ARGS=("$ISSUER_KIND" "$ISSUER_NAME")
               wait_for "${ISSUER_KIND} ${ISSUER_NAME} to be Ready" issuer_ready
               echo "Step 5: Creating Certificate for Gateway TLS..."
-              echo "WARNING: gateway.hostname is set but issuerRef ${ISSUER_NAME} is the internal CA; the certificate is only trusted inside the cluster. Set gateway.tls.issuerRef to a public/enterprise issuer for external clients."
               kubectl apply -f - <<'EOF'
               apiVersion: cert-manager.io/v1
               kind: Certificate
@@ -3418,8 +3507,6 @@ spec:
                 dnsNames:
                   - "*.redhat-ods-applications.svc.cluster.local"
                   - "*.redhat-ods-applications.svc"
-                  - "*.redhat.com"
-                  - "redhat.com"
               EOF
               echo "Certificate 'inference-gateway-cert' created."
               
@@ -3465,6 +3552,237 @@ spec:
                     name: inference-gateway-config
               EOF
               echo "Gateway CR 'inference-gateway' created successfully."
+              
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/post-install-maas-gateway-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-post-create-maas-gateway
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-post-install-hook
+      imagePullSecrets:
+        - name: rhai-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: create-maas-gateway
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              TIMEOUT=300
+              INTERVAL=5
+              
+              APP_NAMESPACE="redhat-ods-applications"
+              MAAS_GW_NAMESPACE="redhat-ods-applications"
+              
+              wait_for() {
+                local desc="$1"; shift
+                local elapsed=0
+                echo "Waiting for ${desc}..."
+                until "$@" >/dev/null 2>&1; do
+                  if [ "$elapsed" -ge "$TIMEOUT" ]; then
+                    echo "ERROR: Timed out waiting for ${desc} after ${TIMEOUT}s"
+                    exit 1
+                  fi
+                  echo "${desc} not yet available, retrying in ${INTERVAL}s... (${elapsed}/${TIMEOUT}s)"
+                  sleep "$INTERVAL"
+                  elapsed=$((elapsed + INTERVAL))
+                done
+                echo "${desc} is available."
+              }
+              
+              maas_gw_cert_ready() {
+                [ "$(kubectl get certificate maas-gateway-cert -n "$MAAS_GW_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+              }
+              
+              echo "=== MaaS Gateway Setup ==="
+              
+              echo "Step 1: Create MaaS gateway namespace..."
+              kubectl create namespace "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+              
+              echo "Step 2: Create CA bundle ConfigMaps..."
+              wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
+              kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+              kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+              echo "CA bundle ConfigMaps created."
+              
+              echo "Step 3: Create MaaS gateway config ConfigMap..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: maas-gateway-config
+                namespace: "redhat-ods-applications"
+              data:
+                deployment: |
+                  spec:
+                    template:
+                      spec:
+                        volumes:
+                        - name: rhai-ca-bundle
+                          configMap:
+                            name: rhai-ca-bundle
+                        containers:
+                        - name: istio-proxy
+                          volumeMounts:
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/opendatahub
+                            readOnly: true
+                          - name: rhai-ca-bundle
+                            mountPath: /var/run/secrets/rhai
+                            readOnly: true
+                service: |
+                  metadata:
+                    annotations:
+                      service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
+              EOF
+              echo "MaaS gateway ConfigMap created."
+              echo "Step 4: Create MaaS gateway TLS Certificate..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: maas-gateway-cert
+                namespace: "redhat-ods-applications"
+              spec:
+                secretName: "maas-gateway-cert-secret"
+                issuerRef:
+                  name: "rhai-ca-issuer"
+                  kind: "ClusterIssuer"
+                  group: cert-manager.io
+                dnsNames:
+                  - "*.redhat-ods-applications.svc.cluster.local"
+                  - "*.redhat-ods-applications.svc"
+              EOF
+              wait_for "MaaS gateway Certificate to be Ready" maas_gw_cert_ready
+              
+              echo "Step 5: Create MaaS API serving Certificate..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: maas-api-serving-cert
+                namespace: "redhat-ods-applications"
+              spec:
+                secretName: maas-api-serving-cert
+                issuerRef:
+                  name: "rhai-ca-issuer"
+                  kind: "ClusterIssuer"
+                  group: cert-manager.io
+                dnsNames:
+                  - "maas-api.redhat-ods-applications.svc"
+                  - "maas-api.redhat-ods-applications.svc.cluster.local"
+              EOF
+              
+              echo "Step 6: Create MaaS Gateway..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: Gateway
+              metadata:
+                name: "maas-default-gateway"
+                namespace: "redhat-ods-applications"
+              spec:
+                gatewayClassName: "istio"
+                listeners:
+                  - name: http
+                    port: 80
+                    protocol: HTTP
+                    allowedRoutes:
+                      namespaces:
+                        from: Same
+                  - name: https
+                    port: 443
+                    protocol: HTTPS
+                    allowedRoutes:
+                      namespaces:
+                        from: Same
+                    tls:
+                      certificateRefs:
+                        - group: ''
+                          kind: Secret
+                          name: "maas-gateway-cert-secret"
+                      mode: Terminate
+                infrastructure:
+                  parametersRef:
+                    group: ""
+                    kind: ConfigMap
+                    name: maas-gateway-config
+              EOF
+              echo "MaaS Gateway created successfully."
+              
+              echo "Step 7: Copy pull secret to MaaS gateway namespace..."
+              if kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" >/dev/null 2>&1; then
+                DOCKER_CONFIG=$(kubectl get secret rhai-pull-secret -n "$APP_NAMESPACE" -o jsonpath='{.data.\.dockerconfigjson}')
+                kubectl create secret generic rhai-pull-secret \
+                  --from-literal=.dockerconfigjson="$(echo "$DOCKER_CONFIG" | base64 -d)" \
+                  --type=kubernetes.io/dockerconfigjson \
+                  -n "$MAAS_GW_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+                echo "Pull secret copied."
+              else
+                echo "No rhai-pull-secret found, skipping."
+              fi
+              
+              echo "Step 8: Configure Authorino CA trust for MaaS API callbacks..."
+              KUADRANT_NS="kuadrant-system"
+              if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
+                kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt \
+                  -n "$KUADRANT_NS" --dry-run=client -o yaml | kubectl apply -f -
+              
+                kubectl patch deployment authorino -n "$KUADRANT_NS" --type=json -p='[
+                  {"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"rhai-ca","configMap":{"name":"rhai-ca-bundle"}}},
+                  {"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"rhai-ca","mountPath":"/etc/pki/tls/custom","readOnly":true}},
+                  {"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{"name":"SSL_CERT_FILE","value":"/etc/pki/tls/custom/ca.crt"}}
+                ]'
+                echo "Authorino CA trust configured."
+              else
+                echo "Kuadrant namespace not found, skipping Authorino CA trust."
+              fi
+              
+              echo "=== MaaS Gateway setup complete ==="
               
 
 ---
@@ -3519,6 +3837,8 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Deleting AIGateway CR 'default-aigateway'..."
+              kubectl delete aigateway default-aigateway --ignore-not-found --timeout=300s
               echo "Deleting Kserve CR 'default-kserve'..."
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."

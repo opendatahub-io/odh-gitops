@@ -70,11 +70,13 @@ imagePullSecrets:
 {{- end -}}
 
 {{/*
-Add the allowedRoutes block for a Gateway listener can be used by both HTTP and HTTPS listeners
-currently is only for kserve, might need adapt for other components
+Add the allowedRoutes block for a Gateway listener (HTTP and HTTPS).
+Accepts a dict with key "allowedRoutes" (the gateway.allowedRoutes value block).
+Usage:
+  {{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.kserve.gateway.allowedRoutes) | nindent 6 }}
 */}}
 {{- define "rhai-on-xks-chart.gatewayAllowedRoutes" -}}
-{{- $ns := .Values.components.kserve.gateway.allowedRoutes.namespaces -}}
+{{- $ns := .allowedRoutes.namespaces -}}
 {{- if and (eq $ns.from "Selector") (not $ns.selector) -}}
 {{- fail "allowedRoutes.namespaces.selector is required when from is set to Selector" -}}
 {{- end -}}

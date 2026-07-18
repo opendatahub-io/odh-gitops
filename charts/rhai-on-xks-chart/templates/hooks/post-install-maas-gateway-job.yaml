@@ -1,15 +1,15 @@
 {{- if .Values.enabled }}
-{{- if .Values.hooks.postInstallCrs.enabled }}
+{{- if and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rhai-post-install-crs
+  name: rhai-post-create-maas-gateway
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "1"
+    helm.sh/hook-weight: "3"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3
@@ -25,8 +25,11 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
       containers:
-        - name: create-crs
+        - name: create-maas-gateway
           image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
           resources:
             {{- toYaml .Values.hooks.resources | nindent 12 }}
@@ -37,13 +40,13 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           command:
             - /bin/bash
             - -c
             - |
-              set -euo pipefail
-              {{- include "rhai-on-xks-chart.crApplyCommands" . | trimPrefix "\n" | nindent 14 }}
-              {{- include "rhai-on-xks-chart.moduleApplyCommands" . | nindent 14 }}
-              echo "Done."
+              {{- tpl (.Files.Get "files/create-maas-gateway.sh") . | nindent 14 }}
 {{- end }}
 {{- end }}

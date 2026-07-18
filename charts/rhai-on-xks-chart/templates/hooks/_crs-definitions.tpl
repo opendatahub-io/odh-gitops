@@ -27,12 +27,94 @@ Returns a YAML map keyed by component name.
 To add a new component CR: add an entry here. All templates update automatically.
 */}}
 {{- define "rhai-on-xks-chart.componentCRRegistry" -}}
+aigateway:
+  kind: AIGateway
+  resource: aigateways
+  resourceSingular: aigateway
+  crName: default-aigateway
+  apiGroup: components.platform.opendatahub.io
 kserve:
   kind: Kserve
   resource: kserves
   resourceSingular: kserve
   crName: default-kserve
   apiGroup: components.platform.opendatahub.io
+{{- end -}}
+
+{{/*
+Registry of module CRs managed via the Platform CR (config.opendatahub.io/v1alpha1).
+AIGateway is a module, not a component — it is enabled by setting
+spec.modules.<platformModuleKey>.managementState: Managed on the Platform CR.
+To add a new module: add an entry here. All templates update automatically.
+*/}}
+{{- define "rhai-on-xks-chart.moduleCRRegistry" -}}
+aigateway:
+  platformModuleKey: aigateway
+{{- end -}}
+
+{{/*
+Returns a JSON list of enabled module names for guard conditions.
+*/}}
+{{- define "rhai-on-xks-chart.enabledModuleCRs" -}}
+{{- $registry := include "rhai-on-xks-chart.moduleCRRegistry" . | fromYaml }}
+{{- $result := list }}
+{{- range $name := keys $registry | sortAlpha }}
+  {{- $modVals := index $.Values.components $name | default dict }}
+  {{- if $modVals.enabled }}
+    {{- $result = append $result $name }}
+  {{- end }}
+{{- end }}
+{{- $result | toJson }}
+{{- end -}}
+
+{{/*
+Emit a single kubectl apply for the Platform CR.
+The CR is always created (even with an empty modules spec) so it is present
+in the cluster for the operator to reconcile. Enabled modules get
+spec.modules.<key>.managementState: Managed; if none are enabled the CR is
+created with an empty spec.
+Include with: {{- include "rhai-on-xks-chart.moduleApplyCommands" . | nindent 14 }}
+*/}}
+{{- define "rhai-on-xks-chart.moduleApplyCommands" -}}
+{{- $root := . }}
+{{- $registry := include "rhai-on-xks-chart.moduleCRRegistry" . | fromYaml }}
+{{- $modulesSpec := dict }}
+{{- range $name := keys $registry | sortAlpha }}
+  {{- $meta := index $registry $name }}
+  {{- $modVals := index $.Values.components $name | default dict }}
+  {{- if $modVals.enabled }}
+    {{- $key := index $meta "platformModuleKey" }}
+    {{- $modulesSpec = merge $modulesSpec (dict $key (dict "managementState" "Managed")) }}
+  {{- end }}
+{{- end }}
+echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
+kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
+echo "Creating Platform CR..."
+kubectl apply -f - <<'EOF'
+apiVersion: config.opendatahub.io/v1alpha1
+kind: Platform
+metadata:
+  name: default
+  labels:
+    {{- include "rhai-on-xks-chart.labels" $root | nindent 4 }}
+{{- if $modulesSpec }}
+spec:
+  modules:
+    {{- $modulesSpec | toYaml | nindent 4 }}
+{{- else }}
+spec: {}
+{{- end }}
+EOF
+{{- end -}}
+
+{{/*
+Emit kubectl delete for the Platform CR. Always runs on uninstall since the
+Platform CR is always created (even with an empty modules spec).
+Include with: {{- include "rhai-on-xks-chart.moduleDeleteCommands" . | nindent 14 }}
+*/}}
+{{- define "rhai-on-xks-chart.moduleDeleteCommands" -}}
+echo "Deleting Platform CR 'default'..."
+kubectl delete platform default --ignore-not-found --timeout=300s
 {{- end -}}
 
 {{/*
@@ -99,6 +181,8 @@ Component CRs are applied before provider KE CRs.
   {{- $meta := index $compRegistry $name }}
   {{- $compVals := index $.Values.components $name | default dict }}
   {{- if $compVals.enabled }}
+echo "Waiting for CRD {{ index $meta "resource" }}.{{ index $meta "apiGroup" }} to be established..."
+kubectl wait --for condition=established --timeout=300s crd/{{ index $meta "resource" }}.{{ index $meta "apiGroup" }}
 echo "Creating {{ index $meta "kind" }} CR..."
 kubectl apply -f - <<'EOF'
 apiVersion: {{ index $meta "apiGroup" }}/v1alpha1

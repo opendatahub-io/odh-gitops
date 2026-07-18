@@ -146,14 +146,14 @@ spec:
       port: 80
       protocol: HTTP
 {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" . | nindent 6 }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.kserve.gateway.allowedRoutes) | nindent 6 }}
 {{- end }}
 {{- if $tls.enabled }}
     - name: https
       port: 443
       protocol: HTTPS
 {{- if .Values.components.kserve.gateway.allowedRoutes.namespaces.from }}
-{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" . | nindent 6 }}
+{{- include "rhai-on-xks-chart.gatewayAllowedRoutes" (dict "allowedRoutes" .Values.components.kserve.gateway.allowedRoutes) | nindent 6 }}
 {{- end }}
       tls:
         certificateRefs:

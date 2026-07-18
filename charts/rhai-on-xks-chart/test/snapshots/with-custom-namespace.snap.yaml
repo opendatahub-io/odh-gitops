@@ -2234,6 +2234,14 @@ rules:
       - update
       - watch
   - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - networking.k8s.io
     resources:
       - ingresses
@@ -2942,8 +2950,6 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
               value: "true"
-            - name: RHAI_DISABLE_MODELSASSERVICE_COMPONENT
-              value: "true"
             - name: RHAI_DISABLE_RAY_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
@@ -3141,6 +3147,14 @@ rules:
       - patch
       - update
   - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - infrastructure.opendatahub.io
     resources:
       - azurekubernetesengines
@@ -3165,12 +3179,6 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-  - apiGroups:
       - ""
     resources:
       - secrets
@@ -3185,8 +3193,6 @@ rules:
       - create
       - patch
       - update
-  # ClusterIssuers are cluster-scoped, so the read must live on the ClusterRole,
-  # but it is restricted to the single issuer the gateway Certificate references.
   - apiGroups:
       - cert-manager.io
     resources:
@@ -3195,6 +3201,15 @@ rules:
       - rhai-ca-issuer
     verbs:
       - get
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
+      - create
+      - patch
+      - update
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3225,6 +3240,13 @@ rules:
       - get
       - list
       - watch
+      - delete
+  - apiGroups:
+      - config.opendatahub.io
+    resources:
+      - platforms
+    verbs:
+      - get
       - delete
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
@@ -3365,6 +3387,8 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Waiting for CRD kserves.components.platform.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/kserves.components.platform.opendatahub.io
               echo "Creating Kserve CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: components.platform.opendatahub.io/v1alpha1
@@ -3401,6 +3425,20 @@ spec:
                     configuration:
                       namespace: custom-istio
                     managementPolicy: Managed
+              EOF
+              
+              echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
+              echo "Creating Platform CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: config.opendatahub.io/v1alpha1
+              kind: Platform
+              metadata:
+                name: default
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec: {}
               EOF
               echo "Done."
 
@@ -3657,5 +3695,7 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting Platform CR 'default'..."
+              kubectl delete platform default --ignore-not-found --timeout=300s
               echo "Done."
 

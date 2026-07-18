@@ -265,6 +265,83 @@
               }
             }
           }
+        },
+        "aigateway": {
+          "type": "object",
+          "description": "AIGateway module configuration (includes Models as a Service)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable operator-managed AIGateway module (includes MaaS)",
+              "default": false
+            },
+            "spec": {
+              "type": "object",
+              "description": "AIGateway component CR spec"
+            },
+            "modelsAsAService": {
+              "type": "object",
+              "description": "Models as a Service configuration",
+              "properties": {
+                "gateway": {
+                  "type": "object",
+                  "description": "MaaS gateway configuration",
+                  "properties": {
+                    "create": {
+                      "type": "boolean",
+                      "description": "Create MaaS Gateway, certs, and CA bundles via post-install hook",
+                      "default": true
+                    },
+                    "namespace": {
+                      "type": "string",
+                      "description": "Namespace for the MaaS Gateway. If empty, defaults to rhaiOperator.applicationsNamespace.",
+                      "default": ""
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Name for the MaaS Gateway resource",
+                      "default": "maas-default-gateway"
+                    },
+                    "gatewayClassName": {
+                      "type": "string",
+                      "description": "GatewayClass to use for the MaaS Gateway",
+                      "default": "istio"
+                    },
+                    "allowedRoutes": {
+                      "type": "object",
+                      "description": "Gateway allowedRoutes configuration for controlling which namespaces can attach HTTPRoutes",
+                      "properties": {
+                        "namespaces": {
+                          "type": "object",
+                          "description": "Namespace-based route attachment policy",
+                          "properties": {
+                            "from": {
+                              "type": "string",
+                              "description": "Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector). Defaults to Same.",
+                              "enum": ["", "Selector", "Same", "All"]
+                            },
+                            "selector": {
+                              "type": "object",
+                              "description": "Label selector for namespaces when from is Selector",
+                              "properties": {
+                                "matchLabels": {
+                                  "type": "object",
+                                  "description": "Label key-value pairs that namespaces must match",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

@@ -44,6 +44,13 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | azure.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
+| components.aigateway.enabled | bool | `false` |  |
+| components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from | string | `"Same"` |  |
+| components.aigateway.modelsAsAService.gateway.create | bool | `true` |  |
+| components.aigateway.modelsAsAService.gateway.gatewayClassName | string | `"istio"` |  |
+| components.aigateway.modelsAsAService.gateway.name | string | `"maas-default-gateway"` |  |
+| components.aigateway.modelsAsAService.gateway.namespace | string | `""` |  |
+| components.aigateway.spec.modelsAsAService.managementState | string | `"Managed"` |  |
 | components.kserve.enabled | bool | `true` |  |
 | components.kserve.gateway.allowedRoutes.namespaces.from | string | `"Same"` |  |
 | components.kserve.gateway.create | bool | `true` |  |
