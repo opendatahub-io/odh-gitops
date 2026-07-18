@@ -261,7 +261,8 @@ helm-verify: ## Verify helm chart installation and DSC components
 HELM_EXTRA_ARGS ?=
 HELM_INSTALL_VALUES_FILE ?= docs/examples/values-all-components-managed.yaml
 # Remove ogx to avoid nfd and nvidiaGPUOperator dependencies installation on tests.
-HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed
+# Keep modelsAsAService Removed in CI — it depends on PostgreSQL (not installed by the chart yet).
+HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
