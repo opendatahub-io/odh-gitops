@@ -151,6 +151,11 @@
               "type": "boolean",
               "description": "Enable post-install CR creation hook",
               "default": true
+            },
+            "backoffLimit": {
+              "type": "integer",
+              "description": "Max retries for the post-install CRs hook job. Increase when components.aigateway.enabled=true.",
+              "default": 5
             }
           },
           "additionalProperties": false

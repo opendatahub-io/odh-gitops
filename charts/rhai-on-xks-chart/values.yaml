@@ -59,6 +59,10 @@ hooks:
       memory: 64Mi
   postInstallCrs:
     enabled: true
+    # Max retries for the post-install CRs hook job.
+    # Increase when components.aigateway.enabled=true, as the aigateways CRD
+    # is registered by the operator at startup (not shipped in the chart).
+    backoffLimit: 5
 
 # Cluster wise config for gateway for tls, shared config for all components section below
 gateway:

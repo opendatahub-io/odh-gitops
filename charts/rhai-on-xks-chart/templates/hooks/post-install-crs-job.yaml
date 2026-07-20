@@ -12,7 +12,7 @@ metadata:
     helm.sh/hook-weight: "1"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  backoffLimit: 3
+  backoffLimit: {{ .Values.hooks.postInstallCrs.backoffLimit | default 5 }}
   template:
     metadata:
       labels:
