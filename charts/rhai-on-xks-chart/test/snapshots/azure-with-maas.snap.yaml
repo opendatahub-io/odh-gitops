@@ -3284,6 +3284,48 @@ spec:
             - -c
             - |
               set -euo pipefail
+              echo "Creating AzureKubernetesEngine CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: infrastructure.opendatahub.io/v1alpha1
+              kind: AzureKubernetesEngine
+              metadata:
+                name: default-azurekubernetesengine
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec:
+                dependencies:
+                  certManager:
+                    configuration: {}
+                    managementPolicy: Managed
+                  gatewayAPI:
+                    configuration: {}
+                    managementPolicy: Managed
+                  lws:
+                    configuration:
+                      namespace: openshift-lws-operator
+                    managementPolicy: Unmanaged
+                  sailOperator:
+                    configuration:
+                      namespace: istio-system
+                    managementPolicy: Managed
+              EOF
+              echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
+              echo "Creating Platform CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: config.opendatahub.io/v1alpha1
+              kind: Platform
+              metadata:
+                name: default
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec:
+                modules:
+                  aigateway:
+                    managementState: Managed
+              EOF
               echo "Waiting for CRD aigateways.components.platform.opendatahub.io to be established..."
               kubectl wait --for condition=established --timeout=300s crd/aigateways.components.platform.opendatahub.io
               echo "Creating AIGateway CR..."
@@ -3311,49 +3353,6 @@ spec:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
               spec: {}
-              EOF
-              echo "Creating AzureKubernetesEngine CR..."
-              kubectl apply -f - <<'EOF'
-              apiVersion: infrastructure.opendatahub.io/v1alpha1
-              kind: AzureKubernetesEngine
-              metadata:
-                name: default-azurekubernetesengine
-                labels:
-                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
-                  app.kubernetes.io/managed-by: Helm
-              spec:
-                dependencies:
-                  certManager:
-                    configuration: {}
-                    managementPolicy: Managed
-                  gatewayAPI:
-                    configuration: {}
-                    managementPolicy: Managed
-                  lws:
-                    configuration:
-                      namespace: openshift-lws-operator
-                    managementPolicy: Unmanaged
-                  sailOperator:
-                    configuration:
-                      namespace: istio-system
-                    managementPolicy: Managed
-              EOF
-              
-              echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
-              kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
-              echo "Creating Platform CR..."
-              kubectl apply -f - <<'EOF'
-              apiVersion: config.opendatahub.io/v1alpha1
-              kind: Platform
-              metadata:
-                name: default
-                labels:
-                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
-                  app.kubernetes.io/managed-by: Helm
-              spec:
-                modules:
-                  aigateway:
-                    managementState: Managed
               EOF
               echo "Done."
 

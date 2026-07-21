@@ -3214,19 +3214,6 @@ spec:
             - -c
             - |
               set -euo pipefail
-              echo "Waiting for CRD kserves.components.platform.opendatahub.io to be established..."
-              kubectl wait --for condition=established --timeout=300s crd/kserves.components.platform.opendatahub.io
-              echo "Creating Kserve CR..."
-              kubectl apply -f - <<'EOF'
-              apiVersion: components.platform.opendatahub.io/v1alpha1
-              kind: Kserve
-              metadata:
-                name: default-kserve
-                labels:
-                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
-                  app.kubernetes.io/managed-by: Helm
-              spec: {}
-              EOF
               echo "Creating AzureKubernetesEngine CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: infrastructure.opendatahub.io/v1alpha1
@@ -3253,7 +3240,6 @@ spec:
                       namespace: istio-system
                     managementPolicy: Managed
               EOF
-              
               echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
               kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
               echo "Creating Platform CR..."
@@ -3262,6 +3248,19 @@ spec:
               kind: Platform
               metadata:
                 name: default
+                labels:
+                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
+                  app.kubernetes.io/managed-by: Helm
+              spec: {}
+              EOF
+              echo "Waiting for CRD kserves.components.platform.opendatahub.io to be established..."
+              kubectl wait --for condition=established --timeout=300s crd/kserves.components.platform.opendatahub.io
+              echo "Creating Kserve CR..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: components.platform.opendatahub.io/v1alpha1
+              kind: Kserve
+              metadata:
+                name: default-kserve
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
