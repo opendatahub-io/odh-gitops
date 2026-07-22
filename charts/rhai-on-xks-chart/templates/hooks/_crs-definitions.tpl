@@ -170,12 +170,34 @@ Do NOT range over this and access fields with .field syntax — use crApplyComma
 {{- end -}}
 
 {{/*
-Emit kubectl apply commands for all enabled component CRs and provider KE CRs.
+Emit kubectl apply commands for provider KE CR, Platform CR, then component CRs.
+Provider KE CR is applied first to trigger dependency deployment (cert-manager, istio, etc.).
+Platform CR is applied next to trigger module operators (e.g. ai-gateway-operator).
+Component CRs are applied last, after their CRDs are registered by the operators.
 Include with: {{- include "rhai-on-xks-chart.crApplyCommands" . | nindent 14 }}
-Component CRs are applied before provider KE CRs.
 */}}
 {{- define "rhai-on-xks-chart.crApplyCommands" -}}
 {{- $root := . }}
+{{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
+{{- if and $provider (index $provider "keEnabled") }}
+echo "Creating {{ index $provider "keKind" }} CR..."
+kubectl apply -f - <<'EOF'
+apiVersion: infrastructure.opendatahub.io/v1alpha1
+kind: {{ index $provider "keKind" }}
+metadata:
+  name: {{ index $provider "keName" }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" $root | nindent 4 }}
+{{- $spec := index $provider "keSpec" }}
+{{- if $spec }}
+spec:
+  {{- $spec | toYaml | nindent 2 }}
+{{- else }}
+spec: {}
+{{- end }}
+EOF
+{{- end }}
+{{- include "rhai-on-xks-chart.moduleApplyCommands" $root }}
 {{- $compRegistry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
 {{- range $name := keys $compRegistry | sortAlpha }}
   {{- $meta := index $compRegistry $name }}
@@ -199,25 +221,6 @@ spec: {}
 {{- end }}
 EOF
   {{- end }}
-{{- end }}
-{{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
-{{- if and $provider (index $provider "keEnabled") }}
-echo "Creating {{ index $provider "keKind" }} CR..."
-kubectl apply -f - <<'EOF'
-apiVersion: infrastructure.opendatahub.io/v1alpha1
-kind: {{ index $provider "keKind" }}
-metadata:
-  name: {{ index $provider "keName" }}
-  labels:
-    {{- include "rhai-on-xks-chart.labels" $root | nindent 4 }}
-{{- $spec := index $provider "keSpec" }}
-{{- if $spec }}
-spec:
-  {{- $spec | toYaml | nindent 2 }}
-{{- else }}
-spec: {}
-{{- end }}
-EOF
 {{- end }}
 {{- end -}}
 
