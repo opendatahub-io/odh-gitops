@@ -50,6 +50,8 @@ To add a new module: add an entry here. All templates update automatically.
 {{- define "rhai-on-xks-chart.moduleCRRegistry" -}}
 aigateway:
   platformModuleKey: aigateway
+kserve:
+  platformModuleKey: kserve
 {{- end -}}
 
 {{/*
@@ -155,7 +157,7 @@ Returns "true" if provider + KE are both enabled, empty string otherwise. Used f
 
 {{/*
 Returns a JSON list of enabled component names for guard conditions (non-empty = at least one enabled).
-Do NOT range over this and access fields with .field syntax — use crApplyCommands / crDeleteCommands instead.
+Do NOT range over this and access fields with .field syntax — use crApplyCommands / componentDeleteCommands instead.
 */}}
 {{- define "rhai-on-xks-chart.enabledComponentCRs" -}}
 {{- $registry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
@@ -203,6 +205,11 @@ EOF
   {{- $meta := index $compRegistry $name }}
   {{- $compVals := index $.Values.components $name | default dict }}
   {{- if $compVals.enabled }}
+echo "Waiting for CRD {{ index $meta "resource" }}.{{ index $meta "apiGroup" }} to exist..."
+elapsed=0; while [ $elapsed -lt 300 ]; do
+  kubectl get crd/{{ index $meta "resource" }}.{{ index $meta "apiGroup" }} &>/dev/null && break
+  sleep 5; elapsed=$((elapsed + 5))
+done
 echo "Waiting for CRD {{ index $meta "resource" }}.{{ index $meta "apiGroup" }} to be established..."
 kubectl wait --for condition=established --timeout=300s crd/{{ index $meta "resource" }}.{{ index $meta "apiGroup" }}
 echo "Creating {{ index $meta "kind" }} CR..."
@@ -225,10 +232,10 @@ EOF
 {{- end -}}
 
 {{/*
-Emit kubectl delete commands for all enabled component CRs and provider KE CRs.
-Include with: {{- include "rhai-on-xks-chart.crDeleteCommands" . | nindent 14 }}
+Emit kubectl delete commands for all enabled component CRs.
+Include with: {{- include "rhai-on-xks-chart.componentDeleteCommands" . | nindent 14 }}
 */}}
-{{- define "rhai-on-xks-chart.crDeleteCommands" -}}
+{{- define "rhai-on-xks-chart.componentDeleteCommands" -}}
 {{- $compRegistry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
 {{- range $name := keys $compRegistry | sortAlpha }}
   {{- $meta := index $compRegistry $name }}
@@ -238,6 +245,13 @@ echo "Deleting {{ index $meta "kind" }} CR '{{ index $meta "crName" }}'..."
 kubectl delete {{ index $meta "resourceSingular" }} {{ index $meta "crName" }} --ignore-not-found --timeout=300s
   {{- end }}
 {{- end }}
+{{- end -}}
+
+{{/*
+Emit kubectl delete command for the provider KE CR.
+Include with: {{- include "rhai-on-xks-chart.providerKEDeleteCommands" . | nindent 14 }}
+*/}}
+{{- define "rhai-on-xks-chart.providerKEDeleteCommands" -}}
 {{- $provider := include "rhai-on-xks-chart.activeProvider" . | fromYaml }}
 {{- if and $provider (index $provider "keEnabled") }}
 echo "Deleting {{ index $provider "keKind" }} CR '{{ index $provider "keName" }}'..."

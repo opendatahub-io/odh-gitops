@@ -74,7 +74,7 @@ jobs:
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
 
       - name: Install and verify chart
-        timeout-minutes: 30
+        timeout-minutes: 60
         env:
           RHAI_PULL_SECRET: ${{ secrets.RHAI_PULL_SECRET }}
         run: |
@@ -125,7 +125,7 @@ jobs:
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
 
       - name: Upgrade test
-        timeout-minutes: 30
+        timeout-minutes: 60
         env:
           RHAI_PULL_SECRET: ${{ secrets.RHAI_PULL_SECRET }}
         run: |

@@ -18,7 +18,7 @@ INTERVAL="${INTERVAL:-5}"
 
 CRDS=(
     "kueues.kueue.openshift.io"
-    "leaderworkersetoperators.operator.openshift.io"
+    # "leaderworkersetoperators.operator.openshift.io" # not installed by default
     "jobsetoperators.operator.openshift.io"
     "kuadrants.kuadrant.io"
     # "nodefeaturediscoveries.nfd.openshift.io"
