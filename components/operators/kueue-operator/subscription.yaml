@@ -4,7 +4,7 @@ metadata:
   name: kueue-operator
   namespace: openshift-kueue-operator
 spec:
-  channel: stable-v1.3
+  channel: stable-v1.4
   name: kueue-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
