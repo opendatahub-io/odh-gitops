@@ -345,7 +345,7 @@ helm_deploy() {
     read -ra helm_extra <<< "$HELM_EXTRA_ARGS"
   fi
   log "helm upgrade --install $RELEASE_NAME ${version_args[*]:+(${version_args[*]})}"
-  helm upgrade --install "$RELEASE_NAME" "$chart_ref" \
+  if ! helm upgrade --install "$RELEASE_NAME" "$chart_ref" \
     -n "$NAMESPACE" --create-namespace \
     --set "${CLOUD_PROVIDER}.enabled=true" \
     ${version_args[@]+"${version_args[@]}"} \
@@ -353,7 +353,17 @@ helm_deploy() {
     ${secret_args[@]+"${secret_args[@]}"} \
     ${helm_extra[@]+"${helm_extra[@]}"} \
     ${extra_args[@]+"${extra_args[@]}"} \
-    --timeout 10m
+    --timeout 10m; then
+    log "Helm deploy failed — dumping hook job logs..."
+    local hook_jobs=(rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
+    for job in "${hook_jobs[@]}"; do
+      if kubectl get "job/${job}" -n "$NAMESPACE" &>/dev/null; then
+        echo "  --- job: ${job} ---"
+        kubectl logs "job/${job}" -n "$NAMESPACE" --tail=100 2>/dev/null || true
+      fi
+    done
+    return 1
+  fi
 }
 
 wait_ke_ready() {
