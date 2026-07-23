@@ -117,6 +117,12 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   components:
+    aigateway:
+      batchGateway:
+        managementState: Removed
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
     aipipelines:
       managementState: Managed
     dashboard:
@@ -125,8 +131,6 @@ spec:
       managementState: Managed
     kserve:
       managementState: Managed
-      modelsAsService:
-        managementState: Managed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless

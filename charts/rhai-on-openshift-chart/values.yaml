@@ -93,6 +93,56 @@ services:
 #   defaults: (optional) Operator-type-specific defaults for dsc fields
 # =============================================================================
 components:
+  # -- AI Gateway component (manages MaaS and BatchGateway sub-components)
+  aigateway:
+    dependencies: {}
+    # -- DSC configuration for AI Gateway
+    dsc:
+      # -- Management state for AI Gateway. Null uses profile default.
+      managementState:
+      # -- Models as a Service sub-component (moved from kserve.modelsAsService in 3.5)
+      modelsAsAService:
+        # -- Management state for Models as a Service. Null uses profile default.
+        managementState:
+      batchGateway:
+        managementState:
+    # -- Gateway and GatewayClass resources for MaaS (created independently of DSC)
+    modelsAsAService:
+      # -- GatewayClass configuration for the LLMInferenceService.
+      gatewayClass:
+        # -- Create the GatewayClass: auto (if modelsAsAService is Managed), true (always), false (never)
+        create: auto
+        name: maas-gateway-class
+        spec:
+          controllerName: "openshift.io/gateway-controller/v1"
+      # -- Gateway configuration for the LLMInferenceService.
+      gateway:
+        # -- Create the Gateway: auto (if modelsAsAService is Managed), true (always), false (never)
+        create: auto
+        name: maas-default-gateway
+        namespace: openshift-ingress
+        annotations:
+          security.opendatahub.io/authorino-tls-bootstrap: "true"
+          opendatahub.io/managed: "false"
+        spec:
+          gatewayClassName: maas-gateway-class
+          listeners:
+            - name: https
+              port: 443
+              protocol: HTTPS
+              allowedRoutes:
+                namespaces:
+                  from: All
+              # Uncomment to enable client-facing TLS termination (required for HTTPS).
+              # security.opendatahub.io/authorino-tls-bootstrap handles Gateway-to-Authorino
+              # TLS only; it does not supply client-facing certificates.
+              # tls:
+              #   mode: Terminate
+              #   certificateRefs:
+              #   - group: ''
+              #     kind: Secret
+              #     name: <YOUR_TLS_SECRET>
+
   # -- AI Pipelines component
   aipipelines:
     # -- Dependencies required by AI Pipelines
@@ -134,10 +184,6 @@ components:
     dsc:
       # -- Management state for KServe. Null uses profile default.
       managementState:
-      # -- Models as Service configuration
-      modelsAsService:
-        # -- Management state for Models as Service. Null uses profile default.
-        managementState:
       # -- Enables NVIDIA NIM integration
       nim:
         # -- Management state for NIM. Null uses profile default.
@@ -194,49 +240,6 @@ components:
             #     kind: Secret
             #     name: <SECRET_NAME>
             #   mode: Terminate
-    modelsAsService:
-      # -- Gateway Class configuration for the LLMInferenceService.
-      gatewayClass:
-        # -- Flag to create the Gateway Class (auto, true, false). If auto, it will be created if Models as Service is Managed.
-        create: false
-        name: maas-gateway-class
-        spec:
-          controllerName: "openshift.io/gateway-controller/v1"
-      # -- Gateway configuration for the LLMInferenceService.
-      gateway:
-        # -- Flag to create the Gateway (auto, true, false). If auto, it will be created if Models as Service is Managed.
-        create: false
-        name: maas-default-gateway
-        namespace: openshift-ingress
-        annotations:
-          security.opendatahub.io/authorino-tls-bootstrap: "true"
-          opendatahub.io/managed: "false"
-        spec:
-          gatewayClassName: maas-gateway-class
-          listeners:
-            - name: https
-              port: 443
-              # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
-              protocol: HTTPS
-              allowedRoutes:
-                namespaces:
-                  from: All
-                  # The following is an example of how to restrict the namespaces to the interested ones.
-                  # from: Selector
-                  # selector:
-                  #   matchExpressions:
-                  #   - key: kubernetes.io/metadata.name
-                  #     operator: In
-                  #     values:
-                  #     - openshift-ingress
-                  #     - ...
-              # tls: # Uncomment this to enable TLS termination for the Gateway.
-              #   certificateRefs:
-              #   - group: ''
-              #     kind: Secret
-              #     name: <SECRET_NAME>
-              #   mode: Terminate
-
 
   # -- Kueue job queuing component
   kueue:

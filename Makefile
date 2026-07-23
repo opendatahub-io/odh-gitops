@@ -232,7 +232,7 @@ CHART_NAME ?=
 CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),rhai-on-openshift-chart)
 
 # Snapshot configuration (in scripts directory)
-HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
+HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
 chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
@@ -261,8 +261,8 @@ helm-verify: ## Verify helm chart installation and DSC components
 HELM_EXTRA_ARGS ?=
 HELM_INSTALL_VALUES_FILE ?= docs/examples/values-all-components-managed.yaml
 # Remove ogx to avoid nfd and nvidiaGPUOperator dependencies installation on tests.
-# TODO: Remove modelsAsService as it depends on PostgreSQL, need to support it in the chart
-HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.kserve.dsc.modelsAsService.managementState=Removed
+# Keep modelsAsAService Removed in CI — it depends on PostgreSQL (not installed by the chart yet).
+HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation

@@ -111,6 +111,9 @@
         "feastoperator": {
           "$ref": "#/definitions/component"
         },
+        "aigateway": {
+          "$ref": "#/definitions/aigatewayComponent"
+        },
         "kserve": {
           "$ref": "#/definitions/kserveComponent"
         },
@@ -502,15 +505,6 @@
                 }
               },
               "additionalProperties": false
-            },
-            "modelsAsService": {
-              "type": "object",
-              "description": "Models as Service configuration for KServe",
-              "properties": {
-                "managementState": {
-                  "$ref": "#/definitions/defaultManagementState"
-                }
-              }
             }
           },
           "additionalProperties": false
@@ -520,10 +514,51 @@
         },
         "gateway": {
           "$ref": "#/definitions/gatewayConfig"
+        }
+      },
+      "required": ["dsc", "dependencies"],
+      "additionalProperties": false
+    },
+    "aigatewayComponent": {
+      "type": "object",
+      "description": "AI Gateway component configuration (manages MaaS and BatchGateway).",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
         },
-        "modelsAsService": {
+        "dsc": {
           "type": "object",
-          "description": "Models as Service configuration for KServe",
+          "description": "DSC configuration for AI Gateway",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "modelsAsAService": {
+              "type": "object",
+              "description": "Models as a Service sub-component (moved from kserve.modelsAsService in 3.5)",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            },
+            "batchGateway": {
+              "type": "object",
+              "description": "Batch Gateway sub-component",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "modelsAsAService": {
+          "type": "object",
+          "description": "Gateway and GatewayClass resources for MaaS",
           "properties": {
             "gateway": {
               "$ref": "#/definitions/gatewayConfig"
@@ -531,10 +566,11 @@
             "gatewayClass": {
               "$ref": "#/definitions/gatewayClassConfig"
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
-      "required": ["dsc", "modelsAsService", "dependencies"],
+      "required": ["dsc"],
       "additionalProperties": false
     },
     "modelregistryComponent": {
