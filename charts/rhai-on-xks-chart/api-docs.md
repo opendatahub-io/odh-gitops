@@ -87,6 +87,8 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | hooks.resources.requests.memory | string | `"64Mi"` |  |
 | imagePullSecret.dependencyNamespaces[0] | string | `"cert-manager-operator"` |  |
 | imagePullSecret.dependencyNamespaces[1] | string | `"cert-manager"` |  |
+| imagePullSecret.dependencyNamespaces[2] | string | `"kuadrant-operators"` |  |
+| imagePullSecret.dependencyNamespaces[3] | string | `"kuadrant-system"` |  |
 | imagePullSecret.dockerConfigJson | string | `""` |  |
 | imagePullSecret.name | string | `"rhai-pull-secret"` |  |
 | installCRDs | bool | `true` |  |

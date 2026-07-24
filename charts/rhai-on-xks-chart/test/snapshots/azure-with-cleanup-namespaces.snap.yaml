@@ -2772,6 +2772,8 @@ rules:
     resourceNames:
       - cert-manager-operator
       - cert-manager
+      - kuadrant-operators
+      - kuadrant-system
       - istio-system
       - redhat-ods-operator
       - redhat-ods-applications
@@ -3267,6 +3269,10 @@ spec:
               kubectl delete namespace 'cert-manager-operator' --ignore-not-found --timeout=60s
               echo "Deleting namespace 'cert-manager'..."
               kubectl delete namespace 'cert-manager' --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'kuadrant-operators'..."
+              kubectl delete namespace 'kuadrant-operators' --ignore-not-found --timeout=60s
+              echo "Deleting namespace 'kuadrant-system'..."
+              kubectl delete namespace 'kuadrant-system' --ignore-not-found --timeout=60s
               echo "Deleting namespace 'istio-system'..."
               kubectl delete namespace 'istio-system' --ignore-not-found --timeout=60s
               echo "Deleting namespace 'redhat-ods-operator'..."
