@@ -1,0 +1,13 @@
+apiVersion: v2
+name: rhoai-operator
+description: OpenDataHub/RHOAI Operator for vanilla Kubernetes (without OLM)
+type: application
+version: 1.0.0
+appVersion: "3.4.0-ea.1"
+keywords:
+  - opendatahub
+  - rhoai
+  - operator
+  - kserve
+maintainers:
+  - name: Red Hat

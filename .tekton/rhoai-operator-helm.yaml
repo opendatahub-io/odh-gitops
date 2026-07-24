@@ -1,0 +1,200 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-gitops?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: "{{revision}}"
+    build.appstudio.redhat.com/target_branch: "{{target_branch}}"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main"
+  labels:
+    appstudio.openshift.io/application: opendatahub-poc
+    appstudio.openshift.io/component: poc-rhoai-operator-helm
+    pipelines.appstudio.openshift.io/type: build
+  name: poc-rhoai-operator-helm-on-push
+  namespace: open-data-hub-tenant
+spec:
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-poc-rhoai-operator-helm
+  params:
+    - name: git-url
+      value: "{{source_url}}"
+    - name: revision
+      value: "{{revision}}"
+    - name: output-image
+      value: quay.io/redhat-user-workloads/open-data-hub-tenant/poc-rhoai-operator-helm:{{revision}}
+    - name: path-context
+      value: "charts/rhoai-operator"
+    - name: hermetic
+      value: "false"
+  pipelineSpec:
+    description: |
+      Pipeline for building the RHOAI operator Helm chart as an OCI artifact.
+    params:
+      - description: Source Repository URL
+        name: git-url
+        type: string
+      - default: ""
+        description: Revision of the Source Repository
+        name: revision
+        type: string
+      - description: Fully Qualified Output Image
+        name: output-image
+        type: string
+      - default: .
+        description: Path to the Helm chart directory
+        name: path-context
+        type: string
+      - default: "false"
+        description: Skip checks against built image
+        name: skip-checks
+        type: string
+      - default: "false"
+        description: Execute the build with network isolation
+        name: hermetic
+        type: string
+      - default: ""
+        description: Build dependencies to be prefetched by Cachi2
+        name: prefetch-input
+        type: string
+      - default: ""
+        description: Image tag expiration time
+        name: image-expires-after
+        type: string
+      - default: "false"
+        description: Build a source image
+        name: build-source-image
+        type: string
+    results:
+      - description: ""
+        name: IMAGE_URL
+        value: $(tasks.build-helm-chart.results.IMAGE_URL)
+      - description: ""
+        name: IMAGE_DIGEST
+        value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
+      - description: ""
+        name: CHAINS-GIT_URL
+        value: $(tasks.clone-repository.results.url)
+      - description: ""
+        name: CHAINS-GIT_COMMIT
+        value: $(tasks.clone-repository.results.commit)
+    tasks:
+      - name: init
+        taskRef:
+          params:
+            - name: name
+              value: init
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-init:0.3@sha256:aa6f8632cc23d605c5942505ff1d00280db16a6fda5c4c56c4ed9ae936b5fbc6
+            - name: kind
+              value: task
+          resolver: bundles
+      - name: clone-repository
+        params:
+          - name: url
+            value: $(params.git-url)
+          - name: revision
+            value: $(params.revision)
+          - name: ociStorage
+            value: $(params.output-image).git
+          - name: ociArtifactExpiresAfter
+            value: $(params.image-expires-after)
+        runAfter:
+          - init
+        taskRef:
+          params:
+            - name: name
+              value: git-clone-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-git-clone-oci-ta:0.1@sha256:306b69e6db435ad4a7cf258b6219d9b998eb37da44f5e9ac882ac86a08109154
+            - name: kind
+              value: task
+          resolver: bundles
+        workspaces:
+          - name: basic-auth
+            workspace: git-auth
+      - name: prefetch-dependencies
+        params:
+          - name: input
+            value: $(params.prefetch-input)
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+          - name: ociStorage
+            value: $(params.output-image).prefetch
+          - name: ociArtifactExpiresAfter
+            value: $(params.image-expires-after)
+        runAfter:
+          - clone-repository
+        taskRef:
+          params:
+            - name: name
+              value: prefetch-dependencies-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.2@sha256:c07551efbd7fc414ae1245ddd93579b00317fee0734980f539fd8aea3cfcb945
+            - name: kind
+              value: task
+          resolver: bundles
+        workspaces:
+          - name: git-basic-auth
+            workspace: git-auth
+          - name: netrc
+            workspace: netrc
+      - name: build-helm-chart
+        params:
+          - name: IMAGE
+            value: $(params.output-image)
+          - name: CHART_CONTEXT
+            value: $(params.path-context)
+          - name: COMMIT_SHA
+            value: $(tasks.clone-repository.results.commit)
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+          - name: VERSION_SUFFIX
+            value: ""
+        runAfter:
+          - prefetch-dependencies
+        taskRef:
+          params:
+            - name: name
+              value: build-helm-chart-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:23de031fcad1479aa718ddfa764ca0532452a2d75dd2f1c23161bd6142c7251a
+            - name: kind
+              value: task
+          resolver: bundles
+      - name: build-source-image
+        params:
+          - name: BINARY_IMAGE
+            value: $(tasks.build-helm-chart.results.IMAGE_URL)
+          - name: BINARY_IMAGE_DIGEST
+            value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+          - name: CACHI2_ARTIFACT
+            value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+        runAfter:
+          - build-helm-chart
+        taskRef:
+          params:
+            - name: name
+              value: source-build-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-source-build-oci-ta:0.3@sha256:c35ba219390d77a48ee19347e5ee8d13e5c23e3984299e02291d6da1ed8a986c
+            - name: kind
+              value: task
+          resolver: bundles
+        when:
+          - input: $(params.build-source-image)
+            operator: in
+            values:
+              - "true"
+    workspaces:
+      - name: git-auth
+        optional: true
+      - name: netrc
+        optional: true
+  workspaces:
+    - name: git-auth
+      secret:
+        secretName: "{{ git_auth_secret }}"
