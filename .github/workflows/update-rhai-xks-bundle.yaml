@@ -1,9 +1,13 @@
 name: Update RHAI XKS Bundle
 
 on:
-  # Run daily at 6:00 AM UTC
+  # Run daily at 6:00 AM UTC (safety-net fallback)
   schedule:
     - cron: '0 6 * * *'
+
+  # Triggered by rhods-operator when manifest-relevant changes merge
+  repository_dispatch:
+    types: [operator-manifest-update]
 
   workflow_dispatch:
     inputs:
@@ -44,11 +48,13 @@ jobs:
         env:
           VERSION_INPUT: ${{ github.event.inputs.version }}
           BRANCH_INPUT: ${{ github.event.inputs.branch }}
+          DISPATCH_BRANCH: ${{ github.event.client_payload.branch }}
         run: |
           echo "=== RHAI XKS Bundle Configuration ==="
 
           # Set defaults and override with inputs if provided
-          BRANCH="${BRANCH_INPUT:-main}"
+          # repository_dispatch payload takes precedence, then workflow_dispatch input, then default
+          BRANCH="${DISPATCH_BRANCH:-${BRANCH_INPUT:-main}}"
           if [[ -z "$VERSION_INPUT" ]]; then
             VERSION=$(make -s print-rhoai-version)
             echo "Using RHOAI_VERSION from Makefile: $VERSION"
@@ -122,7 +128,7 @@ jobs:
 
             **Source Branch**: ${{ env.BRANCH }}
             **Version**: ${{ env.VERSION }}
-            **Triggered by**: ${{ github.event_name == 'schedule' && 'Scheduled run' || 'Manual trigger' }}
+            **Triggered by**: ${{ github.event_name == 'repository_dispatch' && format('Operator change (commit {0})', github.event.client_payload.sha) || github.event_name == 'schedule' && 'Scheduled run' || 'Manual trigger' }}
 
             This PR updates the RHAI XKS chart templates and snapshots to stay current with the rhods-operator repository.
 
