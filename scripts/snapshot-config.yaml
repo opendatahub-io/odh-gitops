@@ -193,3 +193,9 @@ charts:
         setFlags:
           - azure.enabled=true
           - components.aigateway.enabled=true
+
+      - name: azure-with-maas-and-pull-secret
+        setFlags:
+          - azure.enabled=true
+          - components.aigateway.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
