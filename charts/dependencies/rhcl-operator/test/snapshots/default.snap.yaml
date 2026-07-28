@@ -38,6 +38,8 @@ kind: ServiceAccount
 metadata:
   name: default
   namespace: kuadrant-system
+  annotations:
+    helm.sh/resource-policy: keep
 imagePullSecrets:
   - name: rhai-pull-secret
 
