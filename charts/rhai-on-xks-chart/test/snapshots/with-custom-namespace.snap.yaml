@@ -93,15 +93,6 @@ imagePullSecrets:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: kserve-controller-manager
-  namespace: rhai-applications
-imagePullSecrets:
-  - name: rhai-pull-secret
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
   name: kserve-module-controller-manager
   namespace: rhai-applications
 imagePullSecrets:
