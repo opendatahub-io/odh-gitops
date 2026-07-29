@@ -7,7 +7,7 @@
 RELEASE_NAME="${RELEASE_NAME:-rhai-on-xks}"
 NAMESPACE="${NAMESPACE:-rhai-on-xks}"
 CLOUD_PROVIDER="${CLOUD_PROVIDER:-azure}"
-TIMEOUT="${TIMEOUT:-300}"
+TIMEOUT="${TIMEOUT:-600}"
 CHART="${CHART:-./charts/rhai-on-xks-chart}"
 VALUES_FILE="${VALUES_FILE:-}"
 PULL_SECRET="${PULL_SECRET:-}"
@@ -354,12 +354,24 @@ helm_deploy() {
     ${helm_extra[@]+"${helm_extra[@]}"} \
     ${extra_args[@]+"${extra_args[@]}"} \
     --timeout 10m; then
-    log "Helm deploy failed — dumping hook job logs..."
+    log "Helm deploy failed — dumping debug info..."
     local hook_jobs=(rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
     for job in "${hook_jobs[@]}"; do
       if kubectl get "job/${job}" -n "$NAMESPACE" &>/dev/null; then
-        echo "  --- job: ${job} ---"
-        kubectl logs "job/${job}" -n "$NAMESPACE" --tail=100 2>/dev/null || true
+        echo "  === job: ${job} ==="
+        kubectl describe "job/${job}" -n "$NAMESPACE" 2>/dev/null || true
+        echo "  --- job logs (all containers): ${job} ---"
+        kubectl logs "job/${job}" -n "$NAMESPACE" --all-containers --tail=100 2>/dev/null || true
+        for pod in $(kubectl get pods -n "$NAMESPACE" -l "job-name=${job}" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+          local phase
+          phase=$(kubectl get pod "${pod}" -n "$NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null)
+          if [[ "$phase" != "Succeeded" ]]; then
+            echo "  --- pod: ${pod} (${phase}) ---"
+            kubectl describe pod "${pod}" -n "$NAMESPACE" 2>/dev/null || true
+            echo "  --- previous logs: ${pod} ---"
+            kubectl logs "${pod}" -n "$NAMESPACE" --all-containers --previous --tail=50 2>/dev/null || true
+          fi
+        done
       fi
     done
     return 1
