@@ -26,11 +26,8 @@ rules:
       - ""
     resources:
       - namespaces
-      - serviceaccounts
     verbs:
       - get
-      - list
-      - watch
       - create
       - patch
 ---
