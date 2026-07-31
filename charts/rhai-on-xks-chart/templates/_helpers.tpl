@@ -111,6 +111,9 @@ Usage:
     {{- end }}
   {{- end }}
 {{- end }}
+{{- if and .root.Values.components.aigateway.enabled (eq (dig "spec" "modelsAsAService" "managementState" "" .root.Values.components.aigateway) "Managed") }}
+  {{- $namespaces = append $namespaces "redhat-ai-gateway-infra" }}
+{{- end }}
 {{- dict "items" ($namespaces | uniq) | toJson }}
 {{- end -}}
 
