@@ -150,6 +150,7 @@ rules:
       - namespaces
     resourceNames:
       - {{ $maasGwNs }}
+      - kuadrant-system
     verbs:
       - get
       - create
@@ -239,6 +240,73 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: rhai-post-install-hook-cert
+subjects:
+  - kind: ServiceAccount
+    name: rhai-post-install-hook
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- if and .Values.components.aigateway.enabled (eq (dig "spec" "modelsAsAService" "managementState" "" .Values.components.aigateway) "Managed") }}
+---
+# Permissions in kuadrant-system for Authorino TLS and CA trust setup.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rhai-post-install-hook-kuadrant
+  namespace: kuadrant-system
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rhai-post-install-hook-kuadrant
+  namespace: kuadrant-system
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rhai-post-install-hook-kuadrant
 subjects:
   - kind: ServiceAccount
     name: rhai-post-install-hook

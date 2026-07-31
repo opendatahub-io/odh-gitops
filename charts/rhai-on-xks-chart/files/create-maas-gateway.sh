@@ -186,11 +186,20 @@ if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
   kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt \
     -n "$KUADRANT_NS" --dry-run=client -o yaml | kubectl apply -f -
 
-  kubectl patch deployment authorino -n "$KUADRANT_NS" --type=json -p='[
-    {"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"rhai-ca","configMap":{"name":"rhai-ca-bundle"}}},
-    {"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"rhai-ca","mountPath":"/etc/pki/tls/custom","readOnly":true}},
-    {"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{"name":"SSL_CERT_FILE","value":"/etc/pki/tls/custom/ca.crt"}}
-  ]'
+  kubectl patch deployment authorino -n "$KUADRANT_NS" --type=strategic -p='{
+    "spec": {
+      "template": {
+        "spec": {
+          "volumes": [{"name":"rhai-ca","configMap":{"name":"rhai-ca-bundle"}}],
+          "containers": [{
+            "name": "authorino",
+            "volumeMounts": [{"name":"rhai-ca","mountPath":"/etc/pki/tls/custom","readOnly":true}],
+            "env": [{"name":"SSL_CERT_FILE","value":"/etc/pki/tls/custom/ca.crt"}]
+          }]
+        }
+      }
+    }
+  }'
   echo "Authorino CA trust configured."
 
   echo "Creating Authorino TLS serving certificate (xKS equivalent of setup-authorino-tls.sh)..."
