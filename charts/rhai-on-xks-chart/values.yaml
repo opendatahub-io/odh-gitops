@@ -18,7 +18,6 @@ rhaiOperator:
   # Operator namespace
   namespace: redhat-ods-operator
   applicationsNamespace: redhat-ods-applications
-  infrastructureNamespace: redhat-ai-gateway-infra
   # Manager container image
   image: quay.io/opendatahub/opendatahub-operator:latest # image is updated during Helm chart build by konflux
   # Image pull policy

@@ -6,6 +6,14 @@ Expand the name of the chart.
 {{- end }}
 
 {{/*
+Internal infrastructure namespace used by ai-gateway-operator for maas-api and payload-processing.
+Not user-configurable — defined here to avoid repetition across templates.
+*/}}
+{{- define "rhai-on-xks-chart.infrastructureNamespace" -}}
+redhat-ai-gateway-infra
+{{- end -}}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "rhai-on-xks-chart.chart" -}}
@@ -112,7 +120,7 @@ Usage:
   {{- end }}
 {{- end }}
 {{- if and .root.Values.components.aigateway.enabled (eq (dig "spec" "modelsAsAService" "managementState" "" .root.Values.components.aigateway) "Managed") }}
-  {{- $namespaces = append $namespaces .root.Values.rhaiOperator.infrastructureNamespace }}
+  {{- $namespaces = append $namespaces (include "rhai-on-xks-chart.infrastructureNamespace" .root) }}
 {{- end }}
 {{- dict "items" ($namespaces | uniq) | toJson }}
 {{- end -}}

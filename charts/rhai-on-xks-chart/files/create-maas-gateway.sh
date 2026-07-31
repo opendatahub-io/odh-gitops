@@ -1,5 +1,5 @@
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
-{{- $infraNs := .Values.rhaiOperator.infrastructureNamespace -}}
+{{- $infraNs := include "rhai-on-xks-chart.infrastructureNamespace" . -}}
 {{- $tls := .Values.gateway.tls -}}
 {{- $maasGwNs := .Values.components.aigateway.modelsAsAService.gateway.namespace | default $appNs -}}
 {{- $maasGwName := .Values.components.aigateway.modelsAsAService.gateway.name -}}
@@ -201,49 +201,6 @@ if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
     }
   }'
   echo "Authorino CA trust configured."
-
-  echo "Creating Authorino TLS serving certificate (xKS equivalent of setup-authorino-tls.sh)..."
-  kubectl apply -f - <<EOF
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: authorino-server-cert
-  namespace: $KUADRANT_NS
-spec:
-  secretName: authorino-server-cert
-  issuerRef:
-    name: {{ $tls.issuerRef.name }}
-    kind: {{ $tls.issuerRef.kind }}
-    group: cert-manager.io
-  dnsNames:
-    - "authorino.$KUADRANT_NS.svc"
-    - "authorino.$KUADRANT_NS.svc.cluster.local"
-    - "authorino-authorino-authorization.$KUADRANT_NS.svc"
-    - "authorino-authorino-authorization.$KUADRANT_NS.svc.cluster.local"
-EOF
-  authorino_cert_ready() {
-    [ "$(kubectl get certificate authorino-server-cert -n "$KUADRANT_NS" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
-  }
-  wait_for "Authorino server cert to be Ready" authorino_cert_ready
-
-  echo "Patching Authorino CR to enable TLS with cert-manager certificate..."
-  if kubectl get authorino authorino -n "$KUADRANT_NS" >/dev/null 2>&1; then
-    kubectl patch authorino authorino -n "$KUADRANT_NS" --type=merge -p '{
-      "spec": {
-        "listener": {
-          "tls": {
-            "enabled": true,
-            "certSecretRef": {
-              "name": "authorino-server-cert"
-            }
-          }
-        }
-      }
-    }'
-    echo "Authorino TLS listener configured with cert-manager certificate."
-  else
-    echo "Authorino CR not found, skipping TLS listener config."
-  fi
 else
   echo "Kuadrant namespace not found, skipping Authorino CA trust."
 fi

@@ -281,6 +281,8 @@ rules:
       - operator.authorino.kuadrant.io
     resources:
       - authorinos
+    resourceNames:
+      - authorino
     verbs:
       - get
       - patch
@@ -289,6 +291,8 @@ rules:
       - apps
     resources:
       - deployments
+    resourceNames:
+      - authorino
     verbs:
       - get
       - patch
