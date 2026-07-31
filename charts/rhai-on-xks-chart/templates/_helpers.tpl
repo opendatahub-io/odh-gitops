@@ -119,10 +119,23 @@ Usage:
     {{- end }}
   {{- end }}
 {{- end }}
-{{- if and .root.Values.components.aigateway.enabled (eq (dig "spec" "modelsAsAService" "managementState" "" .root.Values.components.aigateway) "Managed") }}
-  {{- $namespaces = append $namespaces (include "rhai-on-xks-chart.infrastructureNamespace" .root) }}
-{{- end }}
 {{- dict "items" ($namespaces | uniq) | toJson }}
+{{- end -}}
+
+{{/*
+Return "true" when MaaS (modelsAsAService) is enabled and Managed.
+*/}}
+{{- define "rhai-on-xks-chart.maasManaged" -}}
+{{- if and .Values.components.aigateway.enabled (eq (dig "spec" "modelsAsAService" "managementState" "" .Values.components.aigateway) "Managed") -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the infrastructure namespace for MaaS workloads (e.g. payload-processing).
+*/}}
+{{- define "rhai-on-xks-chart.maasInfrastructureNamespace" -}}
+redhat-ai-gateway-infra
 {{- end -}}
 
 {{/*
