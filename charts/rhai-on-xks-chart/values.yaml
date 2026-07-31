@@ -120,17 +120,22 @@ components:
         gatewayClassName: istio
         allowedRoutes:
           namespaces:
-            # Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector).
+            # Which namespaces can attach HTTPRoutes to the MaaS Gateway.
             # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
-            from: Same
-            # Example for All (any namespace can attach routes):
-            # from: All
             #
-            # Example for Selector (only namespaces matching labels):
-            # from: Selector
-            # selector:
-            #   matchLabels:
-            #     maas-gateway-access: "true"
+            # IMPORTANT: MaaS creates HTTPRoutes in the model namespace (e.g. models-as-a-service),
+            # which differs from the gateway namespace (redhat-ods-applications). To allow
+            # ExternalModel/LLMInferenceService routes to attach, use a Selector to grant
+            # access to the model namespace:
+            #
+            #   from: Selector
+            #   selector:
+            #     matchLabels:
+            #       maas-gateway-access: "true"
+            #
+            # Then label the model namespace:
+            #   kubectl label ns models-as-a-service maas-gateway-access=true
+            from: Same
 
 # Azure cloud configuration
 azure:
