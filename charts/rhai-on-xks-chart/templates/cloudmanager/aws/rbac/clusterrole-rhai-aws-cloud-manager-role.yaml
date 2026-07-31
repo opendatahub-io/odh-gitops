@@ -168,6 +168,21 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
+      - metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
       - openshift-lws-operator-clusterrole
     resources:
       - clusterroles

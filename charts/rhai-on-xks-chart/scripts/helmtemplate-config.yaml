@@ -90,6 +90,9 @@ rules:
         value: '{{ .Values.rhaiOperator.applicationsNamespace | quote }}'
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_VERSION].value
         value: '{{ .Chart.AppVersion | quote }}'
+      # Remove hardcoded kuberay operator image
+      - action: delete
+        path: .spec.template.spec.containers[name=rhods-operator].env[name=RELATED_IMAGE_*]
       # Add related images env vars
       - path: .spec.template.spec.containers[name=rhods-operator].env
         appendWith: |
