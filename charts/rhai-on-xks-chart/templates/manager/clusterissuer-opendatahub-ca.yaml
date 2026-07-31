@@ -1,0 +1,14 @@
+{{/*
+Compatibility ClusterIssuer: module operators (e.g. ai-gateway-operator) reference
+"opendatahub-ca-issuer" which exists on OCP but not on xKS.
+This creates an alias backed by the same CA secret used by rhai-ca-issuer.
+*/}}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: opendatahub-ca-issuer
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: rhai-ca
