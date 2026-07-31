@@ -3236,6 +3236,18 @@ spec:
                   - "maas-api.${INFRA_NS}.svc.cluster.local"
               EOF
               
+              echo "Step 5b: Create odh-kserve-config ConfigMap (cert-manager issuer for KServe module)..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: odh-kserve-config
+                namespace: "redhat-ods-applications"
+              data:
+                certManager.issuer: "rhai-ca-issuer"
+                certManager.issuerKind: "ClusterIssuer"
+              EOF
+              
               echo "Step 6: Create MaaS Gateway..."
               kubectl apply -f - <<'EOF'
               apiVersion: gateway.networking.k8s.io/v1
@@ -3316,9 +3328,10 @@ spec:
                   - "authorino-authorino-authorization.$KUADRANT_NS.svc"
                   - "authorino-authorino-authorization.$KUADRANT_NS.svc.cluster.local"
               EOF
-                echo "Waiting for Authorino server cert to be ready..."
-                kubectl wait --for=condition=Ready certificate/authorino-server-cert \
-                  -n "$KUADRANT_NS" --timeout=60s 2>/dev/null || true
+                authorino_cert_ready() {
+                  [ "$(kubectl get certificate authorino-server-cert -n "$KUADRANT_NS" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+                }
+                wait_for "Authorino server cert to be Ready" authorino_cert_ready
               
                 echo "Patching Authorino CR to enable TLS with cert-manager certificate..."
                 if kubectl get authorino authorino -n "$KUADRANT_NS" >/dev/null 2>&1; then

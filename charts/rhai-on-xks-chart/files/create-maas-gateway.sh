@@ -1,4 +1,5 @@
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
+{{- $infraNs := .Values.rhaiOperator.infrastructureNamespace -}}
 {{- $tls := .Values.gateway.tls -}}
 {{- $maasGwNs := .Values.components.aigateway.modelsAsAService.gateway.namespace | default $appNs -}}
 {{- $maasGwName := .Values.components.aigateway.modelsAsAService.gateway.name -}}
@@ -99,7 +100,7 @@ wait_for "MaaS gateway Certificate to be Ready" maas_gw_cert_ready
 {{- end }}
 
 echo "Step 5: Create MaaS API serving Certificate..."
-INFRA_NS="redhat-ai-gateway-infra"
+INFRA_NS={{ $infraNs | quote }}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -115,6 +116,18 @@ spec:
   dnsNames:
     - "maas-api.${INFRA_NS}.svc"
     - "maas-api.${INFRA_NS}.svc.cluster.local"
+EOF
+
+echo "Step 5b: Create odh-kserve-config ConfigMap (cert-manager issuer for KServe module)..."
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odh-kserve-config
+  namespace: {{ $appNs | quote }}
+data:
+  certManager.issuer: {{ $tls.issuerRef.name | quote }}
+  certManager.issuerKind: {{ $tls.issuerRef.kind | quote }}
 EOF
 
 echo "Step 6: Create MaaS Gateway..."
@@ -199,9 +212,10 @@ spec:
     - "authorino-authorino-authorization.$KUADRANT_NS.svc"
     - "authorino-authorino-authorization.$KUADRANT_NS.svc.cluster.local"
 EOF
-  echo "Waiting for Authorino server cert to be ready..."
-  kubectl wait --for=condition=Ready certificate/authorino-server-cert \
-    -n "$KUADRANT_NS" --timeout=60s 2>/dev/null || true
+  authorino_cert_ready() {
+    [ "$(kubectl get certificate authorino-server-cert -n "$KUADRANT_NS" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
+  }
+  wait_for "Authorino server cert to be Ready" authorino_cert_ready
 
   echo "Patching Authorino CR to enable TLS with cert-manager certificate..."
   if kubectl get authorino authorino -n "$KUADRANT_NS" >/dev/null 2>&1; then

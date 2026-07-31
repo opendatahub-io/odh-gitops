@@ -18,6 +18,7 @@ rhaiOperator:
   # Operator namespace
   namespace: redhat-ods-operator
   applicationsNamespace: redhat-ods-applications
+  infrastructureNamespace: redhat-ai-gateway-infra
   # Manager container image
   image: quay.io/opendatahub/opendatahub-operator:latest # image is updated during Helm chart build by konflux
   # Image pull policy
@@ -123,10 +124,9 @@ components:
             # Which namespaces can attach HTTPRoutes to the MaaS Gateway.
             # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
             #
-            # IMPORTANT: MaaS creates HTTPRoutes in the model namespace (e.g. models-as-a-service),
+            # MaaS creates HTTPRoutes in the model namespace (e.g. models-as-a-service),
             # which differs from the gateway namespace (redhat-ods-applications). To allow
-            # ExternalModel/LLMInferenceService routes to attach, use a Selector to grant
-            # access to the model namespace:
+            # ExternalModel/LLMInferenceService routes to attach, configure a Selector:
             #
             #   from: Selector
             #   selector:
