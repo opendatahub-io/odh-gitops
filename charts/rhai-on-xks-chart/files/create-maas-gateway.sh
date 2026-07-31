@@ -99,12 +99,13 @@ wait_for "MaaS gateway Certificate to be Ready" maas_gw_cert_ready
 {{- end }}
 
 echo "Step 5: Create MaaS API serving Certificate..."
-kubectl apply -f - <<'EOF'
+INFRA_NS="redhat-ai-gateway-infra"
+kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: maas-api-serving-cert
-  namespace: {{ $appNs | quote }}
+  namespace: ${INFRA_NS}
 spec:
   secretName: maas-api-serving-cert
   issuerRef:
@@ -112,8 +113,8 @@ spec:
     kind: {{ $tls.issuerRef.kind | quote }}
     group: cert-manager.io
   dnsNames:
-    - "maas-api.{{ $appNs }}.svc"
-    - "maas-api.{{ $appNs }}.svc.cluster.local"
+    - "maas-api.${INFRA_NS}.svc"
+    - "maas-api.${INFRA_NS}.svc.cluster.local"
 EOF
 
 echo "Step 6: Create MaaS Gateway..."
@@ -178,6 +179,48 @@ if kubectl get namespace "$KUADRANT_NS" >/dev/null 2>&1; then
     {"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{"name":"SSL_CERT_FILE","value":"/etc/pki/tls/custom/ca.crt"}}
   ]'
   echo "Authorino CA trust configured."
+
+  echo "Creating Authorino TLS serving certificate (xKS equivalent of setup-authorino-tls.sh)..."
+  kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: authorino-server-cert
+  namespace: $KUADRANT_NS
+spec:
+  secretName: authorino-server-cert
+  issuerRef:
+    name: {{ $tls.issuerRef.name }}
+    kind: {{ $tls.issuerRef.kind }}
+    group: cert-manager.io
+  dnsNames:
+    - "authorino.$KUADRANT_NS.svc"
+    - "authorino.$KUADRANT_NS.svc.cluster.local"
+    - "authorino-authorino-authorization.$KUADRANT_NS.svc"
+    - "authorino-authorino-authorization.$KUADRANT_NS.svc.cluster.local"
+EOF
+  echo "Waiting for Authorino server cert to be ready..."
+  kubectl wait --for=condition=Ready certificate/authorino-server-cert \
+    -n "$KUADRANT_NS" --timeout=60s 2>/dev/null || true
+
+  echo "Patching Authorino CR to enable TLS with cert-manager certificate..."
+  if kubectl get authorino authorino -n "$KUADRANT_NS" >/dev/null 2>&1; then
+    kubectl patch authorino authorino -n "$KUADRANT_NS" --type=merge -p '{
+      "spec": {
+        "listener": {
+          "tls": {
+            "enabled": true,
+            "certSecretRef": {
+              "name": "authorino-server-cert"
+            }
+          }
+        }
+      }
+    }'
+    echo "Authorino TLS listener configured with cert-manager certificate."
+  else
+    echo "Authorino CR not found, skipping TLS listener config."
+  fi
 else
   echo "Kuadrant namespace not found, skipping Authorino CA trust."
 fi
