@@ -164,6 +164,22 @@ get_snapshot_flags() {
     echo "${flags}"
 }
 
+# Get snapshot set-json flags by index (returns empty string if no flags)
+get_snapshot_json_flags() {
+    local chart_name="$1"
+    local index="$2"
+    local flags=""
+
+    # Read each flag and build --set-json arguments
+    while IFS= read -r flag; do
+        if [[ -n "${flag}" && "${flag}" != "null" ]]; then
+            flags="${flags} --set-json '${flag}'"
+        fi
+    done < <("${YQ}" eval ".charts.${chart_name}.snapshots[${index}].setJsonFlags[]?" "${CONFIG_FILE}")
+
+    echo "${flags}"
+}
+
 # Get snapshot values files by index (returns empty string if no files)
 get_snapshot_values_files() {
     local chart_name="$1"
@@ -221,6 +237,9 @@ process_snapshot() {
     local set_flags
     set_flags=$(get_snapshot_flags "${chart_name}" "${snapshot_index}")
 
+    local set_json_flags
+    set_json_flags=$(get_snapshot_json_flags "${chart_name}" "${snapshot_index}")
+
     local values_files
     values_files=$(get_snapshot_values_files "${chart_name}" "${snapshot_index}")
 
@@ -237,7 +256,7 @@ process_snapshot() {
 
         # Generate snapshot
         # shellcheck disable=SC2086
-        eval "${helm_cmd} ${values_files} ${set_flags} ${chart_path}" > "${snapshot_file}"
+        eval "${helm_cmd} ${values_files} ${set_flags} ${set_json_flags} ${chart_path}" > "${snapshot_file}"
 
         # Redact version
         redact_version "${snapshot_file}"
@@ -250,7 +269,7 @@ process_snapshot() {
 
         # Generate to temp file
         # shellcheck disable=SC2086
-        eval "${helm_cmd} ${values_files} ${set_flags} ${chart_path}" > "${temp_file}"
+        eval "${helm_cmd} ${values_files} ${set_flags} ${set_json_flags} ${chart_path}" > "${temp_file}"
 
         # Redact version
         redact_version "${temp_file}"

@@ -85,19 +85,17 @@ components:
     gateway:
       # Create Gateway and ConfigMaps via post-install hook
       create: true
+      # Which namespaces can attach HTTPRoutes to the Gateway (Selector or Same).
+      # Required — chart will fail if not set.
+      # Example:
+      #   allowedRoutes:
+      #     namespaces:
+      #       from: Selector
+      #       selector:
+      #         matchLabels:
+      #           your-label: "true"
       allowedRoutes:
-        namespaces:
-          # Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector).
-          # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
-          from: Same
-          # Example for All (any namespace can attach routes):
-          # from: All
-          #
-          # Example for Selector (only namespaces matching labels):
-          # from: Selector
-          # selector:
-          #   matchLabels:
-          #     inference-gateway-access: "true"
+        namespaces: {}
 
   aigateway:
     # Enable operator-managed AIGateway module (includes Models as a Service)
@@ -118,23 +116,17 @@ components:
         name: maas-default-gateway
         # GatewayClass to use for the MaaS Gateway
         gatewayClassName: istio
+        # Which namespaces can attach HTTPRoutes to the MaaS Gateway (Selector or Same).
+        # Required — chart will fail if not set.
+        # Example:
+        #   allowedRoutes:
+        #     namespaces:
+        #       from: Selector
+        #       selector:
+        #         matchLabels:
+        #           maas-gateway-access: "true"
         allowedRoutes:
-          namespaces:
-            # Which namespaces can attach HTTPRoutes to the MaaS Gateway.
-            # Defaults to Same (secure by default): only the Gateway's own namespace can attach routes.
-            #
-            # MaaS creates HTTPRoutes in the model namespace (e.g. models-as-a-service),
-            # which differs from the gateway namespace (redhat-ods-applications). To allow
-            # ExternalModel/LLMInferenceService routes to attach, configure a Selector:
-            #
-            #   from: Selector
-            #   selector:
-            #     matchLabels:
-            #       maas-gateway-access: "true"
-            #
-            # Then label the model namespace:
-            #   kubectl label ns models-as-a-service maas-gateway-access=true
-            from: Same
+          namespaces: {}
 
 # Azure cloud configuration
 azure:

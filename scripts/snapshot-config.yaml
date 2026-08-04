@@ -94,38 +94,46 @@ charts:
           - azure.kubernetesEngine.spec.dependencies.lws.configuration.namespace=custom-lws
           - azure.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
           - azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace=custom-istio
+        setJsonFlags:
+          - 'components.kserve.gateway.allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"inference-gateway-access":"true"}}}'
 
       - name: azure-with-cleanup-namespaces
         setFlags:
           - azure.enabled=true
           - uninstall.cleanupNamespaces=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-all-deps-managed
         setFlags:
           - azure.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
           - azure.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-related-images
         setFlags:
           - azure.enabled=true
           - rhaiOperator.relatedImages[0].name=RELATED_IMAGE_ODH_KSERVE_LLMISVC_CONTROLLER_IMAGE
           - rhaiOperator.relatedImages[0].value=ghcr.io/opendatahub-io/kserve/odh-kserve-llmisvc-controller:release-v0.17
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-pull-secret
         setFlags:
           - azure.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-gateway-hostname
         setFlags:
           - azure.enabled=true
           - gateway.hostname=*.redhat.com
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-tls-disabled
         setFlags:
           - azure.enabled=true
           - gateway.tls.enabled=false
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-byo-issuer
         setFlags:
@@ -135,6 +143,7 @@ charts:
           - gateway.tls.additionalSANs[0]=api.example.com
           - gateway.tls.additionalSANs[1]=a.grpc.example.com
           - gateway.tls.additionalSANs[2]=admin.example.org
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-namespaced-issuer
         setFlags:
@@ -142,21 +151,25 @@ charts:
           - gateway.hostname=*.example.com
           - gateway.tls.issuerRef.kind=Issuer
           - gateway.tls.issuerRef.name=my-namespaced-issuer
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: coreweave
         setFlags:
           - coreweave.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: coreweave-with-pull-secret
         setFlags:
           - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: coreweave-with-all-deps-managed
         setFlags:
           - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
           - coreweave.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: coreweave-with-allowed-routes-selector
         setFlags:
@@ -167,22 +180,20 @@ charts:
       - name: aws
         setFlags:
           - aws.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: aws-with-pull-secret
         setFlags:
           - aws.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: aws-with-all-deps-managed
         setFlags:
           - aws.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
           - aws.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
-
-      - name: aws-with-allowed-routes-all
-        setFlags:
-          - aws.enabled=true
-          - components.kserve.gateway.allowedRoutes.namespaces.from=All
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: aws-with-allowed-routes-same
         setFlags:
@@ -193,9 +204,13 @@ charts:
         setFlags:
           - azure.enabled=true
           - components.aigateway.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+          - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-maas-and-pull-secret
         setFlags:
           - azure.enabled=true
           - components.aigateway.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+          - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same

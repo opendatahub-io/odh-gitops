@@ -3136,13 +3136,19 @@ spec:
                     protocol: HTTP
                     allowedRoutes:
                       namespaces:
-                        from: Same
+                        from: Selector
+                        selector:
+                          matchLabels:
+                            inference-gateway-access: "true"
                   - name: https
                     port: 443
                     protocol: HTTPS
                     allowedRoutes:
                       namespaces:
-                        from: Same
+                        from: Selector
+                        selector:
+                          matchLabels:
+                            inference-gateway-access: "true"
                     tls:
                       certificateRefs:
                         - group: ''

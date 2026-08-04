@@ -279,7 +279,6 @@ helm-install-verify: ## Install helm chart and verify installation
 	@echo "Waiting for odh-dashboard deployment to exist in namespace $(APPLICATIONS_NAMESPACE)..."
 	@while ! $(K8S_CLI) get deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
 	$(K8S_CLI) scale deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) --replicas=1
-	$(K8S_CLI) set resources deployment -n $(APPLICATIONS_NAMESPACE) odh-dashboard --containers='*' --requests=cpu=50m,memory=300Mi
 	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
 	$(MAKE) helm-verify
 	@echo ""
@@ -303,7 +302,7 @@ XKS_UPGRADE_FROM_VERSION ?= v3.4.2
 
 .PHONY: helm-verify-xks
 helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test
-	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
+	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" VALUES_FILE="$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml)" bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
 
 .PHONY: helm-install-verify-xks
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart

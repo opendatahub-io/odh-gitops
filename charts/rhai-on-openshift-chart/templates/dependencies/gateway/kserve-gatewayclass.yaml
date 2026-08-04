@@ -18,6 +18,12 @@ spec:
 {{- $gateway := $kserve.gateway | default dict -}}
 {{- $gwCreate := ($gateway.create | toString) -}}
 {{- if or (eq $gwCreate "true") (and (eq $gwCreate "auto") $isKserveManaged) }}
+{{- range $i, $listener := $gateway.spec.listeners }}
+  {{- $ns := (($listener.allowedRoutes | default dict).namespaces | default dict) }}
+  {{- if not $ns.from }}
+    {{- fail (printf "components.kserve.gateway.spec.listeners[%d].allowedRoutes.namespaces.from is required. Choose: Selector (recommended) or Same.\nSet it in your values file or use: --set-json 'components.kserve.gateway.spec.listeners=[{\"name\":\"https\",\"port\":443,\"protocol\":\"HTTPS\",\"allowedRoutes\":{\"namespaces\":{\"from\":\"Selector\",\"selector\":{\"matchLabels\":{\"example-label\":\"true\"}}}}}]'" $i) }}
+  {{- end }}
+{{- end }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:

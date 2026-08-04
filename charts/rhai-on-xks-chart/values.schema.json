@@ -242,8 +242,7 @@
                       "properties": {
                         "from": {
                           "type": "string",
-                          "description": "Which namespaces can attach HTTPRoutes to the Gateway (All, Same, or Selector). If empty, defaults to Same — only from the Gateway's own namespace.",
-                          "enum": ["", "Selector", "Same", "All"]
+                          "description": "Which namespaces can attach HTTPRoutes to the Gateway: Selector (recommended) or Same. Chart will fail if not set."
                         },
                         "selector": {
                           "type": "object",
@@ -317,8 +316,7 @@
                           "properties": {
                             "from": {
                               "type": "string",
-                              "description": "Which namespaces can attach HTTPRoutes to the MaaS Gateway (All, Same, or Selector). Defaults to Same.",
-                              "enum": ["", "Selector", "Same", "All"]
+                              "description": "Which namespaces can attach HTTPRoutes to the MaaS Gateway: Selector (recommended) or Same. Chart will fail if not set."
                             },
                             "selector": {
                               "type": "object",

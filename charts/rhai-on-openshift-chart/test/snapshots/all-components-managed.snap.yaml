@@ -201,7 +201,10 @@ spec:
   listeners:
   - allowedRoutes:
       namespaces:
-        from: All
+        from: Selector
+        selector:
+          matchLabels:
+            inference-gateway-access: "true"
     name: https
     port: 443
     protocol: HTTPS
@@ -224,7 +227,10 @@ spec:
   listeners:
   - allowedRoutes:
       namespaces:
-        from: All
+        from: Selector
+        selector:
+          matchLabels:
+            maas-gateway-access: "true"
     name: https
     port: 443
     protocol: HTTPS

@@ -41,6 +41,20 @@ components:
       modelsAsAService:
         managementState: Managed
     # Gateway/GatewayClass create defaults to auto (created when modelsAsAService is Managed)
+    modelsAsAService:
+      gateway:
+        spec:
+          gatewayClassName: maas-gateway-class
+          listeners:
+            - name: https
+              port: 443
+              protocol: HTTPS
+              allowedRoutes:
+                namespaces:
+                  from: Selector
+                  selector:
+                    matchLabels:
+                      maas-gateway-access: "true"
 
   kserve:
     dsc:
@@ -49,6 +63,19 @@ components:
         managementState: Managed
       wva:
         managementState: Managed
+    gateway:
+      spec:
+        gatewayClassName: openshift-ai-inference
+        listeners:
+          - name: https
+            port: 443
+            protocol: HTTPS
+            allowedRoutes:
+              namespaces:
+                from: Selector
+                selector:
+                  matchLabels:
+                    inference-gateway-access: "true"
 
   kueue:
     dsc:

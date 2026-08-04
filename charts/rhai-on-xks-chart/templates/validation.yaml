@@ -1,1 +1,15 @@
 {{- include "rhai-on-xks-chart.validateCloudProvider" . -}}
+{{- if .Values.enabled }}
+{{- if and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
+{{- $gwNs := ((.Values.components.kserve.gateway.allowedRoutes | default dict).namespaces | default dict) }}
+{{- if not $gwNs.from }}
+  {{- fail "components.kserve.gateway.allowedRoutes.namespaces.from is required. Choose: Selector (recommended) or Same.\nSet it in your values file or use: --set-json 'components.kserve.gateway.allowedRoutes.namespaces={\"from\":\"Selector\",\"selector\":{\"matchLabels\":{\"example-label\":\"true\"}}}'" }}
+{{- end }}
+{{- end }}
+{{- if and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
+{{- $maasNs := ((.Values.components.aigateway.modelsAsAService.gateway.allowedRoutes | default dict).namespaces | default dict) }}
+{{- if not $maasNs.from }}
+  {{- fail "components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from is required. Choose: Selector (recommended) or Same.\nSet it in your values file or use: --set-json 'components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces={\"from\":\"Selector\",\"selector\":{\"matchLabels\":{\"example-label\":\"true\"}}}'" }}
+{{- end }}
+{{- end }}
+{{- end }}

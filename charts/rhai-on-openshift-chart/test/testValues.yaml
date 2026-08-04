@@ -1,0 +1,24 @@
+components:
+  kserve:
+    gateway:
+      spec:
+        gatewayClassName: openshift-ai-inference
+        listeners:
+          - name: https
+            port: 443
+            protocol: HTTPS
+            allowedRoutes:
+              namespaces:
+                from: Same
+  aigateway:
+    modelsAsAService:
+      gateway:
+        spec:
+          gatewayClassName: maas-gateway-class
+          listeners:
+            - name: https
+              port: 443
+              protocol: HTTPS
+              allowedRoutes:
+                namespaces:
+                  from: Same
