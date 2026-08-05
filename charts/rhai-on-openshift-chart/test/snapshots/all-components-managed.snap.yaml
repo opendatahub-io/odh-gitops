@@ -125,6 +125,7 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
@@ -137,7 +138,8 @@ metadata:
 spec:
   components:
     aigateway:
-      batchGateway: {}
+      batchGateway:
+        managementState: Removed
       managementState: Managed
       modelsAsAService:
         managementState: Managed
@@ -182,6 +184,7 @@ spec:
     workbenches:
       managementState: Managed
       workbenchNamespace: opendatahub
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -205,6 +208,7 @@ spec:
     name: https
     port: 443
     protocol: HTTPS
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -230,6 +234,7 @@ spec:
     name: https
     port: 443
     protocol: HTTPS
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -264,6 +269,7 @@ metadata:
 spec:
   logLevel: Normal
   operatorLogLevel: Normal
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
@@ -274,6 +280,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/kueue/config.yaml
 apiVersion: kueue.openshift.io/v1
@@ -295,6 +302,7 @@ spec:
       - StatefulSet
       - TrainJob
   managementState: Managed
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -437,6 +445,8 @@ spec:
   name: openshift-cert-manager-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -453,6 +463,8 @@ spec:
   name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -469,6 +481,7 @@ spec:
   name: job-set
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -485,6 +498,8 @@ spec:
   name: kueue-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -501,6 +516,7 @@ spec:
   name: nfd
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -517,6 +533,7 @@ spec:
   name: gpu-operator-certified
   source: certified-operators
   sourceNamespace: openshift-marketplace
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -533,6 +550,8 @@ spec:
   name: opentelemetry-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -549,6 +568,7 @@ spec:
   name: rhcl-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -565,6 +585,8 @@ spec:
   name: tempo-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

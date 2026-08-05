@@ -26,6 +26,7 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
@@ -38,9 +39,11 @@ metadata:
 spec:
   components:
     aigateway:
-      batchGateway: {}
+      batchGateway:
+        managementState: Removed
       managementState: Removed
-      modelsAsAService: {}
+      modelsAsAService:
+        managementState: Removed
     aipipelines:
       managementState: Removed
     dashboard:
@@ -49,9 +52,11 @@ spec:
       managementState: Removed
     kserve:
       managementState: Removed
-      nim: {}
+      nim:
+        managementState: Removed
       rawDeploymentServiceConfig: Headless
-      wva: {}
+      wva:
+        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -80,6 +85,7 @@ spec:
     workbenches:
       managementState: Removed
       workbenchNamespace: rhods-notebooks
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
