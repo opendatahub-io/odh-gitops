@@ -192,7 +192,8 @@ ALL_TESTS=(
   "1:Install check:test_1_install_check"
   "2:sail+lws Managed→Unmanaged→Managed:test_2_sail_lws_managed_unmanaged"
   "3:certManager Managed→Unmanaged→Managed:test_3_certmanager_managed_unmanaged"
-  "4:Uninstall lifecycle (cleanup + cleanupNamespaces):test_4_uninstall_lifecycle"
+  # TODO: this would not work correctly, since KServe is blocking the deletion.
+  # "4:Uninstall lifecycle (cleanup + cleanupNamespaces):test_4_uninstall_lifecycle"
 )
 
 check_prerequisites

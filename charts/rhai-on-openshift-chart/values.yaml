@@ -132,6 +132,7 @@ components:
               protocol: HTTPS
               allowedRoutes:
                 # -- REQUIRED: set `from` to Selector (recommended) or Same. Template will fail if not set.
+                # When using Selector, the specified labels must be applied to each target namespace.
                 namespaces:
                   # from: Same
                   # from: Selector
@@ -227,6 +228,7 @@ components:
             protocol: HTTPS
             allowedRoutes:
               # -- REQUIRED: set `from` to Selector (recommended) or Same. Template will fail if not set.
+              # When using Selector, the specified labels must be applied to each target namespace.
               namespaces:
                 # from: Same
                 # from: Selector

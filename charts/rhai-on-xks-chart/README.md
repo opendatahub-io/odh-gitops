@@ -60,6 +60,9 @@ The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 > [!NOTE]
 > All commands below assume you are in the repository root directory.
 
+> [!IMPORTANT]
+> The gateway route attachment policy (`allowedRoutes.namespaces.from`) is **required**. See the [Inference Gateway](#inference-gateway) section for configuration details.
+
 ### AWS
 
 ```bash
@@ -67,6 +70,7 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
   --namespace rhai-gitops \
   --set aws.enabled=true \
+  --set-json 'components.kserve.gateway.allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"inference-gateway-access":"true"}}}' \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
 
@@ -77,6 +81,7 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
   --namespace rhai-gitops \
   --set azure.enabled=true \
+  --set-json 'components.kserve.gateway.allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"inference-gateway-access":"true"}}}' \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
 
@@ -87,6 +92,7 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
   --namespace rhai-gitops \
   --set coreweave.enabled=true \
+  --set-json 'components.kserve.gateway.allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"inference-gateway-access":"true"}}}' \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
 
@@ -105,7 +111,25 @@ Phase 2 and 3 are necessary because the CRs depend on CRDs and resources that ar
 
 ### Inference Gateway
 
-By default (`components.kserve.gateway.create: true`), the chart creates a Gateway CR named `inference-gateway` in the applications namespace. This gateway is required for KServe model inference traffic. The hook:
+By default (`components.kserve.gateway.create: true`), the chart creates a Gateway CR named `inference-gateway` in the applications namespace. This gateway is required for KServe model inference traffic.
+
+You **must** configure which namespaces can attach HTTPRoutes to the gateway via `components.kserve.gateway.allowedRoutes.namespaces.from`. The chart will fail if this is not set. Use `Selector` (recommended) to restrict by namespace labels, or `Same` to allow only the gateway's own namespace:
+
+```yaml
+components:
+  kserve:
+    gateway:
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              inference-gateway-access: "true"
+```
+
+When using `Selector`, the specified labels must be applied to each target namespace.
+
+The hook:
 
 1. Waits for Gateway API CRDs to be installed (by the cloud manager)
 2. Waits for the cert-manager CA secret (`rhai-ca`)
@@ -122,6 +146,26 @@ components:
     gateway:
       create: false
 ```
+
+### MaaS Gateway
+
+When AI Gateway is enabled (`components.aigateway.enabled: true`), the chart creates a MaaS Gateway CR via a post-install hook. The same `allowedRoutes` configuration is **required**:
+
+```yaml
+components:
+  aigateway:
+    enabled: true
+    modelsAsAService:
+      gateway:
+        allowedRoutes:
+          namespaces:
+            from: Selector
+            selector:
+              matchLabels:
+                maas-gateway-access: "true"
+```
+
+When using `Selector`, the specified labels must be applied to each target namespace (e.g. `kubectl label ns <model-namespace> maas-gateway-access=true`).
 
 ## Managed Dependencies
 
@@ -163,6 +207,7 @@ helm upgrade rhaii ./charts/rhai-on-xks-chart/ \
   --install --create-namespace \
   --namespace rhai-gitops \
   --set azure.enabled=true \
+  --set-json 'components.kserve.gateway.allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"inference-gateway-access":"true"}}}' \
   --set-file imagePullSecret.dockerConfigJson=/path/to/auth.json
 ```
 
