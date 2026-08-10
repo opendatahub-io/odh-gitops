@@ -8,10 +8,10 @@ Please complete the following sections for a smooth review.
 <!--- Describe your changes in detail -->
 
 ## Release tracking
-<!-- These fields are mandatory - CI will block merging unless they are set -->
+<!-- Optional. Set a target release only if this PR must ship in a specific release; it will be prioritized accordingly. -->
 <!-- Target release for this PR, e.g. rhoai-3.6 or rhoai-3.7ea1 -->
 Release: 
-<!-- Full link to a jira ticket, e.g. https://redhat.atlassian.net/browse/RHOAIENG-XXXXX -->
+<!-- Required only if a Release is set above. Full link to a jira ticket, e.g. https://redhat.atlassian.net/browse/RHOAIENG-XXXXX -->
 Jira:
 
 ## Has it been tested?
