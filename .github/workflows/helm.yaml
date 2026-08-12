@@ -13,6 +13,12 @@ jobs:
         with:
           fetch-depth: 0
       - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+      - name: Build chart dependencies
+        run: |
+          set -euo pipefail
+          for chart in $(find charts -name Chart.yaml -exec dirname {} \;); do
+            helm dependency build "$chart"
+          done
       - name: Linting Charts
         run: |
           set -euo pipefail

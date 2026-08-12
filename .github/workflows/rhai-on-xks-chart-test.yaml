@@ -73,6 +73,9 @@ jobs:
       - name: Create kind cluster
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
 
+      - name: Build chart dependencies
+        run: helm dependency build charts/rhai-on-xks-chart
+
       - name: Install and verify chart
         timeout-minutes: 60
         env:
@@ -123,6 +126,9 @@ jobs:
 
       - name: Create kind cluster
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+
+      - name: Build chart dependencies
+        run: helm dependency build charts/rhai-on-xks-chart
 
       - name: Upgrade test
         timeout-minutes: 60
