@@ -83,6 +83,55 @@ charts:
     snapshots:
       - name: default
 
+  dependencies/xks-gateway:
+    snapshots:
+      - name: default
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+
+      - name: with-custom-settings
+        valuesFiles:
+          - charts/dependencies/xks-gateway/test/values-wildcard-domain.yaml
+        setFlags:
+          - gateway.subdomain=ai-platform
+          - gateway.oidc.issuerURL=https://auth.mycompany.com/realms/ai
+          - gateway.oidc.clientID=ai-platform-client
+          - gateway.oidc.clientSecretRef.name=ai-oidc-secret
+          - gateway.oidc.clientSecretRef.key=secret
+          - gateway.oidc.secretNamespace=auth-system
+          - gateway.certificate.type=Provided
+          - gateway.certificate.secretName=my-tls-cert
+          - gateway.cookie.expire=8h
+          - gateway.cookie.refresh=30m
+          - gateway.providerCASecretName=keycloak-ca-cert
+
+      - name: with-selfsigned-minimal
+        setFlags:
+          - gateway.domain=dev.example.com
+          - gateway.oidc.issuerURL=https://keycloak.dev.example.com/realms/dev
+          - gateway.oidc.clientID=dev-client
+          - gateway.oidc.clientSecretRef.name=dev-oidc-secret
+          - gateway.verifyProviderCertificate=false
+
+      - name: with-custom-namespace
+        setFlags:
+          - gateway.namespace=custom-gateway-ns
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+
+      - name: with-network-policy-disabled
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - gateway.networkPolicy.ingress.enabled=false
+
   rhai-on-xks-chart:
     snapshots:
       - name: with-custom-namespace
