@@ -1,0 +1,42 @@
+---
+# Source: xks-gateway/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rh-ai-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: xks-gateway/templates/gatewayconfig.yaml
+apiVersion: services.platform.opendatahub.io/v1alpha1
+kind: GatewayConfig
+metadata:
+  # Name is enforced by CRD CEL validation: must be "default-gateway"
+  name: default-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  domain: "*.mycompany.com"
+  subdomain: "ai-platform"
+  ingressMode: LoadBalancer
+  certificate:
+    type: Provided
+    secretName: "my-tls-cert"
+  oidc:
+    issuerURL: "https://auth.mycompany.com/realms/ai"
+    clientID: "ai-platform-client"
+    clientSecretRef:
+      name: "ai-oidc-secret"
+      key: "secret"
+    secretNamespace: "auth-system"
+  cookie:
+    expire: "8h"
+    refresh: "30m"
+  providerCASecretName: "keycloak-ca-cert"
+  verifyProviderCertificate: true
+  networkPolicy:
+    ingress:
+      enabled: true

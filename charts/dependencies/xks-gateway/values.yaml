@@ -1,0 +1,56 @@
+# XKS Gateway Onboarding Chart
+# Creates the gateway namespace and GatewayConfig CR for non-OpenShift Kubernetes environments.
+
+gateway:
+  # -- (required) External hostname (e.g., example.com or *.example.com)
+  domain: ""
+
+  # -- Subdomain prefix for the gateway
+  subdomain: ""
+
+  # -- How the gateway is exposed externally on XKS (LoadBalancer only)
+  ingressMode: LoadBalancer
+
+  # -- Namespace created by this chart; default location for the OIDC client secret (create after install or use secretNamespace)
+  namespace: rh-ai-gateway
+
+  # TLS certificate configuration
+  certificate:
+    # -- TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace)
+    type: SelfSigned
+    # -- Name of TLS Secret (required when type is Provided)
+    secretName: ""
+
+  # OIDC authentication configuration
+  oidc:
+    # -- (required) OIDC provider URL (e.g., https://keycloak.example.com/realms/rhai)
+    issuerURL: ""
+    # -- (required) OIDC client ID
+    clientID: ""
+    # -- Reference to a pre-existing Secret containing the OIDC client secret
+    clientSecretRef:
+      # -- (required) Name of the existing Kubernetes Secret
+      name: ""
+      # -- Key within the Secret that holds the client secret value
+      key: client-secret
+    # -- Namespace where the client secret is located (defaults to gateway.namespace if empty)
+    secretNamespace: ""
+
+  # Cookie configuration for OAuth2 proxy sessions
+  cookie:
+    # -- Session cookie expiry duration (e.g., "24h", "8h")
+    expire: "24h"
+    # -- Access token refresh interval — must be less than the OIDC provider's Access Token Lifespan
+    refresh: "1h"
+
+  # Provider CA certificate (for self-signed OIDC provider certs)
+  # -- Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace)
+  providerCASecretName: ""
+  # -- Verify auth provider TLS certificate (set to false only for development)
+  verifyProviderCertificate: true
+
+  # Network policy configuration
+  networkPolicy:
+    ingress:
+      # -- Enable ingress NetworkPolicy for kube-auth-proxy
+      enabled: true
