@@ -1,0 +1,20 @@
+{{/*
+Validate values at template-render time (runs before other templates).
+This file produces no output — it only triggers fail() when values are invalid.
+*/}}
+{{- $gw := .Values.gateway -}}
+{{- $_ := required "gateway.domain is required. Set it to your external hostname (e.g., example.com or *.example.com).\nUsage: --set gateway.domain=example.com" $gw.domain }}
+{{- $_ := required "gateway.oidc.issuerURL is required. Set it to your OIDC provider URL.\nUsage: --set gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai" $gw.oidc.issuerURL }}
+{{- $_ := required "gateway.oidc.clientID is required. Set it to your OIDC client ID.\nUsage: --set gateway.oidc.clientID=rhai-client" $gw.oidc.clientID }}
+{{- $_ := required "gateway.oidc.clientSecretRef.name is required. Set it to your pre-existing OIDC client secret.\nUsage: --set gateway.oidc.clientSecretRef.name=my-oidc-secret" $gw.oidc.clientSecretRef.name }}
+{{- $certType := $gw.certificate.type | default "SelfSigned" -}}
+{{- if eq $certType "Provided" }}
+{{- $_ := required "gateway.certificate.secretName is required when certificate.type is Provided.\nUsage: --set gateway.certificate.secretName=my-tls-cert" $gw.certificate.secretName }}
+{{- end }}
+{{- if eq $certType "OpenshiftDefaultIngress" }}
+{{- fail "gateway.certificate.type OpenshiftDefaultIngress is not supported on XKS. Use SelfSigned or Provided." }}
+{{- end }}
+{{- $ingressMode := $gw.ingressMode | default "LoadBalancer" -}}
+{{- if eq $ingressMode "OcpRoute" }}
+{{- fail "gateway.ingressMode OcpRoute is not supported on XKS. Use LoadBalancer." }}
+{{- end }}
