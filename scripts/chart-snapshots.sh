@@ -333,6 +333,12 @@ process_chart() {
         clean_snapshots "${chart_name}"
     fi
 
+    # Build chart dependencies if defined
+    if [[ -f "${chart_path}/Chart.yaml" ]] && grep -q '^dependencies:' "${chart_path}/Chart.yaml"; then
+        echo "  Building chart dependencies for ${chart_name}..."
+        helm dependency build "${chart_path}"
+    fi
+
     local failed=0
     for ((i = 0; i < snapshot_count; i++)); do
         if ! process_snapshot "${chart_name}" "${i}"; then
