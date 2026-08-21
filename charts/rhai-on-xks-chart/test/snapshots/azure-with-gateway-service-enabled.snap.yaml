@@ -174,27 +174,21 @@ spec:
                   description: Dependencies defines the dependency configurations for the Azure Kubernetes Engine.
                   properties:
                     certManager:
-                      description: |-
-                        Deprecated: cert-manager is no longer a Cloud Controller Manager dependency.
-                        The XKS chart owns its installation. This field has no runtime effect and
-                        is retained for backwards compatibility.
+                      description: CertManager defines the cert-manager operator dependency.
                       properties:
                         configuration:
-                          description: |-
-                            Deprecated: cert-manager configuration is no longer used by the Cloud
-                            Controller Manager. This field has no runtime effect.
+                          description: Configuration for the cert-manager operator.
                           type: object
                         managementPolicy:
+                          default: Managed
                           description: |-
-                            Deprecated: cert-manager installation is no longer managed by the Cloud
-                            Controller Manager. This field has no runtime effect.
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
                           enum:
                             - Managed
                             - Unmanaged
                           type: string
-                          x-kubernetes-validations:
-                            - message: cert-manager managementPolicy cannot be set to Managed
-                              rule: self != 'Managed' || self == oldSelf
                       type: object
                     gatewayAPI:
                       description: GatewayAPI defines the Gateway API dependency.
@@ -236,26 +230,6 @@ spec:
                             ManagementPolicy determines whether the operator manages this dependency.
                             Managed: the operator installs and reconciles the dependency.
                             Unmanaged: the operator does not manage the dependency; the user is responsible.
-                          enum:
-                            - Managed
-                            - Unmanaged
-                          type: string
-                      type: object
-                    rhcl:
-                      description: RHCL defines the RHCL (Red Hat Connectivity Link / Kuadrant) operator dependency.
-                      properties:
-                        configuration:
-                          description: Configuration for the RHCL operator.
-                          type: object
-                        managementPolicy:
-                          default: Unmanaged
-                          description: |-
-                            ManagementPolicy determines whether the operator manages this dependency.
-                            Managed: the operator installs and reconciles the dependency.
-                            Unmanaged: the operator does not manage the dependency; the user is responsible.
-                            Defaults to Unmanaged, unlike the other CCM dependencies: RHCL's chart is
-                            significantly heavier (~30 CRDs, several Deployments) and is an opt-in,
-                            specialized capability rather than something every xKS cluster needs.
                           enum:
                             - Managed
                             - Unmanaged
@@ -743,42 +717,6 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
-                    dashboard:
-                      description: Dashboard controls the Dashboard module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
-                    feastoperator:
-                      description: FeastOperator controls the Feast module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
                     kserve:
                       description: Kserve controls the kserve module operator lifecycle.
                       properties:
@@ -833,24 +771,6 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
-                    modelregistry:
-                      description: ModelRegistry controls the model-registry (AIHub) module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
                     monitoring:
                       description: Monitoring controls the monitoring module operator lifecycle.
                       properties:
@@ -871,42 +791,6 @@ spec:
                       type: object
                     ogx:
                       description: OGX controls the OGX module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
-                    sparkoperator:
-                      description: SparkOperator controls the Spark Operator module lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
-                    trainer:
-                      description: Trainer controls the Trainer module operator lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -1481,6 +1365,22 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
+      - cert-manager-operator-controller-manager-clusterrole
+      - cert-manager-operator-metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
       - metrics-reader
     resources:
       - clusterroles
@@ -1531,6 +1431,21 @@ rules:
     verbs:
       - create
       - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - cert-manager-operator-controller-manager-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -1858,7 +1773,6 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways
-      - aihubs
       - dashboards
       - datasciencepipelines
       - feastoperators
@@ -1867,10 +1781,12 @@ rules:
       - mcplifecycleoperators
       - mlflowoperators
       - modelmeshservings
+      - modelregistries
       - ogxs
       - rays
       - sparkoperators
       - trainers
+      - trainingoperators
       - trustyais
       - workbenches
     verbs:
@@ -1885,7 +1801,6 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/finalizers
-      - aihubs/finalizers
       - dashboards/finalizers
       - datasciencepipelines/finalizers
       - feastoperators/finalizers
@@ -1894,10 +1809,12 @@ rules:
       - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelmeshservings/finalizers
+      - modelregistries/finalizers
       - ogxs/finalizers
       - rays/finalizers
       - sparkoperators/finalizers
       - trainers/finalizers
+      - trainingoperators/finalizers
       - trustyais/finalizers
       - workbenches/finalizers
     verbs:
@@ -1906,7 +1823,6 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/status
-      - aihubs/status
       - dashboards/status
       - datasciencepipelines/status
       - feastoperators/status
@@ -1915,10 +1831,12 @@ rules:
       - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelmeshservings/status
+      - modelregistries/status
       - ogxs/status
       - rays/status
       - sparkoperators/status
       - trainers/status
+      - trainingoperators/status
       - trustyais/status
       - workbenches/status
     verbs:
@@ -1944,19 +1862,14 @@ rules:
     resources:
       - platforms
     verbs:
-      - create
-      - delete
       - get
       - list
-      - patch
-      - update
       - watch
   - apiGroups:
       - config.opendatahub.io
     resources:
       - platforms/finalizers
     verbs:
-      - patch
       - update
   - apiGroups:
       - config.opendatahub.io
@@ -2092,6 +2005,7 @@ rules:
       - dscinitializations/finalizers
       - dscinitializations/status
     verbs:
+      - delete
       - get
       - patch
       - update
@@ -2144,8 +2058,16 @@ rules:
       - features.opendatahub.io
     resources:
       - featuretrackers/finalizers
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - features.opendatahub.io
+    resources:
       - featuretrackers/status
     verbs:
+      - delete
       - get
       - patch
       - update
@@ -2289,6 +2211,33 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries/finalizers
+    verbs:
+      - get
+      - update
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries/status
+    verbs:
+      - get
+      - patch
+      - update
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -2658,6 +2607,18 @@ rules:
       - get
       - patch
   - apiGroups:
+      - template.openshift.io
+    resources:
+      - templates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - tempo.grafana.com
     resources:
       - tempomonolithics
@@ -2883,9 +2844,9 @@ metadata:
 spec:
   ports:
     - name: http
-      port: 8080
+      port: 8443
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
   selector:
     name: rhai-operator
 
@@ -3184,7 +3145,6 @@ spec:
         - args:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
-            - --metrics-secure=false
             - --leader-elect
           command:
             - /manager
@@ -3217,6 +3177,8 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_TRAINER_COMPONENT
               value: "true"
+            - name: RHAI_DISABLE_TRAININGOPERATOR_COMPONENT
+              value: "true"
             - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_WORKBENCHES_COMPONENT
@@ -3226,7 +3188,7 @@ spec:
             - name: RHAI_DISABLE_CERTCONFIGMAPGENERATOR_SERVICE
               value: "true"
             - name: RHAI_DISABLE_GATEWAY_SERVICE
-              value: "true"
+              value: "false"
             - name: RHAI_DISABLE_MONITORING_SERVICE
               value: "true"
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
@@ -3389,7 +3351,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
   annotations:
-    helm.sh/hook: pre-upgrade
+    helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 
@@ -3467,7 +3429,7 @@ rules:
     resources:
       - clusterissuers
     resourceNames:
-      - my-letsencrypt-issuer
+      - rhai-ca-issuer
     verbs:
       - get
   - apiGroups:
@@ -3515,12 +3477,8 @@ rules:
       - config.opendatahub.io
     resources:
       - platforms
-    resourceNames:
-      - default
     verbs:
       - get
-      - list
-      - watch
       - delete
 
 ---
@@ -3533,10 +3491,18 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
   annotations:
-    helm.sh/hook: pre-upgrade
+    helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - delete
   - apiGroups:
       - ""
     resources:
@@ -3544,12 +3510,17 @@ rules:
     verbs:
       - get
       - list
+      - patch
+      - delete
   - apiGroups:
       - ""
     resources:
       - serviceaccounts
+      - services
     verbs:
       - get
+      - list
+      - patch
   - apiGroups:
       - apps
     resources:
@@ -3557,24 +3528,29 @@ rules:
     verbs:
       - get
       - list
-      - watch
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    resourceNames:
-      - cert-manager-operator-lock
-    verbs:
-      - get
       - patch
+      - delete
   - apiGroups:
-      - infrastructure.opendatahub.io
+      - rbac.authorization.k8s.io
     resources:
-      - azurekubernetesengines
+      - clusterroles
+      - roles
     verbs:
       - get
       - list
       - patch
+      - escalate
+      - bind
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - patch
+      - bind
   - apiGroups:
       - operator.openshift.io
     resources:
@@ -3582,6 +3558,8 @@ rules:
     verbs:
       - get
       - list
+      - patch
+      - delete
 
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
@@ -3635,7 +3613,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
   annotations:
-    helm.sh/hook: pre-upgrade
+    helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 roleRef:
@@ -3757,14 +3735,15 @@ spec:
                   app.kubernetes.io/managed-by: Helm
               spec:
                 dependencies:
+                  certManager:
+                    configuration: {}
+                    managementPolicy: Unmanaged
                   gatewayAPI:
                     configuration: {}
                     managementPolicy: Managed
                   lws:
                     configuration:
                       namespace: openshift-lws-operator
-                    managementPolicy: Unmanaged
-                  rhcl:
                     managementPolicy: Unmanaged
                   sailOperator:
                     configuration:
@@ -3937,7 +3916,7 @@ spec:
                       service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
-              ISSUER_NAME="my-letsencrypt-issuer"
+              ISSUER_NAME="rhai-ca-issuer"
               ISSUER_KIND="clusterissuer"
               ISSUER_ARGS=("$ISSUER_KIND" "$ISSUER_NAME")
               wait_for "${ISSUER_KIND} ${ISSUER_NAME} to be Ready" issuer_ready
@@ -3951,15 +3930,12 @@ spec:
               spec:
                 secretName: "inference-gateway-cert-secret"
                 issuerRef:
-                  name: "my-letsencrypt-issuer"
+                  name: "rhai-ca-issuer"
                   kind: "ClusterIssuer"
                   group: cert-manager.io
                 dnsNames:
-                  - "*.example.com"
-                  - "example.com"
-                  - "api.example.com"
-                  - "a.grpc.example.com"
-                  - "admin.example.org"
+                  - "*.redhat-ods-applications.svc.cluster.local"
+                  - "*.redhat-ods-applications.svc"
               EOF
               echo "Certificate 'inference-gateway-cert' created."
               
@@ -4079,7 +4055,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
   annotations:
-    helm.sh/hook: pre-upgrade
+    helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "1"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
@@ -4118,109 +4094,118 @@ spec:
               value: "release-test"
             - name: RELEASE_NAMESPACE
               value: "default"
-            - name: KE_RESOURCE
-              value: "azurekubernetesengines"
-            - name: KE_NAME
-              value: "default-azurekubernetesengine"
+            - name: CERT_MANAGER_ENABLED
+              value: "true"
           command:
             - /bin/bash
             - -c
             - |
-              #!/bin/bash
-              # Pre-upgrade hook: migrate cert-manager from CCM management to Helm subchart.
-              #
-              # When upgrading from 3.5 (cert-manager managed by CCM) to 3.6 (cert-manager
-              # as Helm subchart), this hook:
-              #   1. Patches the active KubernetesEngine CR to set certManager.managementPolicy=Unmanaged
-              #   2. Waits for CCM to remove the cert-manager-operator Deployment
-              #   3. Shortens the stale leader-election Lease so the Helm-managed replacement
-              #      can acquire leadership without waiting for the old Lease to expire
-              #
-              # Expected env vars:
-              #   RELEASE_NAME      - Current Helm release name
-              #   RELEASE_NAMESPACE - Current Helm release namespace
-              
               set -euo pipefail
-              
-              WAIT_TIMEOUT="${WAIT_TIMEOUT:-300}"
-              
-              # Check if cert-manager-operator namespace exists at all.
-              if ! kubectl get namespace cert-manager-operator &>/dev/null; then
-                echo "cert-manager-operator namespace not found; nothing to migrate."
+
+              # ── Cleanup path: delete CertManager CR + operands before subchart is disabled ──
+              if [[ "$CERT_MANAGER_ENABLED" == "false" ]]; then
+                if kubectl get certmanager cluster &>/dev/null; then
+                  echo "Cleaning up cert-manager before disabling subchart..."
+                  kubectl patch certmanager cluster --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+                  kubectl delete certmanager cluster --timeout=30s 2>/dev/null || true
+                fi
+                echo "Deleting cert-manager operand deployments..."
+                kubectl delete deployments -n cert-manager --all --timeout=60s 2>/dev/null || true
+                echo "Removing cert-manager namespaces..."
+                kubectl delete namespace cert-manager --ignore-not-found --timeout=60s 2>/dev/null || true
+                kubectl delete namespace cert-manager-operator --ignore-not-found --timeout=60s 2>/dev/null || true
+                echo "Cert-manager cleanup complete."
                 exit 0
               fi
-              
-              # KE_RESOURCE and KE_NAME are injected by the Helm Job template (provider-specific).
-              if [[ -z "${KE_RESOURCE:-}" ]] || [[ -z "${KE_NAME:-}" ]]; then
-                echo "KE_RESOURCE or KE_NAME not set; skipping migration."
+
+              # ── Migration path: adopt existing cert-manager resources into this release ──
+              OLD_RELEASE="cert-manager-operator"
+
+              # Check if an old Helm release exists (Helm stores releases as secrets with type helm.sh/release.v1)
+              OLD_SECRETS=$(kubectl get secrets -A -l "owner=helm,name=${OLD_RELEASE}" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+
+              # Check namespace ownership as fast-path: if both namespaces are already
+              # owned by this release (or don't exist), there is nothing to migrate.
+              NEEDS_MIGRATION=""
+              if [[ -n "$OLD_SECRETS" ]]; then
+                NEEDS_MIGRATION="true"
+              else
+                for ns in cert-manager cert-manager-operator; do
+                  if kubectl get namespace "$ns" &>/dev/null; then
+                    NS_OWNER=$(kubectl get namespace "$ns" -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
+                    if [[ "$NS_OWNER" != "${RELEASE_NAME}" ]]; then
+                      NEEDS_MIGRATION="true"
+                      break
+                    fi
+                  fi
+                done
+              fi
+
+              if [[ -z "$NEEDS_MIGRATION" ]]; then
+                echo "No cert-manager migration needed."
                 exit 0
               fi
-              
-              KE_FULL="${KE_RESOURCE}/${KE_NAME}"
-              
-              if ! kubectl get "$KE_FULL" &>/dev/null 2>&1; then
-                echo "KubernetesEngine CR '${KE_FULL}' not found; skipping migration."
-                exit 0
-              fi
-              
-              echo "Found KubernetesEngine CR: ${KE_FULL}"
-              
-              # Check current managementPolicy — only migrate if CCM is actively managing cert-manager.
-              # If already Unmanaged, nothing to do.
-              CURRENT_POLICY=$(kubectl get "$KE_FULL" \
-                -o jsonpath='{.spec.dependencies.certManager.managementPolicy}' 2>/dev/null || true)
-              
-              if [[ "$CURRENT_POLICY" != "Managed" ]]; then
-                echo "certManager.managementPolicy is '${CURRENT_POLICY}'; nothing to migrate."
-                exit 0
-              fi
-              
-              # Patch KE CR to set certManager.managementPolicy=Unmanaged.
-              # This tells CCM to stop managing cert-manager and clean up its resources.
-              echo "Patching ${KE_FULL}: certManager.managementPolicy → Unmanaged..."
-              kubectl patch "$KE_FULL" --type=merge \
-                -p '{"spec":{"dependencies":{"certManager":{"managementPolicy":"Unmanaged"}}}}' 2>&1
-              
-              # Wait for CCM's foreground deletion of the cert-manager operator Deployment.
-              # No wait is needed when CCM has already removed it before the hook starts.
-              if ! deployment_names=$(kubectl get deployment -n cert-manager-operator \
-                -l infrastructure.opendatahub.io/part-of -o name 2>&1); then
-                echo "ERROR: Could not query the CCM cert-manager-operator Deployment: ${deployment_names}" >&2
+
+              echo "Migrating cert-manager resources to release '${RELEASE_NAME}'..."
+              FAILURES=0
+
+              adopt_resource() {
+                local ns_args="$1"
+                local resource="$2"
+
+                if ! kubectl get $ns_args "$resource" &>/dev/null; then
+                  echo "  Skipping ${resource} ${ns_args} (not found)"
+                  return
+                fi
+
+                OWNER=$(kubectl get $ns_args "$resource" -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
+                if [[ "$OWNER" == "${RELEASE_NAME}" ]]; then
+                  return
+                fi
+
+                echo "  Patching ${resource} ${ns_args}..."
+                if ! kubectl annotate $ns_args "$resource" \
+                  meta.helm.sh/release-name="${RELEASE_NAME}" \
+                  meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" \
+                  --overwrite 2>&1; then
+                  echo "    FAILED to patch annotations on ${resource}"
+                  FAILURES=$((FAILURES + 1))
+                  return
+                fi
+                if ! kubectl label $ns_args "$resource" \
+                  app.kubernetes.io/managed-by=Helm \
+                  --overwrite 2>&1; then
+                  echo "    FAILED to patch label on ${resource}"
+                  FAILURES=$((FAILURES + 1))
+                fi
+              }
+
+              # Adopt each resource the cert-manager-operator subchart creates.
+              adopt_resource "" "namespace/cert-manager-operator"
+              adopt_resource "" "namespace/cert-manager"
+              adopt_resource "-n cert-manager-operator" "serviceaccount/cert-manager-operator-controller-manager"
+              adopt_resource "-n cert-manager" "serviceaccount/cert-manager"
+              adopt_resource "-n cert-manager" "serviceaccount/cert-manager-cainjector"
+              adopt_resource "-n cert-manager" "serviceaccount/cert-manager-webhook"
+              adopt_resource "" "clusterrole/cert-manager-operator-controller-manager-clusterrole"
+              adopt_resource "" "clusterrole/cert-manager-operator-metrics-reader"
+              adopt_resource "" "clusterrolebinding/cert-manager-operator-controller-manager-clusterrolebinding"
+              adopt_resource "-n cert-manager-operator" "role/cert-manager-operator-controller-manager-role"
+              adopt_resource "-n cert-manager-operator" "rolebinding/cert-manager-operator-controller-manager-rolebinding"
+              adopt_resource "-n cert-manager-operator" "service/cert-manager-operator-controller-manager-metrics-service"
+              adopt_resource "-n cert-manager-operator" "deployment.apps/cert-manager-operator-controller-manager"
+              adopt_resource "" "certmanager/cluster"
+
+              if [[ "$FAILURES" -gt 0 ]]; then
+                echo "ERROR: ${FAILURES} resource(s) failed to patch. Will retry (backoffLimit=3)."
                 exit 1
               fi
-              if [[ -n "$deployment_names" ]]; then
-                echo "Waiting for CCM to remove cert-manager-operator deployment (timeout: ${WAIT_TIMEOUT}s)..."
-                if kubectl wait --for=delete deployment -n cert-manager-operator \
-                  -l infrastructure.opendatahub.io/part-of --timeout="${WAIT_TIMEOUT}s"; then
-                  echo "cert-manager-operator deployment removed."
-                elif ! remaining_deployment_names=$(kubectl get deployment -n cert-manager-operator \
-                  -l infrastructure.opendatahub.io/part-of -o name 2>&1); then
-                  echo "ERROR: Could not query the CCM cert-manager-operator Deployment after waiting: ${remaining_deployment_names}" >&2
-                  exit 1
-                elif [[ -z "$remaining_deployment_names" ]]; then
-                  echo "cert-manager-operator deployment removed while starting the wait."
-                else
-                  echo "ERROR: Timeout waiting for cert-manager-operator deployment to be removed."
-                  kubectl get deployment -n cert-manager-operator \
-                    -l infrastructure.opendatahub.io/part-of 2>/dev/null || true
-                  exit 1
-                fi
-              else
-                echo "cert-manager-operator deployment not found; continuing."
+
+              # Delete old Helm release secrets after all patches succeeded
+              if [[ -n "$OLD_SECRETS" ]]; then
+                echo "  Deleting old release secrets for '${OLD_RELEASE}'..."
+                kubectl delete secrets -A -l "owner=helm,name=${OLD_RELEASE}" 2>/dev/null || true
               fi
-              
-              # CCM cleanup can remove the old operator's RBAC before it gracefully releases
-              # this Lease. Foreground Deployment deletion waits for its blocking dependents.
-              if kubectl get lease cert-manager-operator-lock -n cert-manager-operator &>/dev/null; then
-                echo "Shortening stale cert-manager-operator-lock Lease duration to 1 second..."
-                if ! kubectl patch lease cert-manager-operator-lock -n cert-manager-operator \
-                  --type=merge \
-                  -p '{"spec":{"leaseDurationSeconds":1}}' 2>&1; then
-                  echo "WARNING: Could not shorten cert-manager-operator-lock Lease; continuing migration."
-                fi
-              else
-                echo "cert-manager-operator-lock Lease not found; nothing to shorten."
-              fi
-              echo "Migration complete. The replacement cert-manager operator will reconcile any remaining operands."
-              
+
+              echo "Migration complete."
 
