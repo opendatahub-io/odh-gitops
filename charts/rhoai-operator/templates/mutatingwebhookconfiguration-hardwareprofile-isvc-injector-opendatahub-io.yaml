@@ -1,0 +1,28 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: "{{ .Values.namespace }}/opendatahub-operator-controller-manager-service-cert"
+  name: hardwareprofile-isvc-injector.opendatahub.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: opendatahub-operator-controller-manager-service
+        namespace: {{ .Values.namespace }}
+        path: /mutate-hardware-profile
+        port: 443
+    failurePolicy: Fail
+    name: hardwareprofile-isvc-injector.opendatahub.io
+    rules:
+      - apiGroups:
+          - serving.kserve.io
+        apiVersions:
+          - v1beta1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - inferenceservices
+    sideEffects: None
