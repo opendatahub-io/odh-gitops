@@ -178,6 +178,12 @@ charts:
           - gateway.hostname=*.redhat.com
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
+      - name: azure-with-gateway-service-enabled
+        setFlags:
+          - azure.enabled=true
+          - rhaiOperator.gatewayService.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
       - name: azure-with-tls-disabled
         setFlags:
           - azure.enabled=true

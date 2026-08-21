@@ -53,18 +53,6 @@ metadata:
     helm.sh/resource-policy: keep
 
 ---
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: istio-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/resource-policy: keep
-
----
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/serviceaccount-cert-manager-operator-controller-manager.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -115,26 +103,6 @@ imagePullSecrets:
   - name: rhai-pull-secret
 
 ---
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kserve-module-controller-manager
-  namespace: redhat-ods-applications
-imagePullSecrets:
-  - name: rhai-pull-secret
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: llmisvc-controller-manager
-  namespace: redhat-ods-applications
-imagePullSecrets:
-  - name: rhai-pull-secret
-
----
 # Source: rhai-on-xks-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -143,104 +111,6 @@ metadata:
   namespace: redhat-ods-operator
 imagePullSecrets:
   - name: rhai-pull-secret
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: redhat-ods-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: redhat-ods-applications
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: rhai-cloudmanager-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: istio-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: cert-manager-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: cert-manager
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
 
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
@@ -310,14 +180,15 @@ spec:
                           description: Configuration for the cert-manager operator.
                           type: object
                         managementPolicy:
-                          description: ManagementPolicy determines whether the operator manages this dependency.
+                          default: Managed
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
                           enum:
                             - Managed
                             - Unmanaged
                           type: string
-                          x-kubernetes-validations:
-                            - message: cert-manager managementPolicy cannot be set to Managed
-                              rule: self != 'Managed' || self == oldSelf
                       type: object
                     gatewayAPI:
                       description: GatewayAPI defines the Gateway API dependency.
@@ -846,42 +717,6 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
-                    dashboard:
-                      description: Dashboard controls the Dashboard module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
-                    feastoperator:
-                      description: FeastOperator controls the Feast module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
                     kserve:
                       description: Kserve controls the kserve module operator lifecycle.
                       properties:
@@ -936,24 +771,6 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
-                    modelregistry:
-                      description: ModelRegistry controls the model-registry (AIHub) module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
                     monitoring:
                       description: Monitoring controls the monitoring module operator lifecycle.
                       properties:
@@ -974,42 +791,6 @@ spec:
                       type: object
                     ogx:
                       description: OGX controls the OGX module operator lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
-                    sparkoperator:
-                      description: SparkOperator controls the Spark Operator module lifecycle.
-                      properties:
-                        managementState:
-                          description: |-
-                            Set to one of the following values:
-
-                            - "Managed" : the operator is actively managing the component and trying to keep it active.
-                                          It will only upgrade the component if it is safe to do so
-
-                            - "Removed" : the operator is actively managing the component and will not install it,
-                                          or if it is installed, the operator will try to remove it
-                          enum:
-                            - Managed
-                            - Removed
-                          pattern: ^(Managed|Unmanaged|Force|Removed)$
-                          type: string
-                      type: object
-                    trainer:
-                      description: Trainer controls the Trainer module operator lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -1584,6 +1365,22 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
+      - cert-manager-operator-controller-manager-clusterrole
+      - cert-manager-operator-metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
       - metrics-reader
     resources:
       - clusterroles
@@ -1634,6 +1431,21 @@ rules:
     verbs:
       - create
       - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - cert-manager-operator-controller-manager-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -1961,7 +1773,6 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways
-      - aihubs
       - dashboards
       - datasciencepipelines
       - feastoperators
@@ -1970,10 +1781,12 @@ rules:
       - mcplifecycleoperators
       - mlflowoperators
       - modelmeshservings
+      - modelregistries
       - ogxs
       - rays
       - sparkoperators
       - trainers
+      - trainingoperators
       - trustyais
       - workbenches
     verbs:
@@ -1988,7 +1801,6 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/finalizers
-      - aihubs/finalizers
       - dashboards/finalizers
       - datasciencepipelines/finalizers
       - feastoperators/finalizers
@@ -1997,10 +1809,12 @@ rules:
       - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelmeshservings/finalizers
+      - modelregistries/finalizers
       - ogxs/finalizers
       - rays/finalizers
       - sparkoperators/finalizers
       - trainers/finalizers
+      - trainingoperators/finalizers
       - trustyais/finalizers
       - workbenches/finalizers
     verbs:
@@ -2009,7 +1823,6 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/status
-      - aihubs/status
       - dashboards/status
       - datasciencepipelines/status
       - feastoperators/status
@@ -2018,10 +1831,12 @@ rules:
       - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelmeshservings/status
+      - modelregistries/status
       - ogxs/status
       - rays/status
       - sparkoperators/status
       - trainers/status
+      - trainingoperators/status
       - trustyais/status
       - workbenches/status
     verbs:
@@ -2047,12 +1862,8 @@ rules:
     resources:
       - platforms
     verbs:
-      - create
-      - delete
       - get
       - list
-      - patch
-      - update
       - watch
   - apiGroups:
       - config.opendatahub.io
@@ -2194,6 +2005,7 @@ rules:
       - dscinitializations/finalizers
       - dscinitializations/status
     verbs:
+      - delete
       - get
       - patch
       - update
@@ -2246,8 +2058,16 @@ rules:
       - features.opendatahub.io
     resources:
       - featuretrackers/finalizers
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - features.opendatahub.io
+    resources:
       - featuretrackers/status
     verbs:
+      - delete
       - get
       - patch
       - update
@@ -2391,6 +2211,33 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries/finalizers
+    verbs:
+      - get
+      - update
+  - apiGroups:
+      - modelregistry.opendatahub.io
+    resources:
+      - modelregistries/status
+    verbs:
+      - get
+      - patch
+      - update
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -2760,6 +2607,18 @@ rules:
       - get
       - patch
   - apiGroups:
+      - template.openshift.io
+    resources:
+      - templates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - tempo.grafana.com
     resources:
       - tempomonolithics
@@ -2985,9 +2844,9 @@ metadata:
 spec:
   ports:
     - name: http
-      port: 8080
+      port: 8443
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
   selector:
     name: rhai-operator
 
@@ -3286,7 +3145,6 @@ spec:
         - args:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
-            - --metrics-secure=false
             - --leader-elect
           command:
             - /manager
@@ -3319,6 +3177,8 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_TRAINER_COMPONENT
               value: "true"
+            - name: RHAI_DISABLE_TRAININGOPERATOR_COMPONENT
+              value: "true"
             - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_WORKBENCHES_COMPONENT
@@ -3328,7 +3188,7 @@ spec:
             - name: RHAI_DISABLE_CERTCONFIGMAPGENERATOR_SERVICE
               value: "true"
             - name: RHAI_DISABLE_GATEWAY_SERVICE
-              value: "true"
+              value: "false"
             - name: RHAI_DISABLE_MONITORING_SERVICE
               value: "true"
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
@@ -3494,41 +3354,6 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-
----
-# Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-delete
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
-# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-migrate-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-1"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
 
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
@@ -4243,8 +4068,6 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: rhai-pre-upgrade-migrate-certmanager
-      imagePullSecrets:
-        - name: rhai-migrate-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:

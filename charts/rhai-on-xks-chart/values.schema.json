@@ -379,6 +379,17 @@
           "$ref": "#/$defs/resourceRequirements",
           "description": "Resources for the copy-manifests init container"
         },
+        "gatewayService": {
+          "type": "object",
+          "description": "Platform auth gateway controller (GatewayConfig reconciliation)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When true, sets RHAI_DISABLE_GATEWAY_SERVICE=false so the operator reconciles GatewayConfig CRs",
+              "default": false
+            }
+          }
+        },
         "relatedImages": {
           "type": "array",
           "description": "Related images env vars (RELATED_IMAGE_*) for disconnected environments",
