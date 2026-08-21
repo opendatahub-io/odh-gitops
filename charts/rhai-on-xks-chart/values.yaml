@@ -40,6 +40,10 @@ rhaiOperator:
     requests:
       cpu: 10m
       memory: 64Mi
+  # Enable platform auth gateway reconciliation (GatewayConfig controller).
+  # When false (default), RHAI_DISABLE_GATEWAY_SERVICE=true (inference-only XKS stack).
+  gatewayService:
+    enabled: false
   # Related images env vars (RELATED_IMAGE_*)
   relatedImages: []
   # Example:
