@@ -42,6 +42,7 @@ spec:
         - args:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
+            - --metrics-secure=false
             - --leader-elect
           command:
             - /manager
@@ -73,8 +74,6 @@ spec:
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_TRAINER_COMPONENT
-              value: "true"
-            - name: RHAI_DISABLE_TRAININGOPERATOR_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
               value: "true"
