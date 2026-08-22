@@ -2,16 +2,18 @@
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: rhods-operator-metrics-tls
   labels:
     name: rhods-operator
   name: rhai-operator-controller-manager-metrics-service
   namespace: {{ .Values.rhaiOperator.namespace }}
 spec:
   ports:
-    - name: http
+    - name: https
       port: 8443
       protocol: TCP
-      targetPort: http
+      targetPort: 8443
   selector:
     name: rhai-operator
 {{- end }}
