@@ -49,6 +49,12 @@ operator:
       name: opendatahub-operator
       namespace: opendatahub-operator-system
       source: community-operators
+      # -- (optional) Additional Subscription config (e.g., env vars for RELATED_IMAGE overrides).
+      # Merged with chart defaults (DISABLE_DSC_CONFIG=true).
+      # config:
+      #   env:
+      #     - name: RELATED_IMAGE_ODH_MAAS_CONTROLLER_IMAGE
+      #       value: quay.io/example/maas-controller:latest
 
   # -- RHOAI operator settings
   rhoai:
@@ -60,6 +66,9 @@ operator:
       name: rhods-operator
       namespace: redhat-ods-operator
       source: redhat-operators
+      # -- (optional) Additional Subscription config (e.g., env vars for RELATED_IMAGE overrides).
+      # config:
+      #   env: []
 
 # -- Trusted CA bundle configuration
 trustedCABundle:
@@ -95,7 +104,10 @@ services:
 components:
   # -- AI Gateway component (manages MaaS and BatchGateway sub-components)
   aigateway:
-    dependencies: {}
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
     # -- DSC configuration for AI Gateway
     dsc:
       # -- Management state for AI Gateway. Null uses profile default.

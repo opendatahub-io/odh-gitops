@@ -9,7 +9,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -27,7 +26,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v2
@@ -40,11 +38,9 @@ metadata:
 spec:
   components:
     aigateway:
-      batchGateway:
-        managementState: Removed
+      batchGateway: {}
       managementState: Removed
-      modelsAsAService:
-        managementState: Removed
+      modelsAsAService: {}
     aipipelines:
       managementState: Removed
     dashboard:
@@ -53,11 +49,9 @@ spec:
       managementState: Removed
     kserve:
       managementState: Removed
-      nim:
-        managementState: Removed
+      nim: {}
       rawDeploymentServiceConfig: Headless
-      wva:
-        managementState: Removed
+      wva: {}
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -86,7 +80,6 @@ spec:
     workbenches:
       managementState: Removed
       workbenchNamespace: rhods-notebooks
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -99,7 +92,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
