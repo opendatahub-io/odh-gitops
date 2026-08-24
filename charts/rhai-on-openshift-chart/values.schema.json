@@ -23,9 +23,9 @@
     },
     "profile": {
       "type": "string",
-      "enum": ["default", "rhaii"],
+      "enum": ["default", "maas", "rhaii"],
       "default": "default",
-      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
+      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
     },
     "olm": {
       "type": "object",
@@ -256,6 +256,24 @@
             "source": {
               "type": "string",
               "description": "Catalog source"
+            },
+            "config": {
+              "type": "object",
+              "description": "Additional Subscription config merged with chart defaults (e.g., RELATED_IMAGE env vars)",
+              "properties": {
+                "env": {
+                  "type": "array",
+                  "description": "Environment variables to inject into the operator Subscription config",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "value": { "type": "string" }
+                    },
+                    "required": ["name", "value"]
+                  }
+                }
+              }
             }
           },
           "required": ["channel", "name", "namespace", "source"],

@@ -10,11 +10,11 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: openshift-jobset-operator
+  name: openshift-lws-operator
   annotations:
     helm.sh/resource-policy: keep
   labels:
@@ -36,7 +36,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: redhat-ods-operator
+  name: opendatahub-operator-system
   annotations:
     helm.sh/resource-policy: keep
   labels:
@@ -54,8 +54,8 @@ metadata:
 spec:
   monitoring:
     managementState: Removed
-    namespace: redhat-ods-monitoring
-  applicationsNamespace: redhat-ods-applications
+    namespace: opendatahub
+  applicationsNamespace: opendatahub
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
@@ -72,8 +72,9 @@ spec:
   components:
     aigateway:
       batchGateway: {}
-      managementState: Removed
-      modelsAsAService: {}
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
     aipipelines:
       managementState: Removed
     dashboard:
@@ -83,7 +84,7 @@ spec:
     kserve:
       managementState: Managed
       nim: {}
-      rawDeploymentServiceConfig: Headless
+      rawDeploymentServiceConfig: Headed
       wva: {}
     kueue:
       defaultClusterQueueName: default
@@ -93,7 +94,7 @@ spec:
       managementState: Removed
     modelregistry:
       managementState: Removed
-      registriesNamespace: rhoai-model-registries
+      registriesNamespace: odh-model-registry
     ogx:
       managementState: Removed
     ray:
@@ -112,7 +113,7 @@ spec:
       managementState: Removed
     workbenches:
       managementState: Removed
-      workbenchNamespace: rhods-notebooks
+      workbenchNamespace: opendatahub
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -129,7 +130,29 @@ spec:
   listeners:
   - allowedRoutes:
       namespaces:
-        from: Same
+        from: All
+    name: https
+    port: 443
+    protocol: HTTPS
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: maas-default-gateway
+  namespace: openshift-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    opendatahub.io/managed: "false"
+    security.opendatahub.io/authorino-tls-bootstrap: "true"
+spec:
+  gatewayClassName: maas-gateway-class
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
     name: https
     port: 443
     protocol: HTTPS
@@ -145,17 +168,16 @@ metadata:
 spec:
   controllerName: openshift.io/gateway-controller/v1
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/job-set/config.yaml
-apiVersion: operator.openshift.io/v1
-kind: JobSetOperator
+# Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
 metadata:
-  name: cluster
+  name: maas-gateway-class
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
-  logLevel: Normal
-  operatorLogLevel: Normal
+  controllerName: openshift.io/gateway-controller/v1
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
@@ -166,6 +188,19 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
+apiVersion: operator.openshift.io/v1
+kind: LeaderWorkerSetOperator
+metadata:
+  name: cluster
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  logLevel: Normal
+  managementState: Managed
+  operatorLogLevel: Normal
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -179,19 +214,19 @@ metadata:
 spec:
   upgradeStrategy: Default
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: job-set
-  namespace: openshift-jobset-operator
+  name: leader-worker-set
+  namespace: openshift-lws-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
   targetNamespaces:
-    - openshift-jobset-operator
+    - openshift-lws-operator
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -209,8 +244,8 @@ spec:
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: rhods-operator
-  namespace: redhat-ods-operator
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -233,19 +268,19 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: job-set
-  namespace: openshift-jobset-operator
+  name: leader-worker-set
+  namespace: openshift-lws-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
   channel: stable-v1.0
   installPlanApproval: Automatic
-  name: job-set
+  name: leader-worker-set
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
@@ -269,16 +304,16 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: rhods-operator
-  namespace: redhat-ods-operator
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
-  channel: beta
+  channel: fast-3
   installPlanApproval: Automatic
-  name: rhods-operator
-  source: redhat-operators
+  name: opendatahub-operator
+  source: community-operators
   sourceNamespace: openshift-marketplace
   config:
     env:
