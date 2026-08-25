@@ -42,7 +42,10 @@ rhaiOperator:
       memory: 64Mi
   # Enable platform auth gateway reconciliation (GatewayConfig controller).
   # When false (default), RHAI_DISABLE_GATEWAY_SERVICE=true (inference-only XKS stack).
+  # Prerequisite: install the xks-gateway chart first (or apply the GatewayConfig CRD separately).
+  # rhai-on-xks-chart no longer ships gatewayconfigs.services.platform.opendatahub.io.
   gatewayService:
+    # -- Enable GatewayConfig reconciliation. Requires the xks-gateway chart (or CRD) installed first.
     enabled: false
   # Related images env vars (RELATED_IMAGE_*)
   relatedImages: []
