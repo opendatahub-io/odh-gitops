@@ -172,6 +172,10 @@ kustomize build "${RHAI_KUSTOMIZE_PATH}" | go run "${HELMTEMPLATE_GENERATOR_PKG}
 
 echo "  Done"
 
+# GatewayConfig CRD is shipped by charts/dependencies/xks-gateway (XKS-tailored schema),
+# not this chart. See charts/dependencies/xks-gateway/scripts/sync-gatewayconfig-crd.sh
+rm -f "${CHART_DIR}/templates/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
+
 # ==============================================================================
 # Step 2: Generate cloudmanager templates from kustomize
 # ==============================================================================

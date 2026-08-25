@@ -3,6 +3,11 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "installCRDs": {
+      "type": "boolean",
+      "description": "Install the XKS-tailored GatewayConfig CRD. Required before the operator reconciles GatewayConfig.",
+      "default": true
+    },
     "gateway": {
       "type": "object",
       "description": "Gateway configuration for XKS environments",
@@ -26,7 +31,7 @@
         },
         "namespace": {
           "type": "string",
-          "description": "Namespace created by this chart; also the default location for the OIDC client secret",
+          "description": "Namespace created by this chart. Must be rh-ai-gateway to match the operator.",
           "default": "rh-ai-gateway"
         },
         "certificate": {
@@ -59,13 +64,17 @@
               "type": "string",
               "description": "OIDC client ID. Required at install."
             },
+            "oidcClientSecret": {
+              "type": "string",
+              "description": "OIDC client secret value. When set, the chart creates the Secret in gateway.namespace (supply via --set or --set-file at install)."
+            },
             "clientSecretRef": {
               "type": "object",
-              "description": "Reference to a pre-existing Secret containing the OIDC client secret",
+              "description": "Reference to the OIDC client secret (BYO mode) or chart-created secret name (managed mode)",
               "properties": {
                 "name": {
                   "type": "string",
-                  "description": "Name of the existing Kubernetes Secret. Required at install."
+                  "description": "Name of the Kubernetes Secret. Required when oidcClientSecret is not set; defaults to oidc-client-secret when oidcClientSecret is set."
                 },
                 "key": {
                   "type": "string",
