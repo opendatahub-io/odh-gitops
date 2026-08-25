@@ -132,6 +132,22 @@ charts:
           - gateway.oidc.clientSecretRef.name=my-oidc-secret
           - gateway.networkPolicy.ingress.enabled=false
 
+      - name: with-managed-oidc-secret
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.oidcClientSecret=test-client-secret-value
+          - gateway.oidc.clientSecretRef.name=managed-oidc-secret
+
+      - name: without-crds
+        setFlags:
+          - installCRDs=false
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+
   rhai-on-xks-chart:
     snapshots:
       - name: with-custom-namespace

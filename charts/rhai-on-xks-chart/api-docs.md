@@ -102,7 +102,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | installCRDs | bool | `true` |  |
 | labels | object | `{}` |  |
 | rhaiOperator.applicationsNamespace | string | `"redhat-ods-applications"` |  |
-| rhaiOperator.gatewayService.enabled | bool | `false` |  |
+| rhaiOperator.gatewayService.enabled | bool | `false` | Enable GatewayConfig reconciliation. Requires the xks-gateway chart (or CRD) installed first. |
 | rhaiOperator.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | rhaiOperator.imagePullPolicy | string | `"Always"` |  |
 | rhaiOperator.initResources.limits.cpu | string | `"100m"` |  |

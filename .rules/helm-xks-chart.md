@@ -9,7 +9,7 @@ Template prefix: `rhai-on-xks-chart.` for all helpers.
 
 - `templates/manager/` — RHAI operator deployment, namespaces, services. Set `rhaiOperator.gatewayService.enabled=true` to enable `GatewayConfig` reconciliation (`RHAI_DISABLE_GATEWAY_SERVICE=false`).
 - `templates/rbac/` — ServiceAccount, ClusterRole, ClusterRoleBinding.
-- `templates/crds/` — CRDs bundled in chart (`platforms.config.opendatahub.io`, `gatewayconfigs.services.platform.opendatahub.io`, plus cloud-manager CRDs under `templates/cloudmanager/*/crds/`). Regenerated from `config/rhaii/crd/bases/` in opendatahub-operator via `scripts/update-bundle.sh`.
+- `templates/crds/` — CRDs bundled in chart (`platforms.config.opendatahub.io`, plus cloud-manager CRDs under `templates/cloudmanager/*/crds/`). Regenerated from `config/rhaii/crd/bases/` in opendatahub-operator via `scripts/update-bundle.sh`. The GatewayConfig CRD is **not** in this chart; install `charts/dependencies/xks-gateway` first (or apply the CRD separately) before enabling `rhaiOperator.gatewayService`.
 - `templates/hooks/` — post-install Jobs (CRs creation, gateway setup).
   - `_crs-definitions.tpl` — **single source of truth** for provider and component CR metadata; add new providers/CRs here only. All templates update automatically.
 - `templates/webhooks/` — MutatingWebhookConfiguration.

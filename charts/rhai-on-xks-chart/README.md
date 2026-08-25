@@ -31,6 +31,7 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
 - Helm 4.x
 - Cluster-admin privileges (the chart creates CRDs, ClusterRoles, and namespaces)
 - Pull secret for `registry.redhat.io` (see [Pull Secrets](#pull-secrets) below)
+- For platform auth gateway (`rhaiOperator.gatewayService.enabled=true`): install [`xks-gateway`](../dependencies/xks-gateway/) first (or apply the GatewayConfig CRD separately). This chart does not ship `gatewayconfigs.services.platform.opendatahub.io`.
 
 ## Pull Secrets
 

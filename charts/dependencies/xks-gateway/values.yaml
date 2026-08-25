@@ -1,5 +1,8 @@
 # XKS Gateway Onboarding Chart
-# Creates the gateway namespace and GatewayConfig CR for non-OpenShift Kubernetes environments.
+# Creates the gateway namespace, XKS-tailored GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
+
+# -- Install the XKS-tailored GatewayConfig CRD (required before the operator reconciles GatewayConfig)
+installCRDs: true
 
 gateway:
   # -- (required) External hostname (e.g., example.com or *.example.com)
@@ -11,7 +14,7 @@ gateway:
   # -- How the gateway is exposed externally on XKS (LoadBalancer only)
   ingressMode: LoadBalancer
 
-  # -- Namespace created by this chart; default location for the OIDC client secret (create after install or use secretNamespace)
+  # -- Namespace created by this chart. Must be rh-ai-gateway; the operator hardcodes that name.
   namespace: rh-ai-gateway
 
   # TLS certificate configuration
@@ -27,9 +30,11 @@ gateway:
     issuerURL: ""
     # -- (required) OIDC client ID
     clientID: ""
-    # -- Reference to a pre-existing Secret containing the OIDC client secret
+    # -- OIDC client secret value; when set, the chart creates the Secret in gateway.namespace (use --set-file for install)
+    oidcClientSecret: ""
+    # -- Reference to the OIDC client secret (name required for BYO mode; optional when oidcClientSecret is set, defaults to oidc-client-secret)
     clientSecretRef:
-      # -- (required) Name of the existing Kubernetes Secret
+      # -- Name of the Kubernetes Secret (existing or chart-created)
       name: ""
       # -- Key within the Secret that holds the client secret value
       key: client-secret

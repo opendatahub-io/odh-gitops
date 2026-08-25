@@ -381,11 +381,11 @@
         },
         "gatewayService": {
           "type": "object",
-          "description": "Platform auth gateway controller (GatewayConfig reconciliation)",
+          "description": "Platform auth gateway controller (GatewayConfig reconciliation). Requires the GatewayConfig CRD from the xks-gateway chart.",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "When true, sets RHAI_DISABLE_GATEWAY_SERVICE=false so the operator reconciles GatewayConfig CRs",
+              "description": "When true, sets RHAI_DISABLE_GATEWAY_SERVICE=false so the operator reconciles GatewayConfig CRs. Install xks-gateway (or the CRD) first.",
               "default": false
             }
           }

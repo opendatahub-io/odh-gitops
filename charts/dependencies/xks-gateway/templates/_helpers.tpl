@@ -34,3 +34,27 @@ Resolve the namespace for the OIDC client secret (defaults to gateway.namespace)
 {{- $gw := .Values.gateway -}}
 {{- $gw.oidc.secretNamespace | default (include "xks-gateway.namespace" .) }}
 {{- end }}
+
+{{/*
+Resolve the OIDC client secret name referenced by GatewayConfig (defaults when chart-managed).
+*/}}
+{{- define "xks-gateway.oidcClientSecretRefName" -}}
+{{- $gw := .Values.gateway -}}
+{{- if $gw.oidc.oidcClientSecret -}}
+{{- $gw.oidc.clientSecretRef.name | default "oidc-client-secret" -}}
+{{- else -}}
+{{- $gw.oidc.clientSecretRef.name -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+True when this chart creates the OIDC client secret (oidcClientSecret set and target namespace is gateway.namespace).
+*/}}
+{{- define "xks-gateway.oidcSecretManaged" -}}
+{{- $gw := .Values.gateway -}}
+{{- if $gw.oidc.oidcClientSecret -}}
+{{- $secretNs := include "xks-gateway.oidcSecretNamespace" . -}}
+{{- $gatewayNs := include "xks-gateway.namespace" . -}}
+{{- if eq $secretNs $gatewayNs -}}true{{- end -}}
+{{- end -}}
+{{- end -}}

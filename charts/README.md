@@ -21,6 +21,7 @@ Extracted from Red Hat operator bundles for deploying operators on vanilla Kuber
 | [`gateway-api`](dependencies/gateway-api/) | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
 | [`lws-operator`](dependencies/lws-operator/) | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
 | [`sail-operator`](dependencies/sail-operator/) | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |
+| [`xks-gateway`](dependencies/xks-gateway/) | 0.1.0 | `rh-ai-gateway` | XKS GatewayConfig CRD, namespace, and GatewayConfig CR |
 
 ---
 
