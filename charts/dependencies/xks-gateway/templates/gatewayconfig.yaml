@@ -21,7 +21,7 @@ spec:
     issuerURL: {{ $gw.oidc.issuerURL | quote }}
     clientID: {{ $gw.oidc.clientID | quote }}
     clientSecretRef:
-      name: {{ $gw.oidc.clientSecretRef.name | quote }}
+      name: {{ include "xks-gateway.oidcClientSecretRefName" . | quote }}
       key: {{ $gw.oidc.clientSecretRef.key | default "client-secret" | quote }}
     secretNamespace: {{ include "xks-gateway.oidcSecretNamespace" . | quote }}
   {{- if or $gw.cookie.expire $gw.cookie.refresh }}
