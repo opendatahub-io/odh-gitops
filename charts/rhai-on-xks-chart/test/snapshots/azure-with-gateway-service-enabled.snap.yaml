@@ -53,6 +53,18 @@ metadata:
     helm.sh/resource-policy: keep
 
 ---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
+
+---
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/serviceaccount-cert-manager-operator-controller-manager.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -103,6 +115,46 @@ imagePullSecrets:
   - name: rhai-pull-secret
 
 ---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kserve-module-controller-manager
+  namespace: redhat-ods-applications
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llmisvc-controller-manager
+  namespace: redhat-ods-applications
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-auth-proxy
+  namespace: rh-ai-gateway
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rh-ai-gateway-data-science-gateway-class
+  namespace: rh-ai-gateway
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
 # Source: rhai-on-xks-chart/templates/rbac/serviceaccount-redhat-ods-operator-controller-manager.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -111,6 +163,118 @@ metadata:
   namespace: redhat-ods-operator
 imagePullSecrets:
   - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: redhat-ods-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: redhat-ods-applications
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: rhai-cloudmanager-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: istio-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: cert-manager-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: cert-manager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: rh-ai-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
 
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
@@ -3060,6 +3224,41 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-migrate-pull-secret
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: dGVzdGF1dGg=
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -3772,6 +3971,8 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: rhai-pre-upgrade-migrate-certmanager
+      imagePullSecrets:
+        - name: rhai-migrate-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:

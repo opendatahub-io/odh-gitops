@@ -116,14 +116,6 @@ charts:
           - gateway.oidc.clientSecretRef.name=dev-oidc-secret
           - gateway.verifyProviderCertificate=false
 
-      - name: with-custom-namespace
-        setFlags:
-          - gateway.namespace=custom-gateway-ns
-          - gateway.domain=example.com
-          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
-          - gateway.oidc.clientID=rhai-client
-          - gateway.oidc.clientSecretRef.name=my-oidc-secret
-
       - name: with-network-policy-disabled
         setFlags:
           - gateway.domain=example.com
@@ -189,6 +181,7 @@ charts:
       - name: azure-with-gateway-service-enabled
         setFlags:
           - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
           - rhaiOperator.gatewayService.enabled=true
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 

@@ -4,3 +4,5 @@ metadata:
   name: {{ include "xks-gateway.namespace" . }}
   labels:
     {{- include "xks-gateway.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep

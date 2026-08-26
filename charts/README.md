@@ -13,7 +13,7 @@ Helm charts for deploying Red Hat AI (RHAI) operators and their dependencies on 
 
 ### Dependency Charts
 
-Extracted from Red Hat operator bundles for deploying operators on vanilla Kubernetes without OLM. These are used by `rhai-on-xks-chart`.
+Extracted from Red Hat operator bundles for deploying operators on vanilla Kubernetes without OLM. The `rhai-on-xks-chart` embeds some of these as Helm subcharts; others are installed separately when needed.
 
 | Chart | Version | Namespace | Description |
 |-------|---------|-----------|-------------|
@@ -21,7 +21,7 @@ Extracted from Red Hat operator bundles for deploying operators on vanilla Kuber
 | [`gateway-api`](dependencies/gateway-api/) | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
 | [`lws-operator`](dependencies/lws-operator/) | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
 | [`sail-operator`](dependencies/sail-operator/) | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |
-| [`xks-gateway`](dependencies/xks-gateway/) | 0.1.0 | `rh-ai-gateway` | XKS GatewayConfig CRD, namespace, and GatewayConfig CR |
+| [`xks-gateway`](dependencies/xks-gateway/) | 0.1.0 | `rh-ai-gateway` | XKS platform auth gateway: GatewayConfig CRD, namespace, and GatewayConfig CR (**standalone**; install before enabling `rhaiOperator.gatewayService` on `rhai-on-xks-chart`) |
 
 ---
 
@@ -80,9 +80,14 @@ helm install cert-manager-operator charts/dependencies/cert-manager-operator/
 helm install gateway-api charts/dependencies/gateway-api/
 helm install lws-operator charts/dependencies/lws-operator/
 helm install sail-operator charts/dependencies/sail-operator/
+helm install xks-gateway charts/dependencies/xks-gateway/ \
+  --set gateway.domain=example.com \
+  --set gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai \
+  --set gateway.oidc.clientID=rhai-client \
+  --set gateway.oidc.clientSecretRef.name=my-oidc-secret
 ```
 
-Each operator chart creates its own namespace from `values.yaml` defaults. The `gateway-api` chart is cluster-scoped (CRDs only) and does not create a namespace.
+Each operator chart creates its own namespace from `values.yaml` defaults. The `gateway-api` chart is cluster-scoped (CRDs only) and does not create a namespace. The `xks-gateway` chart installs a CRD from `crds/` (not upgraded on `helm upgrade`; see [`xks-gateway/README.md`](dependencies/xks-gateway/README.md)).
 
 ## Post-Install Steps (Dependency Charts)
 

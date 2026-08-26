@@ -139,4 +139,14 @@ AWSKubernetesEngine CR is NOT automatically created. To create it manually:
 {{- end }}
 {{- end }}
 
+{{- if dig "gatewayService" "enabled" false .Values.rhaiOperator }}
+
+== Platform auth gateway ==
+
+GatewayConfig reconciliation is enabled (rhaiOperator.gatewayService.enabled=true).
+Ensure the xks-gateway chart (or GatewayConfig CRD + default-gateway CR) is installed first.
+The operator reconciles GatewayConfig in namespace rh-ai-gateway (OIDC, TLS, LoadBalancer).
+This is separate from the KServe inference-gateway in the applications namespace.
+{{- end }}
+
 Set managementPolicy to "Unmanaged" for any dependency you manage yourself.

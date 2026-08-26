@@ -48,8 +48,8 @@ podman login registry.redhat.io --authfile /path/to/auth.json
 
 The `imagePullSecret.dockerConfigJson` parameter:
 
-1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
-2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, and the post-install hook)
+1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager, dependency namespaces, and `rh-ai-gateway` when `rhaiOperator.gatewayService.enabled=true`)
+2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, the post-install hook, and gateway service accounts in `rh-ai-gateway` when the auth gateway is enabled)
 
 The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
@@ -109,6 +109,21 @@ The chart performs a **multi-phase installation**:
 3. **Phase 3 — Post-install hook (weight 2):** a Helm hook Job waits for dependencies (Gateway API CRDs, cert-manager CA secret, GatewayClass `istio`) and then creates the `inference-gateway` Gateway CR along with its supporting ConfigMaps
 
 Phase 2 and 3 are necessary because the CRs depend on CRDs and resources that are only available after the operators are deployed and reconciled.
+
+### Platform auth gateway (optional)
+
+This is separate from the KServe **inference gateway** below.
+
+| | Inference gateway | Platform auth gateway |
+|---|---|---|
+| Chart values | `gateway.hostname`, `gateway.tls` | [`xks-gateway`](../dependencies/xks-gateway/) chart + `rhaiOperator.gatewayService.enabled` |
+| Gateway CR | `inference-gateway` (apps namespace) | `rh-ai-gateway` (`rh-ai-gateway` namespace) |
+| Purpose | KServe model inference HTTPRoutes | OIDC auth proxy + platform ingress (`kube-auth-proxy`) |
+
+To enable the auth gateway:
+
+1. Install [`xks-gateway`](../dependencies/xks-gateway/) with `gateway.domain`, OIDC, and TLS settings.
+2. Upgrade this chart with `rhaiOperator.gatewayService.enabled=true` and a pull secret (registry.redhat.io images are used in `rh-ai-gateway`).
 
 ### Inference Gateway
 
