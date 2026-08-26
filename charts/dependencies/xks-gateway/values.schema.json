@@ -26,7 +26,8 @@
         },
         "namespace": {
           "type": "string",
-          "description": "Namespace created by this chart. Must be rh-ai-gateway to match the operator.",
+          "description": "Namespace created by this chart. Must be rh-ai-gateway to match the operator (not configurable).",
+          "const": "rh-ai-gateway",
           "default": "rh-ai-gateway"
         },
         "certificate": {
@@ -61,7 +62,7 @@
             },
             "oidcClientSecret": {
               "type": "string",
-              "description": "OIDC client secret value. When set, the chart creates the Secret in gateway.namespace (supply via --set or --set-file at install)."
+              "description": "OIDC client secret for chart-managed Secret (dev/test). Prefer clientSecretRef for production; value is stored in the Helm release Secret."
             },
             "clientSecretRef": {
               "type": "object",

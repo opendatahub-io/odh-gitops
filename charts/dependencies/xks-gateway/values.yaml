@@ -30,7 +30,9 @@ gateway:
     issuerURL: ""
     # -- (required) OIDC client ID
     clientID: ""
-    # -- OIDC client secret value; when set, the chart creates the Secret in gateway.namespace (use --set-file for install)
+    # -- OIDC client secret value; when set, the chart creates the Secret in gateway.namespace.
+    # Prefer referencing an existing Secret via clientSecretRef (BYO) for production; use --set-file
+    # with oidcClientSecret only for dev/test (the value is stored in the Helm release Secret).
     oidcClientSecret: ""
     # -- Reference to the OIDC client secret (name required for BYO mode; optional when oidcClientSecret is set, defaults to oidc-client-secret)
     clientSecretRef:

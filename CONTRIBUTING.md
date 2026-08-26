@@ -401,7 +401,16 @@ make chart-test CHART_NAME=rhai-on-openshift-chart
    make chart-test
    ```
 
-4. **Test on a cluster**:
+4. **xks-gateway CRD sync** (when changing GatewayConfig schema in `opendatahub-operator`):
+
+   ```bash
+   ./charts/dependencies/xks-gateway/scripts/sync-gatewayconfig-crd.sh /path/to/opendatahub-operator
+   make verify-xks-gateway-crd OPERATOR_DIR=/path/to/opendatahub-operator
+   make chart-snapshots CHART_NAME=xks-gateway
+   make chart-test CHART_NAME=xks-gateway
+   ```
+
+5. **Test on a cluster**:
 
    ```bash
    make helm-install-verify
