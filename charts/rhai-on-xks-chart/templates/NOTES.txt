@@ -144,7 +144,11 @@ AWSKubernetesEngine CR is NOT automatically created. To create it manually:
 == Platform auth gateway ==
 
 GatewayConfig reconciliation is enabled (rhaiOperator.gatewayService.enabled=true).
-Ensure the xks-gateway chart (or GatewayConfig CRD + default-gateway CR) is installed first.
+Ensure the xks-gateway chart is installed first, OR manually create all of:
+  - GatewayConfig CRD (gatewayconfigs.services.platform.opendatahub.io)
+  - Namespace: rh-ai-gateway
+  - GatewayConfig CR: default-gateway (cluster-scoped)
+  - OIDC client Secret in rh-ai-gateway (referenced by .spec.oidc.clientSecretRef)
 The operator reconciles GatewayConfig in namespace rh-ai-gateway (OIDC, TLS, LoadBalancer).
 This is separate from the KServe inference-gateway in the applications namespace.
 {{- end }}
