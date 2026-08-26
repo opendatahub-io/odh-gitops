@@ -4,6 +4,8 @@
 
 XKS Gateway onboarding chart - installs the XKS GatewayConfig CRD, gateway namespace, and GatewayConfig CR for non-OpenShift Kubernetes.
 
+The GatewayConfig CRD is in `crds/` (not `templates/`) so `helm install` applies it **before** the `GatewayConfig` CR. Use `--skip-crds` if the CRD already exists. Helm does not upgrade `crds/` on `helm upgrade`; re-sync from the operator repo and `kubectl apply` the CRD to roll schema changes.
+
 ## Maintainers
 
 | Name | Email | Url |
@@ -32,5 +34,4 @@ XKS Gateway onboarding chart - installs the XKS GatewayConfig CRD, gateway names
 | gateway.providerCASecretName | string | `""` | Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace) |
 | gateway.subdomain | string | `""` | Subdomain prefix for the gateway |
 | gateway.verifyProviderCertificate | bool | `true` | Verify auth provider TLS certificate (set to false only for development) |
-| installCRDs | bool | `true` | Install the XKS-tailored GatewayConfig CRD (required before the operator reconciles GatewayConfig) |
 

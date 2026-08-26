@@ -2,7 +2,7 @@
 
 ![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
 
-XKS Gateway onboarding chart - installs the XKS GatewayConfig CRD, gateway namespace, and GatewayConfig CR for non-OpenShift Kubernetes.
+XKS Gateway onboarding chart - installs the XKS GatewayConfig CRD (crds/), gateway namespace, and GatewayConfig CR for non-OpenShift Kubernetes.
 
 ## Maintainers
 
@@ -32,5 +32,4 @@ XKS Gateway onboarding chart - installs the XKS GatewayConfig CRD, gateway names
 | gateway.providerCASecretName | string | `""` | Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace) |
 | gateway.subdomain | string | `""` | Subdomain prefix for the gateway |
 | gateway.verifyProviderCertificate | bool | `true` | Verify auth provider TLS certificate (set to false only for development) |
-| installCRDs | bool | `true` | Install the XKS-tailored GatewayConfig CRD (required before the operator reconciles GatewayConfig) |
 
