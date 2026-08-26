@@ -244,7 +244,7 @@ chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for spe
 
 .PHONY: verify-xks-gateway-crd
 verify-xks-gateway-crd: ## Verify xks-gateway CRD matches opendatahub-operator (set OPERATOR_DIR)
-	@bash ./charts/dependencies/xks-gateway/scripts/verify-gatewayconfig-crd.sh $(OPERATOR_DIR)
+	@bash ./charts/dependencies/xks-gateway/scripts/verify-gatewayconfig-crd.sh "$(OPERATOR_DIR)"
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure
