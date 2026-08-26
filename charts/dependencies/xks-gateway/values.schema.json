@@ -3,11 +3,6 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "installCRDs": {
-      "type": "boolean",
-      "description": "Install the XKS-tailored GatewayConfig CRD. Required before the operator reconciles GatewayConfig.",
-      "default": true
-    },
     "gateway": {
       "type": "object",
       "description": "Gateway configuration for XKS environments",
