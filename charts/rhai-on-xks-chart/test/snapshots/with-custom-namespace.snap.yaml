@@ -336,15 +336,14 @@ spec:
                           description: Configuration for the cert-manager operator.
                           type: object
                         managementPolicy:
-                          default: Managed
-                          description: |-
-                            ManagementPolicy determines whether the operator manages this dependency.
-                            Managed: the operator installs and reconciles the dependency.
-                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          description: ManagementPolicy determines whether the operator manages this dependency.
                           enum:
                             - Managed
                             - Unmanaged
                           type: string
+                          x-kubernetes-validations:
+                            - message: cert-manager managementPolicy cannot be set to Managed
+                              rule: self != 'Managed' || self == oldSelf
                       type: object
                     gatewayAPI:
                       description: GatewayAPI defines the Gateway API dependency.
@@ -577,6 +576,42 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
+                    dashboard:
+                      description: Dashboard controls the Dashboard module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    feastoperator:
+                      description: FeastOperator controls the Feast module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
                     kserve:
                       description: Kserve controls the kserve module operator lifecycle.
                       properties:
@@ -631,6 +666,24 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
+                    modelregistry:
+                      description: ModelRegistry controls the model-registry (AIHub) module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
                     monitoring:
                       description: Monitoring controls the monitoring module operator lifecycle.
                       properties:
@@ -651,6 +704,42 @@ spec:
                       type: object
                     ogx:
                       description: OGX controls the OGX module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    sparkoperator:
+                      description: SparkOperator controls the Spark Operator module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    trainer:
+                      description: Trainer controls the Trainer module operator lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -1225,22 +1314,6 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
-      - cert-manager-operator-controller-manager-clusterrole
-      - cert-manager-operator-metrics-reader
-    resources:
-      - clusterroles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
       - metrics-reader
     resources:
       - clusterroles
@@ -1291,21 +1364,6 @@ rules:
     verbs:
       - create
       - list
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - cert-manager-operator-controller-manager-role
-    resources:
-      - roles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -1633,6 +1691,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways
+      - aihubs
       - dashboards
       - datasciencepipelines
       - feastoperators
@@ -1641,12 +1700,10 @@ rules:
       - mcplifecycleoperators
       - mlflowoperators
       - modelmeshservings
-      - modelregistries
       - ogxs
       - rays
       - sparkoperators
       - trainers
-      - trainingoperators
       - trustyais
       - workbenches
     verbs:
@@ -1661,6 +1718,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/finalizers
+      - aihubs/finalizers
       - dashboards/finalizers
       - datasciencepipelines/finalizers
       - feastoperators/finalizers
@@ -1669,12 +1727,10 @@ rules:
       - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelmeshservings/finalizers
-      - modelregistries/finalizers
       - ogxs/finalizers
       - rays/finalizers
       - sparkoperators/finalizers
       - trainers/finalizers
-      - trainingoperators/finalizers
       - trustyais/finalizers
       - workbenches/finalizers
     verbs:
@@ -1683,6 +1739,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/status
+      - aihubs/status
       - dashboards/status
       - datasciencepipelines/status
       - feastoperators/status
@@ -1691,12 +1748,10 @@ rules:
       - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelmeshservings/status
-      - modelregistries/status
       - ogxs/status
       - rays/status
       - sparkoperators/status
       - trainers/status
-      - trainingoperators/status
       - trustyais/status
       - workbenches/status
     verbs:
@@ -1722,8 +1777,12 @@ rules:
     resources:
       - platforms
     verbs:
+      - create
+      - delete
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - config.opendatahub.io
@@ -1865,7 +1924,6 @@ rules:
       - dscinitializations/finalizers
       - dscinitializations/status
     verbs:
-      - delete
       - get
       - patch
       - update
@@ -1918,16 +1976,8 @@ rules:
       - features.opendatahub.io
     resources:
       - featuretrackers/finalizers
-    verbs:
-      - get
-      - patch
-      - update
-  - apiGroups:
-      - features.opendatahub.io
-    resources:
       - featuretrackers/status
     verbs:
-      - delete
       - get
       - patch
       - update
@@ -2071,33 +2121,6 @@ rules:
       - get
       - list
       - watch
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries/finalizers
-    verbs:
-      - get
-      - update
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries/status
-    verbs:
-      - get
-      - patch
-      - update
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -2467,18 +2490,6 @@ rules:
       - get
       - patch
   - apiGroups:
-      - template.openshift.io
-    resources:
-      - templates
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
       - tempo.grafana.com
     resources:
       - tempomonolithics
@@ -2704,9 +2715,9 @@ metadata:
 spec:
   ports:
     - name: http
-      port: 8443
+      port: 8080
       protocol: TCP
-      targetPort: http
+      targetPort: 8080
   selector:
     name: rhai-operator
 
@@ -3005,6 +3016,7 @@ spec:
         - args:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
+            - --metrics-secure=false
             - --leader-elect
           command:
             - /manager
@@ -3036,8 +3048,6 @@ spec:
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_TRAINER_COMPONENT
-              value: "true"
-            - name: RHAI_DISABLE_TRAININGOPERATOR_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
               value: "true"
