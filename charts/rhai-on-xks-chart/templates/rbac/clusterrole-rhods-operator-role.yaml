@@ -268,6 +268,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways
+      - aihubs
       - dashboards
       - datasciencepipelines
       - feastoperators
@@ -276,12 +277,10 @@ rules:
       - mcplifecycleoperators
       - mlflowoperators
       - modelmeshservings
-      - modelregistries
       - ogxs
       - rays
       - sparkoperators
       - trainers
-      - trainingoperators
       - trustyais
       - workbenches
     verbs:
@@ -296,6 +295,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/finalizers
+      - aihubs/finalizers
       - dashboards/finalizers
       - datasciencepipelines/finalizers
       - feastoperators/finalizers
@@ -304,12 +304,10 @@ rules:
       - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelmeshservings/finalizers
-      - modelregistries/finalizers
       - ogxs/finalizers
       - rays/finalizers
       - sparkoperators/finalizers
       - trainers/finalizers
-      - trainingoperators/finalizers
       - trustyais/finalizers
       - workbenches/finalizers
     verbs:
@@ -318,6 +316,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/status
+      - aihubs/status
       - dashboards/status
       - datasciencepipelines/status
       - feastoperators/status
@@ -326,12 +325,10 @@ rules:
       - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelmeshservings/status
-      - modelregistries/status
       - ogxs/status
       - rays/status
       - sparkoperators/status
       - trainers/status
-      - trainingoperators/status
       - trustyais/status
       - workbenches/status
     verbs:
@@ -357,8 +354,12 @@ rules:
     resources:
       - platforms
     verbs:
+      - create
+      - delete
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - config.opendatahub.io
@@ -500,7 +501,6 @@ rules:
       - dscinitializations/finalizers
       - dscinitializations/status
     verbs:
-      - delete
       - get
       - patch
       - update
@@ -553,16 +553,8 @@ rules:
       - features.opendatahub.io
     resources:
       - featuretrackers/finalizers
-    verbs:
-      - get
-      - patch
-      - update
-  - apiGroups:
-      - features.opendatahub.io
-    resources:
       - featuretrackers/status
     verbs:
-      - delete
       - get
       - patch
       - update
@@ -706,33 +698,6 @@ rules:
       - get
       - list
       - watch
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries/finalizers
-    verbs:
-      - get
-      - update
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries/status
-    verbs:
-      - get
-      - patch
-      - update
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -1101,18 +1066,6 @@ rules:
       - delete
       - get
       - patch
-  - apiGroups:
-      - template.openshift.io
-    resources:
-      - templates
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
   - apiGroups:
       - tempo.grafana.com
     resources:

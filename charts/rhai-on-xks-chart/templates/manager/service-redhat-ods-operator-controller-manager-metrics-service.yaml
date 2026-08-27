@@ -9,9 +9,9 @@ metadata:
 spec:
   ports:
     - name: http
-      port: 8443
+      port: 8080
       protocol: TCP
-      targetPort: http
+      targetPort: 8080
   selector:
     name: rhai-operator
 {{- end }}

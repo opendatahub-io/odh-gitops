@@ -152,22 +152,6 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
-      - cert-manager-operator-controller-manager-clusterrole
-      - cert-manager-operator-metrics-reader
-    resources:
-      - clusterroles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
       - metrics-reader
     resources:
       - clusterroles
@@ -218,21 +202,6 @@ rules:
     verbs:
       - create
       - list
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - cert-manager-operator-controller-manager-role
-    resources:
-      - roles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
