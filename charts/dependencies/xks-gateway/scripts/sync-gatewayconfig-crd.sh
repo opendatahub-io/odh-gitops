@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Copy the XKS-tailored GatewayConfig CRD from opendatahub-operator into this chart.
+# Copy the GatewayConfig CRD from opendatahub-operator into this chart.
 #
 # Source (operator):
-#   config/crd/xks/services.platform.opendatahub.io_gatewayconfigs.yaml
+#   config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml
 # Destination (this chart):
 #   crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml
 #
@@ -31,14 +31,14 @@ if [[ -z "${OPERATOR_DIR}" ]]; then
 	exit 1
 fi
 
-SRC="${OPERATOR_DIR}/config/crd/xks/services.platform.opendatahub.io_gatewayconfigs.yaml"
+SRC="${OPERATOR_DIR}/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml"
 DST="${CHART_DIR}/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
 # Legacy location from when the CRD was templated; must not ship both.
 OLD_DST="${CHART_DIR}/templates/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
 
 if [[ ! -f "${SRC}" ]]; then
-	echo "ERROR: XKS GatewayConfig CRD not found at ${SRC}" >&2
-	echo "In the operator repo run: make generate-xks-gateway-crd" >&2
+	echo "ERROR: GatewayConfig CRD not found at ${SRC}" >&2
+	echo "In the operator repo run: make manifests" >&2
 	exit 1
 fi
 

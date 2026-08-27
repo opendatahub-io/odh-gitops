@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify the committed GatewayConfig CRD matches the XKS CRD in opendatahub-operator.
+# Verify the committed GatewayConfig CRD matches the CRD in opendatahub-operator.
 #
 # Usage:
 #   ./verify-gatewayconfig-crd.sh /path/to/opendatahub-operator
@@ -19,12 +19,12 @@ if [[ -z "${OPERATOR_DIR}" ]]; then
 	exit 1
 fi
 
-SRC="${OPERATOR_DIR}/config/crd/xks/services.platform.opendatahub.io_gatewayconfigs.yaml"
+SRC="${OPERATOR_DIR}/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml"
 DST="${CHART_DIR}/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
 
 if [[ ! -f "${SRC}" ]]; then
-	echo "ERROR: XKS GatewayConfig CRD not found at ${SRC}" >&2
-	echo "In the operator repo run: make generate-xks-gateway-crd" >&2
+	echo "ERROR: GatewayConfig CRD not found at ${SRC}" >&2
+	echo "In the operator repo run: make manifests" >&2
 	exit 1
 fi
 

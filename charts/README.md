@@ -87,8 +87,9 @@ helm install xks-gateway charts/dependencies/xks-gateway/ \
   --set gateway.oidc.clientSecretRef.name=my-oidc-secret
 
 # Create the OIDC client secret referenced above (after the chart creates rh-ai-gateway namespace):
-kubectl -n rh-ai-gateway create secret generic my-oidc-secret \
-  --from-literal=client-secret="${OIDC_CLIENT_SECRET}"
+printf '%s' "${OIDC_CLIENT_SECRET}" | \
+  kubectl -n rh-ai-gateway create secret generic my-oidc-secret \
+    --from-file=client-secret=/dev/stdin
 ```
 
 Each operator chart creates its own namespace from `values.yaml` defaults. The `gateway-api` chart is cluster-scoped (CRDs only) and does not create a namespace. The `xks-gateway` chart installs a CRD from `crds/` (not upgraded on `helm upgrade`; see [`xks-gateway/README.md`](dependencies/xks-gateway/README.md)).

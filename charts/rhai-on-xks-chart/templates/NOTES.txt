@@ -149,7 +149,7 @@ Ensure the xks-gateway chart is installed first, OR manually create all of:
   - Namespace: rh-ai-gateway
   - GatewayConfig CR: default-gateway (cluster-scoped)
   - OIDC client Secret in rh-ai-gateway (referenced by .spec.oidc.clientSecretRef)
-The operator reconciles GatewayConfig in namespace rh-ai-gateway (OIDC, TLS, LoadBalancer).
+The operator reconciles the cluster-scoped GatewayConfig CR and deploys gateway resources (OIDC, TLS, LoadBalancer) into rh-ai-gateway.
 This is separate from the KServe inference-gateway in the applications namespace.
 {{- end }}
 

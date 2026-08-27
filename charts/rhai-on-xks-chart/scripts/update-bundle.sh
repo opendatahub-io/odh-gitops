@@ -172,8 +172,9 @@ kustomize build "${RHAI_KUSTOMIZE_PATH}" | go run "${HELMTEMPLATE_GENERATOR_PKG}
 
 echo "  Done"
 
-# GatewayConfig CRD is shipped by charts/dependencies/xks-gateway (XKS-tailored schema),
-# not this chart. See charts/dependencies/xks-gateway/scripts/sync-gatewayconfig-crd.sh
+# GatewayConfig CRD is shipped by charts/dependencies/xks-gateway (synced from the standard
+# operator CRD), not this chart. The kustomize build above produces it, but xks-gateway owns
+# it in crds/ for proper Helm install ordering. Remove to avoid shipping a duplicate.
 rm -f "${CHART_DIR}/templates/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
 
 # ==============================================================================
