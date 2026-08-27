@@ -1,5 +1,5 @@
 # XKS Gateway Onboarding Chart
-# Creates the gateway namespace, XKS-tailored GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
+# Creates the gateway namespace, GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
 #
 # The GatewayConfig CRD lives in crds/ (not templates/) so Helm installs it before the CR.
 # Skip CRD creation with: helm upgrade --install ... --skip-crds
