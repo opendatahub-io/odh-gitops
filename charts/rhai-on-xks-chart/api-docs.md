@@ -9,6 +9,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | Repository | Name | Version |
 |------------|------|---------|
 | file://../dependencies/cert-manager-operator | cert-manager-operator | 1.1.0 |
+| file://../dependencies/xks-gateway | xks-gateway | 0.1.0 |
 
 ## Values
 
@@ -102,7 +103,6 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | installCRDs | bool | `true` |  |
 | labels | object | `{}` |  |
 | rhaiOperator.applicationsNamespace | string | `"redhat-ods-applications"` |  |
-| rhaiOperator.gatewayService.enabled | bool | `false` | Enable GatewayConfig reconciliation. Requires the xks-gateway chart (or CRD) installed first. |
 | rhaiOperator.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | rhaiOperator.imagePullPolicy | string | `"Always"` |  |
 | rhaiOperator.initResources.limits.cpu | string | `"100m"` |  |
@@ -117,4 +117,22 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | rhaiOperator.resources.requests.cpu | string | `"300m"` |  |
 | rhaiOperator.resources.requests.memory | string | `"256Mi"` |  |
 | uninstall.cleanupNamespaces | bool | `false` |  |
+| xks-gateway.enabled | bool | `true` |  |
+| xks-gateway.gateway.certificate.secretName | string | `""` |  |
+| xks-gateway.gateway.certificate.type | string | `"SelfSigned"` |  |
+| xks-gateway.gateway.cookie.expire | string | `"24h"` |  |
+| xks-gateway.gateway.cookie.refresh | string | `"1h"` |  |
+| xks-gateway.gateway.domain | string | `""` |  |
+| xks-gateway.gateway.ingressMode | string | `"LoadBalancer"` |  |
+| xks-gateway.gateway.namespace | string | `"rh-ai-gateway"` |  |
+| xks-gateway.gateway.networkPolicy.ingress.enabled | bool | `true` |  |
+| xks-gateway.gateway.oidc.clientID | string | `""` |  |
+| xks-gateway.gateway.oidc.clientSecretRef.key | string | `"client-secret"` |  |
+| xks-gateway.gateway.oidc.clientSecretRef.name | string | `""` |  |
+| xks-gateway.gateway.oidc.issuerURL | string | `""` |  |
+| xks-gateway.gateway.oidc.oidcClientSecret | string | `""` |  |
+| xks-gateway.gateway.oidc.secretNamespace | string | `""` |  |
+| xks-gateway.gateway.providerCASecretName | string | `""` |  |
+| xks-gateway.gateway.subdomain | string | `""` |  |
+| xks-gateway.gateway.verifyProviderCertificate | bool | `true` |  |
 

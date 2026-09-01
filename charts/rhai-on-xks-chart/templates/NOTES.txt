@@ -139,17 +139,24 @@ AWSKubernetesEngine CR is NOT automatically created. To create it manually:
 {{- end }}
 {{- end }}
 
-{{- if dig "gatewayService" "enabled" false .Values.rhaiOperator }}
+{{- if index .Values "xks-gateway" "enabled" }}
 
 == Platform auth gateway ==
 
-GatewayConfig reconciliation is enabled (rhaiOperator.gatewayService.enabled=true).
-Ensure the xks-gateway chart is installed first, OR manually create all of:
-  - GatewayConfig CRD (gatewayconfigs.services.platform.opendatahub.io)
-  - Namespace: rh-ai-gateway
-  - GatewayConfig CR: default-gateway (cluster-scoped)
-  - OIDC client Secret in rh-ai-gateway (referenced by .spec.oidc.clientSecretRef)
-The operator reconciles the cluster-scoped GatewayConfig CR and deploys gateway resources (OIDC, TLS, LoadBalancer) into rh-ai-gateway.
+The xks-gateway subchart is enabled. The GatewayConfig CRD is installed and the
+operator gateway controller (RHAI_DISABLE_GATEWAY_SERVICE=false) is active.
+{{- if index .Values "xks-gateway" "gateway" "domain" }}
+Gateway domain: {{ index .Values "xks-gateway" "gateway" "domain" }}
+The GatewayConfig CR (default-gateway), rh-ai-gateway namespace, and OIDC
+configuration are created by the xks-gateway subchart.
+{{- else }}
+No gateway.domain is set — gateway resources (namespace, GatewayConfig CR, OIDC
+Secret) are NOT created. To enable the platform auth gateway, set:
+  xks-gateway.gateway.domain, xks-gateway.gateway.oidc.issuerURL,
+  xks-gateway.gateway.oidc.clientID, and either
+  xks-gateway.gateway.oidc.clientSecretRef.name (BYO) or
+  xks-gateway.gateway.oidc.oidcClientSecret (dev/test).
+{{- end }}
 This is separate from the KServe inference-gateway in the applications namespace.
 {{- end }}
 

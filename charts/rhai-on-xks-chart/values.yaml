@@ -40,13 +40,10 @@ rhaiOperator:
     requests:
       cpu: 10m
       memory: 64Mi
-  # Enable platform auth gateway reconciliation (GatewayConfig controller).
-  # When false (default), RHAI_DISABLE_GATEWAY_SERVICE=true (inference-only XKS stack).
-  # Prerequisite: install the xks-gateway chart first (or apply the GatewayConfig CRD separately).
-  # rhai-on-xks-chart no longer ships gatewayconfigs.services.platform.opendatahub.io.
-  gatewayService:
-    # -- Enable GatewayConfig reconciliation. Requires the xks-gateway chart (or CRD) installed first.
-    enabled: false
+  # Platform auth gateway reconciliation is controlled by xks-gateway.enabled.
+  # When xks-gateway.enabled=true, RHAI_DISABLE_GATEWAY_SERVICE=false and the operator
+  # reconciles GatewayConfig CRs. Gateway resources are only created when gateway values
+  # (domain, OIDC) are provided in the xks-gateway section below.
   # Related images env vars (RELATED_IMAGE_*)
   relatedImages: []
   # Example:
@@ -266,6 +263,37 @@ cert-manager-operator:
     - name: rhai-pull-secret
   bundle:
     version: "v1.18.1"
+
+# XKS Gateway subchart — platform auth gateway (GatewayConfig CRD, namespace, CR, OIDC).
+# When enabled, the GatewayConfig CRD is always installed. Gateway resources (namespace,
+# GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
+# Set xks-gateway.enabled=false to disable the gateway controller entirely.
+xks-gateway:
+  enabled: true
+  gateway:
+    domain: ""
+    subdomain: ""
+    ingressMode: LoadBalancer
+    namespace: rh-ai-gateway
+    certificate:
+      type: SelfSigned
+      secretName: ""
+    oidc:
+      issuerURL: ""
+      clientID: ""
+      oidcClientSecret: ""
+      clientSecretRef:
+        name: ""
+        key: client-secret
+      secretNamespace: ""
+    cookie:
+      expire: "24h"
+      refresh: "1h"
+    providerCASecretName: ""
+    verifyProviderCertificate: true
+    networkPolicy:
+      ingress:
+        enabled: true
 
 # Pull secret for private registries
 # Use --set-file imagePullSecret.dockerConfigJson=path/to/auth.json

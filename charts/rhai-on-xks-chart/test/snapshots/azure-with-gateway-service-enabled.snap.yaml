@@ -17,6 +17,18 @@ metadata:
     helm.sh/resource-policy: keep
 
 ---
+# Source: rhai-on-xks-chart/charts/xks-gateway/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rh-ai-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
+
+---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/manager/namespace-rhai-cloudmanager-system.yaml
 apiVersion: v1
 kind: Namespace
@@ -277,6 +289,312 @@ data:
   .dockerconfigjson: dGVzdGF1dGg=
 
 ---
+# Source: rhai-on-xks-chart/charts/xks-gateway/templates/crd-gatewayconfig.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+  name: gatewayconfigs.services.platform.opendatahub.io
+spec:
+  group: services.platform.opendatahub.io
+  names:
+    kind: GatewayConfig
+    listKind: GatewayConfigList
+    plural: gatewayconfigs
+    singular: gatewayconfig
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - description: Ready
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - description: Reason
+      jsonPath: .status.conditions[?(@.type=="Ready")].reason
+      name: Reason
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: GatewayConfig is the Schema for the gatewayconfigs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GatewayConfigSpec defines the desired state of GatewayConfig
+            properties:
+              authProxyTimeout:
+                description: |-
+                  AuthProxyTimeout defines the timeout for external authorization service calls (e.g., "5s", "10s")
+                  This controls how long Envoy waits for a response from the authentication proxy before timing out 403 response.
+                type: string
+              authTimeout:
+                description: |-
+                  AuthTimeout is the duration Envoy waits for auth proxy responses.
+                  Requests timeout with 403 if exceeded.
+                  Deprecated: Use AuthProxyTimeout instead.
+                pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
+                type: string
+              certificate:
+                description: Certificate specifies configuration of the TLS certificate
+                  securing communication for the gateway.
+                properties:
+                  secretName:
+                    description: |-
+                      SecretName specifies the name of the Kubernetes Secret resource that contains a
+                      TLS certificate secure HTTP communications for the KNative network.
+                    type: string
+                  type:
+                    default: OpenshiftDefaultIngress
+                    description: |-
+                      Type specifies if the TLS certificate should be generated automatically, or if the certificate
+                      is provided by the user. Allowed values are:
+                      * SelfSigned: A certificate is going to be generated using an own private key.
+                      * Provided: Pre-existence of the TLS Secret (see SecretName) with a valid certificate is assumed.
+                      * OpenshiftDefaultIngress: Uses the cluster's default ingress certificate (OpenShift only).
+                    enum:
+                    - SelfSigned
+                    - Provided
+                    - OpenshiftDefaultIngress
+                    type: string
+                type: object
+              cookie:
+                description: Cookie configuration (applies to both OIDC and OpenShift
+                  OAuth)
+                properties:
+                  expire:
+                    default: 24h
+                    description: |-
+                      Expire duration for OAuth2 proxy session cookie (e.g., "24h", "8h")
+                      This controls how long the session cookie is valid before requiring re-authentication.
+                    type: string
+                  refresh:
+                    default: 1h
+                    description: |-
+                      Refresh duration for OAuth2 proxy to refresh access tokens (e.g., "2h", "1h", "30m")
+                      This must be LESS than the OIDC provider's Access Token Lifespan to avoid token expiration.
+                      For example, if Keycloak Access Token Lifespan is 1 hour, set this to "30m" or "45m".
+                    type: string
+                type: object
+              domain:
+                description: |-
+                  Domain specifies the host name for intercepting incoming requests.
+                  Most likely, you will want to use a wildcard name, like *.example.com.
+                  If not set, the cluster's default ingress domain is used (when available).
+                  On Kubernetes clusters without a discoverable ingress domain, this field is required.
+                  If you choose to generate a certificate, this is the domain used for the certificate request.
+                  Example: *.example.com, example.com, apps.example.com
+                pattern: ^(\*\.)?([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
+              enableK8sTokenValidation:
+                default: true
+                description: |-
+                  EnableK8sTokenValidation enables Kubernetes service account token validation via TokenReview API.
+                  When enabled, kube-auth-proxy validates bearer tokens as service account tokens alongside OAuth/OIDC authentication.
+                  This allows service accounts to authenticate via bearer tokens while human users authenticate via OAuth/OIDC.
+                type: boolean
+              ingressMode:
+                description: |-
+                  IngressMode specifies how the Gateway is exposed externally.
+                  "OcpRoute" uses ClusterIP with OpenShift Routes (OpenShift only).
+                  "LoadBalancer" uses a LoadBalancer service type (requires cloud or MetalLB).
+                enum:
+                - OcpRoute
+                - LoadBalancer
+                type: string
+              networkPolicy:
+                description: NetworkPolicy configuration for kube-auth-proxy
+                properties:
+                  ingress:
+                    description: |-
+                      Ingress defines ingress NetworkPolicy rules.
+                      When nil, ingress rules are applied by default (allows traffic from Gateway pods and monitoring namespaces).
+                      When specified, Enabled must be set to true to apply rules or false to skip NetworkPolicy creation.
+                      Set Enabled=false only in development environments or when using alternative network security controls.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enabled determines whether ingress rules are applied.
+                          When true, creates NetworkPolicy allowing traffic only from Gateway pods and monitoring namespaces.
+                        type: boolean
+                    required:
+                    - enabled
+                    type: object
+                type: object
+              oidc:
+                description: OIDC configuration (used when cluster is in OIDC authentication
+                  mode)
+                properties:
+                  clientID:
+                    description: OIDC client ID
+                    type: string
+                  clientSecretRef:
+                    description: Reference to secret containing client secret
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  issuerURL:
+                    description: |-
+                      OIDC issuer URL. Must be an https URL with a non-empty host and no query or
+                      fragment component (an OIDC issuer identifier has neither).
+                    format: uri
+                    maxLength: 2048
+                    minLength: 1
+                    pattern: ^https://[^?#\s]+$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: issuerURL must have a non-empty host
+                      rule: url(self).getHostname() != ''
+                  secretNamespace:
+                    description: |-
+                      Namespace where the client secret is located.
+                      If unset, defaults to the gateway namespace.
+                    type: string
+                required:
+                - clientID
+                - clientSecretRef
+                - issuerURL
+                type: object
+              providerCASecretName:
+                description: |-
+                  ProviderCASecretName is the name of the secret containing the CA certificate for the authentication provider.
+                  Used when the OAuth/OIDC provider uses a self-signed or custom CA certificate.
+                  Secret must exist in the gateway namespace and contain a 'ca.crt' key with the PEM-encoded CA certificate.
+                type: string
+              subdomain:
+                description: |-
+                  Subdomain configuration for the GatewayConfig
+                  Example: my-gateway, custom-gateway
+                maxLength: 63
+                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)$
+                type: string
+              verifyProviderCertificate:
+                default: true
+                description: |-
+                  VerifyProviderCertificate controls TLS certificate verification for the authentication provider.
+                  When true (default), certificates are verified against the system trust store and providerCASecretName.
+                  When false, certificate verification is disabled (development/testing only).
+                  WARNING: Setting this to false disables security and should only be used in non-production environments.
+                  For production use with self-signed certificates, use ProviderCASecretName instead.
+                type: boolean
+            type: object
+          status:
+            description: GatewayConfigStatus defines the observed state of GatewayConfig
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastHeartbeatTime:
+                      description: |-
+                        The last time we got an update on a given condition, this should not be set and is
+                        present only for backward compatibility reasons
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: message is a human-readable message indicating
+                        details about the transition.
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        The value should be a CamelCase string.
+                      type: string
+                    severity:
+                      description: |-
+                        Severity with which to treat failures of this type of condition.
+                        When this is not specified, it defaults to Error.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-type: atomic
+              domain:
+                description: |-
+                  Domain is the computed gateway domain (subdomain + cluster domain or default)
+                  This is the single source of truth for the gateway domain used by all components
+                type: string
+              observedGeneration:
+                description: The generation observed by the resource controller.
+                format: int64
+                type: integer
+              phase:
+                type: string
+            type: object
+        type: object
+        x-kubernetes-validations:
+        - message: GatewayConfig name must be default-gateway
+          rule: self.metadata.name == 'default-gateway'
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+
+---
 # Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -344,15 +662,14 @@ spec:
                           description: Configuration for the cert-manager operator.
                           type: object
                         managementPolicy:
-                          default: Managed
-                          description: |-
-                            ManagementPolicy determines whether the operator manages this dependency.
-                            Managed: the operator installs and reconciles the dependency.
-                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                          description: ManagementPolicy determines whether the operator manages this dependency.
                           enum:
                             - Managed
                             - Unmanaged
                           type: string
+                          x-kubernetes-validations:
+                            - message: cert-manager managementPolicy cannot be set to Managed
+                              rule: self != 'Managed' || self == oldSelf
                       type: object
                     gatewayAPI:
                       description: GatewayAPI defines the Gateway API dependency.
@@ -585,6 +902,42 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
+                    dashboard:
+                      description: Dashboard controls the Dashboard module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    feastoperator:
+                      description: FeastOperator controls the Feast module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
                     kserve:
                       description: Kserve controls the kserve module operator lifecycle.
                       properties:
@@ -639,6 +992,24 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
+                    modelregistry:
+                      description: ModelRegistry controls the model-registry (AIHub) module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
                     monitoring:
                       description: Monitoring controls the monitoring module operator lifecycle.
                       properties:
@@ -659,6 +1030,42 @@ spec:
                       type: object
                     ogx:
                       description: OGX controls the OGX module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    sparkoperator:
+                      description: SparkOperator controls the Spark Operator module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    trainer:
+                      description: Trainer controls the Trainer module operator lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -1233,22 +1640,6 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     resourceNames:
-      - cert-manager-operator-controller-manager-clusterrole
-      - cert-manager-operator-metrics-reader
-    resources:
-      - clusterroles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
       - metrics-reader
     resources:
       - clusterroles
@@ -1299,21 +1690,6 @@ rules:
     verbs:
       - create
       - list
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resourceNames:
-      - cert-manager-operator-controller-manager-role
-    resources:
-      - roles
-    verbs:
-      - bind
-      - delete
-      - escalate
-      - get
-      - list
-      - patch
-      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -1641,6 +2017,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways
+      - aihubs
       - dashboards
       - datasciencepipelines
       - feastoperators
@@ -1649,12 +2026,10 @@ rules:
       - mcplifecycleoperators
       - mlflowoperators
       - modelmeshservings
-      - modelregistries
       - ogxs
       - rays
       - sparkoperators
       - trainers
-      - trainingoperators
       - trustyais
       - workbenches
     verbs:
@@ -1669,6 +2044,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/finalizers
+      - aihubs/finalizers
       - dashboards/finalizers
       - datasciencepipelines/finalizers
       - feastoperators/finalizers
@@ -1677,12 +2053,10 @@ rules:
       - mcplifecycleoperators/finalizers
       - mlflowoperators/finalizers
       - modelmeshservings/finalizers
-      - modelregistries/finalizers
       - ogxs/finalizers
       - rays/finalizers
       - sparkoperators/finalizers
       - trainers/finalizers
-      - trainingoperators/finalizers
       - trustyais/finalizers
       - workbenches/finalizers
     verbs:
@@ -1691,6 +2065,7 @@ rules:
       - components.platform.opendatahub.io
     resources:
       - aigateways/status
+      - aihubs/status
       - dashboards/status
       - datasciencepipelines/status
       - feastoperators/status
@@ -1699,12 +2074,10 @@ rules:
       - mcplifecycleoperators/status
       - mlflowoperators/status
       - modelmeshservings/status
-      - modelregistries/status
       - ogxs/status
       - rays/status
       - sparkoperators/status
       - trainers/status
-      - trainingoperators/status
       - trustyais/status
       - workbenches/status
     verbs:
@@ -1730,8 +2103,12 @@ rules:
     resources:
       - platforms
     verbs:
+      - create
+      - delete
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - config.opendatahub.io
@@ -1873,7 +2250,6 @@ rules:
       - dscinitializations/finalizers
       - dscinitializations/status
     verbs:
-      - delete
       - get
       - patch
       - update
@@ -1926,16 +2302,8 @@ rules:
       - features.opendatahub.io
     resources:
       - featuretrackers/finalizers
-    verbs:
-      - get
-      - patch
-      - update
-  - apiGroups:
-      - features.opendatahub.io
-    resources:
       - featuretrackers/status
     verbs:
-      - delete
       - get
       - patch
       - update
@@ -2079,33 +2447,6 @@ rules:
       - get
       - list
       - watch
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries/finalizers
-    verbs:
-      - get
-      - update
-  - apiGroups:
-      - modelregistry.opendatahub.io
-    resources:
-      - modelregistries/status
-    verbs:
-      - get
-      - patch
-      - update
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -2475,18 +2816,6 @@ rules:
       - get
       - patch
   - apiGroups:
-      - template.openshift.io
-    resources:
-      - templates
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
       - tempo.grafana.com
     resources:
       - tempomonolithics
@@ -2712,9 +3041,9 @@ metadata:
 spec:
   ports:
     - name: http
-      port: 8443
+      port: 8080
       protocol: TCP
-      targetPort: http
+      targetPort: 8080
   selector:
     name: rhai-operator
 
@@ -3013,6 +3342,7 @@ spec:
         - args:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
+            - --metrics-secure=false
             - --leader-elect
           command:
             - /manager
@@ -3044,8 +3374,6 @@ spec:
             - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_TRAINER_COMPONENT
-              value: "true"
-            - name: RHAI_DISABLE_TRAININGOPERATOR_COMPONENT
               value: "true"
             - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
               value: "true"
@@ -3180,6 +3508,36 @@ metadata:
   name: cluster
 spec:
   managementState: Managed
+
+---
+# Source: rhai-on-xks-chart/charts/xks-gateway/templates/gatewayconfig.yaml
+apiVersion: services.platform.opendatahub.io/v1alpha1
+kind: GatewayConfig
+metadata:
+  # Name is enforced by CRD CEL validation: must be "default-gateway"
+  name: default-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  domain: "example.com"
+  ingressMode: LoadBalancer
+  certificate:
+    type: SelfSigned
+  oidc:
+    issuerURL: "https://keycloak.example.com/realms/rhai"
+    clientID: "rhai-client"
+    clientSecretRef:
+      name: "my-oidc-secret"
+      key: "client-secret"
+    secretNamespace: "rh-ai-gateway"
+  cookie:
+    expire: "24h"
+    refresh: "1h"
+  verifyProviderCertificate: true
+  networkPolicy:
+    ingress:
+      enabled: true
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: v1
@@ -3454,6 +3812,14 @@ rules:
       - list
       - patch
       - bind
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - patch
   - apiGroups:
       - operator.openshift.io
     resources:
@@ -4006,6 +4372,27 @@ spec:
             - -c
             - |
               set -euo pipefail
+
+              adopt_crd() {
+                local crd_name="$1"
+                if ! kubectl get crd "$crd_name" &>/dev/null; then
+                  return
+                fi
+                OWNER=$(kubectl get crd "$crd_name" -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
+                if [[ "$OWNER" == "${RELEASE_NAME}" ]]; then
+                  return
+                fi
+                echo "Adopting CRD ${crd_name} into Helm release '${RELEASE_NAME}'..."
+                kubectl label crd "$crd_name" app.kubernetes.io/managed-by=Helm --overwrite 2>&1
+                kubectl annotate crd "$crd_name" \
+                  meta.helm.sh/release-name="${RELEASE_NAME}" \
+                  meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite 2>&1
+              }
+
+              # ── Adopt CRDs that may exist without Helm ownership ──
+              # The xks-gateway subchart ships the GatewayConfig CRD in crds/ (applied on
+              # helm install only). On upgrade, the CRD template needs Helm ownership.
+              adopt_crd "gatewayconfigs.services.platform.opendatahub.io"
 
               # ── Cleanup path: delete CertManager CR + operands before subchart is disabled ──
               if [[ "$CERT_MANAGER_ENABLED" == "false" ]]; then

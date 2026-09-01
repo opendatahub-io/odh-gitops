@@ -4,12 +4,19 @@
 
 XKS Gateway onboarding chart - installs the GatewayConfig CRD, gateway namespace, and GatewayConfig CR for non-OpenShift Kubernetes.
 
-## Install order
+## Usage
 
-1. Install this chart (`xks-gateway`) with domain, OIDC, and TLS settings.
-2. Install or upgrade `rhai-on-xks-chart` with `rhaiOperator.gatewayService.enabled=true` so the operator reconciles the `GatewayConfig` CR.
+This chart is a **subchart** of `rhai-on-xks-chart` (enabled by default). Configure it via `xks-gateway.gateway.*` values when installing the parent chart:
 
-This chart is **not** a subchart of `rhai-on-xks-chart`. It must be installed as its own Helm release.
+```bash
+helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
+  --set xks-gateway.gateway.domain=example.com \
+  --set xks-gateway.gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai \
+  --set xks-gateway.gateway.oidc.clientID=rhai-client \
+  --set xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
+```
+
+When `gateway.domain` is empty (default), only the GatewayConfig CRD is installed and no gateway resources are created. It can also be installed standalone for testing.
 
 ## CRD handling
 

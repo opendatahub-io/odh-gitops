@@ -1,7 +1,9 @@
 {{/*
 Validate values at template-render time (runs before other templates).
 This file produces no output — it only triggers fail() when values are invalid.
+Validation is skipped when gateway.domain is empty (subchart installed but not configured).
 */}}
+{{- if (include "xks-gateway.configured" .) -}}
 {{- $gw := .Values.gateway -}}
 {{- $gatewayNs := include "xks-gateway.namespace" . -}}
 {{- if ne $gatewayNs "rh-ai-gateway" -}}
@@ -30,3 +32,4 @@ This file produces no output — it only triggers fail() when values are invalid
 {{- if eq $ingressMode "OcpRoute" }}
 {{- fail "gateway.ingressMode OcpRoute is not supported on XKS. Use LoadBalancer." }}
 {{- end }}
+{{- end -}}
