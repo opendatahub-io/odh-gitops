@@ -14,6 +14,7 @@ XKS Gateway onboarding chart - installs the GatewayConfig CRD (crds/), gateway n
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| enabled | bool | `true` | Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart, this controls whether the gateway namespace, GatewayConfig CR, and OIDC resources are created. |
 | gateway.certificate.secretName | string | `""` | Name of TLS Secret (required when type is Provided) |
 | gateway.certificate.type | string | `"SelfSigned"` | TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace) |
 | gateway.cookie.expire | string | `"24h"` | Session cookie expiry duration (e.g., "24h", "8h") |
