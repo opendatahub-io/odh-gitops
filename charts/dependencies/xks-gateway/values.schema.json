@@ -3,6 +3,15 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "global": {
+      "type": "object",
+      "description": "Helm global values (passed by parent charts)"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Enable or disable the xks-gateway chart. Controls creation of gateway namespace, GatewayConfig CR, and OIDC resources.",
+      "default": true
+    },
     "gateway": {
       "type": "object",
       "description": "Gateway configuration for XKS environments",

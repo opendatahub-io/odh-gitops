@@ -1,3 +1,4 @@
+{{- if (include "xks-gateway.configured" .) }}
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -6,3 +7,4 @@ metadata:
     {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
     helm.sh/resource-policy: keep
+{{- end }}
