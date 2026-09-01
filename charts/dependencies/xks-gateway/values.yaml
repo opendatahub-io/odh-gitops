@@ -2,7 +2,12 @@
 # Creates the gateway namespace, GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
 #
 # The GatewayConfig CRD lives in crds/ (not templates/) so Helm installs it before the CR.
-# Skip CRD creation with: helm upgrade --install ... --skip-crds
+# Skip CRD creation only when the GatewayConfig CRD already exists:
+# helm upgrade --install ... --skip-crds
+
+# -- Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart,
+# this controls whether the gateway namespace, GatewayConfig CR, and OIDC resources are created.
+enabled: true
 
 gateway:
   # -- (required) External hostname (e.g., example.com or *.example.com)
