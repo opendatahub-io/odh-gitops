@@ -321,6 +321,10 @@ assert_no_stuck_istiorevision() {
 
 # ─── Helm helpers ───────────────────────────────────────────────────────────
 
+helm_supports_flag() {
+  helm upgrade --help 2>&1 | grep -qF -- "$1"
+}
+
 helm_deploy() {
   local chart_ref="$CHART"
   local version_args=()
@@ -344,7 +348,14 @@ helm_deploy() {
   if [[ -n "$HELM_EXTRA_ARGS" ]]; then
     read -ra helm_extra <<< "$HELM_EXTRA_ARGS"
   fi
-  log "helm upgrade --install $RELEASE_NAME ${version_args[*]:+(${version_args[*]})}"
+  local migration_args=()
+  if helm_supports_flag '--take-ownership'; then
+    migration_args+=(--take-ownership)
+  fi
+  if helm_supports_flag '--force-conflicts'; then
+    migration_args+=(--force-conflicts)
+  fi
+  log "helm upgrade --install $RELEASE_NAME ${version_args[*]:+(${version_args[*]})} ${migration_args[*]:+(${migration_args[*]})}"
   if ! helm upgrade --install "$RELEASE_NAME" "$chart_ref" \
     -n "$NAMESPACE" --create-namespace \
     --set "${CLOUD_PROVIDER}.enabled=true" \
@@ -353,6 +364,7 @@ helm_deploy() {
     ${secret_args[@]+"${secret_args[@]}"} \
     ${helm_extra[@]+"${helm_extra[@]}"} \
     ${extra_args[@]+"${extra_args[@]}"} \
+    ${migration_args[@]+"${migration_args[@]}"} \
     --timeout 10m; then
     log "Helm deploy failed — dumping debug info..."
     local hook_jobs=(rhai-pre-upgrade-migrate-certmanager rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)

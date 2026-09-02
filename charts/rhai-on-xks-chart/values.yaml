@@ -252,6 +252,10 @@ aws:
 
 # cert-manager operator subchart
 cert-manager-operator:
+  # When true (default), RHAI installs cert-manager via this subchart.
+  # If the cluster already has cert-manager (e.g. a Jetstack or platform install),
+  # set enabled=false before helm upgrade/install so the pre-upgrade migration hook
+  # does not adopt or remove the existing install.
   enabled: true
   operatorNamespace: cert-manager-operator
   operandNamespace: cert-manager

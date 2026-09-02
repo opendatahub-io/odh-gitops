@@ -190,6 +190,15 @@ azure:
           managementPolicy: Unmanaged
 ```
 
+To use an existing cluster cert-manager install (e.g. Jetstack), disable the cert-manager-operator subchart before `helm upgrade`:
+
+```yaml
+cert-manager-operator:
+  enabled: false
+```
+
+Keep `certManager.managementPolicy: Unmanaged` on the KubernetesEngine CR (default in values).
+
 ## Configuration Reference
 
 For the configuration reference, please refer to the [API reference](api-docs.md) file and the [values.yaml](values.yaml) file.
