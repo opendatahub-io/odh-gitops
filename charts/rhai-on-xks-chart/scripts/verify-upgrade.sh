@@ -70,10 +70,6 @@ assert_uid_unchanged() {
   fi
 }
 
-helm_deploy_old_version() {
-  helm_deploy --chart "$UPGRADE_FROM_CHART" --version "$UPGRADE_FROM_VERSION"
-}
-
 cleanup_upgrade_test() {
   log "Cleaning up upgrade test release..."
   helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" 2>/dev/null || true
@@ -132,7 +128,10 @@ test_1_upgrade() {
 
   # Phase 3: Upgrade to local chart
   log "Phase 3: Upgrading to local chart..."
-  helm_deploy
+  if ! helm_deploy; then
+    fail "Helm upgrade to local chart failed"
+    return 1
+  fi
   wait_ke_ready
 
   # Phase 4: Verify post-upgrade state

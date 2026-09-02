@@ -163,6 +163,7 @@ test_4_ccm_to_subchart_migration() {
   pass "cert-manager installed as standalone release '${ccm_release}'"
 
   # Phase 2: Deploy rhai-on-xks-chart with cert-manager subchart enabled.
+  # The pre-upgrade hook will auto-detect the standalone release and migrate it.
   log "Phase 2: Deploying rhai-on-xks-chart with cert-manager subchart (old release still present)"
   helm_deploy
 

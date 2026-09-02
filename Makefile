@@ -298,7 +298,7 @@ XKS_CLOUD_PROVIDER ?= azure
 XKS_PULL_SECRET ?=
 XKS_VALUES_FILE ?=
 XKS_UPGRADE_FROM_CHART ?= oci://registry.redhat.io/rhai/rhai-on-xks-chart
-XKS_UPGRADE_FROM_VERSION ?= v3.4.2
+XKS_UPGRADE_FROM_VERSION ?= v3.5.0
 
 .PHONY: helm-verify-xks
 helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test

@@ -190,6 +190,15 @@ azure:
           managementPolicy: Unmanaged
 ```
 
+To use an existing cluster cert-manager install, disable the cert-manager-operator subchart before `helm upgrade`:
+
+```yaml
+cert-manager-operator:
+  enabled: false
+```
+
+Keep `certManager.managementPolicy: Unmanaged` on the KubernetesEngine CR (default in values).
+
 ## Configuration Reference
 
 For the configuration reference, please refer to the [API reference](api-docs.md) file and the [values.yaml](values.yaml) file.
@@ -249,3 +258,23 @@ kubectl delete crd coreweavekubernetesengines.infrastructure.opendatahub.io
 ### Clean up namespaces
 
 The namespaces created by the chart are not automatically removed. Clean up the namespaces as needed based on your configuration.
+
+### Clean up cert-manager-operator
+
+If `cert-manager-operator.enabled` was `true` at any point, RHAI's cert-manager resources
+(the `cert-manager-operator`/`cert-manager` namespaces, the `CertManager` CR, and its
+cluster-scoped RBAC) are **not** automatically removed on `helm uninstall`, nor when later
+setting `cert-manager-operator.enabled: false`. This is deliberate: the pre-upgrade migration
+hook can prove these resources are RHAI's own (via Helm ownership annotations on the namespace
+or `CertManager` CR), but it has no reliable way to prove the *absence* of external ownership,
+so the chart never deletes them automatically — on uninstall or otherwise. The same applies if
+you point `cert-manager-operator.enabled: false` at a cluster where cert-manager was installed
+some other way (e.g. via OLM): treat it as unmanaged by this chart and remove it yourself. As
+with chart-managed CRDs above, remove them manually if you no longer need them:
+
+```bash
+kubectl delete certmanager cluster
+kubectl delete namespace cert-manager-operator cert-manager
+kubectl delete clusterrole cert-manager-operator-controller-manager-clusterrole cert-manager-operator-metrics-reader
+kubectl delete clusterrolebinding cert-manager-operator-controller-manager-clusterrolebinding
+```

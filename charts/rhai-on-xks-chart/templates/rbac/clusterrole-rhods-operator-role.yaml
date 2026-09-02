@@ -359,12 +359,15 @@ rules:
     verbs:
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - config.opendatahub.io
     resources:
       - platforms/finalizers
     verbs:
+      - patch
       - update
   - apiGroups:
       - config.opendatahub.io

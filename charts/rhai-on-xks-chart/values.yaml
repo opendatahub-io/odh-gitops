@@ -252,6 +252,11 @@ aws:
 
 # cert-manager operator subchart
 cert-manager-operator:
+  # When true (default), RHAI installs cert-manager via this subchart.
+  # The pre-upgrade hook will automatically adopt any existing cert-manager resources
+  # from a prior standalone Helm release named "cert-manager-operator" or from
+  # kustomize/operator-managed installs.
+  # Set enabled=false if the cluster has an external cert-manager you don't want RHAI to manage.
   enabled: true
   operatorNamespace: cert-manager-operator
   operandNamespace: cert-manager
