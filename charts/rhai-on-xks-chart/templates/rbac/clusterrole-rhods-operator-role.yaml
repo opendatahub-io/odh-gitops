@@ -366,6 +366,7 @@ rules:
     resources:
       - platforms/finalizers
     verbs:
+      - patch
       - update
   - apiGroups:
       - config.opendatahub.io
