@@ -69,8 +69,9 @@ charts:
           - operator.type=odh
           - profile=maas
           - components.kserve.dsc.rawDeploymentServiceConfig=Headed
-          - "components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces.from=All"
-          - "components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces.from=All"
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
 
   dependencies/cert-manager-operator:
     snapshots:
