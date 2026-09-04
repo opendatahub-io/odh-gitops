@@ -67,15 +67,7 @@ rules:
       - path: .webhooks[*].clientConfig.service.namespace
         value: '{{ .Values.rhaiOperator.namespace }}'
 
-  # Wrap CRDs with installCRDs condition
-  - match:
-      kinds:
-        - CustomResourceDefinition
-    wrap:
-      before: '{{- if .Values.installCRDs }}'
-      after: '{{- end }}'
-
-  # Wrap non-CRD resources with enabled condition
+  # Wrap resources with enabled condition
   - match:
     wrap:
       before: '{{- if .Values.enabled }}'
