@@ -119,11 +119,6 @@
       "description": "Enable/disable all resource creation",
       "default": true
     },
-    "installCRDs": {
-      "type": "boolean",
-      "description": "Install CRDs or not using the chart",
-      "default": true
-    },
     "labels": {
       "type": "object",
       "description": "Common labels applied to all resources",
@@ -491,6 +486,90 @@
             "version": {
               "type": "string",
               "description": "OLM bundle version used to generate the chart"
+            }
+          }
+        }
+      }
+    },
+    "xks-gateway": {
+      "type": "object",
+      "description": "XKS Gateway subchart: installs GatewayConfig CRD, gateway namespace, GatewayConfig CR, and optional OIDC Secret. Resources are only created when gateway.domain is set.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable xks-gateway subchart. When true, the GatewayConfig CRD is installed and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
+          "default": true
+        },
+        "gateway": {
+          "type": "object",
+          "description": "Gateway configuration for XKS platform auth",
+          "properties": {
+            "domain": {
+              "type": "string",
+              "description": "External hostname (e.g., example.com). When empty, no gateway resources are created."
+            },
+            "subdomain": {
+              "type": "string",
+              "description": "Subdomain prefix for the gateway"
+            },
+            "ingressMode": {
+              "type": "string",
+              "description": "How the gateway is exposed (LoadBalancer only on XKS)",
+              "enum": ["LoadBalancer"],
+              "default": "LoadBalancer"
+            },
+            "namespace": {
+              "type": "string",
+              "description": "Gateway namespace (must be rh-ai-gateway)",
+              "const": "rh-ai-gateway",
+              "default": "rh-ai-gateway"
+            },
+            "certificate": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["SelfSigned", "Provided"],
+                  "default": "SelfSigned"
+                },
+                "secretName": { "type": "string" }
+              }
+            },
+            "oidc": {
+              "type": "object",
+              "properties": {
+                "issuerURL": { "type": "string", "description": "OIDC provider URL" },
+                "clientID": { "type": "string", "description": "OIDC client ID" },
+                "oidcClientSecret": { "type": "string", "description": "Chart-managed OIDC client secret (dev/test only)" },
+                "clientSecretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "key": { "type": "string", "default": "client-secret" }
+                  }
+                },
+                "secretNamespace": { "type": "string" }
+              }
+            },
+            "cookie": {
+              "type": "object",
+              "properties": {
+                "expire": { "type": "string", "default": "24h" },
+                "refresh": { "type": "string", "default": "1h" }
+              }
+            },
+            "providerCASecretName": { "type": "string" },
+            "verifyProviderCertificate": { "type": "boolean", "default": true },
+            "networkPolicy": {
+              "type": "object",
+              "properties": {
+                "ingress": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": { "type": "boolean", "default": true }
+                  }
+                }
+              }
             }
           }
         }

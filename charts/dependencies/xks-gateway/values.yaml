@@ -1,0 +1,68 @@
+# XKS Gateway Onboarding Chart
+# Creates the gateway namespace, GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
+#
+# The GatewayConfig CRD lives in crds/ (not templates/) so Helm installs it before the CR.
+# Skip CRD creation only when the GatewayConfig CRD already exists:
+# helm upgrade --install ... --skip-crds
+
+# -- Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart,
+# this controls whether the gateway namespace, GatewayConfig CR, and OIDC resources are created.
+enabled: true
+
+gateway:
+  # -- (required) External hostname (e.g., example.com or *.example.com)
+  domain: ""
+
+  # -- Subdomain prefix for the gateway
+  subdomain: ""
+
+  # -- How the gateway is exposed externally on XKS (LoadBalancer only)
+  ingressMode: LoadBalancer
+
+  # -- Namespace created by this chart. Must be rh-ai-gateway; the operator hardcodes that name.
+  namespace: rh-ai-gateway
+
+  # TLS certificate configuration
+  certificate:
+    # -- TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace)
+    type: SelfSigned
+    # -- Name of TLS Secret (required when type is Provided)
+    secretName: ""
+
+  # OIDC authentication configuration
+  oidc:
+    # -- (required) OIDC provider URL (e.g., https://keycloak.example.com/realms/rhai)
+    issuerURL: ""
+    # -- (required) OIDC client ID
+    clientID: ""
+    # -- OIDC client secret value; when set, the chart creates the Secret in gateway.namespace.
+    # Prefer referencing an existing Secret via clientSecretRef (BYO) for production; use --set-file
+    # with oidcClientSecret only for dev/test (the value is stored in the Helm release Secret).
+    oidcClientSecret: ""
+    # -- Reference to the OIDC client secret (name required for BYO mode; optional when oidcClientSecret is set, defaults to oidc-client-secret)
+    clientSecretRef:
+      # -- Name of the Kubernetes Secret (existing or chart-created)
+      name: ""
+      # -- Key within the Secret that holds the client secret value
+      key: client-secret
+    # -- Namespace where the client secret is located (defaults to gateway.namespace if empty)
+    secretNamespace: ""
+
+  # Cookie configuration for OAuth2 proxy sessions
+  cookie:
+    # -- Session cookie expiry duration (e.g., "24h", "8h")
+    expire: "24h"
+    # -- Access token refresh interval — must be less than the OIDC provider's Access Token Lifespan
+    refresh: "1h"
+
+  # Provider CA certificate (for self-signed OIDC provider certs)
+  # -- Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace)
+  providerCASecretName: ""
+  # -- Verify auth provider TLS certificate (set to false only for development)
+  verifyProviderCertificate: true
+
+  # Network policy configuration
+  networkPolicy:
+    ingress:
+      # -- Enable ingress NetworkPolicy for kube-auth-proxy
+      enabled: true

@@ -242,6 +242,10 @@ chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for 
 chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
 	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
+.PHONY: verify-xks-gateway-crd
+verify-xks-gateway-crd: ## Verify xks-gateway CRD matches opendatahub-operator (set OPERATOR_DIR)
+	@bash ./charts/dependencies/xks-gateway/scripts/verify-gatewayconfig-crd.sh "$(OPERATOR_DIR)"
+
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure
 helm-docs-ensure: $(HELM_DOCS) ## Download helm-docs locally if necessary.
