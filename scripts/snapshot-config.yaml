@@ -63,6 +63,16 @@ charts:
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
 
+      - name: maas-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=odh
+          - profile=maas
+          - components.kserve.dsc.rawDeploymentServiceConfig=Headed
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default
