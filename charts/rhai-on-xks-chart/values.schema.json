@@ -119,11 +119,6 @@
       "description": "Enable/disable all resource creation",
       "default": true
     },
-    "installCRDs": {
-      "type": "boolean",
-      "description": "Install CRDs or not using the chart",
-      "default": true
-    },
     "labels": {
       "type": "object",
       "description": "Common labels applied to all resources",

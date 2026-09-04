@@ -1,9 +1,6 @@
 # Enable/disable all resource creation
 enabled: true
 
-# Install CRDs or not using the chart
-installCRDs: true
-
 # Common labels applied to all resources
 labels: {}
 

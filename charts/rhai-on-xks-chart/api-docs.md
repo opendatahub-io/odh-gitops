@@ -100,7 +100,6 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | imagePullSecret.dependencyNamespaces | list | `[]` |  |
 | imagePullSecret.dockerConfigJson | string | `""` |  |
 | imagePullSecret.name | string | `"rhai-pull-secret"` |  |
-| installCRDs | bool | `true` |  |
 | labels | object | `{}` |  |
 | rhaiOperator.applicationsNamespace | string | `"redhat-ods-applications"` |  |
 | rhaiOperator.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
