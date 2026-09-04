@@ -211,6 +211,35 @@ spec:
                 maxLength: 63
                 pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)$
                 type: string
+              tokenReview:
+                description: |-
+                  TokenReview configures the rate limiting and caching behavior of Kubernetes TokenReview API calls
+                  used for service account token validation.
+                  If not set, kube-auth-proxy uses built-in defaults (QPS=50, Burst=100, CacheTTL=10s).
+                  These settings only take effect when EnableK8sTokenValidation is true.
+                properties:
+                  burst:
+                    description: |-
+                      Burst is the maximum burst of requests to the Kubernetes API for TokenReview calls.
+                      Should be equal to or greater than QPS.
+                      If not set, kube-auth-proxy uses its built-in default (100).
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  cacheTTL:
+                    description: |-
+                      CacheTTL is how long validated token results are cached before re-validation (e.g., "10s", "30s").
+                      If not set, kube-auth-proxy uses its built-in default (10s).
+                    type: string
+                  qps:
+                    description: |-
+                      QPS is the maximum queries per second to the Kubernetes API for TokenReview calls.
+                      Higher values allow more concurrent token validation requests.
+                      If not set, kube-auth-proxy uses its built-in default (50).
+                    format: int32
+                    minimum: 1
+                    type: integer
+                type: object
               verifyProviderCertificate:
                 default: true
                 description: |-
