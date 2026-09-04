@@ -404,11 +404,19 @@ make chart-test CHART_NAME=rhai-on-openshift-chart
 4. **xks-gateway CRD sync** (when changing GatewayConfig schema in `opendatahub-operator`):
 
    ```bash
+   # In opendatahub-operator (regenerate CRD from gateway_types.go):
+   make generate manifests-all api-docs
+
+   # In odh-gitops (copy CRD into the xks-gateway chart):
    ./charts/dependencies/xks-gateway/scripts/sync-gatewayconfig-crd.sh /path/to/opendatahub-operator
    make verify-xks-gateway-crd OPERATOR_DIR=/path/to/opendatahub-operator
-   make chart-snapshots CHART_NAME=xks-gateway
-   make chart-test CHART_NAME=xks-gateway
+   make chart-snapshots CHART_NAME=dependencies/xks-gateway
+   make chart-test CHART_NAME=dependencies/xks-gateway
    ```
+
+   Source CRD: `opendatahub-operator/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml`.
+   Destination: `charts/dependencies/xks-gateway/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
+   See `charts/dependencies/xks-gateway/README.md` for CRD upgrade notes on live clusters.
 
 5. **Test on a cluster**:
 
