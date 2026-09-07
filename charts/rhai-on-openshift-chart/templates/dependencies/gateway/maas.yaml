@@ -6,6 +6,7 @@
 {{- $effectiveMaaSState := ($aigatewayDscMerged.modelsAsAService | default dict).managementState | default "Removed" -}}
 {{- $isMaaSEnabled := and (eq $effectiveMaaSState "Managed") (eq $effectiveAIGatewayState "Managed") -}}
 {{- $gatewayClass := $maas.gatewayClass | default dict -}}
+{{- $openshiftRoute := $gateway.openshiftRoute | default dict -}}
 {{- if or (eq ($gatewayClass.create | toString) "true") (and $isMaaSEnabled (eq ($gatewayClass.create | toString) "auto")) -}}
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
@@ -22,6 +23,23 @@ spec:
 {{- end }}
 ---
 {{- if or (eq ($gateway.create | toString) "true") (and $isMaaSEnabled (eq ($gateway.create | toString) "auto")) -}}
+{{- if $openshiftRoute.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $openshiftRoute.gatewayParametersName }}
+  namespace: {{ $gateway.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+data:
+  service: |
+    metadata:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: {{ $openshiftRoute.servingCertSecretName | quote }}
+    spec:
+      type: ClusterIP
+---
+{{- end }}
 {{- range $i, $listener := $gateway.spec.listeners }}
   {{- $ns := (($listener.allowedRoutes | default dict).namespaces | default dict) }}
   {{- if not $ns.from }}
@@ -38,5 +56,45 @@ metadata:
   annotations:
     {{- toYaml $gateway.annotations | nindent 4 }}
 spec:
+  {{- if $openshiftRoute.enabled }}
+  infrastructure:
+    parametersRef:
+      group: ""
+      kind: ConfigMap
+      name: {{ $openshiftRoute.gatewayParametersName }}
+  gatewayClassName: {{ $gateway.spec.gatewayClassName }}
+  listeners:
+    {{- range $gateway.spec.listeners }}
+    - {{- toYaml (omit . "tls") | nindent 6 }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: {{ $openshiftRoute.servingCertSecretName }}
+    {{- end }}
+  {{- else }}
   {{- toYaml $gateway.spec | nindent 2 }}
+  {{- end }}
+{{- if $openshiftRoute.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $openshiftRoute.name }}
+  namespace: {{ $gateway.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+spec:
+  host: {{ required "components.aigateway.modelsAsAService.gateway.openshiftRoute.host is required when enabled" $openshiftRoute.host }}
+  to:
+    kind: Service
+    name: {{ printf "%s-%s" $gateway.name $gateway.spec.gatewayClassName }}
+    weight: 100
+  port:
+    targetPort: 443
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
 {{- end }}

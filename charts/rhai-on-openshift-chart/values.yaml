@@ -136,6 +136,13 @@ components:
         annotations:
           security.opendatahub.io/authorino-tls-bootstrap: "true"
           opendatahub.io/managed: "false"
+        # -- Optional OpenShift ClusterIP service and re-encrypt Route exposure.
+        openshiftRoute:
+          enabled: false
+          name: maas-gateway-route
+          host: ""
+          gatewayParametersName: maas-gateway-options
+          servingCertSecretName: maas-gw-service-tls
         spec:
           gatewayClassName: maas-gateway-class
           listeners:

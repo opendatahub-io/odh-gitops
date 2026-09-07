@@ -73,6 +73,18 @@ charts:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
 
+      - name: maas-profile-with-clusterip-route
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+          - components.aigateway.modelsAsAService.gatewayClass.create=false
+          - components.aigateway.modelsAsAService.gateway.spec.gatewayClassName=openshift-default
+          - components.aigateway.modelsAsAService.gateway.openshiftRoute.enabled=true
+          - components.aigateway.modelsAsAService.gateway.openshiftRoute.host=maas.apps.example.com
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default

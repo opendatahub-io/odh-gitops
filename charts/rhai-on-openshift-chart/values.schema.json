@@ -843,6 +843,19 @@
           "type": "object",
           "description": "Gateway spec",
           "additionalProperties": true
+        },
+        "openshiftRoute": {
+          "type": "object",
+          "description": "Optional ClusterIP Gateway service fronted by an OpenShift re-encrypt Route",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "name": { "type": "string" },
+            "host": { "type": "string" },
+            "gatewayParametersName": { "type": "string" },
+            "servingCertSecretName": { "type": "string" }
+          },
+          "required": ["enabled", "name", "host", "gatewayParametersName", "servingCertSecretName"],
+          "additionalProperties": false
         }
       },
       "required": ["create", "name", "namespace", "spec"],
