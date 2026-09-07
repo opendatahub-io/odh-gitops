@@ -161,6 +161,9 @@ test_1_upgrade() {
 
   # KServe not degraded
   assert_cr_not_degraded "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
+
+  # xks-gateway subchart added on upgrade: CRD present, idle without domain in values-e2e.yaml
+  assert_gateway_idle
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────
