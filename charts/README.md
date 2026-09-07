@@ -13,7 +13,7 @@ Helm charts for deploying Red Hat AI (RHAI) operators and their dependencies on 
 
 ### Dependency Charts
 
-Extracted from Red Hat operator bundles for deploying operators on vanilla Kubernetes without OLM. These are used by `rhai-on-xks-chart`.
+Extracted from Red Hat operator bundles for deploying operators on vanilla Kubernetes without OLM. The `rhai-on-xks-chart` embeds some of these as Helm subcharts; others are installed separately when needed.
 
 | Chart | Version | Namespace | Description |
 |-------|---------|-----------|-------------|
@@ -21,6 +21,7 @@ Extracted from Red Hat operator bundles for deploying operators on vanilla Kuber
 | [`gateway-api`](dependencies/gateway-api/) | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
 | [`lws-operator`](dependencies/lws-operator/) | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
 | [`sail-operator`](dependencies/sail-operator/) | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |
+| [`xks-gateway`](dependencies/xks-gateway/) | 0.1.0 | `rh-ai-gateway` | XKS platform auth gateway: GatewayConfig CRD, namespace, and GatewayConfig CR (**subchart** of `rhai-on-xks-chart`; configure via `xks-gateway.gateway.*` values) |
 
 ---
 
@@ -80,6 +81,13 @@ helm install gateway-api charts/dependencies/gateway-api/
 helm install lws-operator charts/dependencies/lws-operator/
 helm install sail-operator charts/dependencies/sail-operator/
 ```
+
+> **Note:** `xks-gateway` is now a subchart of `rhai-on-xks-chart` and does not need separate installation. Configure it via `xks-gateway.gateway.*` values when installing the main chart. To create the OIDC client secret after installation:
+> ```bash
+> printf '%s' "${OIDC_CLIENT_SECRET}" | \
+>   kubectl -n rh-ai-gateway create secret generic my-oidc-secret \
+>     --from-file=client-secret=/dev/stdin
+> ```
 
 Each operator chart creates its own namespace from `values.yaml` defaults. The `gateway-api` chart is cluster-scoped (CRDs only) and does not create a namespace.
 
