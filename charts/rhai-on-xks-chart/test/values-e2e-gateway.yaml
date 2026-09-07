@@ -1,0 +1,9 @@
+# E2E values for configured xks-gateway subchart (Kind / CI).
+# Uses chart-managed OIDC secret; issuer URL is a placeholder (no live OIDC required).
+xks-gateway:
+  gateway:
+    domain: e2e.example.com
+    oidc:
+      issuerURL: https://keycloak.example.com/realms/rhai
+      clientID: e2e-gateway
+      oidcClientSecret: test-client-secret-value
