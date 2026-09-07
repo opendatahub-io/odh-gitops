@@ -250,6 +250,8 @@ test_1_upgrade() {
     fi
   fi
 
+  # xks-gateway subchart added on upgrade: CRD present, idle without domain in values-e2e.yaml
+  assert_gateway_idle
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────

@@ -52,6 +52,11 @@ KE_CRD="${PROVIDER_CRDS[$CLOUD_PROVIDER]}"
 CM_NS="rhai-cloudmanager-system"
 PROV_PREFIX="${CLOUD_PROVIDER}.kubernetesEngine.spec.dependencies"
 
+GATEWAY_CONFIG_CRD="gatewayconfigs.services.platform.opendatahub.io"
+GATEWAY_CONFIG_NAME="default-gateway"
+GATEWAY_NS="rh-ai-gateway"
+GATEWAY_OIDC_SECRET_NAME="oidc-client-secret"
+
 # ─── Colors ─────────────────────────────────────────────────────────────────
 
 RED='\033[0;31m'
@@ -317,6 +322,56 @@ assert_no_stuck_istiorevision() {
       pass "IstioRevision exists but no stuck finalizers"
     fi
   fi
+}
+
+# ─── Gateway helpers ────────────────────────────────────────────────────────
+
+operator_gateway_service_disabled() {
+  local value
+  value=$(kubectl get deployment rhai-operator -n redhat-ods-operator \
+    -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="RHAI_DISABLE_GATEWAY_SERVICE")].value}' 2>/dev/null)
+  [[ "$value" == "true" ]]
+}
+
+assert_operator_gateway_service_enabled() {
+  if operator_gateway_service_disabled; then
+    fail "RHAI operator gateway service is disabled (RHAI_DISABLE_GATEWAY_SERVICE=true)"
+  else
+    pass "RHAI operator gateway service is enabled (RHAI_DISABLE_GATEWAY_SERVICE=false)"
+  fi
+}
+
+assert_operator_gateway_service_disabled() {
+  if operator_gateway_service_disabled; then
+    pass "RHAI operator gateway service is disabled (RHAI_DISABLE_GATEWAY_SERVICE=true)"
+  else
+    fail "RHAI operator gateway service is enabled (RHAI_DISABLE_GATEWAY_SERVICE=false)"
+  fi
+}
+
+assert_gateway_idle() {
+  assert_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
+  assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
+  assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+  assert_operator_gateway_service_enabled
+}
+
+assert_gateway_configured_resources() {
+  local expected_domain="${1:-e2e.example.com}"
+
+  assert_exists "Gateway namespace" "namespace/${GATEWAY_NS}"
+  assert_exists "GatewayConfig CR" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+
+  local domain
+  domain=$(kubectl get "gatewayconfig/${GATEWAY_CONFIG_NAME}" \
+    -o jsonpath='{.spec.domain}' 2>/dev/null)
+  if [[ "$domain" == "$expected_domain" ]]; then
+    pass "GatewayConfig domain is '${expected_domain}'"
+  else
+    fail "GatewayConfig domain: expected '${expected_domain}', got '${domain}'"
+  fi
+
+  assert_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
 }
 
 # ─── Helm helpers ───────────────────────────────────────────────────────────
