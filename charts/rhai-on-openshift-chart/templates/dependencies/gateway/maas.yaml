@@ -46,6 +46,17 @@ data:
     {{- fail (printf "components.aigateway.modelsAsAService.gateway.spec.listeners[%d].allowedRoutes.namespaces.from is required. Choose: Selector (recommended) or Same.\nSet it in your values file or use: --set-json 'components.aigateway.modelsAsAService.gateway.spec.listeners=[{\"name\":\"https\",\"port\":443,\"protocol\":\"HTTPS\",\"allowedRoutes\":{\"namespaces\":{\"from\":\"Selector\",\"selector\":{\"matchLabels\":{\"example-label\":\"true\"}}}}}]'" $i) }}
   {{- end }}
 {{- end }}
+{{- $gatewaySpec := deepCopy $gateway.spec }}
+{{- if $openshiftRoute.enabled }}
+  {{- $_ := set $gatewaySpec "infrastructure" (dict "parametersRef" (dict "group" "" "kind" "ConfigMap" "name" $openshiftRoute.gatewayParametersName)) }}
+  {{- $listeners := list }}
+  {{- range $gateway.spec.listeners }}
+    {{- $listener := deepCopy . }}
+    {{- $_ := set $listener "tls" (dict "mode" "Terminate" "certificateRefs" (list (dict "group" "" "kind" "Secret" "name" $openshiftRoute.servingCertSecretName))) }}
+    {{- $listeners = append $listeners $listener }}
+  {{- end }}
+  {{- $_ := set $gatewaySpec "listeners" $listeners }}
+{{- end }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -56,26 +67,7 @@ metadata:
   annotations:
     {{- toYaml $gateway.annotations | nindent 4 }}
 spec:
-  {{- if $openshiftRoute.enabled }}
-  infrastructure:
-    parametersRef:
-      group: ""
-      kind: ConfigMap
-      name: {{ $openshiftRoute.gatewayParametersName }}
-  gatewayClassName: {{ $gateway.spec.gatewayClassName }}
-  listeners:
-    {{- range $gateway.spec.listeners }}
-    - {{- toYaml (omit . "tls") | nindent 6 }}
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - group: ""
-            kind: Secret
-            name: {{ $openshiftRoute.servingCertSecretName }}
-    {{- end }}
-  {{- else }}
-  {{- toYaml $gateway.spec | nindent 2 }}
-  {{- end }}
+  {{- toYaml $gatewaySpec | nindent 2 }}
 {{- if $openshiftRoute.enabled }}
 ---
 apiVersion: route.openshift.io/v1

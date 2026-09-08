@@ -77,7 +77,8 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - profile=maas
-          - components.aigateway.modelsAsAService.gatewayClass.create=false
+          - components.aigateway.modelsAsAService.gatewayClass.create=true
+          - components.aigateway.modelsAsAService.gatewayClass.name=openshift-default
           - components.aigateway.modelsAsAService.gateway.spec.gatewayClassName=openshift-default
           - components.aigateway.modelsAsAService.gateway.openshiftRoute.enabled=true
           - components.aigateway.modelsAsAService.gateway.openshiftRoute.host=maas.apps.example.com
