@@ -105,9 +105,9 @@ components:
   # -- AI Gateway component (manages MaaS and BatchGateway sub-components)
   aigateway:
     dependencies:
-      certManager: true
-      leaderWorkerSet: true
-      rhcl: true
+      certManager:
+      leaderWorkerSet:
+      rhcl:
     # -- DSC configuration for AI Gateway
     dsc:
       # -- Management state for AI Gateway. Null uses profile default.

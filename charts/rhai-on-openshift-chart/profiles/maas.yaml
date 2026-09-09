@@ -3,6 +3,10 @@
 # Dependencies auto-installed: cert-manager, leader-worker-set, RHCL/Kuadrant
 components:
   aigateway:
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
     dsc:
       managementState: Managed
       modelsAsAService:
