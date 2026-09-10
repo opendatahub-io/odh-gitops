@@ -46,15 +46,15 @@ The stack installs a minimal set of dependency operators required by KServe:
 - OpenShift cluster (version 4.19.9 or later)
 - `kubectl` or `oc` CLI installed
 - Cluster admin permissions
-- Helm v4
+- Helm v3.18.6
 
 ## What Gets Installed
 
-Since all components and monitoring default to `Removed`, the values override only needs to enable KServe:
+Components default to `Removed`. Monitoring defaults to `Managed` in OLM mode; the `rhaii` profile disables it:
 
 1. **ODH/RHOAI operator** (via OLM)
 2. **Dependency operators** (via OLM): cert-manager, Leader Worker Set, RHCL (Kuadrant) are auto-enabled by KServe
-3. **DSCInitialization** (DSCI) with monitoring disabled (default)
+3. **DSCInitialization** (DSCI) with monitoring disabled
 4. **DataScienceCluster** (DSC) with only KServe set to `Managed`
 
 ## Values Override
@@ -100,6 +100,7 @@ CRDs do not exist yet.
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   --set profile=rhaii \
   --set operator.type=rhoai \
+  --set services.monitoring.dsci.managementState=Removed \
   -n rhai-gitops --create-namespace
 
 # Or using values file for full control
@@ -139,6 +140,7 @@ LeaderWorkerSetOperator, etc.):
 helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
   --set profile=rhaii \
   --set operator.type=rhoai \
+  --set services.monitoring.dsci.managementState=Removed \
   -n rhai-gitops
 
 # Or using values file

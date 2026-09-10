@@ -94,10 +94,11 @@ spec:
 {{- end }}
 
 {{/*
-Generate complete OLM operator installation (Namespace + OperatorGroup + Subscription)
+Generate complete OLM operator installation (Namespace, OperatorGroup, Subscription)
 Arguments (passed as dict):
   - name: operator name
   - namespace: namespace name
+  - createNamespace: whether to generate Namespace (optional, defaults to true)
   - channel: subscription channel
   - source: catalog source (optional)
   - sourceNamespace: catalog source namespace (optional)
@@ -111,10 +112,15 @@ Arguments (passed as dict):
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.olm" -}}
+{{- $createNamespace := true -}}
+{{- if hasKey . "createNamespace" -}}
+{{- $createNamespace = .createNamespace -}}
+{{- end -}}
+{{- if $createNamespace }}
 {{ include "rhoai-dependencies.operator.namespace" . }}
 ---
+{{- end }}
 {{ include "rhoai-dependencies.operator.operatorgroup" . }}
 ---
 {{ include "rhoai-dependencies.operator.subscription" . }}
 {{- end }}
-

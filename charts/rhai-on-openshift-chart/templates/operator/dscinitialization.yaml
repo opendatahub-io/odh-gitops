@@ -14,11 +14,11 @@ spec:
   monitoring:
     managementState: {{ include "rhoai-dependencies.effectiveServiceManagementState" (dict "state" .Values.services.monitoring.dsci.managementState "root" $ "name" "monitoring") }}
     namespace: {{ $operatorConfig.monitoringNamespace }}
-  {{- range $key, $value := .Values.services.monitoring.dsci }}
+    {{- range $key, $value := .Values.services.monitoring.dsci }}
     {{- if and (ne $key "managementState") (not (empty $value)) }}
-      {{ $key }}:
-        {{- $value | toYaml | nindent 6 }}
-      {{- end }}
+    {{ $key }}:
+      {{- $value | toYaml | nindent 6 }}
+    {{- end }}
     {{- end }}
   applicationsNamespace: {{ $operatorConfig.applicationsNamespace }}
   trustedCABundle:

@@ -132,8 +132,14 @@ Arguments (passed as dict):
 {{- .state -}}
 {{- else -}}
 {{- $profileDefaults := include "rhoai-dependencies.profileServiceDefaults" (dict "root" .root "name" .name) | fromYaml -}}
-{{- $dsci := $profileDefaults.dsci | default (dict "managementState" "Removed") -}}
-{{- $dsci.managementState | default "Removed" -}}
+{{- $dsci := $profileDefaults.dsci | default dict -}}
+{{- if $dsci.managementState -}}
+{{- $dsci.managementState -}}
+{{- else if eq (include "rhoai-dependencies.isOlmMode" .root) "true" -}}
+Managed
+{{- else -}}
+Removed
+{{- end -}}
 {{- end -}}
 {{- end }}
 
@@ -337,14 +343,13 @@ Arguments (passed as dict):
 {{- define "rhoai-dependencies.resolveNestedManagementState" -}}
 {{- $merged := .merged -}}
 {{- $profileDsc := .profileDsc -}}
+{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "nim" "wva" -}}
 {{- range $key, $val := $merged -}}
-  {{- if kindIs "map" $val -}}
-    {{- if hasKey $val "managementState" -}}
-      {{- if not $val.managementState -}}
-        {{- $profileSub := index $profileDsc $key | default dict -}}
-        {{- $subState := $profileSub.managementState | default "Removed" -}}
-        {{- $_ := set $val "managementState" $subState -}}
-      {{- end -}}
+  {{- if and (kindIs "map" $val) (has $key $subComponentKeys) -}}
+    {{- if not (index $val "managementState") -}}
+      {{- $profileSub := index $profileDsc $key | default dict -}}
+      {{- $subState := $profileSub.managementState | default "Removed" -}}
+      {{- $_ := set $val "managementState" $subState -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
