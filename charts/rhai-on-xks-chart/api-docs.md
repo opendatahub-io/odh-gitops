@@ -30,6 +30,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | aws.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | aws.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
 | aws.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
+| aws.kubernetesEngine.spec.dependencies.rhcl.managementPolicy | string | `"Unmanaged"` |  |
 | aws.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | aws.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | azure.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
@@ -48,6 +49,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | azure.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | azure.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
 | azure.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
+| azure.kubernetesEngine.spec.dependencies.rhcl.managementPolicy | string | `"Unmanaged"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | azure.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | cert-manager-operator.bundle.version | string | `"v1.18.1"` |  |
@@ -82,6 +84,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | coreweave.kubernetesEngine.spec.dependencies.gatewayAPI.managementPolicy | string | `"Managed"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.lws.configuration.namespace | string | `"openshift-lws-operator"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.lws.managementPolicy | string | `"Unmanaged"` |  |
+| coreweave.kubernetesEngine.spec.dependencies.rhcl.managementPolicy | string | `"Unmanaged"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace | string | `"istio-system"` |  |
 | coreweave.kubernetesEngine.spec.dependencies.sailOperator.managementPolicy | string | `"Managed"` |  |
 | enabled | bool | `true` |  |

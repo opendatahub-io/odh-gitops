@@ -105,6 +105,9 @@
                 },
                 "sailOperator": {
                   "$ref": "#/$defs/dependency"
+                },
+                "rhcl": {
+                  "$ref": "#/$defs/dependency"
                 }
               }
             }
