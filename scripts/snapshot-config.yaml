@@ -63,6 +63,29 @@ charts:
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
 
+      - name: maas-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=odh
+          - profile=maas
+          - components.kserve.dsc.rawDeploymentServiceConfig=Headed
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+
+      - name: maas-profile-with-clusterip-route
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+          - components.aigateway.modelsAsAService.gatewayClass.create=true
+          - components.aigateway.modelsAsAService.gatewayClass.name=openshift-default
+          - components.aigateway.modelsAsAService.gateway.spec.gatewayClassName=openshift-default
+          - components.aigateway.modelsAsAService.gateway.openshiftRoute.enabled=true
+          - components.aigateway.modelsAsAService.gateway.openshiftRoute.host=maas.apps.example.com
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default

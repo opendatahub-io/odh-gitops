@@ -1,0 +1,17 @@
+# MaaS profile - Models as a Service platform
+# Enables AIGateway with modelsAsAService + KServe for inference.
+# Dependencies auto-installed: cert-manager, leader-worker-set, RHCL/Kuadrant
+components:
+  aigateway:
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
+    dsc:
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
+  kserve:
+    dsc:
+      managementState: Managed
+      rawDeploymentServiceConfig: Headed
