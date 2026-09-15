@@ -10,6 +10,7 @@ Generate Namespace for an operator
 Arguments (passed as dict):
   - namespace: namespace name
   - root: root context ($)
+  - namespaceLabels: additional Namespace labels (optional)
 */}}
 {{- define "rhoai-dependencies.operator.namespace" -}}
 apiVersion: v1
@@ -20,6 +21,9 @@ metadata:
     helm.sh/resource-policy: keep
   labels:
     {{- include "rhoai-dependencies.labels" .root | nindent 4 }}
+    {{- with .namespaceLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 {{- end }}
 
 {{/*

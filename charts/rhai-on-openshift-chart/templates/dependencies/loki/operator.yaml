@@ -6,11 +6,16 @@
 ) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if eq (include "rhoai-dependencies.isOlmMode" $) "true" }}
+{{- $createNamespace := $dep.olm.createNamespace -}}
+{{- if $createNamespace }}
+{{- $createNamespace = not (lookup "v1" "Namespace" "" $dep.olm.namespace) -}}
+{{- end }}
 {{ include "rhoai-dependencies.operator.olm" (dict
   "name" $dep.olm.name
   "namespace" $dep.olm.namespace
   "channel" $dep.olm.channel
-  "createNamespace" $dep.olm.createNamespace
+  "createNamespace" $createNamespace
+  "namespaceLabels" (dict "openshift.io/cluster-monitoring" "true")
   "version" $dep.olm.version
   "config" $dep.olm.config
   "root" $

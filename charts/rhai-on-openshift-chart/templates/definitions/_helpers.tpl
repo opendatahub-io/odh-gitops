@@ -135,8 +135,6 @@ Arguments (passed as dict):
 {{- $dsci := $profileDefaults.dsci | default dict -}}
 {{- if $dsci.managementState -}}
 {{- $dsci.managementState -}}
-{{- else if eq (include "rhoai-dependencies.isOlmMode" .root) "true" -}}
-Managed
 {{- else -}}
 Removed
 {{- end -}}
@@ -398,4 +396,3 @@ Returns "true" if tags.install-with-helm-dependencies is false (default), empty 
 true
 {{- end -}}
 {{- end }}
-

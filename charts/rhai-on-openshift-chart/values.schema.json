@@ -338,7 +338,7 @@
         },
         "createNamespace": {
           "type": "boolean",
-          "description": "Whether Helm should create the operator namespace"
+          "description": "Whether Helm should ensure the operator namespace exists when absent"
         },
         "source": {
           "type": "string",

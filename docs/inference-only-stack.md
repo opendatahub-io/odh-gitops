@@ -50,7 +50,7 @@ The stack installs a minimal set of dependency operators required by KServe:
 
 ## What Gets Installed
 
-Components default to `Removed`. Monitoring defaults to `Managed` in OLM mode; the `rhaii` profile disables it:
+Components, including monitoring, default to `Removed`. The `rhaii` profile also disables monitoring:
 
 1. **ODH/RHOAI operator** (via OLM)
 2. **Dependency operators** (via OLM): cert-manager, Leader Worker Set, RHCL (Kuadrant) are auto-enabled by KServe

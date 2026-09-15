@@ -17,7 +17,7 @@ This chart provides a flexible way to install the operators and configurations r
 > [!NOTE]
 > All commands below assume you are in the repository root directory.
 
-All components default to `Removed`. Monitoring defaults to `Managed` in OLM mode. You can use a **profile** or a **values file** to enable the components you need.
+All components, including monitoring, default to `Removed`. You can use a **profile** or a **values file** to enable the components you need.
 
 ### Using a profile
 
