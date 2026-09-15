@@ -63,6 +63,11 @@ charts:
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
 
+      - name: monitoring-without-loki
+        setFlags:
+          - skipCrdCheck=true
+          - services.monitoring.dependencies.loki=false
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default

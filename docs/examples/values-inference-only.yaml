@@ -31,6 +31,15 @@ operator:
   type: rhoai
 
 # =============================================================================
+# SERVICES
+# Explicitly disable monitoring for inference-only deployments.
+# =============================================================================
+services:
+  monitoring:
+    dsci:
+      managementState: Removed
+
+# =============================================================================
 # COMPONENTS
 # Only KServe is enabled; all other components are already Removed by default.
 # =============================================================================

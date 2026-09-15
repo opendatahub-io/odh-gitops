@@ -112,6 +112,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
 | dependencies.leaderWorkerSet.dependencies | object | `{"certManager":true}` | Dependencies required by leader-worker-set |
 | dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |
+| dependencies.loki | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-6.6","createNamespace":true,"name":"loki-operator","namespace":"openshift-operators-redhat"}}` | Loki operator |
+| dependencies.loki.dependencies | object | `{}` | Dependencies required by loki |
+| dependencies.loki.enabled | string | `"auto"` | Enable loki: auto (if needed), true (always), false (never) |
+| dependencies.loki.olm.createNamespace | bool | `true` | Ensure this global operator namespace exists when absent. Existing namespaces are not rendered. |
 | dependencies.nfd | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"nfd","namespace":"openshift-nfd","targetNamespaces":["openshift-nfd"]}}` | Node Feature Discovery operator (required for GPU support) |
 | dependencies.nfd.dependencies | object | `{}` | Dependencies required by NFD |
 | dependencies.nfd.enabled | string | `"auto"` | Enable NFD: auto (if needed), true (always), false (never) |
@@ -139,8 +143,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
 | profile | string | `"default"` | Deploy profile: sets default managementState for components and services. Options: default (all Removed), rhaii (KServe for inference/model serving) Explicit managementState values override the profile. |
-| services.monitoring | object | `{"dependencies":{"clusterObservability":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":null,"metrics":{},"traces":{}}}` | Monitoring service configuration |
-| services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default. |
+| services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":null,"metrics":{},"traces":{}}}` | Monitoring service configuration |
+| services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default or Removed. |
 | skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD. |
 | tags.install-with-helm-dependencies | bool | `false` | Install operators using Helm chart dependencies instead of OLM. Set to true when OLM is not available in the cluster. Default is false (use OLM Subscriptions when available). |
 | trustedCABundle | object | `{"customCABundle":"","managementState":"Managed"}` | Trusted CA bundle configuration |

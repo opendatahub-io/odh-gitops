@@ -28,6 +28,7 @@ declare -A OPERATORS=(
     [leader-worker-set]="openshift-lws-operator name=openshift-lws-operator"
     [job-set]="openshift-jobset-operator name=jobset-operator"
     [tempo-product]="openshift-tempo-operator app.kubernetes.io/name=tempo-operator"
+    [loki-operator]="openshift-operators-redhat app.kubernetes.io/name=loki-operator"
     [openshift-custom-metrics-autoscaler-operator]="openshift-keda name=custom-metrics-autoscaler-operator"
     [rhcl-operator]="kuadrant-system app=kuadrant"
     [nfd]="openshift-nfd control-plane=controller-manager"

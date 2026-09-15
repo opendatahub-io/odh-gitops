@@ -61,10 +61,13 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **Job Set Operator**               | Job management as a unit                    | `openshift-jobset-operator` | Trainer                      | |
 | **Custom Metrics Autoscaler** | Event-driven autoscaler based on KEDA | `openshift-keda` | Model Serving | |
 | **Tempo Operator** | Distributed tracing backend | `openshift-tempo-operator` | Tracing infrastructure | |
+| **Loki Operator** | Log storage backend | `openshift-operators-redhat` | Logging infrastructure | |
 | **Red Hat Connectivity Link** | Multicloud application connectivity and API management | `kuadrant-system` | Model Serving (KServe) | Leader Worker Set, Cert-Manager |
 | **MariaDB Operator** | MariaDB for OpenShift | `mariadb-operator` | TrustyAI (optional, only if using database mode) | |
 | **Node Feature Discovery** | Detects hardware features and capabilities of nodes | `openshift-nfd` | OGX | |
 | **NVIDIA GPU Operator** | Enables GPU-accelerated workloads on NVIDIA hardware | `nvidia-gpu-operator` | Model Serving, OGX | Node Feature Discovery |
+
+`openshift-operators-redhat` is a shared platform namespace. Loki manifests ensure it exists when needed, but cleanup must not delete the namespace; remove Loki `Subscription` and `OperatorGroup` resources separately.
 
 #### Operator Configuration Requirements
 

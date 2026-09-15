@@ -72,11 +72,13 @@ services:
   # -- Monitoring service configuration
   monitoring:
     dependencies:
+      certManager: true
       clusterObservability: true
       opentelemetry: true
       tempo: true
+      loki: true
     dsci:
-      # -- Management state for monitoring. Null uses profile default.
+      # -- Management state for monitoring. Null uses profile default or Removed.
       managementState:
       metrics: {}
       traces: {}
@@ -520,6 +522,19 @@ dependencies:
       channel: stable
       name: tempo-product
       namespace: openshift-tempo-operator
+
+  # -- Loki operator
+  loki:
+    # -- Enable loki: auto (if needed), true (always), false (never)
+    enabled: auto
+    # -- Dependencies required by loki
+    dependencies: {}
+    olm:
+      channel: stable-6.6
+      name: loki-operator
+      namespace: openshift-operators-redhat
+      # -- Ensure this global operator namespace exists when absent. Existing namespaces are not rendered.
+      createNamespace: true
 
   # -- Custom Metrics Autoscaler (KEDA) operator
   customMetricsAutoscaler:

@@ -9,6 +9,7 @@ components:
   - ../../components/operators/leader-worker-set
   - ../../components/operators/job-set-operator
   - ../../components/operators/tempo-product
+  - ../../components/operators/loki-operator
   - ../../components/operators/openshift-custom-metrics-autoscaler
   - ../../components/operators/rhcl-operator
   # TODO: The following operators need a manual configuration. It needs to be added if used ogx.
