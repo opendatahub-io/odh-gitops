@@ -349,11 +349,19 @@ assert_operator_gateway_service_disabled() {
   fi
 }
 
-assert_gateway_idle() {
-  assert_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
+assert_gateway_disabled() {
+  assert_not_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
   assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
   assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
-  assert_operator_gateway_service_enabled
+  assert_operator_gateway_service_disabled
+}
+
+assert_gateway_disabled_after_upgrade() {
+  # Helm does not remove CRDs when a subchart is disabled, so an existing CRD
+  # may remain after upgrading from a release where xks-gateway was enabled.
+  assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
+  assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+  assert_operator_gateway_service_disabled
 }
 
 assert_gateway_configured_resources() {

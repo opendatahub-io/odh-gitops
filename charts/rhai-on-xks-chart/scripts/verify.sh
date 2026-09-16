@@ -68,8 +68,8 @@ test_1_install_check() {
   # Inference Gateway Istio
   wait_for_deployment "inference-gateway-istio" "redhat-ods-applications"
 
-  # xks-gateway subchart: CRD installed, controller enabled, no resources without domain
-  assert_gateway_idle
+  # xks-gateway subchart is opt-in: no CRD, resources, or controller by default
+  assert_gateway_disabled
 }
 
 # ─── Test 2: sail + lws Managed→Unmanaged→Managed ──────────────────────────

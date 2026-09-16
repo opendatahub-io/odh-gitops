@@ -2930,7 +2930,7 @@ spec:
             - name: RHAI_DISABLE_CERTCONFIGMAPGENERATOR_SERVICE
               value: "true"
             - name: RHAI_DISABLE_GATEWAY_SERVICE
-              value: "false"
+              value: "true"
             - name: RHAI_DISABLE_MONITORING_SERVICE
               value: "true"
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
@@ -3299,14 +3299,6 @@ rules:
       - infrastructure.opendatahub.io
     resources:
       - azurekubernetesengines
-    verbs:
-      - get
-      - list
-      - patch
-  - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
     verbs:
       - get
       - list
@@ -3799,26 +3791,6 @@ spec:
               set -euo pipefail
 
               WAIT_TIMEOUT="${WAIT_TIMEOUT:-300}"
-
-              # The xks-gateway subchart ships the GatewayConfig CRD in crds/ (applied on
-              # helm install only). On upgrade, adopt an existing CRD so Helm can manage it.
-              adopt_crd() {
-                local crd_name="$1"
-                if ! kubectl get crd "$crd_name" &>/dev/null; then
-                  return
-                fi
-                OWNER=$(kubectl get crd "$crd_name" -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
-                if [[ "$OWNER" == "${RELEASE_NAME}" ]]; then
-                  return
-                fi
-                echo "Adopting CRD ${crd_name} into Helm release '${RELEASE_NAME}'..."
-                kubectl label crd "$crd_name" app.kubernetes.io/managed-by=Helm --overwrite 2>&1
-                kubectl annotate crd "$crd_name" \
-                  meta.helm.sh/release-name="${RELEASE_NAME}" \
-                  meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite 2>&1
-              }
-
-              adopt_crd "gatewayconfigs.services.platform.opendatahub.io"
 
               # Cleanup is needed when the cert-manager subchart is disabled on upgrade.
               if [[ "${CERT_MANAGER_ENABLED:-true}" == "false" ]]; then
