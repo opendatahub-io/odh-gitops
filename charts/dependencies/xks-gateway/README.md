@@ -23,8 +23,9 @@ When `gateway.domain` is empty (default), only the GatewayConfig CRD is installe
 The GatewayConfig CRD is in `crds/` (not `templates/`) so `helm install` applies it **before** the `GatewayConfig` CR.
 
 - Use `--skip-crds` on later installs/upgrades if the CRD already exists.
-- Helm does **not** upgrade files in `crds/` on `helm upgrade`. To roll schema changes: in `opendatahub-operator` run `make manifests`, then from this chart directory run `./scripts/sync-gatewayconfig-crd.sh /path/to/opendatahub-operator`, then `kubectl apply -f crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
-- Verify the committed CRD matches the operator source: `OPERATOR_DIR=/path/to/opendatahub-operator ./scripts/verify-gatewayconfig-crd.sh`.
+- GatewayConfig schema changes merged into `rhods-operator` are automatically synchronized into this chart by the [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).
+- For local or manual updates, regenerate the CRD in the operator repository, then run `./scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository` from this chart directory.
+- Helm does **not** upgrade files in `crds/` on `helm upgrade`. To roll a schema change on an existing cluster, apply the updated CRD explicitly: `kubectl apply -f crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
 
 ## OIDC client secret
 
