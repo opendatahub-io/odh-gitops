@@ -20,7 +20,7 @@ Extracted from Red Hat operator bundles for deploying operators on vanilla Kuber
 | [`cert-manager-operator`](dependencies/cert-manager-operator/) | v1.18.1 | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
 | [`gateway-api`](dependencies/gateway-api/) | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
 | [`lws-operator`](dependencies/lws-operator/) | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
-| [`sail-operator`](dependencies/sail-operator/) | 3.2.1 (Istio up to v1.27.3) | `istio-system` | Red Hat Sail (Istio) Operator |
+| [`sail-operator`](dependencies/sail-operator/) | 3.4.2 (Istio up to v1.30.4) | `istio-system` | Red Hat Sail (Istio) Operator |
 
 ---
 
@@ -176,7 +176,7 @@ metadata:
   name: default
 spec:
   namespace: istio-system
-  version: v1.27-latest
+  version: v1.30-latest
   values:
     pilot:
       env:
