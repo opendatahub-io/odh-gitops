@@ -1,4 +1,6 @@
 {{- if .Values.enabled }}
+{{- $xksGatewayEnabled := index .Values "xks-gateway" "enabled" }}
+{{- $xksGateway := index .Subcharts "xks-gateway" }}
 {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
 apiVersion: v1
 kind: Secret
@@ -113,14 +115,17 @@ rules:
       - get
       - list
       - patch
+  {{- if index .Values "xks-gateway" "enabled" }}
   - apiGroups:
       - apiextensions.k8s.io
     resources:
       - customresourcedefinitions
     verbs:
+      - create
       - get
       - list
       - patch
+  {{- end }}
   - apiGroups:
       - operator.openshift.io
     resources:
@@ -205,5 +210,11 @@ spec:
             - /bin/bash
             - -c
             - |
+              {{- if $xksGatewayEnabled }}
+              echo "Applying GatewayConfig CRD for enabled xks-gateway..."
+              kubectl apply -f - <<'GATEWAY_CONFIG_CRD'
+{{ $xksGateway.Files.Get "crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml" | trim | indent 14 }}
+              GATEWAY_CONFIG_CRD
+              {{- end }}
               {{- tpl (.Files.Get "files/pre-upgrade-migrate-certmanager.sh") . | trimSuffix "\n" | nindent 14 | replace "\n              \n" "\n\n" }}
 {{- end }}

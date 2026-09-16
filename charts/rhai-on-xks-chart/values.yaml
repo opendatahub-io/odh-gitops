@@ -261,11 +261,12 @@ cert-manager-operator:
     version: "v1.18.1"
 
 # XKS Gateway subchart — platform auth gateway (GatewayConfig CRD, namespace, CR, OIDC).
-# When enabled, the GatewayConfig CRD is always installed. Gateway resources (namespace,
-# GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
-# Set xks-gateway.enabled=false to disable the gateway controller entirely.
+# Disabled by default because the platform auth gateway is opt-in. When enabled, the
+# GatewayConfig CRD is installed. Gateway resources (namespace, GatewayConfig CR, OIDC
+# Secret) are only created when gateway.domain is set.
+# Set xks-gateway.enabled=true together with the gateway domain and OIDC values to enable it.
 xks-gateway:
-  enabled: true
+  enabled: false
   gateway:
     domain: ""
     subdomain: ""

@@ -33,7 +33,9 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
 - Helm 4.x
 - Cluster-admin privileges (the chart creates CRDs, ClusterRoles, and namespaces)
 - Pull secret for `registry.redhat.io` (see [Pull Secrets](#pull-secrets) below)
-- For platform auth gateway: the `xks-gateway` subchart is included as a dependency (enabled by default). Set `xks-gateway.gateway.domain` and OIDC values to create gateway resources. Set `xks-gateway.enabled=false` to disable the gateway controller entirely.
+- For platform auth gateway: the `xks-gateway` subchart is included as an optional dependency
+  (disabled by default). Set `xks-gateway.enabled=true`, along with `xks-gateway.gateway.domain`
+  and OIDC values, to create gateway resources.
 
 ## Pull Secrets
 
@@ -122,17 +124,22 @@ This is separate from the KServe **inference gateway** below.
 | Gateway CR | `inference-gateway` (apps namespace) | `default-gateway` (cluster-scoped, reconciled in `rh-ai-gateway`) |
 | Purpose | KServe model inference HTTPRoutes | OIDC auth proxy + platform ingress (`kube-auth-proxy`) |
 
-The `xks-gateway` subchart is included as a dependency (enabled by default). To configure the auth gateway, set these values during install/upgrade:
+The `xks-gateway` subchart is included as an optional dependency (disabled by default). To configure the auth gateway, set these values during install/upgrade:
 
 ```bash
 helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
+  --set xks-gateway.enabled=true \
   --set xks-gateway.gateway.domain=example.com \
   --set xks-gateway.gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai \
   --set xks-gateway.gateway.oidc.clientID=rhai-client \
   --set xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
 ```
 
-When `xks-gateway.gateway.domain` is empty (default), only the GatewayConfig CRD is installed and the gateway controller is enabled but idle. Set `xks-gateway.enabled=false` to disable the gateway controller entirely.
+When `xks-gateway.enabled=false` (default), the GatewayConfig CRD and gateway controller are not
+installed or enabled. If the subchart is enabled but `xks-gateway.gateway.domain` is empty, only
+the GatewayConfig CRD is installed and the controller remains idle.
+
+When upgrading an existing release that uses the platform auth gateway, set `xks-gateway.enabled=true` explicitly to keep it enabled.
 
 ### Inference Gateway
 
