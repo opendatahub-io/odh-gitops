@@ -1,4 +1,4 @@
-{{- if and .Values.enabled (index .Values "cert-manager-operator" "enabled") }}
+{{- if .Values.enabled }}
 {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
 apiVersion: v1
 kind: Secret
@@ -42,16 +42,29 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - delete
+  - apiGroups:
+      - ""
+    resources:
       - namespaces
     verbs:
       - get
       - list
+      - patch
+      - delete
   - apiGroups:
       - ""
     resources:
       - serviceaccounts
+      - services
     verbs:
       - get
+      - list
+      - patch
   - apiGroups:
       - apps
     resources:
@@ -60,6 +73,8 @@ rules:
       - get
       - list
       - watch
+      - patch
+      - delete
   - apiGroups:
       - coordination.k8s.io
     resources:
@@ -69,6 +84,27 @@ rules:
     verbs:
       - get
       - patch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - roles
+    verbs:
+      - get
+      - list
+      - patch
+      - escalate
+      - bind
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - patch
+      - bind
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
@@ -92,6 +128,8 @@ rules:
     verbs:
       - get
       - list
+      - patch
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -157,6 +195,8 @@ spec:
               value: {{ .Release.Name | quote }}
             - name: RELEASE_NAMESPACE
               value: {{ .Release.Namespace | quote }}
+            - name: CERT_MANAGER_ENABLED
+              value: {{ index .Values "cert-manager-operator" "enabled" | quote }}
             - name: KE_RESOURCE
               value: {{ (include "rhai-on-xks-chart.activeProvider" . | fromYaml).keResource | quote }}
             - name: KE_NAME
@@ -165,5 +205,5 @@ spec:
             - /bin/bash
             - -c
             - |
-              {{- tpl (.Files.Get "files/pre-upgrade-migrate-certmanager.sh") . | nindent 14 }}
+              {{- tpl (.Files.Get "files/pre-upgrade-migrate-certmanager.sh") . | trimSuffix "\n" | nindent 14 | replace "\n              \n" "\n\n" }}
 {{- end }}
