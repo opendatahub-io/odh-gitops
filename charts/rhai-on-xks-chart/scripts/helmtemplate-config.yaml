@@ -1,5 +1,13 @@
 # helmtemplate-generator configuration for RHAI operator chart
 
+# Exclude resources owned by dependency charts from the generated parent chart.
+filter:
+  exclude:
+    - kinds:
+        - CustomResourceDefinition
+      names:
+        - gatewayconfigs.services.platform.opendatahub.io
+
 rules:
   # Replace namespace references with Helm template
   - match:
