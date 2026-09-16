@@ -500,8 +500,8 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable xks-gateway subchart. When true, the GatewayConfig CRD is installed and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
-          "default": true
+          "description": "Enable xks-gateway subchart. Disabled by default. When true, the GatewayConfig CRD is installed and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
+          "default": false
         },
         "gateway": {
           "type": "object",
