@@ -3,14 +3,16 @@
 #
 # When upgrading from 3.5 (cert-manager managed by CCM) to 3.6 (cert-manager
 # as Helm subchart), this hook:
-#   1. Patches the active KubernetesEngine CR to set certManager.managementPolicy=Unmanaged
-#   2. Waits for CCM to remove the cert-manager-operator Deployment
+#   1. Adopts resources from a previous cert-manager Helm release, when present
+#   2. Otherwise patches the active KubernetesEngine CR to set
+#      certManager.managementPolicy=Unmanaged and waits for CCM cleanup
 #   3. Shortens the stale leader-election Lease so the Helm-managed replacement
 #      can acquire leadership without waiting for the old Lease to expire
 #
 # Expected env vars:
 #   RELEASE_NAME      - Current Helm release name
-#   RELEASE_NAMESPACE - Current Helm release namespace
+#   RELEASE_NAMESPACE    - Current Helm release namespace
+#   CERT_MANAGER_ENABLED - Whether the cert-manager subchart is enabled
 
 set -euo pipefail
 
@@ -35,6 +37,91 @@ adopt_crd() {
 }
 
 adopt_crd "gatewayconfigs.services.platform.opendatahub.io"
+
+# Cleanup is needed when the cert-manager subchart is disabled on upgrade.
+if [[ "${CERT_MANAGER_ENABLED:-true}" == "false" ]]; then
+  if kubectl get certmanager cluster &>/dev/null; then
+    echo "Cleaning up cert-manager before disabling subchart..."
+    kubectl patch certmanager cluster --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+    kubectl delete certmanager cluster --timeout=30s 2>/dev/null || true
+  fi
+  echo "Deleting cert-manager operand deployments..."
+  kubectl delete deployments -n cert-manager --all --timeout=60s 2>/dev/null || true
+  echo "Removing cert-manager namespaces..."
+  kubectl delete namespace cert-manager --ignore-not-found --timeout=60s 2>/dev/null || true
+  kubectl delete namespace cert-manager-operator --ignore-not-found --timeout=60s 2>/dev/null || true
+  echo "Cert-manager cleanup complete."
+  exit 0
+fi
+
+# A previous standalone cert-manager Helm release needs to be adopted into the
+# parent release before Helm renders the subchart resources. This is also the
+# path used by the migration E2E test, which simulates CCM with a Helm release.
+OLD_RELEASE="cert-manager-operator"
+OLD_SECRETS=$(kubectl get secrets -A -l "owner=helm,name=${OLD_RELEASE}" \
+  -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+
+if [[ -n "$OLD_SECRETS" ]]; then
+  echo "Migrating cert-manager resources to release '${RELEASE_NAME}'..."
+  FAILURES=0
+
+  adopt_resource() {
+    local ns_args="$1"
+    local resource="$2"
+
+    if ! kubectl get $ns_args "$resource" &>/dev/null; then
+      echo "  Skipping ${resource} ${ns_args} (not found)"
+      return
+    fi
+
+    OWNER=$(kubectl get $ns_args "$resource" \
+      -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
+    if [[ "$OWNER" == "${RELEASE_NAME}" ]]; then
+      return
+    fi
+
+    echo "  Patching ${resource} ${ns_args}..."
+    if ! kubectl annotate $ns_args "$resource" \
+      meta.helm.sh/release-name="${RELEASE_NAME}" \
+      meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" \
+      --overwrite 2>&1; then
+      echo "    FAILED to patch annotations on ${resource}"
+      FAILURES=$((FAILURES + 1))
+      return
+    fi
+    if ! kubectl label $ns_args "$resource" \
+      app.kubernetes.io/managed-by=Helm \
+      --overwrite 2>&1; then
+      echo "    FAILED to patch label on ${resource}"
+      FAILURES=$((FAILURES + 1))
+    fi
+  }
+
+  adopt_resource "" "namespace/cert-manager-operator"
+  adopt_resource "" "namespace/cert-manager"
+  adopt_resource "-n cert-manager-operator" "serviceaccount/cert-manager-operator-controller-manager"
+  adopt_resource "-n cert-manager" "serviceaccount/cert-manager"
+  adopt_resource "-n cert-manager" "serviceaccount/cert-manager-cainjector"
+  adopt_resource "-n cert-manager" "serviceaccount/cert-manager-webhook"
+  adopt_resource "" "clusterrole/cert-manager-operator-controller-manager-clusterrole"
+  adopt_resource "" "clusterrole/cert-manager-operator-metrics-reader"
+  adopt_resource "" "clusterrolebinding/cert-manager-operator-controller-manager-clusterrolebinding"
+  adopt_resource "-n cert-manager-operator" "role/cert-manager-operator-controller-manager-role"
+  adopt_resource "-n cert-manager-operator" "rolebinding/cert-manager-operator-controller-manager-rolebinding"
+  adopt_resource "-n cert-manager-operator" "service/cert-manager-operator-controller-manager-metrics-service"
+  adopt_resource "-n cert-manager-operator" "deployment.apps/cert-manager-operator-controller-manager"
+  adopt_resource "" "certmanager/cluster"
+
+  if [[ "$FAILURES" -gt 0 ]]; then
+    echo "ERROR: ${FAILURES} resource(s) failed to patch. Will retry (backoffLimit=3)."
+    exit 1
+  fi
+
+  echo "  Deleting old release secrets for '${OLD_RELEASE}'..."
+  kubectl delete secrets -A -l "owner=helm,name=${OLD_RELEASE}" 2>/dev/null || true
+  echo "Migration complete."
+  exit 0
+fi
 
 # Check if cert-manager-operator namespace exists at all.
 if ! kubectl get namespace cert-manager-operator &>/dev/null; then
