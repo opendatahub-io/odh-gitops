@@ -2496,6 +2496,21 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -2622,6 +2637,112 @@ rules:
       - delete
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+      - services
+    verbs:
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+      - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    resourceNames:
+      - cert-manager-operator-lock
+    verbs:
+      - get
+      - patch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - roles
+    verbs:
+      - get
+      - list
+      - patch
+      - escalate
+      - bind
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - patch
+      - bind
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines
+    verbs:
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - certmanagers
+    verbs:
+      - get
+      - list
+      - patch
+      - delete
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -2661,6 +2782,28 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rhai-pre-delete-hook
+    namespace: default
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-pre-upgrade-migrate-certmanager
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-upgrade-migrate-certmanager
     namespace: default
 
 ---
@@ -3080,4 +3223,268 @@ spec:
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-upgrade-migrate-certmanager
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate-certmanager
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: RELEASE_NAME
+              value: "release-test"
+            - name: RELEASE_NAMESPACE
+              value: "default"
+            - name: CERT_MANAGER_ENABLED
+              value: "false"
+            - name: KE_RESOURCE
+              value: "azurekubernetesengines"
+            - name: KE_NAME
+              value: "default-azurekubernetesengine"
+          command:
+            - /bin/bash
+            - -c
+            - |
+              #!/bin/bash
+              # Pre-upgrade hook: migrate cert-manager from CCM management to Helm subchart.
+              #
+              # When upgrading from 3.5 (cert-manager managed by CCM) to 3.6 (cert-manager
+              # as Helm subchart), this hook:
+              #   1. Adopts resources from a previous cert-manager Helm release, when present
+              #   2. Otherwise patches the active KubernetesEngine CR to set
+              #      certManager.managementPolicy=Unmanaged and waits for CCM cleanup
+              #   3. Shortens the stale leader-election Lease so the Helm-managed replacement
+              #      can acquire leadership without waiting for the old Lease to expire
+              #
+              # Expected env vars:
+              #   RELEASE_NAME      - Current Helm release name
+              #   RELEASE_NAMESPACE    - Current Helm release namespace
+              #   CERT_MANAGER_ENABLED - Whether the cert-manager subchart is enabled
+
+              set -euo pipefail
+
+              WAIT_TIMEOUT="${WAIT_TIMEOUT:-300}"
+
+              # The xks-gateway subchart ships the GatewayConfig CRD in crds/ (applied on
+              # helm install only). On upgrade, adopt an existing CRD so Helm can manage it.
+              adopt_crd() {
+                local crd_name="$1"
+                if ! kubectl get crd "$crd_name" &>/dev/null; then
+                  return
+                fi
+                OWNER=$(kubectl get crd "$crd_name" -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
+                if [[ "$OWNER" == "${RELEASE_NAME}" ]]; then
+                  return
+                fi
+                echo "Adopting CRD ${crd_name} into Helm release '${RELEASE_NAME}'..."
+                kubectl label crd "$crd_name" app.kubernetes.io/managed-by=Helm --overwrite 2>&1
+                kubectl annotate crd "$crd_name" \
+                  meta.helm.sh/release-name="${RELEASE_NAME}" \
+                  meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" --overwrite 2>&1
+              }
+
+              adopt_crd "gatewayconfigs.services.platform.opendatahub.io"
+
+              # Cleanup is needed when the cert-manager subchart is disabled on upgrade.
+              if [[ "${CERT_MANAGER_ENABLED:-true}" == "false" ]]; then
+                if kubectl get certmanager cluster &>/dev/null; then
+                  echo "Cleaning up cert-manager before disabling subchart..."
+                  kubectl patch certmanager cluster --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+                  kubectl delete certmanager cluster --timeout=30s 2>/dev/null || true
+                fi
+                echo "Deleting cert-manager operand deployments..."
+                kubectl delete deployments -n cert-manager --all --timeout=60s 2>/dev/null || true
+                echo "Removing cert-manager namespaces..."
+                kubectl delete namespace cert-manager --ignore-not-found --timeout=60s 2>/dev/null || true
+                kubectl delete namespace cert-manager-operator --ignore-not-found --timeout=60s 2>/dev/null || true
+                echo "Cert-manager cleanup complete."
+                exit 0
+              fi
+
+              # A previous standalone cert-manager Helm release needs to be adopted into the
+              # parent release before Helm renders the subchart resources. This is also the
+              # path used by the migration E2E test, which simulates CCM with a Helm release.
+              OLD_RELEASE="cert-manager-operator"
+              OLD_SECRETS=$(kubectl get secrets -A -l "owner=helm,name=${OLD_RELEASE}" \
+                -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+
+              if [[ -n "$OLD_SECRETS" ]]; then
+                echo "Migrating cert-manager resources to release '${RELEASE_NAME}'..."
+                FAILURES=0
+
+                adopt_resource() {
+                  local ns_args="$1"
+                  local resource="$2"
+
+                  if ! kubectl get $ns_args "$resource" &>/dev/null; then
+                    echo "  Skipping ${resource} ${ns_args} (not found)"
+                    return
+                  fi
+
+                  OWNER=$(kubectl get $ns_args "$resource" \
+                    -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)
+                  if [[ "$OWNER" == "${RELEASE_NAME}" ]]; then
+                    return
+                  fi
+
+                  echo "  Patching ${resource} ${ns_args}..."
+                  if ! kubectl annotate $ns_args "$resource" \
+                    meta.helm.sh/release-name="${RELEASE_NAME}" \
+                    meta.helm.sh/release-namespace="${RELEASE_NAMESPACE}" \
+                    --overwrite 2>&1; then
+                    echo "    FAILED to patch annotations on ${resource}"
+                    FAILURES=$((FAILURES + 1))
+                    return
+                  fi
+                  if ! kubectl label $ns_args "$resource" \
+                    app.kubernetes.io/managed-by=Helm \
+                    --overwrite 2>&1; then
+                    echo "    FAILED to patch label on ${resource}"
+                    FAILURES=$((FAILURES + 1))
+                  fi
+                }
+
+                adopt_resource "" "namespace/cert-manager-operator"
+                adopt_resource "" "namespace/cert-manager"
+                adopt_resource "-n cert-manager-operator" "serviceaccount/cert-manager-operator-controller-manager"
+                adopt_resource "-n cert-manager" "serviceaccount/cert-manager"
+                adopt_resource "-n cert-manager" "serviceaccount/cert-manager-cainjector"
+                adopt_resource "-n cert-manager" "serviceaccount/cert-manager-webhook"
+                adopt_resource "" "clusterrole/cert-manager-operator-controller-manager-clusterrole"
+                adopt_resource "" "clusterrole/cert-manager-operator-metrics-reader"
+                adopt_resource "" "clusterrolebinding/cert-manager-operator-controller-manager-clusterrolebinding"
+                adopt_resource "-n cert-manager-operator" "role/cert-manager-operator-controller-manager-role"
+                adopt_resource "-n cert-manager-operator" "rolebinding/cert-manager-operator-controller-manager-rolebinding"
+                adopt_resource "-n cert-manager-operator" "service/cert-manager-operator-controller-manager-metrics-service"
+                adopt_resource "-n cert-manager-operator" "deployment.apps/cert-manager-operator-controller-manager"
+                adopt_resource "" "certmanager/cluster"
+
+                if [[ "$FAILURES" -gt 0 ]]; then
+                  echo "ERROR: ${FAILURES} resource(s) failed to patch. Will retry (backoffLimit=3)."
+                  exit 1
+                fi
+
+                echo "  Deleting old release secrets for '${OLD_RELEASE}'..."
+                kubectl delete secrets -A -l "owner=helm,name=${OLD_RELEASE}" 2>/dev/null || true
+                echo "Migration complete."
+                exit 0
+              fi
+
+              # Check if cert-manager-operator namespace exists at all.
+              if ! kubectl get namespace cert-manager-operator &>/dev/null; then
+                echo "cert-manager-operator namespace not found; nothing to migrate."
+                exit 0
+              fi
+
+              # KE_RESOURCE and KE_NAME are injected by the Helm Job template (provider-specific).
+              if [[ -z "${KE_RESOURCE:-}" ]] || [[ -z "${KE_NAME:-}" ]]; then
+                echo "KE_RESOURCE or KE_NAME not set; skipping migration."
+                exit 0
+              fi
+
+              KE_FULL="${KE_RESOURCE}/${KE_NAME}"
+
+              if ! kubectl get "$KE_FULL" &>/dev/null 2>&1; then
+                echo "KubernetesEngine CR '${KE_FULL}' not found; skipping migration."
+                exit 0
+              fi
+
+              echo "Found KubernetesEngine CR: ${KE_FULL}"
+
+              # Check current managementPolicy — only migrate if CCM is actively managing cert-manager.
+              # If already Unmanaged, nothing to do.
+              CURRENT_POLICY=$(kubectl get "$KE_FULL" \
+                -o jsonpath='{.spec.dependencies.certManager.managementPolicy}' 2>/dev/null || true)
+
+              if [[ "$CURRENT_POLICY" != "Managed" ]]; then
+                echo "certManager.managementPolicy is '${CURRENT_POLICY}'; nothing to migrate."
+                exit 0
+              fi
+
+              # Patch KE CR to set certManager.managementPolicy=Unmanaged.
+              # This tells CCM to stop managing cert-manager and clean up its resources.
+              echo "Patching ${KE_FULL}: certManager.managementPolicy → Unmanaged..."
+              kubectl patch "$KE_FULL" --type=merge \
+                -p '{"spec":{"dependencies":{"certManager":{"managementPolicy":"Unmanaged"}}}}' 2>&1
+
+              # Wait for CCM's foreground deletion of the cert-manager operator Deployment.
+              # No wait is needed when CCM has already removed it before the hook starts.
+              if ! deployment_names=$(kubectl get deployment -n cert-manager-operator \
+                -l infrastructure.opendatahub.io/part-of -o name 2>&1); then
+                echo "ERROR: Could not query the CCM cert-manager-operator Deployment: ${deployment_names}" >&2
+                exit 1
+              fi
+              if [[ -n "$deployment_names" ]]; then
+                echo "Waiting for CCM to remove cert-manager-operator deployment (timeout: ${WAIT_TIMEOUT}s)..."
+                if kubectl wait --for=delete deployment -n cert-manager-operator \
+                  -l infrastructure.opendatahub.io/part-of --timeout="${WAIT_TIMEOUT}s"; then
+                  echo "cert-manager-operator deployment removed."
+                elif ! remaining_deployment_names=$(kubectl get deployment -n cert-manager-operator \
+                  -l infrastructure.opendatahub.io/part-of -o name 2>&1); then
+                  echo "ERROR: Could not query the CCM cert-manager-operator Deployment after waiting: ${remaining_deployment_names}" >&2
+                  exit 1
+                elif [[ -z "$remaining_deployment_names" ]]; then
+                  echo "cert-manager-operator deployment removed while starting the wait."
+                else
+                  echo "ERROR: Timeout waiting for cert-manager-operator deployment to be removed."
+                  kubectl get deployment -n cert-manager-operator \
+                    -l infrastructure.opendatahub.io/part-of 2>/dev/null || true
+                  exit 1
+                fi
+              else
+                echo "cert-manager-operator deployment not found; continuing."
+              fi
+
+              # CCM cleanup can remove the old operator's RBAC before it gracefully releases
+              # this Lease. Foreground Deployment deletion waits for its blocking dependents.
+              if kubectl get lease cert-manager-operator-lock -n cert-manager-operator &>/dev/null; then
+                echo "Shortening stale cert-manager-operator-lock Lease duration to 1 second..."
+                if ! kubectl patch lease cert-manager-operator-lock -n cert-manager-operator \
+                  --type=merge \
+                  -p '{"spec":{"leaseDurationSeconds":1}}' 2>&1; then
+                  echo "WARNING: Could not shorten cert-manager-operator-lock Lease; continuing migration."
+                fi
+              else
+                echo "cert-manager-operator-lock Lease not found; nothing to shorten."
+              fi
+              echo "Migration complete. The replacement cert-manager operator will reconcile any remaining operands."
 
