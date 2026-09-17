@@ -249,7 +249,8 @@ assert_not_exists() {
     local output rc
     output=$(kubectl get "${kubectl_args[@]}" 2>&1)
     rc=$?
-    if [[ $rc -ne 0 ]] && echo "$output" | grep -qi "not found\|no resources found"; then
+    if [[ $rc -ne 0 ]] && echo "$output" | grep -Eqi \
+      "not found|no resources found|the server doesn't have a resource type|could not find the requested resource"; then
       return 0
     fi
     return 1
