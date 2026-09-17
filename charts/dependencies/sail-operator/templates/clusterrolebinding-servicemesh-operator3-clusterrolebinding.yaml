@@ -10,4 +10,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: servicemesh-operator3
-  namespace: istio-system
+  namespace: {{ .Values.namespace }}

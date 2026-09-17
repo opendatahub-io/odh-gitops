@@ -11,6 +11,7 @@ metadata:
     app.kubernetes.io/part-of: servicemeshoperator3
     control-plane: servicemesh-operator3
   name: servicemesh-operator3-metrics-service
+  namespace: {{ .Values.namespace }}
 spec:
   ipFamilyPolicy: PreferDualStack
   ports:
