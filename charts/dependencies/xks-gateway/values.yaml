@@ -10,6 +10,11 @@
 # resources are created.
 enabled: true
 
+# -- Internal parent-chart integration. When true, the parent chart creates the
+# GatewayConfig from a pre-install/pre-upgrade hook after bootstrapping the CRD.
+# Leave false for standalone xks-gateway chart installs.
+gatewayConfigHook: false
+
 gateway:
   # -- (required) External hostname (e.g., example.com or *.example.com)
   domain: ""

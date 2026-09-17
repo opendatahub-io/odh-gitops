@@ -12,6 +12,11 @@
       "description": "Enable or disable the xks-gateway chart. Controls creation of the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC resources.",
       "default": true
     },
+    "gatewayConfigHook": {
+      "type": "boolean",
+      "description": "Internal parent-chart integration. When true, the parent chart creates GatewayConfig from a bootstrap hook. Leave false for standalone chart installs.",
+      "default": false
+    },
     "gateway": {
       "type": "object",
       "description": "Gateway configuration for XKS environments",
