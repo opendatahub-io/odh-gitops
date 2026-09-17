@@ -145,7 +145,7 @@ test_4_xks_gateway_configured() {
   fi
 
   log "Deploying with configured xks-gateway (domain + OIDC secret)"
-  helm_deploy -f "$gateway_values"
+  helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values"
   wait_ke_ready
 
   assert_gateway_configured_resources "e2e.example.com"
@@ -163,9 +163,9 @@ test_5_xks_gateway_disabled() {
   assert_operator_gateway_service_disabled
 }
 
-# ─── Test 7: Uninstall lifecycle ────────────────────────────────────────────
+# ─── Test 6: Uninstall lifecycle ────────────────────────────────────────────
 
-test_7_uninstall_lifecycle() {
+test_6_uninstall_lifecycle() {
   ensure_deployed
 
   # Phase A: uninstall without namespace cleanup (default)
@@ -220,7 +220,7 @@ ALL_TESTS=(
   "4:xks-gateway configured:test_4_xks_gateway_configured"
   "5:xks-gateway disabled:test_5_xks_gateway_disabled"
   # TODO: this would not work correctly, since KServe is blocking the deletion.
-  # "8:Uninstall lifecycle (cleanup + cleanupNamespaces):test_7_uninstall_lifecycle"
+  # "6:Uninstall lifecycle (cleanup + cleanupNamespaces):test_6_uninstall_lifecycle"
 )
 
 check_prerequisites

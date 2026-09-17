@@ -11,9 +11,10 @@
 # templates/ are validated in the same pass as the CR and fail on a fresh cluster:
 #   no matches for kind "GatewayConfig" in version "services.platform.opendatahub.io/v1alpha1"
 #
-# Skip CRD install when it already exists: helm upgrade --install ... --skip-crds
-# Helm does not upgrade files in crds/ on helm upgrade; re-run this script and
-# kubectl apply the CRD (or helm install on a new release) to roll schema changes.
+# Helm does not upgrade files in crds/ during its normal upgrade phase. When this
+# chart is enabled, its lifecycle hook applies the bundled CRD during install and
+# upgrade; apply the CRD explicitly if the chart is disabled and the schema must
+# be rolled independently.
 #
 # Usage:
 #   ./sync-gatewayconfig-crd.sh /path/to/opendatahub-operator
