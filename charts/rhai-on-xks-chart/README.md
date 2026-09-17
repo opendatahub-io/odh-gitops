@@ -139,7 +139,7 @@ When `xks-gateway.enabled=false` (default), the GatewayConfig CRD and gateway co
 installed or enabled. If the subchart is enabled but `xks-gateway.gateway.domain` is empty, only
 the GatewayConfig CRD is installed and the controller remains idle.
 
-When upgrading an existing release that uses the platform auth gateway, set `xks-gateway.enabled=true` explicitly to keep it enabled.
+When upgrading an existing release that uses the platform auth gateway, set `xks-gateway.enabled=true` explicitly to keep it enabled. A pre-install/pre-upgrade hook bootstraps the GatewayConfig CRD if it is missing before the `GatewayConfig` CR is applied, so enabling the gateway does not require a separate bootstrap command. Existing CRD schema changes still need to be applied explicitly because Helm does not upgrade files in `crds/`.
 
 ### Inference Gateway
 
