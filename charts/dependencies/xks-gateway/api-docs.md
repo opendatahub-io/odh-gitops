@@ -33,4 +33,5 @@ XKS Gateway onboarding chart - installs the GatewayConfig CRD (crds/), gateway n
 | gateway.providerCASecretName | string | `""` | Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace) |
 | gateway.subdomain | string | `""` | Subdomain prefix for the gateway |
 | gateway.verifyProviderCertificate | bool | `true` | Verify auth provider TLS certificate (set to false only for development) |
+| gatewayConfigHook | bool | `false` | Internal parent-chart integration. When true, the parent chart creates the GatewayConfig from a pre-install/pre-upgrade hook after bootstrapping the CRD. Leave false for standalone xks-gateway chart installs. |
 

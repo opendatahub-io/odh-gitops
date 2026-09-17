@@ -28,6 +28,8 @@ The GatewayConfig CRD is in `crds/` (not `templates/`) so `helm install` applies
 - For local or manual updates, regenerate the CRD in the operator repository, then run `./scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository` from this chart directory.
 - Helm does **not** upgrade files in `crds/` on `helm upgrade`. To roll a schema change on an existing cluster, apply the updated CRD explicitly: `kubectl apply -f crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
 
+When this chart is used as a dependency of `rhai-on-xks-chart`, the parent chart's pre-install/pre-upgrade hook bootstraps the CRD if it is missing before applying the `GatewayConfig` CR. Standalone upgrades still require the CRD to be present before enabling gateway resources.
+
 ## OIDC client secret
 
 **Recommended (production):** create a Kubernetes Secret in `rh-ai-gateway` and set `gateway.oidc.clientSecretRef.name` (and `key` if not `client-secret`).

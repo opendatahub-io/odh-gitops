@@ -496,12 +496,17 @@
     },
     "xks-gateway": {
       "type": "object",
-      "description": "XKS Gateway subchart: installs GatewayConfig CRD, gateway namespace, GatewayConfig CR, and optional OIDC Secret. Resources are only created when gateway.domain is set.",
+      "description": "XKS Gateway subchart: bootstraps the GatewayConfig CRD and manages the gateway namespace, GatewayConfig CR, and optional OIDC Secret. Resources are only created when gateway.domain is set.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable xks-gateway subchart. Disabled by default. When true, the GatewayConfig CRD is installed and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
+          "description": "Enable xks-gateway subchart. Disabled by default. When true, the GatewayConfig CRD is bootstrapped and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
           "default": false
+        },
+        "gatewayConfigHook": {
+          "type": "boolean",
+          "description": "Internal parent-chart integration. The parent hook creates GatewayConfig after bootstrapping its CRD.",
+          "default": true
         },
         "gateway": {
           "type": "object",

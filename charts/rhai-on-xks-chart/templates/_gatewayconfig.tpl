@@ -1,12 +1,20 @@
-{{- if and (include "xks-gateway.configured" .) (not .Values.gatewayConfigHook) -}}
-{{- $gw := .Values.gateway -}}
+{{/*
+Render the platform GatewayConfig for the parent-chart bootstrap hook.
+
+The xks-gateway subchart suppresses its normal GatewayConfig manifest when it is
+used by this chart. Keeping the manifest here lets the hook install the CRD and
+then create the custom resource in the same Helm operation.
+*/}}
+{{- define "rhai-on-xks-chart.gatewayConfigManifest" -}}
+{{- $xksGateway := index .Subcharts "xks-gateway" -}}
+{{- $gw := index .Values "xks-gateway" "gateway" -}}
 apiVersion: services.platform.opendatahub.io/v1alpha1
 kind: GatewayConfig
 metadata:
   # Name is enforced by CRD CEL validation: must be "default-gateway"
   name: default-gateway
   labels:
-    {{- include "xks-gateway.labels" . | nindent 4 }}
+    {{- include "xks-gateway.labels" $xksGateway | nindent 4 }}
 spec:
   domain: {{ $gw.domain | quote }}
   {{- with $gw.subdomain }}
@@ -22,9 +30,9 @@ spec:
     issuerURL: {{ $gw.oidc.issuerURL | quote }}
     clientID: {{ $gw.oidc.clientID | quote }}
     clientSecretRef:
-      name: {{ include "xks-gateway.oidcClientSecretRefName" . | quote }}
+      name: {{ include "xks-gateway.oidcClientSecretRefName" $xksGateway | quote }}
       key: {{ $gw.oidc.clientSecretRef.key | default "client-secret" | quote }}
-    secretNamespace: {{ include "xks-gateway.oidcSecretNamespace" . | quote }}
+    secretNamespace: {{ include "xks-gateway.oidcSecretNamespace" $xksGateway | quote }}
   {{- if or $gw.cookie.expire $gw.cookie.refresh }}
   cookie:
     {{- with $gw.cookie.expire }}

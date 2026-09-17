@@ -262,11 +262,14 @@ cert-manager-operator:
 
 # XKS Gateway subchart — platform auth gateway (GatewayConfig CRD, namespace, CR, OIDC).
 # Disabled by default because the platform auth gateway is opt-in. When enabled, the
-# GatewayConfig CRD is installed. Gateway resources (namespace, GatewayConfig CR, OIDC
-# Secret) are only created when gateway.domain is set.
+# GatewayConfig CRD is bootstrapped by a Helm hook. Gateway resources (namespace,
+# GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
 # Set xks-gateway.enabled=true together with the gateway domain and OIDC values to enable it.
 xks-gateway:
   enabled: false
+  # The parent hook creates GatewayConfig after ensuring its CRD exists. This avoids
+  # Helm trying to map the custom resource before the CRD is available on upgrades.
+  gatewayConfigHook: true
   gateway:
     domain: ""
     subdomain: ""

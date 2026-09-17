@@ -134,12 +134,12 @@ AWSKubernetesEngine CR is NOT automatically created. To create it manually:
 
 == Platform auth gateway ==
 
-The xks-gateway subchart is enabled. The GatewayConfig CRD is installed, and the
-platform auth gateway controller is enabled.
+The xks-gateway subchart is enabled. The GatewayConfig CRD is bootstrapped by a
+Helm hook, and the platform auth gateway controller is enabled.
 {{- if index .Values "xks-gateway" "gateway" "domain" }}
 Gateway domain: {{ index .Values "xks-gateway" "gateway" "domain" }}
 The GatewayConfig CR (default-gateway), rh-ai-gateway namespace, and OIDC
-configuration are created by the xks-gateway subchart.
+configuration are created by the chart.
 {{- else }}
 No gateway.domain is set — gateway resources (namespace, GatewayConfig CR, OIDC
 Secret) are NOT created. To enable the platform auth gateway, set:
