@@ -67,3 +67,60 @@ True when this chart creates the OIDC client secret (oidcClientSecret set and ta
 {{- if eq $secretNs $gatewayNs -}}true{{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Render the GatewayConfig used by the lifecycle hook. The custom resource is
+hook-managed so Helm never has to map it before the CRD exists on upgrade.
+*/}}
+{{- define "xks-gateway.gatewayConfigManifest" -}}
+{{- $gw := .Values.gateway -}}
+apiVersion: services.platform.opendatahub.io/v1alpha1
+kind: GatewayConfig
+metadata:
+  # Name is enforced by CRD CEL validation: must be "default-gateway"
+  name: default-gateway
+  annotations:
+    helm.sh/resource-policy: keep
+    platform.opendatahub.io/gateway-config-owner: {{ printf "%s/%s" .Release.Namespace .Release.Name | quote }}
+  labels:
+    {{- include "xks-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  domain: {{ $gw.domain | quote }}
+  {{- with $gw.subdomain }}
+  subdomain: {{ . | quote }}
+  {{- end }}
+  ingressMode: {{ $gw.ingressMode | default "LoadBalancer" }}
+  certificate:
+    type: {{ $gw.certificate.type | default "SelfSigned" }}
+    {{- with $gw.certificate.secretName }}
+    secretName: {{ . | quote }}
+    {{- end }}
+  oidc:
+    issuerURL: {{ $gw.oidc.issuerURL | quote }}
+    clientID: {{ $gw.oidc.clientID | quote }}
+    clientSecretRef:
+      name: {{ include "xks-gateway.oidcClientSecretRefName" . | quote }}
+      key: {{ $gw.oidc.clientSecretRef.key | default "client-secret" | quote }}
+    secretNamespace: {{ include "xks-gateway.oidcSecretNamespace" . | quote }}
+  {{- if or $gw.cookie.expire $gw.cookie.refresh }}
+  cookie:
+    {{- with $gw.cookie.expire }}
+    expire: {{ . | quote }}
+    {{- end }}
+    {{- with $gw.cookie.refresh }}
+    refresh: {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with $gw.providerCASecretName }}
+  providerCASecretName: {{ . | quote }}
+  {{- end }}
+  {{- if not (kindIs "invalid" $gw.verifyProviderCertificate) }}
+  verifyProviderCertificate: {{ $gw.verifyProviderCertificate }}
+  {{- end }}
+  {{- if and $gw.networkPolicy $gw.networkPolicy.ingress }}
+  networkPolicy:
+    ingress:
+      enabled: {{ $gw.networkPolicy.ingress.enabled }}
+  {{- end }}
+{{- end -}}

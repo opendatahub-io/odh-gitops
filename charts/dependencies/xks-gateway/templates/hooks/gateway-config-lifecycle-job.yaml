@@ -1,45 +1,30 @@
-{{- $xksGatewayEnabled := index .Values "xks-gateway" "enabled" }}
-{{- $gatewayDomain := index .Values "xks-gateway" "gateway" "domain" }}
-{{- if and .Values.enabled (index .Values "xks-gateway" "gatewayConfigHook") (or $xksGatewayEnabled $gatewayDomain) }}
-{{- $gatewayConfigured := and $xksGatewayEnabled (index .Values "xks-gateway" "gateway" "domain") }}
-{{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-gateway-crd-pull-secret
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
-  annotations:
-    helm.sh/hook: {{ ternary "pre-install,pre-upgrade,pre-delete" "pre-upgrade" $xksGatewayEnabled }}
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: {{ .Values.imagePullSecret.dockerConfigJson | b64enc }}
-{{- end }}
----
+{{- $gatewayEnabled := .Values.enabled }}
+{{- $gatewayDomain := .Values.gateway.domain }}
+{{- if or $gatewayEnabled $gatewayDomain }}
+{{- $gatewayConfigured := and $gatewayEnabled $gatewayDomain }}
+{{- $hookEvents := ternary "pre-install,pre-upgrade,pre-delete" "pre-upgrade" $gatewayEnabled }}
+{{- $hookJobEvents := ternary "pre-install,pre-upgrade" "pre-upgrade" $gatewayEnabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: rhai-pre-install-gateway-crd
+  name: xks-gateway-config
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+    {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: {{ ternary "pre-install,pre-upgrade,pre-delete" "pre-upgrade" $xksGatewayEnabled }}
-    helm.sh/hook-weight: "-9"
+    helm.sh/hook: {{ $hookEvents }}
+    helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhai-pre-install-gateway-crd
+  name: xks-gateway-config
   labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+    {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: {{ ternary "pre-install,pre-upgrade,pre-delete" "pre-upgrade" $xksGatewayEnabled }}
-    helm.sh/hook-weight: "-9"
+    helm.sh/hook: {{ $hookEvents }}
+    helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 rules:
   - apiGroups:
@@ -66,52 +51,52 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhai-pre-install-gateway-crd
+  name: xks-gateway-config
   labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+    {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: {{ ternary "pre-install,pre-upgrade,pre-delete" "pre-upgrade" $xksGatewayEnabled }}
-    helm.sh/hook-weight: "-9"
+    helm.sh/hook: {{ $hookEvents }}
+    helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhai-pre-install-gateway-crd
+  name: xks-gateway-config
 subjects:
   - kind: ServiceAccount
-    name: rhai-pre-install-gateway-crd
+    name: xks-gateway-config
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rhai-pre-install-gateway-crd
+  name: xks-gateway-config
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+    {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: {{ ternary "pre-install,pre-upgrade" "pre-upgrade" $xksGatewayEnabled }}
-    helm.sh/hook-weight: "-8"
+    helm.sh/hook: {{ $hookJobEvents }}
+    helm.sh/hook-weight: "-9"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
-        {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
+        {{- include "xks-gateway.labels" . | nindent 8 }}
     spec:
       restartPolicy: Never
-      serviceAccountName: rhai-pre-install-gateway-crd
-      {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
+      serviceAccountName: xks-gateway-config
+      {{- with .Values.hooks.imagePullSecretName }}
       imagePullSecrets:
-        - name: rhai-gateway-crd-pull-secret
+        - name: {{ . }}
       {{- end }}
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: bootstrap-gateway-crd
+        - name: gateway-config
           image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
           resources:
             {{- toYaml .Values.hooks.resources | nindent 12 }}
@@ -127,56 +112,56 @@ spec:
             - -c
             - |
               set -euo pipefail
-{{- if $xksGatewayEnabled }}
-{{- $xksGateway := index .Subcharts "xks-gateway" }}
               CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
+{{- if $gatewayEnabled }}
               echo "Ensuring GatewayConfig CRD exists before enabling xks-gateway..."
               kubectl apply -f - <<'GATEWAY_CONFIG_CRD'
-{{ $xksGateway.Files.Get "crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml" | trim | indent 14 }}
+{{ .Files.Get "crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml" | trim | indent 14 }}
               GATEWAY_CONFIG_CRD
               kubectl wait --for=condition=Established "crd/${CRD_NAME}" --timeout=300s
 {{- if $gatewayConfigured }}
               echo "Applying GatewayConfig..."
               kubectl apply -f - <<'GATEWAY_CONFIG'
-{{ include "rhai-on-xks-chart.gatewayConfigManifest" . | trim | indent 14 }}
+{{ include "xks-gateway.gatewayConfigManifest" . | trim | indent 14 }}
               GATEWAY_CONFIG
 {{- else if not .Release.IsInstall }}
               echo "GatewayConfig is disabled; deleting default-gateway..."
               kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
 {{- end }}
 {{- else }}
-              if kubectl get crd/gatewayconfigs.services.platform.opendatahub.io >/dev/null 2>&1; then
+              if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
                 echo "GatewayConfig is disabled; deleting default-gateway..."
                 kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
               else
                 echo "GatewayConfig CRD is not installed; nothing to delete."
               fi
+{{- end -}}
 {{- end }}
-{{- if $xksGatewayEnabled }}
+{{- if $gatewayEnabled }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rhai-pre-delete-gateway-config
+  name: xks-gateway-config-delete
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+    {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: pre-delete
-    helm.sh/hook-weight: "-8"
+    helm.sh/hook-weight: "-9"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
-        {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
+        {{- include "xks-gateway.labels" . | nindent 8 }}
     spec:
       restartPolicy: Never
-      serviceAccountName: rhai-pre-install-gateway-crd
-      {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
+      serviceAccountName: xks-gateway-config
+      {{- with .Values.hooks.imagePullSecretName }}
       imagePullSecrets:
-        - name: rhai-gateway-crd-pull-secret
+        - name: {{ . }}
       {{- end }}
       securityContext:
         runAsNonRoot: true
@@ -199,11 +184,11 @@ spec:
             - -c
             - |
               set -euo pipefail
-              if kubectl get crd/gatewayconfigs.services.platform.opendatahub.io >/dev/null 2>&1; then
+              CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
+              if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
                 echo "Deleting default-gateway..."
                 kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
               else
                 echo "GatewayConfig CRD is not installed; nothing to delete."
               fi
-{{- end }}
-{{- end }}
+{{- end -}}
