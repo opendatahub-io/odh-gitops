@@ -9,7 +9,7 @@
     },
     "enabled": {
       "type": "boolean",
-      "description": "Enable or disable the xks-gateway chart. Controls creation of gateway namespace, GatewayConfig CR, and OIDC resources.",
+      "description": "Enable or disable the xks-gateway chart. Controls creation of the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC resources.",
       "default": true
     },
     "gateway": {
