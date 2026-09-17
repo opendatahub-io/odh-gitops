@@ -12,10 +12,44 @@
       "description": "Enable or disable the xks-gateway chart. Controls creation of the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC resources.",
       "default": true
     },
-    "gatewayConfigHook": {
-      "type": "boolean",
-      "description": "Internal parent-chart integration. When true, the parent chart creates GatewayConfig from a bootstrap hook. Leave false for standalone chart installs.",
-      "default": false
+    "hooks": {
+      "type": "object",
+      "description": "CRD and GatewayConfig lifecycle hook configuration",
+      "properties": {
+        "cliImage": {
+          "type": "string",
+          "description": "Image containing kubectl and bash for lifecycle hooks",
+          "default": "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resources for the lifecycle hook Job",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "imagePullSecretName": {
+          "type": "string",
+          "description": "Optional pull Secret for the lifecycle hook image"
+        }
+      },
+      "additionalProperties": false
     },
     "gateway": {
       "type": "object",

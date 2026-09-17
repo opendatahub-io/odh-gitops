@@ -496,17 +496,51 @@
     },
     "xks-gateway": {
       "type": "object",
-      "description": "XKS Gateway subchart: bootstraps the GatewayConfig CRD and manages the gateway namespace, GatewayConfig CR, and optional OIDC Secret. Resources are only created when gateway.domain is set.",
+      "description": "XKS Gateway subchart: owns the GatewayConfig CRD lifecycle hook and manages the gateway namespace, GatewayConfig CR, and optional OIDC Secret. Resources are only created when gateway.domain is set.",
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Enable xks-gateway subchart. Disabled by default. When true, the GatewayConfig CRD is bootstrapped and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
           "default": false
         },
-        "gatewayConfigHook": {
-          "type": "boolean",
-          "description": "Internal parent-chart integration. The parent hook creates GatewayConfig after bootstrapping its CRD.",
-          "default": true
+        "hooks": {
+          "type": "object",
+          "description": "CRD and GatewayConfig lifecycle hook configuration",
+          "properties": {
+            "cliImage": {
+              "type": "string",
+              "description": "Image containing kubectl and bash for the GatewayConfig lifecycle hook"
+            },
+            "imagePullSecretName": {
+              "type": "string",
+              "description": "Pull Secret name for the GatewayConfig lifecycle hook image",
+              "default": "rhai-gateway-crd-pull-secret"
+            },
+            "resources": {
+              "type": "object",
+              "description": "Resources for the GatewayConfig lifecycle hook Job",
+              "properties": {
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": { "type": "string" },
+                    "memory": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                },
+                "requests": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": { "type": "string" },
+                    "memory": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "gateway": {
           "type": "object",

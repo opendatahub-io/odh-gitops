@@ -21,14 +21,22 @@ When the chart is enabled and `gateway.domain` is empty, only the GatewayConfig 
 
 ## CRD handling
 
-The GatewayConfig CRD is in `crds/` (not `templates/`) so `helm install` applies it **before** the `GatewayConfig` CR.
+The GatewayConfig CRD is in `crds/` (not `templates/`) and the `GatewayConfig` is applied by a
+subchart lifecycle hook. This keeps Helm from mapping the custom resource before the CRD exists.
 
-- Use `--skip-crds` on later installs/upgrades if the CRD already exists.
+- On install or upgrade with `enabled=true`, the lifecycle hook applies the bundled CRD, waits for
+  it to become Established, and then creates or updates `default-gateway`.
+- When `enabled=false` is applied during an upgrade, the hook deletes `default-gateway` but leaves
+  the CRD installed. CRDs are intentionally retained because Helm does not delete CRDs.
 - GatewayConfig schema changes merged into `rhods-operator` are automatically synchronized into this chart by the [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).
 - For local or manual updates, regenerate the CRD in the operator repository, then run `./scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository` from this chart directory.
-- Helm does **not** upgrade files in `crds/` on `helm upgrade`. To roll a schema change on an existing cluster, apply the updated CRD explicitly: `kubectl apply -f crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
+- If the gateway dependency is disabled, apply an updated CRD explicitly when you need to roll a
+  schema change without enabling the gateway:
+  `kubectl apply -f crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
 
-When this chart is used as a dependency of `rhai-on-xks-chart`, the parent chart's pre-install/pre-upgrade hook bootstraps the CRD if it is missing before applying the `GatewayConfig` CR. Standalone upgrades still require the CRD to be present before enabling gateway resources.
+The same lifecycle hook is used when this chart is installed standalone or as a dependency of
+`rhai-on-xks-chart`. The parent chart adds only a cleanup hook for the case where the dependency is
+disabled, because a disabled subchart cannot render its own cleanup hook.
 
 ## OIDC client secret
 

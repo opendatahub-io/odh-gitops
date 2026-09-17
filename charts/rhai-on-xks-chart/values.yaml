@@ -262,14 +262,23 @@ cert-manager-operator:
 
 # XKS Gateway subchart — platform auth gateway (GatewayConfig CRD, namespace, CR, OIDC).
 # Disabled by default because the platform auth gateway is opt-in. When enabled, the
-# GatewayConfig CRD is bootstrapped by a Helm hook. Gateway resources (namespace,
-# GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
+# xks-gateway subchart owns the GatewayConfig CRD lifecycle hook. Gateway resources
+# (namespace, GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
 # Set xks-gateway.enabled=true together with the gateway domain and OIDC values to enable it.
 xks-gateway:
   enabled: false
-  # The parent hook creates GatewayConfig after ensuring its CRD exists. This avoids
-  # Helm trying to map the custom resource before the CRD is available on upgrades.
-  gatewayConfigHook: true
+  hooks:
+    # The parent creates this Secret as a pre-hook. Configured imagePullSecret credentials
+    # are used when present; otherwise the hook uses an empty Docker config.
+    imagePullSecretName: rhai-gateway-crd-pull-secret
+    cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1
+    resources:
+      limits:
+        cpu: 200m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
   gateway:
     domain: ""
     subdomain: ""

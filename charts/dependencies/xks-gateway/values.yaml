@@ -1,19 +1,29 @@
 # XKS Gateway Onboarding Chart
 # Creates the gateway namespace, GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
 #
-# The GatewayConfig CRD lives in crds/ (not templates/) so Helm installs it before the CR.
-# Skip CRD creation only when the GatewayConfig CRD already exists:
-# helm upgrade --install ... --skip-crds
+# The GatewayConfig CRD lives in crds/ (not templates/). The lifecycle hook reapplies the
+# bundled CRD during enabled installs and upgrades before applying the GatewayConfig CR.
 
 # -- Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart,
 # this controls whether the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC
 # resources are created.
 enabled: true
 
-# -- Internal parent-chart integration. When true, the parent chart creates the
-# GatewayConfig from a pre-install/pre-upgrade hook after bootstrapping the CRD.
-# Leave false for standalone xks-gateway chart installs.
-gatewayConfigHook: false
+# Hook configuration for the CRD/GatewayConfig lifecycle. The hook is owned by
+# this chart so standalone and parent-chart installs use the same bootstrap path.
+hooks:
+  # -- Image containing kubectl and bash for lifecycle hooks.
+  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1
+  # -- Resources for the lifecycle hook Job.
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # -- Optional pull Secret for the lifecycle hook image.
+  imagePullSecretName: ""
 
 gateway:
   # -- (required) External hostname (e.g., example.com or *.example.com)
