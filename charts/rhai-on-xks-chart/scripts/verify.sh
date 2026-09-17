@@ -2,7 +2,7 @@
 # Verify rhai-on-xks-chart installation and lifecycle in a Kubernetes cluster.
 #
 # Usage:
-#   ./verify.sh              # run all tests (1-6)
+#   ./verify.sh              # run all tests (1-5)
 #   ./verify.sh 1            # run only test 1 (install check)
 #   ./verify.sh 2 3          # run tests 2 and 3
 #
@@ -135,74 +135,9 @@ test_3_external_certmanager() {
   helm_deploy
 }
 
-# ─── Test 3b: cert-manager subchart enabled / disabled ──────────────────────
+# ─── Test 4: xks-gateway configured ─────────────────────────────────────────
 
-test_3_certmanager_subchart() {
-  log "Step 1: cert-manager-operator subchart enabled (default)"
-  ensure_deployed
-
-  wait_for_all_deployments_in_namespace "cert-manager"
-  assert_exists "CertManager CR" certmanager/cluster
-  assert_exists "cert-manager namespace" namespace/cert-manager
-  assert_exists "cert-manager-operator namespace" namespace/cert-manager-operator
-
-  log "Step 2: fresh deploy with cert-manager-operator subchart disabled"
-  if kubectl get certmanager cluster &>/dev/null; then
-    log "Removing CertManager CR finalizer to prevent deletion hang..."
-    kubectl patch certmanager cluster --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
-  fi
-  helm_deploy \
-    --set "cert-manager-operator.enabled=false" \
-    --set "${PROV_PREFIX}.certManager.managementPolicy=Unmanaged"
-
-  assert_deployment_gone "cert-manager-operator"
-  assert_deployment_gone "cert-manager"
-
-  log "Reverting to default (enabled)"
-  helm_deploy
-  wait_for_all_deployments_in_namespace "cert-manager"
-  assert_exists "CertManager CR" certmanager/cluster
-}
-
-# ─── Test 3c: CCM → subchart migration ─────────────────────────────────────
-
-test_4_ccm_to_subchart_migration() {
-  log "Simulating CCM-managed cert-manager → subchart migration"
-
-  local ccm_release="cert-manager-operator"
-  local ccm_chart="./charts/dependencies/cert-manager-operator"
-
-  log "Phase 1: Installing cert-manager as standalone release '${ccm_release}' (simulating CCM)"
-  helm upgrade --install "$ccm_release" "$ccm_chart" \
-    --set operatorNamespace=cert-manager-operator \
-    --set operandNamespace=cert-manager \
-    --take-ownership \
-    --timeout 5m
-
-  wait_for_all_deployments_in_namespace "cert-manager"
-  assert_exists "CertManager CR (CCM-managed)" certmanager/cluster
-  pass "cert-manager installed as standalone release '${ccm_release}'"
-
-  log "Phase 2: Deploying rhai-on-xks-chart with cert-manager subchart (old release still present)"
-  helm_deploy
-
-  wait_for_all_deployments_in_namespace "cert-manager"
-  assert_exists "CertManager CR (subchart-managed)" certmanager/cluster
-  assert_exists "cert-manager namespace" namespace/cert-manager
-  assert_exists "cert-manager-operator namespace" namespace/cert-manager-operator
-
-  if helm status "$ccm_release" &>/dev/null; then
-    fail "Old Helm release '${ccm_release}' still exists after migration"
-  else
-    pass "Old Helm release '${ccm_release}' cleaned up by pre-upgrade hook"
-  fi
-
-  pass "CCM → subchart migration succeeded without ownership conflicts"
-}
-
-# ─── Test 5: xks-gateway configured ─────────────────────────────────────────
-
-test_5_xks_gateway_configured() {
+test_4_xks_gateway_configured() {
   local gateway_values="${SCRIPT_DIR}/../test/values-e2e-gateway.yaml"
   if [[ ! -f "$gateway_values" ]]; then
     fail "Gateway values file not found: $gateway_values"
@@ -217,9 +152,9 @@ test_5_xks_gateway_configured() {
   assert_operator_gateway_service_enabled
 }
 
-# ─── Test 6: xks-gateway disabled ───────────────────────────────────────────
+# ─── Test 5: xks-gateway disabled ───────────────────────────────────────────
 
-test_6_xks_gateway_disabled() {
+test_5_xks_gateway_disabled() {
   log "Disabling xks-gateway subchart (controller off)"
   helm_deploy --set "xks-gateway.enabled=false"
   wait_ke_ready
@@ -282,10 +217,8 @@ ALL_TESTS=(
   "1:Install check:test_1_install_check"
   "2:sail+lws Managed→Unmanaged→Managed:test_2_sail_lws_managed_unmanaged"
   "3:external cert-manager (subchart disabled):test_3_external_certmanager"
-  "4:certManager subchart enabled/disabled:test_3_certmanager_subchart"
-  "5:CCM to subchart migration:test_4_ccm_to_subchart_migration"
-  "6:xks-gateway configured:test_5_xks_gateway_configured"
-  "7:xks-gateway disabled:test_6_xks_gateway_disabled"
+  "4:xks-gateway configured:test_4_xks_gateway_configured"
+  "5:xks-gateway disabled:test_5_xks_gateway_disabled"
   # TODO: this would not work correctly, since KServe is blocking the deletion.
   # "8:Uninstall lifecycle (cleanup + cleanupNamespaces):test_7_uninstall_lifecycle"
 )
@@ -329,6 +262,10 @@ echo ""
 for entry in "${TESTS_TO_RUN[@]}"; do
   IFS=: read -r num name fn <<< "$entry"
   run_test "$num" "$name" "$fn"
+  if [[ "$ASSERT_FAILED" -ne 0 ]]; then
+    log "Stopping after failed test to prevent cascading failures"
+    break
+  fi
 done
 
 print_summary

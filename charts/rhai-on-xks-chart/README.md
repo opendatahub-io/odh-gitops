@@ -218,6 +218,7 @@ azure:
     spec:
       dependencies:
         gatewayAPI:
+        gatewayAPI:
           managementPolicy: Unmanaged
 ```
 
@@ -229,7 +230,6 @@ subchart before `helm upgrade`:
 cert-manager-operator:
   enabled: false
 ```
-
 
 ## Configuration Reference
 
