@@ -6,7 +6,8 @@
 # helm upgrade --install ... --skip-crds
 
 # -- Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart,
-# this controls whether the gateway namespace, GatewayConfig CR, and OIDC resources are created.
+# this controls whether the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC
+# resources are created.
 enabled: true
 
 gateway:

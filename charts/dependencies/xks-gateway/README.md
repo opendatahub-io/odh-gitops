@@ -17,7 +17,7 @@ helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
   --set xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
 ```
 
-When `gateway.domain` is empty (default), only the GatewayConfig CRD is installed and no gateway resources are created. It can also be installed standalone for testing.
+When the chart is enabled and `gateway.domain` is empty, only the GatewayConfig CRD is installed and no gateway resources are created. It can also be installed standalone for testing.
 
 ## CRD handling
 
@@ -36,7 +36,7 @@ The GatewayConfig CRD is in `crds/` (not `templates/`) so `helm install` applies
 
 ## Namespace
 
-The chart always creates `rh-ai-gateway`. The operator hardcodes this namespace; `gateway.namespace` cannot be changed.
+When the gateway is configured, the chart creates `rh-ai-gateway`. The operator hardcodes this namespace; `gateway.namespace` cannot be changed.
 
 The namespace has `helm.sh/resource-policy: keep` so `helm uninstall` does not delete workloads in `rh-ai-gateway`.
 
@@ -50,13 +50,14 @@ The namespace has `helm.sh/resource-policy: keep` so `helm uninstall` does not d
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| enabled | bool | `true` | Enable or disable the chart. When used as a dependency of `rhai-on-xks-chart`, this controls whether the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC resources are created. |
 | gateway.certificate.secretName | string | `""` | Name of TLS Secret (required when type is Provided) |
 | gateway.certificate.type | string | `"SelfSigned"` | TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace) |
 | gateway.cookie.expire | string | `"24h"` | Session cookie expiry duration (e.g., "24h", "8h") |
 | gateway.cookie.refresh | string | `"1h"` | Access token refresh interval — must be less than the OIDC provider's Access Token Lifespan |
 | gateway.domain | required | `""` | External hostname (e.g., example.com or *.example.com) |
 | gateway.ingressMode | string | `"LoadBalancer"` | How the gateway is exposed externally on XKS (LoadBalancer only) |
-| gateway.namespace | string | `"rh-ai-gateway"` | Namespace created by this chart. Must be rh-ai-gateway to match the operator (not configurable). |
+| gateway.namespace | string | `"rh-ai-gateway"` | Namespace created when the gateway is configured. Must be rh-ai-gateway to match the operator (not configurable). |
 | gateway.networkPolicy.ingress.enabled | bool | `true` | Enable ingress NetworkPolicy for kube-auth-proxy |
 | gateway.oidc.clientID | required | `""` | OIDC client ID |
 | gateway.oidc.clientSecretRef | object | `{"key":"client-secret","name":""}` | Reference to the OIDC client secret (BYO mode) or chart-created secret name (managed mode) |
