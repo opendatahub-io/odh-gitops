@@ -250,6 +250,10 @@ test_1_upgrade() {
     fi
   fi
 
+  # xks-gateway is opt-in. Its CRD may persist because Helm does not remove CRDs
+  # when a subchart is disabled; the parent cleanup hook removes the owned
+  # GatewayConfig, while the resources and controller must be absent.
+  assert_gateway_disabled_after_upgrade
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────

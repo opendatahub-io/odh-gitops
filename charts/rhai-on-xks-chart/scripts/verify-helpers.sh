@@ -52,6 +52,11 @@ KE_CRD="${PROVIDER_CRDS[$CLOUD_PROVIDER]}"
 CM_NS="rhai-cloudmanager-system"
 PROV_PREFIX="${CLOUD_PROVIDER}.kubernetesEngine.spec.dependencies"
 
+GATEWAY_CONFIG_CRD="gatewayconfigs.services.platform.opendatahub.io"
+GATEWAY_CONFIG_NAME="default-gateway"
+GATEWAY_NS="rh-ai-gateway"
+GATEWAY_OIDC_SECRET_NAME="oidc-client-secret"
+
 # ─── Colors ─────────────────────────────────────────────────────────────────
 
 RED='\033[0;31m'
@@ -244,7 +249,8 @@ assert_not_exists() {
     local output rc
     output=$(kubectl get "${kubectl_args[@]}" 2>&1)
     rc=$?
-    if [[ $rc -ne 0 ]] && echo "$output" | grep -qi "not found\|no resources found"; then
+    if [[ $rc -ne 0 ]] && echo "$output" | grep -Eqi \
+      "not found|no resources found|the server doesn't have a resource type|could not find the requested resource"; then
       return 0
     fi
     return 1
@@ -319,6 +325,64 @@ assert_no_stuck_istiorevision() {
   fi
 }
 
+# ─── Gateway helpers ────────────────────────────────────────────────────────
+
+operator_gateway_service_disabled() {
+  local value
+  value=$(kubectl get deployment rhai-operator -n redhat-ods-operator \
+    -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="RHAI_DISABLE_GATEWAY_SERVICE")].value}' 2>/dev/null)
+  [[ "$value" == "true" ]]
+}
+
+assert_operator_gateway_service_enabled() {
+  if operator_gateway_service_disabled; then
+    fail "RHAI operator gateway service is disabled (RHAI_DISABLE_GATEWAY_SERVICE=true)"
+  else
+    pass "RHAI operator gateway service is enabled (RHAI_DISABLE_GATEWAY_SERVICE=false)"
+  fi
+}
+
+assert_operator_gateway_service_disabled() {
+  if operator_gateway_service_disabled; then
+    pass "RHAI operator gateway service is disabled (RHAI_DISABLE_GATEWAY_SERVICE=true)"
+  else
+    fail "RHAI operator gateway service is enabled (RHAI_DISABLE_GATEWAY_SERVICE=false)"
+  fi
+}
+
+assert_gateway_disabled() {
+  assert_not_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
+  assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
+  assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+  assert_operator_gateway_service_disabled
+}
+
+assert_gateway_disabled_after_upgrade() {
+  # Helm does not remove CRDs when a subchart is disabled, so an existing CRD
+  # may remain after upgrading from a release where xks-gateway was enabled.
+  assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
+  assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+  assert_operator_gateway_service_disabled
+}
+
+assert_gateway_configured_resources() {
+  local expected_domain="${1:-e2e.example.com}"
+
+  assert_exists "Gateway namespace" "namespace/${GATEWAY_NS}"
+  assert_exists "GatewayConfig CR" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+
+  local domain
+  domain=$(kubectl get "gatewayconfig/${GATEWAY_CONFIG_NAME}" \
+    -o jsonpath='{.spec.domain}' 2>/dev/null)
+  if [[ "$domain" == "$expected_domain" ]]; then
+    pass "GatewayConfig domain is '${expected_domain}'"
+  else
+    fail "GatewayConfig domain: expected '${expected_domain}', got '${domain}'"
+  fi
+
+  assert_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
+}
+
 # ─── Helm helpers ───────────────────────────────────────────────────────────
 
 helm_deploy() {
@@ -355,7 +419,7 @@ helm_deploy() {
     ${extra_args[@]+"${extra_args[@]}"} \
     --timeout 10m; then
     log "Helm deploy failed — dumping debug info..."
-    local hook_jobs=(rhai-pre-upgrade-migrate-certmanager rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
+    local hook_jobs=(xks-gateway-config xks-gateway-config-delete rhai-pre-upgrade-gateway-config rhai-pre-upgrade-migrate-certmanager rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
     for job in "${hook_jobs[@]}"; do
       if kubectl get "job/${job}" -n "$NAMESPACE" &>/dev/null; then
         echo "  === job: ${job} ==="

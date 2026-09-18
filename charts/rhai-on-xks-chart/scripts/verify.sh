@@ -2,7 +2,7 @@
 # Verify rhai-on-xks-chart installation and lifecycle in a Kubernetes cluster.
 #
 # Usage:
-#   ./verify.sh              # run all tests (1-4)
+#   ./verify.sh              # run all tests (1-5)
 #   ./verify.sh 1            # run only test 1 (install check)
 #   ./verify.sh 2 3          # run tests 2 and 3
 #
@@ -67,6 +67,9 @@ test_1_install_check() {
 
   # Inference Gateway Istio
   wait_for_deployment "inference-gateway-istio" "redhat-ods-applications"
+
+  # xks-gateway subchart is opt-in: no CRD, resources, or controller by default
+  assert_gateway_disabled
 }
 
 # ─── Test 2: sail + lws Managed→Unmanaged→Managed ──────────────────────────
@@ -132,9 +135,37 @@ test_3_external_certmanager() {
   helm_deploy
 }
 
-# ─── Test 5: Uninstall lifecycle ────────────────────────────────────────────
+# ─── Test 4: xks-gateway configured ─────────────────────────────────────────
 
-test_5_uninstall_lifecycle() {
+test_4_xks_gateway_configured() {
+  local gateway_values="${SCRIPT_DIR}/../test/values-e2e-gateway.yaml"
+  if [[ ! -f "$gateway_values" ]]; then
+    fail "Gateway values file not found: $gateway_values"
+    return 1
+  fi
+
+  log "Deploying with configured xks-gateway (domain + OIDC secret)"
+  helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values"
+  wait_ke_ready
+
+  assert_gateway_configured_resources "e2e.example.com"
+  assert_operator_gateway_service_enabled
+}
+
+# ─── Test 5: xks-gateway disabled ───────────────────────────────────────────
+
+test_5_xks_gateway_disabled() {
+  log "Disabling xks-gateway subchart (controller off)"
+  helm_deploy --set "xks-gateway.enabled=false"
+  wait_ke_ready
+  wait_for_deployment "rhai-operator" "redhat-ods-operator"
+
+  assert_operator_gateway_service_disabled
+}
+
+# ─── Test 6: Uninstall lifecycle ────────────────────────────────────────────
+
+test_6_uninstall_lifecycle() {
   ensure_deployed
 
   # Phase A: uninstall without namespace cleanup (default)
@@ -186,8 +217,10 @@ ALL_TESTS=(
   "1:Install check:test_1_install_check"
   "2:sail+lws Managed→Unmanaged→Managed:test_2_sail_lws_managed_unmanaged"
   "3:external cert-manager (subchart disabled):test_3_external_certmanager"
+  "4:xks-gateway configured:test_4_xks_gateway_configured"
+  "5:xks-gateway disabled:test_5_xks_gateway_disabled"
   # TODO: this would not work correctly, since KServe is blocking the deletion.
-  # "5:Uninstall lifecycle (cleanup + cleanupNamespaces):test_5_uninstall_lifecycle"
+  # "6:Uninstall lifecycle (cleanup + cleanupNamespaces):test_6_uninstall_lifecycle"
 )
 
 check_prerequisites
@@ -229,6 +262,10 @@ echo ""
 for entry in "${TESTS_TO_RUN[@]}"; do
   IFS=: read -r num name fn <<< "$entry"
   run_test "$num" "$name" "$fn"
+  if [[ "$ASSERT_FAILED" -ne 0 ]]; then
+    log "Stopping after failed test to prevent cascading failures"
+    break
+  fi
 done
 
 print_summary

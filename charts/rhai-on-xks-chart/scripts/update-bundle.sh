@@ -25,6 +25,7 @@ shift
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHART_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+XKS_GATEWAY_CHART_DIR="$(cd "${CHART_DIR}/../dependencies/xks-gateway" && pwd)"
 
 NAMESPACE="redhat-ods-operator"
 
@@ -173,7 +174,16 @@ kustomize build "${RHAI_KUSTOMIZE_PATH}" | go run "${HELMTEMPLATE_GENERATOR_PKG}
 echo "  Done"
 
 # ==============================================================================
-# Step 2: Generate cloudmanager templates from kustomize
+# Step 2: Sync xks-gateway CRD
+# ==============================================================================
+
+echo "Syncing GatewayConfig CRD into the xks-gateway chart..."
+"${XKS_GATEWAY_CHART_DIR}/scripts/sync-gatewayconfig-crd.sh" "${ODH_OPERATOR_DIR}"
+echo "  Done"
+echo ""
+
+# ==============================================================================
+# Step 3: Generate cloudmanager templates from kustomize
 # ==============================================================================
 
 echo ""

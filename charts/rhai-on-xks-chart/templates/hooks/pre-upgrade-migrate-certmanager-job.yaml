@@ -1,4 +1,4 @@
-{{- if and .Values.enabled (index .Values "cert-manager-operator" "enabled") }}
+{{- if .Values.enabled }}
 {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
 apiVersion: v1
 kind: Secret
@@ -59,16 +59,6 @@ rules:
     verbs:
       - get
       - list
-      - watch
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    resourceNames:
-      - cert-manager-operator-lock
-    verbs:
-      - get
-      - patch
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
@@ -157,5 +147,9 @@ spec:
             - /bin/bash
             - -c
             - |
-              {{- tpl (.Files.Get "files/pre-upgrade-migrate-certmanager.sh") . | nindent 14 }}
+              {{- if index .Values "cert-manager-operator" "enabled" }}
+              {{- tpl (.Files.Get "files/pre-upgrade-migrate-certmanager.sh") . | trimSuffix "\n" | nindent 14 | replace "\n              \n" "\n\n" }}
+              {{- else }}
+              echo "cert-manager subchart disabled; skipping cert-manager migration."
+              {{- end }}
 {{- end }}

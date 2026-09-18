@@ -1,9 +1,6 @@
 # Enable/disable all resource creation
 enabled: true
 
-# Install CRDs or not using the chart
-installCRDs: true
-
 # Common labels applied to all resources
 labels: {}
 
@@ -40,6 +37,10 @@ rhaiOperator:
     requests:
       cpu: 10m
       memory: 64Mi
+  # Platform auth gateway reconciliation is controlled by xks-gateway.enabled.
+  # When xks-gateway.enabled=true, RHAI_DISABLE_GATEWAY_SERVICE=false and the operator
+  # reconciles GatewayConfig CRs. Gateway resources are only created when gateway values
+  # (domain, OIDC) are provided in the xks-gateway section below.
   # Related images env vars (RELATED_IMAGE_*)
   relatedImages: []
   # Example:
@@ -258,6 +259,50 @@ cert-manager-operator:
     - name: rhai-pull-secret
   bundle:
     version: "v1.18.1"
+
+# XKS Gateway subchart — platform auth gateway (GatewayConfig CRD, namespace, CR, OIDC).
+# Disabled by default because the platform auth gateway is opt-in. When enabled, the
+# xks-gateway subchart owns the GatewayConfig CRD lifecycle hook. Gateway resources
+# (namespace, GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
+# Set xks-gateway.enabled=true together with the gateway domain and OIDC values to enable it.
+xks-gateway:
+  enabled: false
+  hooks:
+    # The parent creates this Secret as a pre-hook. Configured imagePullSecret credentials
+    # are used when present; otherwise the hook uses an empty Docker config.
+    imagePullSecretName: rhai-gateway-crd-pull-secret
+    cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1
+    resources:
+      limits:
+        cpu: 200m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+  gateway:
+    domain: ""
+    subdomain: ""
+    ingressMode: LoadBalancer
+    namespace: rh-ai-gateway
+    certificate:
+      type: SelfSigned
+      secretName: ""
+    oidc:
+      issuerURL: ""
+      clientID: ""
+      oidcClientSecret: ""
+      clientSecretRef:
+        name: ""
+        key: client-secret
+      secretNamespace: ""
+    cookie:
+      expire: "24h"
+      refresh: "1h"
+    providerCASecretName: ""
+    verifyProviderCertificate: true
+    networkPolicy:
+      ingress:
+        enabled: true
 
 # Pull secret for private registries
 # Use --set-file imagePullSecret.dockerConfigJson=path/to/auth.json

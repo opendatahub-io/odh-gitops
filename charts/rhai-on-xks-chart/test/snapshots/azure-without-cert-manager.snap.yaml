@@ -2496,6 +2496,21 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -2622,6 +2637,56 @@ rules:
       - delete
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - azurekubernetesengines
+    verbs:
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - certmanagers
+    verbs:
+      - get
+      - list
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -2661,6 +2726,28 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rhai-pre-delete-hook
+    namespace: default
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-pre-upgrade-migrate-certmanager
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-upgrade-migrate-certmanager
     namespace: default
 
 ---
@@ -3080,4 +3167,64 @@ spec:
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-upgrade-migrate-certmanager
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-upgrade-migrate-certmanager
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate-certmanager
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: RELEASE_NAME
+              value: "release-test"
+            - name: RELEASE_NAMESPACE
+              value: "default"
+            - name: KE_RESOURCE
+              value: "azurekubernetesengines"
+            - name: KE_NAME
+              value: "default-azurekubernetesengine"
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "cert-manager subchart disabled; skipping cert-manager migration."
 
