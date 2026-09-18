@@ -3294,6 +3294,8 @@ rules:
       - platforms
     verbs:
       - get
+      - list
+      - watch
       - delete
 
 ---
