@@ -144,6 +144,7 @@ charts:
           - azure.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
           - azure.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
+          - azure.kubernetesEngine.spec.dependencies.rhcl.managementPolicy=Managed
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-related-images
@@ -205,6 +206,7 @@ charts:
           - coreweave.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
           - coreweave.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
+          - coreweave.kubernetesEngine.spec.dependencies.rhcl.managementPolicy=Managed
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: coreweave-with-allowed-routes-selector
@@ -229,6 +231,7 @@ charts:
           - aws.enabled=true
           - imagePullSecret.dockerConfigJson=testauth
           - aws.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
+          - aws.kubernetesEngine.spec.dependencies.rhcl.managementPolicy=Managed
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: aws-with-allowed-routes-same

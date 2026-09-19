@@ -397,6 +397,26 @@ spec:
                             - Unmanaged
                           type: string
                       type: object
+                    rhcl:
+                      description: RHCL defines the RHCL (Red Hat Connectivity Link / Kuadrant) operator dependency.
+                      properties:
+                        configuration:
+                          description: Configuration for the RHCL operator.
+                          type: object
+                        managementPolicy:
+                          default: Unmanaged
+                          description: |-
+                            ManagementPolicy determines whether the operator manages this dependency.
+                            Managed: the operator installs and reconciles the dependency.
+                            Unmanaged: the operator does not manage the dependency; the user is responsible.
+                            Defaults to Unmanaged, unlike the other CCM dependencies: RHCL's chart is
+                            significantly heavier (~30 CRDs, several Deployments) and is an opt-in,
+                            specialized capability rather than something every xKS cluster needs.
+                          enum:
+                            - Managed
+                            - Unmanaged
+                          type: string
+                      type: object
                     sailOperator:
                       description: SailOperator defines the Sail operator (Istio) dependency.
                       properties:
@@ -3638,6 +3658,8 @@ spec:
                   lws:
                     configuration:
                       namespace: openshift-lws-operator
+                    managementPolicy: Managed
+                  rhcl:
                     managementPolicy: Managed
                   sailOperator:
                     configuration:
