@@ -341,7 +341,7 @@ Arguments (passed as dict):
 {{- define "rhoai-dependencies.resolveNestedManagementState" -}}
 {{- $merged := .merged -}}
 {{- $profileDsc := .profileDsc -}}
-{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "nim" "wva" -}}
+{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "nim" "wva" "modelExpress" -}}
 {{- range $key, $val := $merged -}}
   {{- if and (kindIs "map" $val) (has $key $subComponentKeys) -}}
     {{- if not (index $val "managementState") -}}
