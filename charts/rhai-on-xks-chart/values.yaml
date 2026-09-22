@@ -80,7 +80,9 @@ components:
   kserve:
     # Create Kserve CR via post-install hook
     enabled: true
-    spec: {}
+    spec:
+      modelExpress:
+        managementState: Removed
     # Gateway configuration for KServe inference
     gateway:
       # Create Gateway and ConfigMaps via post-install hook

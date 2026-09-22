@@ -6,7 +6,6 @@ metadata:
   name: cert-manager-operator
   annotations:
     helm.sh/resource-policy: keep
-
 ---
 # Source: cert-manager-operator/templates/namespace.yaml
 apiVersion: v1
@@ -35,7 +34,6 @@ metadata:
   namespace: cert-manager
 imagePullSecrets:
   - name: rhai-pull-secret
-
 ---
 # Source: cert-manager-operator/templates/serviceaccount-cert-manager.yaml
 apiVersion: v1
@@ -45,7 +43,6 @@ metadata:
   namespace: cert-manager
 imagePullSecrets:
   - name: rhai-pull-secret
-
 ---
 # Source: cert-manager-operator/templates/serviceaccount-cert-manager.yaml
 apiVersion: v1
