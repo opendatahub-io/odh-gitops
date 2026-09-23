@@ -129,7 +129,8 @@ test_3_external_certmanager() {
   assert_cr_not_degraded "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
 
   log "Reverting to default (enabled)"
-  helm_deploy
+  # The disabled subchart leaves cert-manager operands behind; adopt them when re-enabling it.
+  helm_deploy --take-ownership
 }
 
 # ─── Test 5: Uninstall lifecycle ────────────────────────────────────────────
