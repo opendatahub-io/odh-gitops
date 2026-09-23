@@ -30,11 +30,13 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.feastoperator.dependencies | object | `{}` | Dependencies required by Feast Operator |
 | components.feastoperator.dsc | object | `{"managementState":null}` | DSC configuration for Feast Operator |
 | components.feastoperator.dsc.managementState | string | `nil` | Management state for Feast Operator. Null uses profile default. |
-| components.kserve | object | `{"dependencies":{"certManager":true,"customMetricsAutoscaler":false,"jobSet":null,"leaderWorkerSet":false,"rhcl":true},"dsc":{"managementState":null,"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless","wva":{"managementState":null}},"gateway":{"create":"auto","labels":{"istio.io/rev":"openshift-gateway"},"name":"openshift-ai-inference","namespace":"openshift-ingress","spec":{"gatewayClassName":"openshift-ai-inference","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"openshift-ai-inference","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}` | KServe model serving component |
+| components.kserve | object | `{"dependencies":{"certManager":true,"customMetricsAutoscaler":false,"jobSet":null,"leaderWorkerSet":false,"rhcl":true},"dsc":{"managementState":null,"modelExpress":{"managementState":null},"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless","wva":{"managementState":null}},"gateway":{"create":"auto","labels":{"istio.io/rev":"openshift-gateway"},"name":"openshift-ai-inference","namespace":"openshift-ingress","spec":{"gatewayClassName":"openshift-ai-inference","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"openshift-ai-inference","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}` | KServe model serving component |
 | components.kserve.dependencies | object | `{"certManager":true,"customMetricsAutoscaler":false,"jobSet":null,"leaderWorkerSet":false,"rhcl":true}` | Dependencies required by KServe (set to false to disable) |
 | components.kserve.dependencies.jobSet | string | `nil` | JobSet dependency. Null uses profile default (true for default, false for rhaii). |
-| components.kserve.dsc | object | `{"managementState":null,"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless","wva":{"managementState":null}}` | DSC configuration for KServe |
+| components.kserve.dsc | object | `{"managementState":null,"modelExpress":{"managementState":null},"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless","wva":{"managementState":null}}` | DSC configuration for KServe |
 | components.kserve.dsc.managementState | string | `nil` | Management state for KServe. Null uses profile default. |
+| components.kserve.dsc.modelExpress | object | `{"managementState":null}` | Enables ModelExpress, a model cache and GPU-to-GPU weight transfer service for distributed model serving (Tech Preview) |
+| components.kserve.dsc.modelExpress.managementState | string | `nil` | Management state for ModelExpress. Null uses profile default. |
 | components.kserve.dsc.nim | object | `{"managementState":null}` | Enables NVIDIA NIM integration |
 | components.kserve.dsc.nim.managementState | string | `nil` | Management state for NIM. Null uses profile default. |
 | components.kserve.dsc.rawDeploymentServiceConfig | string | `"Headless"` | Raw deployment service config for KServe (Headless or Headed) |
@@ -152,4 +154,3 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | trustedCABundle | object | `{"customCABundle":"","managementState":"Managed"}` | Trusted CA bundle configuration |
 | trustedCABundle.customCABundle | string | `""` | A custom CA bundle that will be available for all components in the Data Science Cluster (DSC). |
 | trustedCABundle.managementState | string | `"Managed"` | Management state for trusted CA bundle (Managed or Removed) |
-

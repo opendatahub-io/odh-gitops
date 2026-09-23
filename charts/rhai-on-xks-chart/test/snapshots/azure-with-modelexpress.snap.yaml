@@ -17,7 +17,7 @@ metadata:
     helm.sh/resource-policy: keep
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/manager/namespace-rhai-cloudmanager-system.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/manager/namespace-rhai-cloudmanager-system.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -105,11 +105,11 @@ imagePullSecrets:
   - name: rhai-pull-secret
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/serviceaccount-aws-cloud-manager-operator.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/serviceaccount-azure-cloud-manager-operator.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: aws-cloud-manager-operator
+  name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 imagePullSecrets:
   - name: rhai-pull-secret
@@ -150,6 +150,16 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: model-serving-api
+  namespace: redhat-ods-applications
+imagePullSecrets:
+  - name: rhai-pull-secret
+
+---
+# Source: rhai-on-xks-chart/templates/pull-secret.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: modelexpress-operator
   namespace: redhat-ods-applications
 imagePullSecrets:
   - name: rhai-pull-secret
@@ -263,21 +273,21 @@ data:
   .dockerconfigjson: dGVzdGF1dGg=
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/crds/customresourcedefinition-awskubernetesengines.infrastructure.opendatahub.io.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/crds/customresourcedefinition-azurekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.3
     helm.sh/resource-policy: keep
-  name: awskubernetesengines.infrastructure.opendatahub.io
+  name: azurekubernetesengines.infrastructure.opendatahub.io
 spec:
   group: infrastructure.opendatahub.io
   names:
-    kind: AWSKubernetesEngine
-    listKind: AWSKubernetesEngineList
-    plural: awskubernetesengines
-    singular: awskubernetesengine
+    kind: AzureKubernetesEngine
+    listKind: AzureKubernetesEngineList
+    plural: azurekubernetesengines
+    singular: azurekubernetesengine
   scope: Cluster
   versions:
     - additionalPrinterColumns:
@@ -297,8 +307,8 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            AWSKubernetesEngine is the Schema for the awskubernetesengines API.
-            It represents the configuration for an AWS Kubernetes Service cluster.
+            AzureKubernetesEngine is the Schema for the azurekubernetesengines API.
+            It represents the configuration for an Azure Kubernetes Service (AKS) cluster.
           properties:
             apiVersion:
               description: |-
@@ -318,10 +328,10 @@ spec:
             metadata:
               type: object
             spec:
-              description: AWSKubernetesEngineSpec defines the desired state of AWSKubernetesEngine.
+              description: AzureKubernetesEngineSpec defines the desired state of AzureKubernetesEngine.
               properties:
                 dependencies:
-                  description: Dependencies defines the dependency configurations for the AWS Kubernetes Engine.
+                  description: Dependencies defines the dependency configurations for the Azure Kubernetes Engine.
                   properties:
                     certManager:
                       description: |-
@@ -442,7 +452,7 @@ spec:
                   type: object
               type: object
             status:
-              description: AWSKubernetesEngineStatus defines the observed state of AWSKubernetesEngine.
+              description: AzureKubernetesEngineStatus defines the observed state of AzureKubernetesEngine.
               properties:
                 conditions:
                   items:
@@ -508,8 +518,8 @@ spec:
               type: object
           type: object
           x-kubernetes-validations:
-            - message: AWSKubernetesEngine name must be default-awskubernetesengine
-              rule: self.metadata.name == 'default-awskubernetesengine'
+            - message: AzureKubernetesEngine name must be default-azurekubernetesengine
+              rule: self.metadata.name == 'default-azurekubernetesengine'
       served: true
       storage: true
       subresources:
@@ -1181,11 +1191,11 @@ rules:
       - get
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/clusterrole-rhai-aws-cloud-manager-role.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/clusterrole-rhai-azure-cloud-manager-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rhai-aws-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 rules:
   - apiGroups:
       - ""
@@ -1274,7 +1284,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - awskubernetesengines
+      - azurekubernetesengines
     verbs:
       - create
       - delete
@@ -1286,13 +1296,13 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - awskubernetesengines/finalizers
+      - azurekubernetesengines/finalizers
     verbs:
       - update
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - awskubernetesengines/status
+      - azurekubernetesengines/status
     verbs:
       - get
       - patch
@@ -2576,18 +2586,18 @@ subjects:
     namespace: cert-manager-operator
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/clusterrolebinding-rhai-aws-cloud-manager-rolebinding.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/clusterrolebinding-rhai-azure-cloud-manager-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rhai-aws-cloud-manager-rolebinding
+  name: rhai-azure-cloud-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rhai-aws-cloud-manager-role
+  name: rhai-azure-cloud-manager-role
 subjects:
   - kind: ServiceAccount
-    name: aws-cloud-manager-operator
+    name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
 
 ---
@@ -2646,11 +2656,11 @@ rules:
       - patch
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/role-aws-cloud-manager-leader-election-role.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/role-azure-cloud-manager-leader-election-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: aws-cloud-manager-leader-election-role
+  name: azure-cloud-manager-leader-election-role
   namespace: rhai-cloudmanager-system
 rules:
   - apiGroups:
@@ -2687,19 +2697,19 @@ subjects:
     namespace: cert-manager-operator
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/rbac/rolebinding-aws-cloud-manager-leader-election-rolebinding.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/rbac/rolebinding-azure-cloud-manager-leader-election-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: aws-cloud-manager-leader-election-rolebinding
+  name: azure-cloud-manager-leader-election-rolebinding
   namespace: rhai-cloudmanager-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: aws-cloud-manager-leader-election-role
+  name: azure-cloud-manager-leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: aws-cloud-manager-operator
+    name: azure-cloud-manager-operator
     namespace: rhai-cloudmanager-system
 
 ---
@@ -2882,28 +2892,28 @@ spec:
           name: tmp
 
 ---
-# Source: rhai-on-xks-chart/templates/cloudmanager/aws/manager/deployment-aws-cloud-manager-operator.yaml
+# Source: rhai-on-xks-chart/templates/cloudmanager/azure/manager/deployment-azure-cloud-manager-operator.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-    name: aws-cloud-manager-operator
-  name: aws-cloud-manager-operator
+    name: azure-cloud-manager-operator
+  name: azure-cloud-manager-operator
   namespace: rhai-cloudmanager-system
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: aws-cloud-manager-operator
+      name: azure-cloud-manager-operator
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: controller-manager
-        name: aws-cloud-manager-operator
+        name: azure-cloud-manager-operator
     spec:
       affinity:
         nodeAffinity:
@@ -2922,12 +2932,12 @@ spec:
                     - key: name
                       operator: In
                       values:
-                        - aws-cloud-manager-operator
+                        - azure-cloud-manager-operator
                 topologyKey: kubernetes.io/hostname
               weight: 100
       containers:
         - args:
-            - aws
+            - azure
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0.0.0.0:8080
             - --leader-elect
@@ -2979,7 +2989,7 @@ spec:
               memory: 1Gi
             requests:
               cpu: 100m
-              memory: 512Mi
+              memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -2990,7 +3000,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: aws-cloud-manager-operator
+      serviceAccountName: azure-cloud-manager-operator
       terminationGracePeriodSeconds: 10
 
 ---
@@ -3315,7 +3325,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - awskubernetesengines
+      - azurekubernetesengines
     verbs:
       - get
       - create
@@ -3394,7 +3404,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - awskubernetesengines
+      - azurekubernetesengines
     verbs:
       - get
       - list
@@ -3459,7 +3469,7 @@ rules:
   - apiGroups:
       - infrastructure.opendatahub.io
     resources:
-      - awskubernetesengines
+      - azurekubernetesengines
     verbs:
       - get
       - list
@@ -3635,12 +3645,12 @@ spec:
             - -c
             - |
               set -euo pipefail
-              echo "Creating AWSKubernetesEngine CR..."
+              echo "Creating AzureKubernetesEngine CR..."
               kubectl apply -f - <<'EOF'
               apiVersion: infrastructure.opendatahub.io/v1alpha1
-              kind: AWSKubernetesEngine
+              kind: AzureKubernetesEngine
               metadata:
-                name: default-awskubernetesengine
+                name: default-azurekubernetesengine
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
@@ -3694,7 +3704,7 @@ spec:
                   app.kubernetes.io/managed-by: Helm
               spec:
                 modelExpress:
-                  managementState: Removed
+                  managementState: Managed
               EOF
               echo "Done."
 
@@ -3822,6 +3832,10 @@ spec:
                           - name: rhai-ca-bundle
                             mountPath: /var/run/secrets/rhai
                             readOnly: true
+                service: |
+                  metadata:
+                    annotations:
+                      service.beta.kubernetes.io/port_80_health-probe_protocol: tcp
               EOF
               echo "ConfigMap used by Gateway CR 'inference-gateway' created."
               ISSUER_NAME="rhai-ca-issuer"
@@ -3948,8 +3962,8 @@ spec:
               echo "Deleting Platform CR 'default'..."
               kubectl delete platform default --ignore-not-found --timeout=300s
               
-              echo "Deleting AWSKubernetesEngine CR 'default-awskubernetesengine'..."
-              kubectl delete awskubernetesengine default-awskubernetesengine --ignore-not-found --timeout=300s
+              echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
+              kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
 
 ---
@@ -4005,9 +4019,9 @@ spec:
             - name: RELEASE_NAMESPACE
               value: "default"
             - name: KE_RESOURCE
-              value: "awskubernetesengines"
+              value: "azurekubernetesengines"
             - name: KE_NAME
-              value: "default-awskubernetesengine"
+              value: "default-azurekubernetesengine"
           command:
             - /bin/bash
             - -c
