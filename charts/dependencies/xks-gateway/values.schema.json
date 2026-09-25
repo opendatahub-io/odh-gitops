@@ -47,6 +47,10 @@
         "imagePullSecretName": {
           "type": "string",
           "description": "Optional pull Secret for the lifecycle hook image"
+        },
+        "postImagePullSecretName": {
+          "type": "string",
+          "description": "Optional pull Secret for the post-install/post-upgrade GatewayConfig Job. Defaults to imagePullSecretName."
         }
       },
       "additionalProperties": false

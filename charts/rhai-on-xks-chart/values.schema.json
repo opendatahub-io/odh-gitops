@@ -513,8 +513,13 @@
             },
             "imagePullSecretName": {
               "type": "string",
-              "description": "Pull Secret name for the GatewayConfig lifecycle hook image",
+              "description": "Temporary pull Secret name for the GatewayConfig pre-hook image",
               "default": "rhai-gateway-crd-pull-secret"
+            },
+            "postImagePullSecretName": {
+              "type": "string",
+              "description": "Pull Secret name for the GatewayConfig post-hook image",
+              "default": "rhai-pull-secret"
             },
             "resources": {
               "type": "object",

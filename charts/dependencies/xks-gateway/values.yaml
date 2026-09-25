@@ -24,6 +24,9 @@ hooks:
       memory: 64Mi
   # -- Optional pull Secret for the lifecycle hook image.
   imagePullSecretName: ""
+  # -- Optional pull Secret for the post-install/post-upgrade GatewayConfig Job.
+  # Defaults to imagePullSecretName for standalone installs.
+  postImagePullSecretName: ""
 
 gateway:
   # -- (required) External hostname (e.g., example.com or *.example.com)

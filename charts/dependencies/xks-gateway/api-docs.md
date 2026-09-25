@@ -35,5 +35,6 @@ XKS Gateway onboarding chart - installs the GatewayConfig CRD (crds/), gateway n
 | gateway.verifyProviderCertificate | bool | `true` | Verify auth provider TLS certificate (set to false only for development) |
 | hooks.cliImage | string | `"registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"` | Image containing kubectl and bash for lifecycle hooks. |
 | hooks.imagePullSecretName | string | `""` | Optional pull Secret for the lifecycle hook image. |
+| hooks.postImagePullSecretName | string | `""` | Optional pull Secret for the post-install/post-upgrade GatewayConfig Job. Defaults to imagePullSecretName for standalone installs. |
 | hooks.resources | object | `{"limits":{"cpu":"200m","memory":"512Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resources for the lifecycle hook Job. |
 
