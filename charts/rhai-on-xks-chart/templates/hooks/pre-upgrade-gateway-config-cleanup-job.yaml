@@ -1,5 +1,16 @@
 {{- $xksGatewayEnabled := index .Values "xks-gateway" "enabled" }}
-{{- if and .Values.enabled (not $xksGatewayEnabled) (not .Release.IsInstall) }}
+{{- if and .Values.enabled (not $xksGatewayEnabled) .Release.IsUpgrade }}
+{{- /* A disabled subchart leaves its CRD behind, so check the CR itself. */}}
+{{- $gatewayConfig := dict }}
+{{- if (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "gatewayconfigs.services.platform.opendatahub.io") }}
+  {{- $gatewayConfig = lookup "services.platform.opendatahub.io/v1alpha1" "GatewayConfig" "" "default-gateway" | default dict }}
+{{- end }}
+{{- $metadata := get $gatewayConfig "metadata" | default dict }}
+{{- $annotations := get $metadata "annotations" | default dict }}
+{{- $labels := get $metadata "labels" | default dict }}
+{{- $ownedByRelease := eq (get $annotations "platform.opendatahub.io/gateway-config-owner") (printf "%s/%s" .Release.Namespace .Release.Name) }}
+{{- $legacyOwned := and (eq (get $labels "app.kubernetes.io/managed-by") "Helm") (eq (get $annotations "helm.sh/resource-policy") "keep") (hasPrefix "xks-gateway-" (get $labels "helm.sh/chart")) }}
+{{- if or $ownedByRelease $legacyOwned }}
 {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
 apiVersion: v1
 kind: Secret
@@ -142,4 +153,5 @@ spec:
               else
                 echo "GatewayConfig CRD is not installed; nothing to delete."
               fi
+{{- end }}
 {{- end }}
