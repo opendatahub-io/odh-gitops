@@ -33,6 +33,9 @@ This chart installs the RHAI operator and its cloud manager components. Exactly 
 - Helm 4.x
 - Cluster-admin privileges (the chart creates CRDs, ClusterRoles, and namespaces)
 - Pull secret for `registry.redhat.io` (see [Pull Secrets](#pull-secrets) below)
+- For platform auth gateway: the `xks-gateway` subchart is included as an optional dependency
+  (disabled by default). Set `xks-gateway.enabled=true`, along with `xks-gateway.gateway.domain`
+  and OIDC values, to create gateway resources.
 
 ## Pull Secrets
 
@@ -49,8 +52,8 @@ podman login registry.redhat.io --authfile /path/to/auth.json
 
 The `imagePullSecret.dockerConfigJson` parameter:
 
-1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
-2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, and the post-install hook)
+1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager, dependency namespaces, and `rh-ai-gateway` when gateway is configured)
+2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, the post-install hook, and gateway service accounts in `rh-ai-gateway` when the auth gateway is configured)
 
 The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
@@ -110,6 +113,39 @@ The chart performs a **multi-phase installation**:
 3. **Phase 3 — Post-install hook (weight 2):** a Helm hook Job waits for dependencies (Gateway API CRDs, cert-manager CA secret, GatewayClass `istio`) and then creates the `inference-gateway` Gateway CR along with its supporting ConfigMaps
 
 Phase 2 and 3 are necessary because the CRs depend on CRDs and resources that are only available after the operators are deployed and reconciled.
+
+### Platform auth gateway (optional)
+
+This is separate from the KServe **inference gateway** below.
+
+| | Inference gateway | Platform auth gateway |
+|---|---|---|
+| Chart values | `gateway.hostname`, `gateway.tls` | `xks-gateway.gateway.*` (subchart) |
+| Gateway CR | `inference-gateway` (apps namespace) | `default-gateway` (cluster-scoped, reconciled in `rh-ai-gateway`) |
+| Purpose | KServe model inference HTTPRoutes | OIDC auth proxy + platform ingress (`kube-auth-proxy`) |
+
+The `xks-gateway` subchart is included as an optional dependency (disabled by default). To configure the auth gateway, set these values during install/upgrade:
+
+```bash
+helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
+  --set xks-gateway.enabled=true \
+  --set xks-gateway.gateway.domain=example.com \
+  --set xks-gateway.gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai \
+  --set xks-gateway.gateway.oidc.clientID=rhai-client \
+  --set xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
+```
+
+When `xks-gateway.enabled=false` (default), the GatewayConfig CRD and gateway controller are not
+installed or enabled. If the subchart is enabled but `xks-gateway.gateway.domain` is empty, only
+the GatewayConfig CRD is installed and the controller remains idle.
+
+When upgrading an existing release that uses the platform auth gateway, set
+`xks-gateway.enabled=true` explicitly to keep it enabled. The xks-gateway subchart pre-hook
+applies the bundled GatewayConfig CRD and waits for it to become Established. Its post-hook then
+creates or updates the `GatewayConfig` CR after the gateway namespace and managed OIDC Secret are
+installed, so enabling the gateway does not require a separate bootstrap command. When the gateway
+is disabled during an upgrade, the parent cleanup hook removes the release-owned `GatewayConfig`
+while retaining the CRD.
 
 ### Inference Gateway
 
@@ -199,7 +235,6 @@ subchart before `helm upgrade`:
 cert-manager-operator:
   enabled: false
 ```
-
 
 ## Configuration Reference
 

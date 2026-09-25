@@ -1,0 +1,157 @@
+{{- $xksGatewayEnabled := index .Values "xks-gateway" "enabled" }}
+{{- if and .Values.enabled (not $xksGatewayEnabled) .Release.IsUpgrade }}
+{{- /* A disabled subchart leaves its CRD behind, so check the CR itself. */}}
+{{- $gatewayConfig := dict }}
+{{- if (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "gatewayconfigs.services.platform.opendatahub.io") }}
+  {{- $gatewayConfig = lookup "services.platform.opendatahub.io/v1alpha1" "GatewayConfig" "" "default-gateway" | default dict }}
+{{- end }}
+{{- $metadata := get $gatewayConfig "metadata" | default dict }}
+{{- $annotations := get $metadata "annotations" | default dict }}
+{{- $labels := get $metadata "labels" | default dict }}
+{{- $ownedByRelease := eq (get $annotations "platform.opendatahub.io/gateway-config-owner") (printf "%s/%s" .Release.Namespace .Release.Name) }}
+{{- $legacyOwned := and (eq (get $labels "app.kubernetes.io/managed-by") "Helm") (eq (get $annotations "helm.sh/resource-policy") "keep") (hasPrefix "xks-gateway-" (get $labels "helm.sh/chart")) }}
+{{- if or $ownedByRelease $legacyOwned }}
+{{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhai-gateway-config-cleanup-pull-secret
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ .Values.imagePullSecret.dockerConfigJson | b64enc }}
+{{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-upgrade-gateway-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-9"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-upgrade-gateway-config
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-9"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
+      - gatewayconfigs
+    verbs:
+      - get
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-upgrade-gateway-config
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-9"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-pre-upgrade-gateway-config
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-upgrade-gateway-config
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-upgrade-gateway-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-8"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-upgrade-gateway-config
+      {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
+      imagePullSecrets:
+        - name: rhai-gateway-config-cleanup-pull-secret
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: delete-gateway-config
+          image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
+          resources:
+            {{- toYaml .Values.hooks.resources | nindent 12 }}
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
+              EXPECTED_OWNER="{{ .Release.Namespace }}/{{ .Release.Name }}"
+              if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
+                OWNER=$(kubectl get gatewayconfig/default-gateway \
+                  -o jsonpath='{.metadata.annotations.platform\.opendatahub\.io/gateway-config-owner}' \
+                  2>/dev/null || true)
+                MANAGED_BY=$(kubectl get gatewayconfig/default-gateway \
+                  -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' \
+                  2>/dev/null || true)
+                CHART=$(kubectl get gatewayconfig/default-gateway \
+                  -o jsonpath='{.metadata.labels.helm\.sh/chart}' \
+                  2>/dev/null || true)
+                RESOURCE_POLICY=$(kubectl get gatewayconfig/default-gateway \
+                  -o jsonpath='{.metadata.annotations.helm\.sh/resource-policy}' \
+                  2>/dev/null || true)
+                if [[ "$OWNER" == "$EXPECTED_OWNER" ]] || [[ "$MANAGED_BY" == "Helm" && "$RESOURCE_POLICY" == "keep" && "$CHART" == xks-gateway-* ]]; then
+                  echo "GatewayConfig is disabled and owned by this release; deleting default-gateway..."
+                  kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
+                else
+                  echo "default-gateway is not owned by this release; leaving it unchanged."
+                fi
+              else
+                echo "GatewayConfig CRD is not installed; nothing to delete."
+              fi
+{{- end }}
+{{- end }}

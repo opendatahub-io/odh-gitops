@@ -401,7 +401,27 @@ make chart-test CHART_NAME=rhai-on-openshift-chart
    make chart-test
    ```
 
-4. **Test on a cluster**:
+4. **xks-gateway CRD sync**:
+
+   GatewayConfig schema changes merged into `rhods-operator` are synchronized automatically by the
+   [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).
+   For local development or a manual chart update:
+
+   ```bash
+   # In the operator repository (regenerate CRD from gateway_types.go):
+   make generate manifests-all api-docs
+
+   # In odh-gitops (copy CRD into the xks-gateway chart):
+   ./charts/dependencies/xks-gateway/scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository
+   make chart-snapshots CHART_NAME=rhai-on-xks-chart
+   make chart-test CHART_NAME=rhai-on-xks-chart
+   ```
+
+   Source CRD: `operator-repository/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml`.
+   Destination: `charts/dependencies/xks-gateway/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
+   See `charts/dependencies/xks-gateway/README.md` for CRD upgrade notes on live clusters.
+
+5. **Test on a cluster**:
 
    ```bash
    make helm-install-verify
