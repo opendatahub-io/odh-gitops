@@ -14,7 +14,6 @@ Validation is skipped when gateway.domain is empty (subchart installed but not c
 {{- $_ := required "gateway.oidc.clientID is required. Set it to your OIDC client ID.\nUsage: --set gateway.oidc.clientID=rhai-client" $gw.oidc.clientID }}
 {{- if $gw.oidc.oidcClientSecret }}
 {{- $secretNs := include "xks-gateway.oidcSecretNamespace" . }}
-{{- $gatewayNs := include "xks-gateway.namespace" . }}
 {{- if ne $secretNs $gatewayNs }}
 {{- fail "gateway.oidc.oidcClientSecret can only be used when the secret is stored in gateway.namespace (leave secretNamespace empty or set it to the same value). For secrets in another namespace, omit oidcClientSecret and reference an existing secret via clientSecretRef.name." }}
 {{- end }}
