@@ -268,9 +268,11 @@ cert-manager-operator:
 xks-gateway:
   enabled: false
   hooks:
-    # The parent creates this Secret as a pre-hook. Configured imagePullSecret credentials
-    # are used when present; otherwise the hook uses an empty Docker config.
+    # The parent creates this temporary Secret for pre-hooks. Configured imagePullSecret
+    # credentials are used when present; otherwise the hook uses an empty Docker config.
     imagePullSecretName: rhai-gateway-crd-pull-secret
+    # The regular chart pull Secret is available when the post-hook runs.
+    postImagePullSecretName: rhai-pull-secret
     cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1
     resources:
       limits:

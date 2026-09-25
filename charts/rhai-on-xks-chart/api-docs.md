@@ -133,6 +133,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | xks-gateway.gateway.verifyProviderCertificate | bool | `true` |  |
 | xks-gateway.hooks.cliImage | string | `"registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"` |  |
 | xks-gateway.hooks.imagePullSecretName | string | `"rhai-gateway-crd-pull-secret"` |  |
+| xks-gateway.hooks.postImagePullSecretName | string | `"rhai-pull-secret"` |  |
 | xks-gateway.hooks.resources.limits.cpu | string | `"200m"` |  |
 | xks-gateway.hooks.resources.limits.memory | string | `"512Mi"` |  |
 | xks-gateway.hooks.resources.requests.cpu | string | `"50m"` |  |

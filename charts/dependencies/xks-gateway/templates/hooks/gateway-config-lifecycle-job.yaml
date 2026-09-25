@@ -154,7 +154,7 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: xks-gateway-config
-      {{- with .Values.hooks.imagePullSecretName }}
+      {{- with (.Values.hooks.postImagePullSecretName | default .Values.hooks.imagePullSecretName) }}
       imagePullSecrets:
         - name: {{ . }}
       {{- end }}

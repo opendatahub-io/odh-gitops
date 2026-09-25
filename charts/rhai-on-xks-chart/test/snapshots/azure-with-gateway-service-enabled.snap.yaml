@@ -4123,7 +4123,7 @@ spec:
       restartPolicy: Never
       serviceAccountName: xks-gateway-config
       imagePullSecrets:
-        - name: rhai-gateway-crd-pull-secret
+        - name: rhai-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:
