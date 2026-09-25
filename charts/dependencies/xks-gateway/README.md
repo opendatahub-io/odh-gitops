@@ -24,8 +24,9 @@ When the chart is enabled and `gateway.domain` is empty, only the GatewayConfig 
 The GatewayConfig CRD is in `crds/` (not `templates/`) and the `GatewayConfig` is applied by a
 subchart lifecycle hook. This keeps Helm from mapping the custom resource before the CRD exists.
 
-- On install or upgrade with `enabled=true`, the lifecycle hook applies the bundled CRD, waits for
-  it to become Established, and then creates or updates `default-gateway`.
+- On install or upgrade with `enabled=true`, a pre-install/pre-upgrade hook applies the bundled CRD
+  and waits for it to become Established. A post-install/post-upgrade hook then creates or updates
+  `default-gateway`, after Helm has created the gateway namespace and chart-managed OIDC Secret.
 - When `enabled=false` is applied during an upgrade, the hook deletes `default-gateway` but leaves
   the CRD installed. CRDs are intentionally retained because Helm does not delete CRDs.
 - GatewayConfig schema changes merged into `rhods-operator` are automatically synchronized into this chart by the [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).

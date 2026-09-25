@@ -140,11 +140,12 @@ installed or enabled. If the subchart is enabled but `xks-gateway.gateway.domain
 the GatewayConfig CRD is installed and the controller remains idle.
 
 When upgrading an existing release that uses the platform auth gateway, set
-`xks-gateway.enabled=true` explicitly to keep it enabled. The xks-gateway subchart lifecycle hook
-applies the bundled GatewayConfig CRD, waits for it to become Established, and then creates or
-updates the `GatewayConfig` CR, so enabling the gateway does not require a separate bootstrap
-command. When the gateway is disabled during an upgrade, the parent cleanup hook removes the
-release-owned `GatewayConfig` while retaining the CRD.
+`xks-gateway.enabled=true` explicitly to keep it enabled. The xks-gateway subchart pre-hook
+applies the bundled GatewayConfig CRD and waits for it to become Established. Its post-hook then
+creates or updates the `GatewayConfig` CR after the gateway namespace and managed OIDC Secret are
+installed, so enabling the gateway does not require a separate bootstrap command. When the gateway
+is disabled during an upgrade, the parent cleanup hook removes the release-owned `GatewayConfig`
+while retaining the CRD.
 
 ### Inference Gateway
 
