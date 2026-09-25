@@ -1,8 +1,8 @@
 {{- $gatewayEnabled := .Values.enabled }}
 {{- $gatewayDomain := .Values.gateway.domain }}
-{{- if or $gatewayEnabled $gatewayDomain }}
 {{- $gatewayConfigured := and $gatewayEnabled $gatewayDomain }}
-{{- $hookEvents := ternary "pre-install,pre-upgrade,pre-delete" "pre-upgrade" $gatewayEnabled }}
+{{- if or $gatewayEnabled $gatewayDomain }}
+{{- $hookEvents := ternary "pre-install,pre-upgrade,post-install,post-upgrade,pre-delete" "pre-upgrade" $gatewayEnabled }}
 {{- $hookJobEvents := ternary "pre-install,pre-upgrade" "pre-upgrade" $gatewayEnabled }}
 apiVersion: v1
 kind: ServiceAccount
@@ -119,12 +119,7 @@ spec:
 {{ .Files.Get "crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml" | trim | indent 14 }}
               GATEWAY_CONFIG_CRD
               kubectl wait --for=condition=Established "crd/${CRD_NAME}" --timeout=300s
-{{- if $gatewayConfigured }}
-              echo "Applying GatewayConfig..."
-              kubectl apply -f - <<'GATEWAY_CONFIG'
-{{ include "xks-gateway.gatewayConfigManifest" . | trim | indent 14 }}
-              GATEWAY_CONFIG
-{{- else if not .Release.IsInstall }}
+{{- if and (not $gatewayConfigured) (not .Release.IsInstall) }}
               echo "GatewayConfig is disabled; deleting default-gateway..."
               kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
 {{- end }}
@@ -136,6 +131,58 @@ spec:
                 echo "GatewayConfig CRD is not installed; nothing to delete."
               fi
 {{- end -}}
+{{- end }}
+{{- if $gatewayConfigured }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xks-gateway-config-apply
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "xks-gateway.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "-9"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "xks-gateway.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: xks-gateway-config
+      {{- with .Values.hooks.imagePullSecretName }}
+      imagePullSecrets:
+        - name: {{ . }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway-config
+          image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
+          resources:
+            {{- toYaml .Values.hooks.resources | nindent 12 }}
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Applying GatewayConfig..."
+              kubectl apply -f - <<'GATEWAY_CONFIG'
+{{ include "xks-gateway.gatewayConfigManifest" . | trim | indent 14 }}
+              GATEWAY_CONFIG
 {{- end }}
 {{- if $gatewayEnabled }}
 ---
