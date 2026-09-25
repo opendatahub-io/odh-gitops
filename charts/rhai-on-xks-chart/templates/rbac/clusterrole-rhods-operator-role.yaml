@@ -168,18 +168,6 @@ rules:
       - update
       - watch
   - apiGroups:
-      - argoproj.io
-    resources:
-      - workflows
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
       - authentication.k8s.io
     resources:
       - tokenreviews
@@ -269,8 +257,8 @@ rules:
     resources:
       - aigateways
       - aihubs
+      - aipipelines
       - dashboards
-      - datasciencepipelines
       - feastoperators
       - kserves
       - kueues
@@ -297,7 +285,6 @@ rules:
       - aigateways/finalizers
       - aihubs/finalizers
       - dashboards/finalizers
-      - datasciencepipelines/finalizers
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
@@ -318,7 +305,6 @@ rules:
       - aigateways/status
       - aihubs/status
       - dashboards/status
-      - datasciencepipelines/status
       - feastoperators/status
       - kserves/status
       - kueues/status
@@ -338,17 +324,18 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
+      - aipipelines/status
+      - codeflares/status
+    verbs:
+      - get
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
       - codeflares
     verbs:
       - get
       - list
       - watch
-  - apiGroups:
-      - components.platform.opendatahub.io
-    resources:
-      - codeflares/status
-    verbs:
-      - get
   - apiGroups:
       - config.opendatahub.io
     resources:
@@ -366,7 +353,6 @@ rules:
     resources:
       - platforms/finalizers
     verbs:
-      - patch
       - update
   - apiGroups:
       - config.opendatahub.io
@@ -458,27 +444,6 @@ rules:
       - datasciencecluster.opendatahub.io
     resources:
       - datascienceclusters/status
-    verbs:
-      - get
-      - patch
-      - update
-  - apiGroups:
-      - datasciencepipelinesapplications.opendatahub.io
-    resources:
-      - datasciencepipelinesapplications
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - datasciencepipelinesapplications.opendatahub.io
-    resources:
-      - datasciencepipelinesapplications/finalizers
-      - datasciencepipelinesapplications/status
     verbs:
       - get
       - patch
@@ -819,6 +784,23 @@ rules:
       - update
       - watch
   - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clustercatalogs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clusterextensions
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
       - opendatahub.io
     resources:
       - odhdashboardconfigs
@@ -947,29 +929,6 @@ rules:
       - policy
     resources:
       - poddisruptionbudgets
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayclusters
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayjobs
-      - rayservices
     verbs:
       - create
       - delete
