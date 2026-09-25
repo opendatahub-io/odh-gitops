@@ -223,7 +223,6 @@ azure:
     spec:
       dependencies:
         gatewayAPI:
-        gatewayAPI:
           managementPolicy: Unmanaged
 ```
 
