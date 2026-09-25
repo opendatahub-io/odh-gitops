@@ -160,7 +160,9 @@ test_5_xks_gateway_disabled() {
   wait_ke_ready
   wait_for_deployment "rhai-operator" "redhat-ods-operator"
 
-  assert_operator_gateway_service_disabled
+  assert_exists "GatewayConfig CRD (retained)" "crd/${GATEWAY_CONFIG_CRD}"
+  assert_gateway_disabled_after_upgrade
+  assert_not_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
 }
 
 # ─── Test 6: Uninstall lifecycle ────────────────────────────────────────────
