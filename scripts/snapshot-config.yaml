@@ -49,13 +49,6 @@ charts:
           - profile=rhaii
           - components.kserve.dependencies.jobSet=true
 
-      - name: enable-llm-d-wva
-        setFlags:
-          - skipCrdCheck=true
-          - components.kserve.dsc.managementState=Managed
-          - components.kserve.dsc.wva.managementState=Managed
-          - components.kserve.dependencies.customMetricsAutoscaler=true
-
       - name: with-rhcl-config
         setFlags:
           - skipCrdCheck=true

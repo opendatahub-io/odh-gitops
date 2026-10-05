@@ -9,7 +9,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -56,8 +55,6 @@ spec:
       nim:
         managementState: Removed
       rawDeploymentServiceConfig: Headless
-      wva:
-        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -99,7 +96,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
