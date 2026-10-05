@@ -9,6 +9,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
@@ -20,6 +21,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
@@ -31,6 +33,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
@@ -42,6 +45,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -53,6 +57,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
 apiVersion: v1
@@ -70,6 +75,7 @@ data:
         service.beta.openshift.io/serving-cert-secret-name: "maas-gw-service-tls"
     spec:
       type: ClusterIP
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -199,6 +205,7 @@ spec:
         kind: Secret
         name: maas-gw-service-tls
       mode: Terminate
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -210,6 +217,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -221,6 +229,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
@@ -271,6 +280,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -285,6 +295,7 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-jobset-operator
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -299,6 +310,7 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-lws-operator
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -311,6 +323,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -323,6 +336,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
 apiVersion: route.openshift.io/v1
