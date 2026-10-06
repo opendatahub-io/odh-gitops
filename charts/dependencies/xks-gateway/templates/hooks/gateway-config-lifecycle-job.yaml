@@ -110,13 +110,7 @@ spec:
             - -c
             - |
               set -euo pipefail
-              CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
-              if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
-                echo "GatewayConfig is disabled; deleting default-gateway..."
-                kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
-              else
-                echo "GatewayConfig CRD is not installed; nothing to delete."
-              fi
+{{ include "xks-gateway.deleteOwnedConfigScript" . | indent 14 }}
 {{- end }}
 {{- end }}
 {{- if $gatewayConfigured }}
@@ -219,11 +213,5 @@ spec:
             - -c
             - |
               set -euo pipefail
-              CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
-              if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
-                echo "Deleting default-gateway..."
-                kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
-              else
-                echo "GatewayConfig CRD is not installed; nothing to delete."
-              fi
+{{ include "xks-gateway.deleteOwnedConfigScript" . | indent 14 }}
 {{- end -}}

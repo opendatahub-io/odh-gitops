@@ -69,6 +69,25 @@ True when this chart creates the OIDC client secret (oidcClientSecret set and ta
 {{- end -}}
 
 {{/*
+Delete default-gateway only when it is owned by this Helm release.
+*/}}
+{{- define "xks-gateway.deleteOwnedConfigScript" -}}
+CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
+EXPECTED_OWNER={{ printf "%s/%s" .Release.Namespace .Release.Name | quote }}
+if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
+  OWNER=$(kubectl get gatewayconfig/default-gateway -o jsonpath='{.metadata.annotations.platform\.opendatahub\.io/gateway-config-owner}' 2>/dev/null || true)
+  if [[ "${OWNER}" == "${EXPECTED_OWNER}" ]]; then
+    echo "Deleting default-gateway owned by ${EXPECTED_OWNER}..."
+    kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
+  else
+    echo "default-gateway is not owned by ${EXPECTED_OWNER}; leaving it unchanged."
+  fi
+else
+  echo "GatewayConfig CRD is not installed; nothing to delete."
+fi
+{{- end -}}
+
+{{/*
 Render the GatewayConfig used by the lifecycle hook. The custom resource is
 hook-managed so Helm never has to map it before the CRD becomes Established.
 */}}

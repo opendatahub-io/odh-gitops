@@ -9,7 +9,7 @@ Template prefix: `rhai-on-xks-chart.` for all helpers.
 
 - `templates/manager/` — RHAI operator deployment, namespaces, services. Platform auth gateway reconciliation is opt-in: set `xks-gateway.enabled=true` (default: `false`).
 - `templates/rbac/` — ServiceAccount, ClusterRole, ClusterRoleBinding.
-- `templates/crds/` — CRDs bundled in the parent chart (`platforms.config.opendatahub.io`, plus cloud-manager CRDs under `templates/cloudmanager/*/crds/`). Regenerated from `config/rhaii/crd/bases/` in opendatahub-operator via `scripts/update-bundle.sh`. The GatewayConfig CRD is excluded from this chart by `scripts/helmtemplate-config.yaml` and is owned and installed by the optional `xks-gateway` dependency when enabled; `scripts/update-bundle.sh` synchronizes it into `charts/dependencies/xks-gateway/crds/`.
+- `templates/crds/` — CRDs bundled in the parent chart (`platforms.config.opendatahub.io`, plus cloud-manager CRDs under `templates/cloudmanager/*/crds/`). Regenerated from `config/rhaii/crd/bases/` in opendatahub-operator via `scripts/update-bundle.sh`. The GatewayConfig CRD is excluded from this chart by `scripts/helmtemplate-config.yaml` and is owned and installed by the optional `xks-gateway` dependency when enabled; `scripts/update-bundle.sh` synchronizes it into `charts/dependencies/xks-gateway/files/gatewayconfig-crd.yaml`.
 - `templates/hooks/` — post-install Jobs (CRs creation, gateway setup).
   - `_crs-definitions.tpl` — **single source of truth** for provider and component CR metadata; add new providers/CRs here only. All templates update automatically.
 - `templates/webhooks/` — MutatingWebhookConfiguration.
