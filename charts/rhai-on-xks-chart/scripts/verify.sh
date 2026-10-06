@@ -2,7 +2,7 @@
 # Verify rhai-on-xks-chart installation and lifecycle in a Kubernetes cluster.
 #
 # Usage:
-#   ./verify.sh              # run all tests (1-5)
+#   ./verify.sh              # run all tests (1-4)
 #   ./verify.sh 1            # run only test 1 (install check)
 #   ./verify.sh 2 3          # run tests 2 and 3
 #
@@ -135,9 +135,9 @@ test_3_external_certmanager() {
   helm_deploy
 }
 
-# ─── Test 4: xks-gateway configured ─────────────────────────────────────────
+# ─── Test 4: xks-gateway enable/disable lifecycle ──────────────────────────
 
-test_4_xks_gateway_configured() {
+test_4_xks_gateway_lifecycle() {
   local gateway_values="${SCRIPT_DIR}/../test/values-e2e-gateway.yaml"
   if [[ ! -f "$gateway_values" ]]; then
     fail "Gateway values file not found: $gateway_values"
@@ -145,29 +145,28 @@ test_4_xks_gateway_configured() {
   fi
 
   log "Deploying with configured xks-gateway (domain + OIDC secret)"
-  helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values"
-  wait_ke_ready
+  helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values" || return 1
+  wait_ke_ready || return 1
 
   assert_gateway_configured_resources "e2e.example.com"
   assert_operator_gateway_service_enabled
-}
+  if [[ "$ASSERT_FAILED" -ne 0 ]]; then
+    return 1
+  fi
 
-# ─── Test 5: xks-gateway disabled ───────────────────────────────────────────
-
-test_5_xks_gateway_disabled() {
   log "Disabling xks-gateway subchart (controller off)"
-  helm_deploy --set "xks-gateway.enabled=false"
-  wait_ke_ready
-  wait_for_deployment "rhai-operator" "redhat-ods-operator"
+  helm_deploy --set "xks-gateway.enabled=false" || return 1
+  wait_ke_ready || return 1
+  wait_for_deployment "rhai-operator" "redhat-ods-operator" || return 1
 
   assert_exists "GatewayConfig CRD (retained)" "crd/${GATEWAY_CONFIG_CRD}"
   assert_gateway_disabled_after_upgrade
   assert_not_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
 }
 
-# ─── Test 6: Uninstall lifecycle ────────────────────────────────────────────
+# ─── Test 5: Uninstall lifecycle ────────────────────────────────────────────
 
-test_6_uninstall_lifecycle() {
+test_5_uninstall_lifecycle() {
   ensure_deployed
 
   # Phase A: uninstall without namespace cleanup (default)
@@ -219,10 +218,9 @@ ALL_TESTS=(
   "1:Install check:test_1_install_check"
   "2:sail+lws Managed→Unmanaged→Managed:test_2_sail_lws_managed_unmanaged"
   "3:external cert-manager (subchart disabled):test_3_external_certmanager"
-  "4:xks-gateway configured:test_4_xks_gateway_configured"
-  "5:xks-gateway disabled:test_5_xks_gateway_disabled"
+  "4:xks-gateway enable/disable lifecycle:test_4_xks_gateway_lifecycle"
   # TODO: this would not work correctly, since KServe is blocking the deletion.
-  # "6:Uninstall lifecycle (cleanup + cleanupNamespaces):test_6_uninstall_lifecycle"
+  # "5:Uninstall lifecycle (cleanup + cleanupNamespaces):test_5_uninstall_lifecycle"
 )
 
 check_prerequisites
