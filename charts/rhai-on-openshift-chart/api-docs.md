@@ -109,7 +109,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
 | dependencies.kueue.dependencies | object | `{"certManager":true}` | Dependencies required by kueue |
 | dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) |
-| dependencies.leaderWorkerSet | object | `{"config":{"spec":{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.0","name":"leader-worker-set","namespace":"openshift-lws-operator","targetNamespaces":["openshift-lws-operator"]}}` | Leader Worker Set operator |
+| dependencies.leaderWorkerSet | object | `{"config":{"spec":{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.1","name":"leader-worker-set","namespace":"openshift-lws-operator","targetNamespaces":["openshift-lws-operator"]}}` | Leader Worker Set operator |
 | dependencies.leaderWorkerSet.config.spec | object | `{"logLevel":"Normal","managementState":"Managed","operatorLogLevel":"Normal"}` | LeaderWorkerSetOperator CR spec |
 | dependencies.leaderWorkerSet.dependencies | object | `{"certManager":true}` | Dependencies required by leader-worker-set |
 | dependencies.leaderWorkerSet.enabled | string | `"auto"` | Enable leader-worker-set: auto (if needed), true (always), false (never) |

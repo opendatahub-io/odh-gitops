@@ -419,7 +419,7 @@ dependencies:
     dependencies:
       certManager: true
     olm:
-      channel: stable-v1.0
+      channel: stable-v1.1
       name: leader-worker-set
       namespace: openshift-lws-operator
       targetNamespaces:
