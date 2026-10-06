@@ -34,8 +34,6 @@ fi
 
 SRC="${OPERATOR_DIR}/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml"
 DST="${CHART_DIR}/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
-# Legacy location from when the CRD was templated; must not ship both.
-OLD_DST="${CHART_DIR}/templates/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
 
 if [[ ! -f "${SRC}" ]]; then
 	echo "ERROR: GatewayConfig CRD not found at ${SRC}" >&2
@@ -47,10 +45,5 @@ mkdir -p "${CHART_DIR}/crds"
 
 # Drop YAML document separators; Helm crds/ is untemplated raw YAML.
 sed '/^---[[:space:]]*$/d' "${SRC}" > "${DST}"
-
-if [[ -f "${OLD_DST}" ]]; then
-	rm -f "${OLD_DST}"
-	echo "Removed legacy ${OLD_DST}"
-fi
 
 echo "Wrote ${DST}"
