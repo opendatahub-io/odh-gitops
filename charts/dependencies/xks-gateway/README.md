@@ -19,6 +19,12 @@ helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
 
 When the chart is enabled and `gateway.domain` is empty, only the GatewayConfig CRD is installed and no gateway resources are created. It can also be installed standalone for testing.
 
+An existing `GatewayConfig` does not supply Helm values during an upgrade. Helm reuses saved release
+values if no new values are supplied. For a partial upgrade, pass `--reuse-values` with the new
+values, or supply a complete values file with the gateway settings. Setting only
+`xks-gateway.enabled=true` in a parent-chart upgrade leaves `gateway.domain` empty and deletes
+`default-gateway` in the pre-upgrade hook.
+
 Set `gateway.domain` to the base DNS domain, such as `example.com`. The operator prefixes
 `gateway.subdomain` (default `rh-ai`), producing `rh-ai.example.com` by default. Do not include
 `*.` in `gateway.domain`; it would produce an invalid Gateway listener hostname. A wildcard

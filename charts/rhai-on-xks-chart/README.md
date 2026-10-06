@@ -126,7 +126,7 @@ This is separate from the KServe **inference gateway** below.
 | Gateway CR | `inference-gateway` (apps namespace) | `default-gateway` (cluster-scoped, reconciled in `rh-ai-gateway`) |
 | Purpose | KServe model inference HTTPRoutes | OIDC auth proxy + platform ingress (`kube-auth-proxy`) |
 
-The `xks-gateway` subchart is included as an optional dependency (disabled by default). To configure the auth gateway, set these values during install/upgrade:
+The `xks-gateway` subchart is included as an optional dependency (disabled by default). To enable the auth gateway, set these values:
 
 ```bash
 helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
@@ -144,12 +144,23 @@ the GatewayConfig CRD is installed and the controller remains idle.
 Set `xks-gateway.gateway.domain` to a base DNS domain such as `example.com`, without `*.`.
 The operator prefixes the configured subdomain (default `rh-ai`) to form the gateway hostname.
 
-When upgrading a release that uses the platform auth gateway, set
-`xks-gateway.enabled=true` explicitly to keep it enabled. Helm creates or updates the bundled
-GatewayConfig CRD. The xks-gateway subchart post-hook waits for the CRD to become Established,
-then creates or updates the `GatewayConfig` CR after the gateway namespace and managed OIDC Secret
-are installed. When the gateway is disabled during an upgrade, the parent cleanup hook removes
-the release-owned `GatewayConfig` before Helm removes the CRD.
+On upgrade, Helm reuses the release's saved values when no new values are supplied. If you pass
+new values (`-f`, `--set`, `--set-file`, or `--set-json`), also pass `--reuse-values` for a partial
+change, or supply a complete values file that includes the gateway settings. Helm does not read
+an existing `GatewayConfig` from the cluster to restore omitted values. For example:
+
+```bash
+helm upgrade rhai-on-xks ./charts/rhai-on-xks-chart \
+  --reuse-values \
+  --set xks-gateway.gateway.cookie.expire=8h
+```
+
+Without the saved gateway values, the chart defaults to `xks-gateway.enabled=false`: the parent
+cleanup hook deletes the release-owned `GatewayConfig`, Helm removes the CRD, and the gateway
+controller is disabled. Setting only `xks-gateway.enabled=true` is also insufficient; an empty
+`xks-gateway.gateway.domain` makes the pre-upgrade hook delete `default-gateway`. When configured,
+Helm creates or updates the bundled CRD, and the subchart post-hook applies `GatewayConfig` after
+the CRD, gateway namespace, and managed OIDC Secret are ready.
 
 ### Inference Gateway
 
