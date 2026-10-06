@@ -37,10 +37,6 @@ rhaiOperator:
     requests:
       cpu: 10m
       memory: 64Mi
-  # Platform auth gateway reconciliation is controlled by xks-gateway.enabled.
-  # When xks-gateway.enabled=true, RHAI_DISABLE_GATEWAY_SERVICE=false and the operator
-  # reconciles GatewayConfig CRs. Gateway resources are only created when gateway values
-  # (domain, OIDC) are provided in the xks-gateway section below.
   # Related images env vars (RELATED_IMAGE_*)
   relatedImages: []
   # Example:
@@ -265,6 +261,8 @@ cert-manager-operator:
 # xks-gateway subchart owns the GatewayConfig CRD lifecycle hook. Gateway resources
 # (namespace, GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
 # Set xks-gateway.enabled=true together with the gateway domain and OIDC values to enable it.
+# Enabling this subchart also sets RHAI_DISABLE_GATEWAY_SERVICE=false unless
+# rhaiOperator.gatewayService.enabled is explicitly false.
 xks-gateway:
   enabled: false
   hooks:
