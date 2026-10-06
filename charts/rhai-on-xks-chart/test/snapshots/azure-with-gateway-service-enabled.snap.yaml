@@ -3643,24 +3643,6 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 
 ---
-# Source: rhai-on-xks-chart/templates/hooks/gateway-config-cleanup-pull-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-gateway-config-pull-secret
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-upgrade,pre-delete
-    helm.sh/hook-weight: "-12"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: dGVzdGF1dGg=
-
----
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: v1
 kind: Secret
@@ -4164,7 +4146,7 @@ spec:
       restartPolicy: Never
       serviceAccountName: xks-gateway-config
       imagePullSecrets:
-        - name: rhai-gateway-config-pull-secret
+        - name: rhai-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:

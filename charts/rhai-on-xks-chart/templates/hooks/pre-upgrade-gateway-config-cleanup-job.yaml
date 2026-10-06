@@ -11,23 +11,6 @@
 {{- $ownedByRelease := eq (get $annotations "platform.opendatahub.io/gateway-config-owner") (printf "%s/%s" .Release.Namespace .Release.Name) }}
 {{- $legacyOwned := and (eq (get $labels "app.kubernetes.io/managed-by") "Helm") (eq (get $annotations "helm.sh/resource-policy") "keep") (hasPrefix "xks-gateway-" (get $labels "helm.sh/chart")) }}
 {{- if or $ownedByRelease $legacyOwned }}
-{{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rhai-gateway-config-cleanup-pull-secret
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
-  annotations:
-    helm.sh/hook: pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: {{ .Values.imagePullSecret.dockerConfigJson | b64enc }}
-{{- end }}
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -106,7 +89,7 @@ spec:
       serviceAccountName: rhai-pre-upgrade-gateway-config
       {{- if (include "rhai-on-xks-chart.imagePullSecretEnabled" .) }}
       imagePullSecrets:
-        - name: rhai-gateway-config-cleanup-pull-secret
+        - name: {{ include "rhai-on-xks-chart.imagePullSecretName" . }}
       {{- end }}
       securityContext:
         runAsNonRoot: true

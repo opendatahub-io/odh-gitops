@@ -55,6 +55,8 @@ The `imagePullSecret.dockerConfigJson` parameter:
 1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager, dependency namespaces, and `rh-ai-gateway` when gateway is configured)
 2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, the post-install hook, and gateway service accounts in `rh-ai-gateway` when the auth gateway is configured)
 
+The Secret in the release namespace also supplies the GatewayConfig lifecycle Jobs during install, upgrade, and uninstall.
+
 The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
 > [!NOTE]

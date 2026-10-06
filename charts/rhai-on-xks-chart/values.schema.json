@@ -513,12 +513,7 @@
             },
             "imagePullSecretName": {
               "type": "string",
-              "description": "Temporary pull Secret name for GatewayConfig cleanup hooks",
-              "default": "rhai-gateway-config-pull-secret"
-            },
-            "postImagePullSecretName": {
-              "type": "string",
-              "description": "Pull Secret name for the GatewayConfig post-hook image",
+              "description": "Pull Secret name for GatewayConfig lifecycle Jobs",
               "default": "rhai-pull-secret"
             },
             "resources": {
