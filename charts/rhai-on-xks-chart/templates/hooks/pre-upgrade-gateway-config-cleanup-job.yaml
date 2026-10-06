@@ -7,10 +7,8 @@
 {{- end }}
 {{- $metadata := get $gatewayConfig "metadata" | default dict }}
 {{- $annotations := get $metadata "annotations" | default dict }}
-{{- $labels := get $metadata "labels" | default dict }}
 {{- $ownedByRelease := eq (get $annotations "platform.opendatahub.io/gateway-config-owner") (printf "%s/%s" .Release.Namespace .Release.Name) }}
-{{- $legacyOwned := and (eq (get $labels "app.kubernetes.io/managed-by") "Helm") (eq (get $annotations "helm.sh/resource-policy") "keep") (hasPrefix "xks-gateway-" (get $labels "helm.sh/chart")) }}
-{{- if or $ownedByRelease $legacyOwned }}
+{{- if $ownedByRelease }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -118,16 +116,7 @@ spec:
                 OWNER=$(kubectl get gatewayconfig/default-gateway \
                   -o jsonpath='{.metadata.annotations.platform\.opendatahub\.io/gateway-config-owner}' \
                   2>/dev/null || true)
-                MANAGED_BY=$(kubectl get gatewayconfig/default-gateway \
-                  -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' \
-                  2>/dev/null || true)
-                CHART=$(kubectl get gatewayconfig/default-gateway \
-                  -o jsonpath='{.metadata.labels.helm\.sh/chart}' \
-                  2>/dev/null || true)
-                RESOURCE_POLICY=$(kubectl get gatewayconfig/default-gateway \
-                  -o jsonpath='{.metadata.annotations.helm\.sh/resource-policy}' \
-                  2>/dev/null || true)
-                if [[ "$OWNER" == "$EXPECTED_OWNER" ]] || [[ "$MANAGED_BY" == "Helm" && "$RESOURCE_POLICY" == "keep" && "$CHART" == xks-gateway-* ]]; then
+                if [[ "$OWNER" == "$EXPECTED_OWNER" ]]; then
                   echo "GatewayConfig is disabled and owned by this release; deleting default-gateway..."
                   kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
                 else
