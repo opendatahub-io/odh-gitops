@@ -4709,3 +4709,4 @@ spec:
               fi
               echo "Migration complete. The replacement cert-manager operator will reconcile any remaining operands."
               
+
