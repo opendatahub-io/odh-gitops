@@ -51,32 +51,6 @@ When the gateway is configured, the chart creates `rh-ai-gateway`. The operator 
 
 The namespace has `helm.sh/resource-policy: keep` so `helm uninstall` does not delete workloads in `rh-ai-gateway`.
 
-## Maintainers
-
-| Name | Email | Url |
-| ---- | ------ | --- |
-| Red Hat |  |  |
-
 ## Values
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| enabled | bool | `true` | Enable or disable the chart. When used as a dependency of `rhai-on-xks-chart`, this controls whether the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC resources are created. |
-| gateway.certificate.secretName | string | `""` | Name of TLS Secret (required when type is Provided) |
-| gateway.certificate.type | string | `"SelfSigned"` | TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace) |
-| gateway.cookie.expire | string | `"24h"` | Session cookie expiry duration (e.g., "24h", "8h") |
-| gateway.cookie.refresh | string | `"1h"` | Access token refresh interval — must be less than the OIDC provider's Access Token Lifespan |
-| gateway.domain | required | `""` | External hostname (e.g., example.com or *.example.com) |
-| gateway.ingressMode | string | `"LoadBalancer"` | How the gateway is exposed externally on XKS (LoadBalancer only) |
-| gateway.namespace | string | `"rh-ai-gateway"` | Namespace created when the gateway is configured. Must be rh-ai-gateway to match the operator (not configurable). |
-| gateway.networkPolicy.ingress.enabled | bool | `true` | Enable ingress NetworkPolicy for kube-auth-proxy |
-| gateway.oidc.clientID | required | `""` | OIDC client ID |
-| gateway.oidc.clientSecretRef | object | `{"key":"client-secret","name":""}` | Reference to the OIDC client secret (BYO mode) or chart-created secret name (managed mode) |
-| gateway.oidc.clientSecretRef.key | string | `"client-secret"` | Key within the Secret that holds the client secret value |
-| gateway.oidc.clientSecretRef.name | string | `""` | Name of the Kubernetes Secret. Required when oidcClientSecret is not set; defaults to oidc-client-secret when oidcClientSecret is set. |
-| gateway.oidc.issuerURL | required | `""` | OIDC provider URL (e.g., https://keycloak.example.com/realms/rhai) |
-| gateway.oidc.oidcClientSecret | string | `""` | OIDC client secret value for chart-managed Secret (dev/test). Prefer clientSecretRef for production. |
-| gateway.oidc.secretNamespace | string | `""` | Namespace where the client secret is located (defaults to gateway.namespace if empty) |
-| gateway.providerCASecretName | string | `""` | Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace) |
-| gateway.subdomain | string | `""` | Subdomain prefix for the gateway |
-| gateway.verifyProviderCertificate | bool | `true` | Verify auth provider TLS certificate (set to false only for development) |
+See the generated [API docs](api-docs.md#values) for the complete, current values reference.
