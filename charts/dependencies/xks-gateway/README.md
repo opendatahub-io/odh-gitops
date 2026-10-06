@@ -21,23 +21,21 @@ When the chart is enabled and `gateway.domain` is empty, only the GatewayConfig 
 
 ## CRD handling
 
-The GatewayConfig CRD is in `crds/` (not `templates/`) and the `GatewayConfig` is applied by a
-subchart lifecycle hook. This keeps Helm from mapping the custom resource before the CRD exists.
+The GatewayConfig CRD is a regular Helm template, rendered from `files/gatewayconfig-crd.yaml`
+when the chart is enabled. Helm creates and updates the CRD with the release. A post-install/post-upgrade
+hook waits for the CRD to become Established, then creates or updates `default-gateway` after Helm has
+created the gateway namespace and chart-managed OIDC Secret.
 
-- On install or upgrade with `enabled=true`, a pre-install/pre-upgrade hook applies the bundled CRD
-  and waits for it to become Established. A post-install/post-upgrade hook then creates or updates
-  `default-gateway`, after Helm has created the gateway namespace and chart-managed OIDC Secret.
-- When `enabled=false` is applied during an upgrade, the hook deletes `default-gateway` but leaves
-  the CRD installed. CRDs are intentionally retained because Helm does not delete CRDs.
+- Disabling the dependency or uninstalling the chart removes the CRD. A pre-upgrade or pre-delete hook
+  deletes `default-gateway` before the CRD is removed. The parent chart provides the pre-upgrade cleanup
+  hook when the dependency is disabled, because a disabled subchart cannot render its own hook.
+- Deleting a CRD also deletes all custom resources of that kind, so this chart assumes exclusive
+  ownership of the GatewayConfig CRD.
 - GatewayConfig schema changes merged into `rhods-operator` are automatically synchronized into this chart by the [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).
 - For local or manual updates, regenerate the CRD in the operator repository, then run `./scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository` from this chart directory.
-- If the gateway dependency is disabled, apply an updated CRD explicitly when you need to roll a
-  schema change without enabling the gateway:
-  `kubectl apply -f crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
 
-The same lifecycle hook is used when this chart is installed standalone or as a dependency of
-`rhai-on-xks-chart`. The parent chart adds only a cleanup hook for the case where the dependency is
-disabled, because a disabled subchart cannot render its own cleanup hook.
+The same lifecycle hooks are used when this chart is installed standalone or as a dependency of
+`rhai-on-xks-chart`.
 
 ## OIDC client secret
 

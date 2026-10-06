@@ -14,7 +14,7 @@
     },
     "hooks": {
       "type": "object",
-      "description": "CRD and GatewayConfig lifecycle hook configuration",
+      "description": "GatewayConfig lifecycle hook configuration",
       "properties": {
         "cliImage": {
           "type": "string",

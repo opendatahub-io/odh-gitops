@@ -1,0 +1,3 @@
+{{- if .Values.enabled }}
+{{ .Files.Get "files/gatewayconfig-crd.yaml" | trim }}
+{{- end }}

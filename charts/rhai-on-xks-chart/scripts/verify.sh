@@ -159,7 +159,6 @@ test_4_xks_gateway_lifecycle() {
   wait_ke_ready || return 1
   wait_for_deployment "rhai-operator" "redhat-ods-operator" || return 1
 
-  assert_exists "GatewayConfig CRD (retained)" "crd/${GATEWAY_CONFIG_CRD}"
   assert_gateway_disabled_after_upgrade
   assert_not_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
 }

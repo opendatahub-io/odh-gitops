@@ -358,15 +358,17 @@ assert_gateway_disabled() {
 }
 
 assert_gateway_disabled_after_upgrade() {
-  # The CRD and gateway namespace may persist after the subchart is disabled;
-  # the namespace has resource-policy: keep. The owned GatewayConfig must be deleted.
+  # The gateway namespace may persist because it has resource-policy: keep.
+  # Removing the CRD also removes its custom resources.
   assert_not_exists "GatewayConfig CR" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
+  assert_not_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
   assert_operator_gateway_service_disabled
 }
 
 assert_gateway_configured_resources() {
   local expected_domain="${1:-e2e.example.com}"
 
+  assert_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
   assert_exists "Gateway namespace" "namespace/${GATEWAY_NS}"
   assert_exists "GatewayConfig CR" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
 

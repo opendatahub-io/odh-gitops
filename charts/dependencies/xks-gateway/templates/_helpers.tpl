@@ -50,7 +50,7 @@ Resolve the OIDC client secret name referenced by GatewayConfig (defaults when c
 {{/*
 True when the chart is enabled AND gateway configuration is provided (domain is set).
 When used as a subchart with default empty values, all resource templates are skipped
-and only the CRD from crds/ is installed.
+and only the GatewayConfig CRD is installed.
 */}}
 {{- define "xks-gateway.configured" -}}
 {{- if and .Values.enabled .Values.gateway.domain -}}true{{- end -}}
@@ -70,7 +70,7 @@ True when this chart creates the OIDC client secret (oidcClientSecret set and ta
 
 {{/*
 Render the GatewayConfig used by the lifecycle hook. The custom resource is
-hook-managed so Helm never has to map it before the CRD exists on upgrade.
+hook-managed so Helm never has to map it before the CRD becomes Established.
 */}}
 {{- define "xks-gateway.gatewayConfigManifest" -}}
 {{- $gw := .Values.gateway -}}

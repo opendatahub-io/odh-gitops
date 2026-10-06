@@ -1,9 +1,8 @@
 {{- $gatewayEnabled := .Values.enabled }}
-{{- $gatewayDomain := .Values.gateway.domain }}
-{{- $gatewayConfigured := and $gatewayEnabled $gatewayDomain }}
-{{- if or $gatewayEnabled $gatewayDomain }}
-{{- $hookEvents := ternary "pre-install,pre-upgrade,post-install,post-upgrade,pre-delete" "pre-upgrade" $gatewayEnabled }}
-{{- $hookJobEvents := ternary "pre-install,pre-upgrade" "pre-upgrade" $gatewayEnabled }}
+{{- $gatewayConfigured := and $gatewayEnabled .Values.gateway.domain }}
+{{- $cleanupOnUpgrade := and .Release.IsUpgrade (not $gatewayConfigured) }}
+{{- if or $gatewayEnabled $cleanupOnUpgrade }}
+{{- $hookEvents := ternary "pre-upgrade,post-install,post-upgrade,pre-delete" "pre-upgrade" $gatewayEnabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -32,10 +31,8 @@ rules:
     resources:
       - customresourcedefinitions
     verbs:
-      - create
       - get
       - list
-      - patch
       - watch
   - apiGroups:
       - services.platform.opendatahub.io
@@ -66,6 +63,7 @@ subjects:
   - kind: ServiceAccount
     name: xks-gateway-config
     namespace: {{ .Release.Namespace }}
+{{- if $cleanupOnUpgrade }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -75,7 +73,7 @@ metadata:
   labels:
     {{- include "xks-gateway.labels" . | nindent 4 }}
   annotations:
-    helm.sh/hook: {{ $hookJobEvents }}
+    helm.sh/hook: pre-upgrade
     helm.sh/hook-weight: "-9"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
@@ -113,24 +111,13 @@ spec:
             - |
               set -euo pipefail
               CRD_NAME="gatewayconfigs.services.platform.opendatahub.io"
-{{- if $gatewayEnabled }}
-              echo "Ensuring GatewayConfig CRD exists before enabling xks-gateway..."
-              kubectl apply -f - <<'GATEWAY_CONFIG_CRD'
-{{ .Files.Get "crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml" | trim | indent 14 }}
-              GATEWAY_CONFIG_CRD
-              kubectl wait --for=condition=Established "crd/${CRD_NAME}" --timeout=300s
-{{- if and (not $gatewayConfigured) (not .Release.IsInstall) }}
-              echo "GatewayConfig is disabled; deleting default-gateway..."
-              kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
-{{- end }}
-{{- else }}
               if kubectl get "crd/${CRD_NAME}" >/dev/null 2>&1; then
                 echo "GatewayConfig is disabled; deleting default-gateway..."
                 kubectl delete gatewayconfig/default-gateway --ignore-not-found --timeout=300s
               else
                 echo "GatewayConfig CRD is not installed; nothing to delete."
               fi
-{{- end -}}
+{{- end }}
 {{- end }}
 {{- if $gatewayConfigured }}
 ---
@@ -179,6 +166,7 @@ spec:
             - -c
             - |
               set -euo pipefail
+              kubectl wait --for=condition=Established crd/gatewayconfigs.services.platform.opendatahub.io --timeout=300s
               echo "Applying GatewayConfig..."
               kubectl apply -f - <<'GATEWAY_CONFIG'
 {{ include "xks-gateway.gatewayConfigManifest" . | trim | indent 14 }}

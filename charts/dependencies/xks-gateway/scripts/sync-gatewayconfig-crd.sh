@@ -4,17 +4,10 @@
 # Source (operator):
 #   config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml
 # Destination (this chart):
-#   crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml
+#   files/gatewayconfig-crd.yaml
 #
-# The operator file is a plain CRD. It MUST live in Helm's crds/ directory (not
-# templates/) so helm install applies it before the GatewayConfig CR. CRDs in
-# templates/ are validated in the same pass as the CR and fail on a fresh cluster:
-#   no matches for kind "GatewayConfig" in version "services.platform.opendatahub.io/v1alpha1"
-#
-# Helm does not upgrade files in crds/ during its normal upgrade phase. When this
-# chart is enabled, its lifecycle hook applies the bundled CRD during install and
-# upgrade; apply the CRD explicitly if the chart is disabled and the schema must
-# be rolled independently.
+# The chart renders this file as a regular Helm resource. GatewayConfig is applied
+# by a post-install/post-upgrade hook after the CRD becomes Established.
 #
 # Usage:
 #   ./sync-gatewayconfig-crd.sh /path/to/opendatahub-operator
@@ -33,7 +26,7 @@ if [[ -z "${OPERATOR_DIR}" ]]; then
 fi
 
 SRC="${OPERATOR_DIR}/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml"
-DST="${CHART_DIR}/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml"
+DST="${CHART_DIR}/files/gatewayconfig-crd.yaml"
 
 if [[ ! -f "${SRC}" ]]; then
 	echo "ERROR: GatewayConfig CRD not found at ${SRC}" >&2
@@ -41,9 +34,9 @@ if [[ ! -f "${SRC}" ]]; then
 	exit 1
 fi
 
-mkdir -p "${CHART_DIR}/crds"
+mkdir -p "${CHART_DIR}/files"
 
-# Drop YAML document separators; Helm crds/ is untemplated raw YAML.
+# Drop YAML document separators; the template emits a single CRD object.
 sed '/^---[[:space:]]*$/d' "${SRC}" > "${DST}"
 
 echo "Wrote ${DST}"

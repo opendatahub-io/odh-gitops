@@ -496,16 +496,16 @@
     },
     "xks-gateway": {
       "type": "object",
-      "description": "XKS Gateway subchart: owns the GatewayConfig CRD lifecycle hook and manages the gateway namespace, GatewayConfig CR, and optional OIDC Secret. Resources are only created when gateway.domain is set.",
+      "description": "XKS Gateway subchart: manages the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and optional OIDC Secret. Gateway resources are only created when gateway.domain is set.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable xks-gateway subchart. Disabled by default. When true, the GatewayConfig CRD is bootstrapped and the operator gateway controller is enabled. Gateway resources require gateway.domain to be set.",
+          "description": "Enable xks-gateway subchart. Disabled by default. When true, Helm installs the GatewayConfig CRD and enables the operator gateway controller. Gateway resources require gateway.domain to be set.",
           "default": false
         },
         "hooks": {
           "type": "object",
-          "description": "CRD and GatewayConfig lifecycle hook configuration",
+          "description": "GatewayConfig lifecycle hook configuration",
           "properties": {
             "cliImage": {
               "type": "string",
@@ -513,8 +513,8 @@
             },
             "imagePullSecretName": {
               "type": "string",
-              "description": "Temporary pull Secret name for the GatewayConfig pre-hook image",
-              "default": "rhai-gateway-crd-pull-secret"
+              "description": "Temporary pull Secret name for GatewayConfig cleanup hooks",
+              "default": "rhai-gateway-config-pull-secret"
             },
             "postImagePullSecretName": {
               "type": "string",

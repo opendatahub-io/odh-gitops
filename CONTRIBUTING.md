@@ -418,8 +418,8 @@ make chart-test CHART_NAME=rhai-on-openshift-chart
    ```
 
    Source CRD: `operator-repository/config/crd/bases/services.platform.opendatahub.io_gatewayconfigs.yaml`.
-   Destination: `charts/dependencies/xks-gateway/crds/customresourcedefinition-gatewayconfigs.services.platform.opendatahub.io.yaml`.
-   See `charts/dependencies/xks-gateway/README.md` for CRD upgrade notes on live clusters.
+   Destination: `charts/dependencies/xks-gateway/files/gatewayconfig-crd.yaml`.
+   See `charts/dependencies/xks-gateway/README.md` for CRD lifecycle details.
 
 5. **Test on a cluster**:
 
