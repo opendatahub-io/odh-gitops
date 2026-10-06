@@ -261,12 +261,15 @@ cert-manager-operator:
 
 # XKS Gateway subchart — platform auth gateway (GatewayConfig CRD, namespace, CR, OIDC).
 # Disabled by default because the platform auth gateway is opt-in. When enabled, the
-# xks-gateway subchart manages the GatewayConfig CRD. Gateway resources
+# xks-gateway subchart installs or updates the GatewayConfig CRD. Gateway resources
 # (namespace, GatewayConfig CR, OIDC Secret) are only created when gateway.domain is set.
+# If the subchart is later disabled, Helm retains the CRD as a cluster resource while the
+# parent cleanup hook removes the release-owned GatewayConfig.
 # Set xks-gateway.enabled=true together with the gateway domain and OIDC values to enable it.
 # Enabling this subchart also sets RHAI_DISABLE_GATEWAY_SERVICE=false unless
 # rhaiOperator.gatewayService.enabled is explicitly false.
 xks-gateway:
+  # -- Enable the platform auth gateway. Helm retains an installed GatewayConfig CRD when disabled.
   enabled: false
   hooks:
     # The chart-managed Secret exists before upgrade/delete hooks and is created

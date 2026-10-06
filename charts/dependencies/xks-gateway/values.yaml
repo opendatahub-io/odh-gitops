@@ -1,12 +1,14 @@
 # XKS Gateway Onboarding Chart
 # Creates the gateway namespace, GatewayConfig CRD, and GatewayConfig CR for non-OpenShift Kubernetes.
 #
-# Helm manages the GatewayConfig CRD as a template. A post-install/post-upgrade hook
-# waits for the CRD to become Established before applying the GatewayConfig CR.
+# Helm manages the GatewayConfig CRD as a template and retains it as a cluster resource
+# when the chart is disabled or uninstalled. A post-install/post-upgrade hook waits for the CRD to
+# become Established before applying the GatewayConfig CR.
 
 # -- Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart,
-# this controls whether the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and OIDC
-# resources are created.
+# this controls whether the GatewayConfig CRD is installed or updated, and whether the
+# gateway namespace, GatewayConfig CR, and OIDC resources are created. Helm retains an
+# installed CRD as a cluster resource when this chart is disabled or uninstalled.
 enabled: true
 
 # Hook configuration for the GatewayConfig lifecycle. The hook is owned by this

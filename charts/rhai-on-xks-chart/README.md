@@ -137,9 +137,11 @@ helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
   --set xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
 ```
 
-When `xks-gateway.enabled=false` (default), the GatewayConfig CRD and gateway controller are not
-installed or enabled. If the subchart is enabled but `xks-gateway.gateway.domain` is empty, only
-the GatewayConfig CRD is installed and the controller remains idle.
+When `xks-gateway.enabled=false` (default), the gateway controller is disabled. A fresh install
+does not install the GatewayConfig CRD. If this release previously installed the CRD, Helm retains
+it as a cluster resource when the subchart is disabled. If the subchart is enabled but
+`xks-gateway.gateway.domain` is empty, only the GatewayConfig CRD is installed and the controller
+remains idle.
 
 Set `xks-gateway.gateway.domain` to a base DNS domain such as `example.com`, without `*.`.
 The operator prefixes the configured subdomain (default `rh-ai`) to form the gateway hostname.
@@ -156,11 +158,16 @@ helm upgrade rhai-on-xks ./charts/rhai-on-xks-chart \
 ```
 
 Without the saved gateway values, the chart defaults to `xks-gateway.enabled=false`: the parent
-cleanup hook deletes the release-owned `GatewayConfig`, Helm removes the CRD, and the gateway
-controller is disabled. Setting only `xks-gateway.enabled=true` is also insufficient; an empty
-`xks-gateway.gateway.domain` makes the pre-upgrade hook delete `default-gateway`. When configured,
-Helm creates or updates the bundled CRD, and the subchart post-hook applies `GatewayConfig` after
-the CRD, gateway namespace, and managed OIDC Secret are ready.
+cleanup hook deletes the release-owned `GatewayConfig`, Helm retains any CRD previously installed
+by this release as a cluster resource, and the gateway controller is disabled. Setting only
+`xks-gateway.enabled=true` is also insufficient; an empty `xks-gateway.gateway.domain` makes the
+pre-upgrade hook delete `default-gateway`. When configured, Helm creates or updates the bundled CRD,
+and the subchart post-hook applies `GatewayConfig` after the CRD, gateway namespace, and managed
+OIDC Secret are ready.
+
+To remove the retained API after disabling the gateway, first confirm no GatewayConfig objects
+should remain, then explicitly delete `gatewayconfigs.services.platform.opendatahub.io`. Deleting
+the CRD also deletes every GatewayConfig object.
 
 ### Inference Gateway
 
@@ -307,6 +314,8 @@ CRDs are **not** removed on uninstall (`helm.sh/resource-policy: keep`). To remo
 **Chart-managed CRDs:**
 ```bash
 kubectl delete crd kserves.components.platform.opendatahub.io
+# Only after confirming no GatewayConfig objects should remain.
+kubectl delete crd gatewayconfigs.services.platform.opendatahub.io
 ```
 **Operator-created CRDs (created by rhai-operator during KServe deployment):**
 ```bash

@@ -33,15 +33,19 @@ DNS record or TLS certificate can still cover the resulting hostname.
 ## CRD handling
 
 The GatewayConfig CRD is a regular Helm template, rendered from `files/gatewayconfig-crd.yaml`
-when the chart is enabled. Helm creates and updates the CRD with the release. A post-install/post-upgrade
-hook waits for the CRD to become Established, then creates or updates `default-gateway` after Helm has
-created the gateway namespace and chart-managed OIDC Secret.
+when the chart is enabled. Helm creates and updates the CRD with the release. The CRD has
+`helm.sh/resource-policy: keep`, so Helm retains it as a cluster resource when the chart is disabled
+or uninstalled. Helm no longer manages it while it is outside the release.
+A post-install/post-upgrade hook waits for the CRD to become Established, then creates or updates
+`default-gateway` after Helm has created the gateway namespace and chart-managed OIDC Secret.
 
-- Disabling the dependency or uninstalling the chart removes the CRD. A pre-upgrade or pre-delete hook
-  deletes `default-gateway` before the CRD is removed. The parent chart provides the pre-upgrade cleanup
-  hook when the dependency is disabled, because a disabled subchart cannot render its own hook.
-- Deleting a CRD also deletes all custom resources of that kind, so this chart assumes exclusive
-  ownership of the GatewayConfig CRD.
+- A pre-upgrade or pre-delete hook deletes the chart-managed `default-gateway`. The parent chart
+  provides the pre-upgrade cleanup hook when the dependency is disabled, because a disabled
+  subchart cannot render its own hook.
+- The retained CRD and any other GatewayConfig objects remain available cluster-wide. If the API is
+  no longer needed, first confirm no GatewayConfig objects should be kept, then explicitly delete
+  the CRD with `kubectl delete crd gatewayconfigs.services.platform.opendatahub.io`. Deleting the
+  CRD removes every GatewayConfig object.
 - GatewayConfig schema changes merged into `rhods-operator` are automatically synchronized into this chart by the [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).
 - For local or manual updates, regenerate the CRD in the operator repository, then run `./scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository` from this chart directory.
 

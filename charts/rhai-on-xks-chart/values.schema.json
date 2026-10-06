@@ -501,11 +501,11 @@
     },
     "xks-gateway": {
       "type": "object",
-      "description": "XKS Gateway subchart: manages the GatewayConfig CRD, gateway namespace, GatewayConfig CR, and optional OIDC Secret. Gateway resources are only created when gateway.domain is set.",
+      "description": "XKS Gateway subchart: installs or updates the GatewayConfig CRD and manages the gateway namespace, GatewayConfig CR, and optional OIDC Secret. Gateway resources are only created when gateway.domain is set. Helm retains an installed CRD as a cluster resource when the subchart is disabled or uninstalled.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable xks-gateway subchart. Disabled by default. When true, Helm installs the GatewayConfig CRD and enables the operator gateway controller. Gateway resources require gateway.domain to be set.",
+          "description": "Enable xks-gateway subchart. Disabled by default. When true, Helm installs or updates the GatewayConfig CRD and enables the operator gateway controller. Gateway resources require gateway.domain to be set. Helm retains an installed CRD as a cluster resource when the subchart is disabled or uninstalled.",
           "default": false
         },
         "hooks": {

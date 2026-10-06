@@ -351,7 +351,7 @@ assert_operator_gateway_service_disabled() {
 }
 
 assert_gateway_disabled() {
-  assert_not_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
+  # The CRD may be retained from an earlier enabled installation.
   assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
   assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
   assert_operator_gateway_service_disabled
@@ -359,9 +359,8 @@ assert_gateway_disabled() {
 
 assert_gateway_disabled_after_upgrade() {
   # The gateway namespace may persist because it has resource-policy: keep.
-  # Removing the CRD also removes its custom resources.
+  # A previously installed GatewayConfig CRD is retained.
   assert_not_exists "GatewayConfig CR" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
-  assert_not_exists "GatewayConfig CRD" "crd/${GATEWAY_CONFIG_CRD}"
   assert_operator_gateway_service_disabled
 }
 
