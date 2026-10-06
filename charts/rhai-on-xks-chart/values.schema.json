@@ -162,7 +162,7 @@
       "properties": {
         "hostname": {
           "type": "string",
-          "description": "External hostname for the shared TLS certificate (e.g. *.mycompany.com). If empty, only cluster-internal DNS is covered.",
+          "description": "External hostname for the shared TLS certificate (e.g. *.example.com). If empty, only cluster-internal DNS is covered.",
           "default": "",
           "pattern": "^$|^(\\*\\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$"
         },
@@ -548,7 +548,8 @@
           "properties": {
             "domain": {
               "type": "string",
-              "description": "External hostname (e.g., example.com). When empty, no gateway resources are created."
+              "description": "Base DNS domain (e.g., example.com); wildcards are unsupported. The operator adds the subdomain (default rh-ai). Empty disables gateway resources.",
+              "pattern": "^$|^([a-z0-9]([-a-z0-9]*[a-z0-9])?\\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
             },
             "subdomain": {
               "type": "string",

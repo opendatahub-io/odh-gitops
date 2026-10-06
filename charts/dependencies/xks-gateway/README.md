@@ -19,6 +19,11 @@ helm upgrade --install rhai-on-xks ./charts/rhai-on-xks-chart \
 
 When the chart is enabled and `gateway.domain` is empty, only the GatewayConfig CRD is installed and no gateway resources are created. It can also be installed standalone for testing.
 
+Set `gateway.domain` to the base DNS domain, such as `example.com`. The operator prefixes
+`gateway.subdomain` (default `rh-ai`), producing `rh-ai.example.com` by default. Do not include
+`*.` in `gateway.domain`; it would produce an invalid Gateway listener hostname. A wildcard
+DNS record or TLS certificate can still cover the resulting hostname.
+
 ## CRD handling
 
 The GatewayConfig CRD is a regular Helm template, rendered from `files/gatewayconfig-crd.yaml`
@@ -33,6 +38,9 @@ created the gateway namespace and chart-managed OIDC Secret.
   ownership of the GatewayConfig CRD.
 - GatewayConfig schema changes merged into `rhods-operator` are automatically synchronized into this chart by the [GitOps sync workflow](https://github.com/red-hat-data-services/rhods-operator/blob/main/.github/workflows/trigger-gitops-sync.yaml).
 - For local or manual updates, regenerate the CRD in the operator repository, then run `./scripts/sync-gatewayconfig-crd.sh /path/to/operator-repository` from this chart directory.
+
+The upstream CRD currently permits wildcard `spec.domain` values. This chart rejects them because
+the operator prefixes a subdomain when creating a Gateway listener on XKS.
 
 The same lifecycle hooks are used when this chart is installed standalone or as a dependency of
 `rhai-on-xks-chart`.

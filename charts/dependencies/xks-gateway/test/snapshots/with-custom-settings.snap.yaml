@@ -479,14 +479,14 @@ spec:
                   app.kubernetes.io/managed-by: Helm
                   app.kubernetes.io/instance: release-test
               spec:
-                domain: "*.mycompany.com"
+                domain: "example.com"
                 subdomain: "ai-platform"
                 ingressMode: LoadBalancer
                 certificate:
                   type: Provided
                   secretName: "my-tls-cert"
                 oidc:
-                  issuerURL: "https://auth.mycompany.com/realms/ai"
+                  issuerURL: "https://auth.example.com/realms/ai"
                   clientID: "ai-platform-client"
                   clientSecretRef:
                     name: "ai-oidc-secret"

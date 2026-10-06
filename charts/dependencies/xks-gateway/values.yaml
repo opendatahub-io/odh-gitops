@@ -26,7 +26,7 @@ hooks:
   imagePullSecretName: ""
 
 gateway:
-  # -- (required) External hostname (e.g., example.com or *.example.com)
+  # -- (required) Base DNS domain (e.g., example.com). The operator prefixes gateway.subdomain (default rh-ai); wildcards are not supported.
   domain: ""
 
   # -- Subdomain prefix for the gateway

@@ -9,7 +9,10 @@ Validation is skipped when gateway.domain is empty (subchart installed but not c
 {{- if ne $gatewayNs "rh-ai-gateway" -}}
 {{- fail "gateway.namespace must be rh-ai-gateway. The operator hardcodes this namespace; custom values are not supported." -}}
 {{- end -}}
-{{- $_ := required "gateway.domain is required. Set it to your external hostname (e.g., example.com or *.example.com).\nUsage: --set gateway.domain=example.com" $gw.domain }}
+{{- $_ := required "gateway.domain is required. Set it to your base DNS domain (e.g., example.com).\nUsage: --set gateway.domain=example.com" $gw.domain }}
+{{- if contains "*" $gw.domain -}}
+{{- fail "gateway.domain must be a base DNS domain without a wildcard (e.g., example.com). The operator prefixes gateway.subdomain (default rh-ai) to form the hostname." -}}
+{{- end -}}
 {{- $_ := required "gateway.oidc.issuerURL is required. Set it to your OIDC provider URL.\nUsage: --set gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai" $gw.oidc.issuerURL }}
 {{- $_ := required "gateway.oidc.clientID is required. Set it to your OIDC client ID.\nUsage: --set gateway.oidc.clientID=rhai-client" $gw.oidc.clientID }}
 {{- if $gw.oidc.oidcClientSecret }}

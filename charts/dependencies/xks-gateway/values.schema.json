@@ -57,8 +57,8 @@
       "properties": {
         "domain": {
           "type": "string",
-          "description": "External hostname (e.g., example.com or *.example.com). Required at install.",
-          "pattern": "^$|^(\\*\\.)?([a-z0-9]([-a-z0-9]*[a-z0-9])?\\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          "description": "Base DNS domain (e.g., example.com); wildcards are unsupported. The operator adds the subdomain (default rh-ai). Empty disables gateway resources.",
+          "pattern": "^$|^([a-z0-9]([-a-z0-9]*[a-z0-9])?\\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
         },
         "subdomain": {
           "type": "string",

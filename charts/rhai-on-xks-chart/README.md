@@ -141,6 +141,9 @@ When `xks-gateway.enabled=false` (default), the GatewayConfig CRD and gateway co
 installed or enabled. If the subchart is enabled but `xks-gateway.gateway.domain` is empty, only
 the GatewayConfig CRD is installed and the controller remains idle.
 
+Set `xks-gateway.gateway.domain` to a base DNS domain such as `example.com`, without `*.`.
+The operator prefixes the configured subdomain (default `rh-ai`) to form the gateway hostname.
+
 When upgrading a release that uses the platform auth gateway, set
 `xks-gateway.enabled=true` explicitly to keep it enabled. Helm creates or updates the bundled
 GatewayConfig CRD. The xks-gateway subchart post-hook waits for the CRD to become Established,

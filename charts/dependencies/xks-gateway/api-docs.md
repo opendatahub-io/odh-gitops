@@ -19,7 +19,7 @@ XKS Gateway onboarding chart - installs the GatewayConfig CRD, gateway namespace
 | gateway.certificate.type | string | `"SelfSigned"` | TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace) |
 | gateway.cookie.expire | string | `"24h"` | Session cookie expiry duration (e.g., "24h", "8h") |
 | gateway.cookie.refresh | string | `"1h"` | Access token refresh interval — must be less than the OIDC provider's Access Token Lifespan |
-| gateway.domain | required | `""` | External hostname (e.g., example.com or *.example.com) |
+| gateway.domain | required | `""` | Base DNS domain (e.g., example.com). The operator prefixes gateway.subdomain (default rh-ai); wildcards are not supported. |
 | gateway.ingressMode | string | `"LoadBalancer"` | How the gateway is exposed externally on XKS (LoadBalancer only) |
 | gateway.namespace | string | `"rh-ai-gateway"` | Namespace created by this chart. Must be rh-ai-gateway; the operator hardcodes that name. |
 | gateway.networkPolicy.ingress.enabled | bool | `true` | Enable ingress NetworkPolicy for kube-auth-proxy |

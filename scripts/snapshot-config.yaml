@@ -130,10 +130,10 @@ charts:
 
       - name: with-custom-settings
         valuesFiles:
-          - charts/dependencies/xks-gateway/test/values-wildcard-domain.yaml
+          - charts/dependencies/xks-gateway/test/values-custom-domain.yaml
         setFlags:
           - gateway.subdomain=ai-platform
-          - gateway.oidc.issuerURL=https://auth.mycompany.com/realms/ai
+          - gateway.oidc.issuerURL=https://auth.example.com/realms/ai
           - gateway.oidc.clientID=ai-platform-client
           - gateway.oidc.clientSecretRef.name=ai-oidc-secret
           - gateway.oidc.clientSecretRef.key=secret

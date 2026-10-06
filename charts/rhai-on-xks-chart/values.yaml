@@ -59,7 +59,7 @@ hooks:
 
 # Cluster wise config for gateway for tls, shared config for all components section below
 gateway:
-  # External hostname e.g. "*.mycompany.com", if empty, only cluster-internal DNS (svc.cluster.local) to use
+  # External hostname e.g. "*.example.com", if empty, only cluster-internal DNS (svc.cluster.local) to use
   hostname: ""
   tls:
     # When false, gateways are HTTP only
