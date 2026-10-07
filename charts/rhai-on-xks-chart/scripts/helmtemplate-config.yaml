@@ -235,6 +235,16 @@ rules:
       - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
         value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
 
+  # Update ValidatingWebhookConfiguration cert annotation
+  - match:
+      kinds:
+        - ValidatingWebhookConfiguration
+      names:
+        - "rhai-operator-validating-webhook-configuration"
+    changes:
+      - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
+        value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
+
   # Add image pull secrets to ServiceAccount
   - match:
       kinds:
