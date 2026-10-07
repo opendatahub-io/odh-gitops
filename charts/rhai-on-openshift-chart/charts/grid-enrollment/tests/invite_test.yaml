@@ -1,0 +1,262 @@
+suite: site invites
+templates:
+  - templates/enrollment/invite-job.yaml
+set:
+  invites:
+    - siteName: site-d
+      gridNetworkRef: my-grid
+      expiresInSecs: 86400
+tests:
+  - it: renders nothing without invites
+    set:
+      invites: []
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: runs enrollment invite after install and upgrade
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: post-install,post-upgrade
+      - equal:
+          path: spec.template.spec.containers[0].command
+          value: ["enrollment", "invite"]
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: https://RELEASE-NAME-grid-enrollment.NAMESPACE.svc:8443
+      - equal:
+          path: spec.template.spec.containers[0].env[0]
+          value:
+            name: ENROLLMENT_INVITES
+            value: '[{"expiresInSecs":86400,"gridNetworkRef":"my-grid","siteName":"site-d"}]'
+      - equal:
+          path: spec.template.spec.enableServiceLinks
+          value: false
+
+  - it: authenticates with a token bound to the enrollment audience
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      enrollment.tokenAudience: grid-enrollment-test
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[1].projected.sources[0].serviceAccountToken
+          value:
+            audience: grid-enrollment-test
+            expirationSeconds: 600
+            path: token
+      - equal:
+          path: spec.template.spec.volumes[0].secret.secretName
+          value: grid-ca-bundle
+
+  - it: binds the invite ServiceAccount to the grid-admin Role
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-grid-enrollment-invite-grid-admin
+    asserts:
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-grid-enrollment-grid-admin
+      - equal:
+          path: subjects[0].name
+          value: RELEASE-NAME-grid-enrollment-invite
+
+  - it: grants Secret create and get scoped to the invite Secrets
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      invites:
+        - siteName: site-d
+          gridNetworkRef: my-grid
+        - siteName: site-e
+          gridNetworkRef: my-grid
+    asserts:
+      - equal:
+          path: rules
+          value:
+            - apiGroups: [""]
+              resources: ["secrets"]
+              verbs: ["create"]
+            - apiGroups: [""]
+              resources: ["secrets"]
+              verbs: ["get"]
+              resourceNames: ["grid-invite-site-d", "grid-invite-site-e"]
+
+  - it: names the Job the same on every revision so the next run replaces it
+    documentSelector:
+      path: kind
+      value: Job
+    release:
+      revision: 7
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-grid-enrollment-invite
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "0"
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: invite
+
+  - it: keeps the Job name within 63 characters
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      fullnameOverride: a-very-long-release-name-that-goes-on-and-on-and-on-past-the-limit
+    asserts:
+      - matchRegex:
+          path: metadata.name
+          pattern: ^[a-z0-9-]{1,62}[a-z0-9]$
+
+  - it: keeps invite names apart from the release fullname
+    release:
+      name: a-release-name-of-exactly-fifty-one-characters-xxxx
+    asserts:
+      - notEqual:
+          path: metadata.name
+          value: a-release-name-of-exactly-fifty-one-characters-xxxx-grid-enroll
+        documentSelector:
+          path: kind
+          value: ServiceAccount
+      - notEqual:
+          path: metadata.name
+          value: a-release-name-of-exactly-fifty-one-characters-xxxx-grid-enroll
+        documentSelector:
+          path: kind
+          value: Role
+      - notEqual:
+          path: metadata.name
+          value: a-release-name-of-exactly-fifty-one-characters-xxxx-grid-enroll
+        documentSelector:
+          path: kind
+          value: Job
+
+  - it: refuses a fullname the invite name would collide with
+    set:
+      fullnameOverride: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-invite
+    asserts:
+      - failedTemplate:
+          errorPattern: invite resource names collide with the release fullname
+
+  - it: creates the invite RBAC before the Job and removes it after
+    documentSelector:
+      path: kind
+      value: ServiceAccount
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-10"
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation,hook-succeeded,hook-failed
+
+  - it: binds the invite Role to the invite ServiceAccount
+    documentSelector:
+      path: roleRef.name
+      value: RELEASE-NAME-grid-enrollment-invite
+    asserts:
+      - isKind:
+          of: RoleBinding
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: RELEASE-NAME-grid-enrollment-invite
+              namespace: NAMESPACE
+
+  - it: passes imagePullSecrets to the ServiceAccount and the Job
+    set:
+      imagePullSecrets:
+        - name: pull
+    asserts:
+      - equal:
+          path: imagePullSecrets
+          value:
+            - name: pull
+        documentSelector:
+          path: kind
+          value: ServiceAccount
+      - equal:
+          path: spec.template.spec.imagePullSecrets
+          value:
+            - name: pull
+        documentSelector:
+          path: kind
+          value: Job
+
+  - it: schedules the Job like the enrollment pod
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      enrollment.resources:
+        limits:
+          memory: 64Mi
+      enrollment.nodeSelector:
+        zone: a
+      enrollment.tolerations:
+        - key: dedicated
+          operator: Exists
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            limits:
+              memory: 64Mi
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            zone: a
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: dedicated
+              operator: Exists
+
+  - it: reads the pin from a custom CA bundle Secret
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      ca.bundleSecretName: my-grid-ca
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[0].secret.secretName
+          value: my-grid-ca
+
+  - it: refuses invites under local authz
+    set:
+      enrollment.authz: local
+    asserts:
+      - failedTemplate:
+          errorPattern: invites need enrollment.authz=kube
+
+  - it: refuses a site name that cannot name the Secret
+    set:
+      invites:
+        - siteName: Site_D
+          gridNetworkRef: my-grid
+    asserts:
+      - failedTemplate:
+          errorPattern: "invites[./]0[./]siteName"
+
+  - it: refuses a token lifetime past seven days
+    set:
+      invites:
+        - siteName: site-d
+          gridNetworkRef: my-grid
+          expiresInSecs: 604801
+    asserts:
+      - failedTemplate:
+          errorPattern: "invites[./]0[./]expiresInSecs"

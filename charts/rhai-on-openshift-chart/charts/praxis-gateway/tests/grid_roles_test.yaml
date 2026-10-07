@@ -1,0 +1,248 @@
+suite: grid roles
+templates:
+  - templates/gateway-config.yaml
+  - templates/deployment.yaml
+release:
+  name: gw
+  namespace: grid
+set:
+  image.flavor: grid-gateway
+  gatewayConfig.render: true
+  gatewayConfig.localSite: east
+  tls.enabled: true
+  tls.existingSecret: grid-site-identity
+  tls.caSecret: grid-ca
+  gatewayConfig.role: provider
+  gatewayConfig.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+  gatewayConfig.backends:
+    - cluster: local
+      endpoints: ["10.96.0.20:8000"]
+      transport: { mode: plaintext }
+tests:
+  - it: a pin provider requires a Grid-CA client certificate and checks the digest first
+    template: templates/gateway-config.yaml
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'client_cert_mode: require\n'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)filters:\s+- filter: peer_identity_trust.*cert_digest: "a{64}".*- filter: static_response.*- filter: router.*- filter: headers.*X-Grid-Provider-Site.*value: "east"'
+
+  - it: a rate limit sits between peer trust and the router
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.peerTrust.rateLimit: { rate: 20, burst: 40 }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)peer_identity_trust.*- filter: rate_limit\s+mode: global\s+rate: 20\s+burst: 40.*- filter: router'
+
+  - it: the router forwards only the allowed paths, matched exactly
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.provider.allowedPaths: ["/v1/models"]
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '- path: "/v1/models"\s+cluster: "local"'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'path_prefix'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: '"/v1/chat/completions"'
+
+  - it: refuses every method but GET and POST before routing
+    template: templates/gateway-config.yaml
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)- filter: static_response\s+status: 405\s+conditions:\s+- unless:\s+methods: \[GET, POST\]\s+.*- filter: router'
+
+  - it: refuses an allowed path that could traverse or widen the match
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.provider.allowedPaths: ["/v1/models/../../x"]
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a percent-encoded allowed path
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.provider.allowedPaths: ["/v1/%2e%2e/x"]
+    asserts:
+      - failedTemplate: {}
+
+  - it: a spiffe provider names allowed peers and reads no digests
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.peerTrust.mode: spiffe
+      gatewayConfig.peerTrust.certDigests: []
+      gatewayConfig.peerTrust.spiffeIds: ["spiffe://grid.internal/site/hub"]
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'client_cert_mode: require_named\s+trusted_spiffe_ids:\s+- "spiffe://grid.internal/site/hub"'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: peer_identity_trust
+
+  - it: projects the identity and the Grid CA into one directory
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tls
+            projected:
+              sources:
+                - secret:
+                    name: grid-site-identity
+                    items: [{ key: tls.crt, path: tls.crt }, { key: tls.key, path: tls.key }]
+                - secret:
+                    name: grid-ca
+                    items: [{ key: ca.crt, path: ca.crt }]
+
+  - it: does not require a model on a provider
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.model: ""
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: a provider needs the grid-gateway flavor
+    template: templates/deployment.yaml
+    set:
+      image.flavor: ai
+    asserts:
+      - failedTemplate:
+          errorPattern: "image.flavor grid-gateway"
+
+  - it: renders connect timeouts only when set
+    template: templates/gateway-config.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: connection_timeout_ms
+
+  - it: renders connect timeouts that are set
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.backends:
+        - cluster: local
+          endpoints: ["10.96.0.20:8000"]
+          connectTimeoutMs: 1000
+          totalConnectTimeoutMs: 4000
+          transport: { mode: plaintext }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'connection_timeout_ms: 1000\s+total_connection_timeout_ms: 4000'
+
+  - it: trusts only the hostname endpoints of a trustPrivate backend
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.backends:
+        - cluster: local
+          endpoints: ["m.ns.svc.cluster.local.:8000", "10.96.0.20:8000"]
+          trustPrivate: true
+          transport: { mode: tls, sni: m.ns.svc }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'trusted_private_endpoints:\s+- "m.ns.svc.cluster.local"\n'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'trusted_private_endpoints:\s+(- "[^"]+"\s+)*- "10\.96'
+
+  - it: a consumer candidate names the remote site it routes to
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.role: consumer
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: m
+      gatewayConfig.auth.mode: none
+      gatewayConfig.peerTrust.certDigests: []
+      gatewayConfig.backends:
+        - cluster: site-a
+          site: site-a
+          endpoints: ["203.0.113.20:8080"]
+          transport: { mode: mutual_tls, sni: site-a.grid.internal }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'site: "site-a", cluster: "site-a"'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'local_site: "hub"'
+
+  - it: refuses a remote consumer backend with no site
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.role: consumer
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: m
+      gatewayConfig.auth.mode: none
+      gatewayConfig.peerTrust.certDigests: []
+      gatewayConfig.backends:
+        - cluster: site-a
+          endpoints: ["203.0.113.20:8080"]
+          transport: { mode: mutual_tls, sni: site-a.grid.internal }
+    asserts:
+      - failedTemplate:
+          errorPattern: set its site
+
+  - it: refuses a remote consumer backend named as the local site
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.role: consumer
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: m
+      gatewayConfig.auth.mode: none
+      gatewayConfig.peerTrust.certDigests: []
+      gatewayConfig.backends:
+        - cluster: site-a
+          site: hub
+          endpoints: ["203.0.113.20:8080"]
+          transport: { mode: mutual_tls, sni: site-a.grid.internal }
+    asserts:
+      - failedTemplate:
+          errorPattern: a remote backend is another site
+
+  - it: a remote backend verifies <site>.grid.internal by default
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.role: consumer
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: m
+      gatewayConfig.auth.mode: none
+      gatewayConfig.peerTrust.certDigests: []
+      gatewayConfig.backends:
+        - cluster: site-a
+          site: site-a
+          endpoints: ["203.0.113.20:8080"]
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'sni: "site-a.grid.internal"'
+
+  - it: a provider mounts the default identity and grid-ca
+    template: templates/deployment.yaml
+    set:
+      tls.existingSecret: grid-site-identity
+      tls.caSecret: null
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tls
+            projected:
+              sources:
+                - secret:
+                    name: grid-site-identity
+                    items: [{ key: tls.crt, path: tls.crt }, { key: tls.key, path: tls.key }]
+                - secret:
+                    name: grid-ca
+                    items: [{ key: ca.crt, path: ca.crt }]

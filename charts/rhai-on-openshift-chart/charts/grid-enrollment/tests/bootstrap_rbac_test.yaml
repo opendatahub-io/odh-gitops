@@ -1,0 +1,231 @@
+suite: bootstrap Job and RBAC
+templates:
+  - templates/certs/ca-bootstrap-job.yaml
+  - templates/certs/ca-bootstrap-rbac.yaml
+  - templates/enrollment/auth-rbac.yaml
+tests:
+  - it: names one Job across upgrades, so runs do not pile up
+    template: templates/certs/ca-bootstrap-job.yaml
+    release:
+      name: grid-enrollment
+      revision: 7
+    asserts:
+      - equal:
+          path: metadata.name
+          value: grid-enrollment-ca-bootstrap
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+
+  - it: removes its finished Job after a day, since hook Jobs outlive uninstall
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      - equal:
+          path: spec.ttlSecondsAfterFinished
+          value: 86400
+
+  - it: keeps the finished Job when the TTL is null
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      ca.bootstrap.ttlSecondsAfterFinished: null
+    asserts:
+      - notExists:
+          path: spec.ttlSecondsAfterFinished
+
+  - it: runs the enrollment bootstrap subcommand
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      - isKind:
+          of: Job
+      - equal:
+          path: spec.template.spec.containers[0].command
+          value: ["enrollment", "bootstrap"]
+
+  - it: passes the CA, serving, and DB cert secrets but no gossip flag
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --db-serving-secret
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --serving-secret
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --gossip-key-secret
+
+  - it: scopes bootstrap get/update to exactly the Secrets it manages, no gossip
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: rules[1].resourceNames
+          value:
+            - grid-ca-key
+            - grid-ca-bundle
+            - enrollment-serving-tls
+            - grid-db-serving-tls
+            - RELEASE-NAME-grid-enrollment-db
+
+  - it: binds the enrollment SA to system:auth-delegator under authz=kube
+    template: templates/enrollment/auth-rbac.yaml
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: roleRef.name
+          value: system:auth-delegator
+
+  - it: omits the auth-delegator binding under authz=local
+    template: templates/enrollment/auth-rbac.yaml
+    set:
+      enrollment.authz: local
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: lets bootstrap read and roll only the builtin DB Deployment
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources: ["deployments"]
+            resourceNames: ["RELEASE-NAME-grid-enrollment-db"]
+            verbs: ["get", "patch"]
+
+  - it: grants no apps access at all with an external DB
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      db.type: external
+      db.external.connectionUrlSecretRef: db-url
+    asserts:
+      - notMatchRegex:
+          path: rules[*].apiGroups[0]
+          pattern: ^apps$
+
+  - it: tells bootstrap which DB Deployment to roll
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --db-deployment
+
+  - it: pins the bootstrap Job image by digest when image.digest is set
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      image.digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/praxis-proxy/grid-enrollment@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  - it: creates the builtin DB credentials once, from the bootstrap Job
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --db-credentials-secret
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: RELEASE-NAME-grid-enrollment-db
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --admin-tokens-secret
+
+  - it: leaves a brought DB Secret alone
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      db.builtin.auth.existingSecretRef: my-db
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --db-credentials-secret
+
+  - it: creates the local grid-admin token table once under authz=local
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      enrollment.authz: local
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --admin-tokens-secret
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: RELEASE-NAME-grid-enrollment-grid-admin-tokens
+
+  - it: with a provided CA, runs only to create the token table and skips the CA
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      ca.method: provided
+      ca.provided.keySecretRef: my-ca
+      db.type: external
+      db.external.connectionUrlSecretRef: db-url
+      serving.existingSecretRef: my-serving
+      enrollment.authz: local
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value:
+            - --namespace
+            - NAMESPACE
+            - --admin-tokens-secret
+            - RELEASE-NAME-grid-enrollment-grid-admin-tokens
+            - --skip-ca
+
+  - it: scopes the provided-CA run to the token table
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      ca.method: provided
+      ca.provided.keySecretRef: my-ca
+      db.type: external
+      db.external.connectionUrlSecretRef: db-url
+      serving.existingSecretRef: my-serving
+      enrollment.authz: local
+    asserts:
+      - equal:
+          path: rules[1].resourceNames
+          value:
+            - RELEASE-NAME-grid-enrollment-grid-admin-tokens
+
+  - it: runs no Job with a provided CA and nothing to generate
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      ca.method: provided
+      ca.provided.keySecretRef: my-ca
+      db.type: external
+      db.external.connectionUrlSecretRef: db-url
+      serving.existingSecretRef: my-serving
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: may patch only the generated credentials, to mark them for Argo CD
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      enrollment.authz: local
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["secrets"]
+            resourceNames:
+              - RELEASE-NAME-grid-enrollment-db
+              - RELEASE-NAME-grid-enrollment-grid-admin-tokens
+            verbs: ["patch"]

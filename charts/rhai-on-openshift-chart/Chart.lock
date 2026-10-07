@@ -1,0 +1,12 @@
+dependencies:
+- name: grid-enrollment
+  repository: ""
+  version: 0.1.0
+- name: grid-operator
+  repository: ""
+  version: 0.1.4
+- name: praxis-gateway
+  repository: ""
+  version: 0.1.4
+digest: sha256:da1baa8d0f400b6666ed1e2cf187be57301a96cbc40b8b346b211114270b3de9
+generated: "2026-09-29T21:15:10.502611864-04:00"

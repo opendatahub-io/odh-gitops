@@ -1,0 +1,34 @@
+suite: CRDs
+templates:
+  - templates/crds/agenttoolprovider.yaml
+  - templates/crds/gridnetwork.yaml
+  - templates/crds/gridsite.yaml
+  - templates/crds/inferenceprovider.yaml
+tests:
+  - it: installs every CRD, kept on uninstall and never pruned by Argo CD
+    asserts:
+      - isKind:
+          of: CustomResourceDefinition
+      - equal:
+          path: metadata.annotations["helm.sh/resource-policy"]
+          value: keep
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: Prune=false,Delete=false,ServerSideApply=true
+
+  - it: renders no CRD when the platform owns them
+    set:
+      crds.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: lets helm uninstall and Argo CD remove them when keep is false
+    set:
+      crds.keep: false
+    asserts:
+      - notExists:
+          path: metadata.annotations["helm.sh/resource-policy"]
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true

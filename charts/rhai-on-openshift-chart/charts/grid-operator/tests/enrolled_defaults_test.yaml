@@ -1,0 +1,73 @@
+suite: enrolled site defaults
+templates:
+  - templates/deployment.yaml
+  - templates/service-swim.yaml
+  - templates/rolebindings-resources.yaml
+release:
+  name: grid-operator
+  namespace: grid
+tests:
+  - it: a hub needs only its site name and enrollment on
+    template: templates/deployment.yaml
+    set:
+      swim.siteName: hub
+      enrollment.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: GRID_ENROLL_URL, value: "https://grid-enrollment.grid-enrollment.svc:8443" }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: GRID_ENROLL_SITE_NAME, value: hub }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: GRID_ENROLL_TOKEN_SECRET, value: grid-invite-hub }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: GRID_GATEWAY_SERVICE_NAME, value: grid-gateway }
+
+  - it: enrollment brings a LoadBalancer SWIM Service
+    template: templates/service-swim.yaml
+    set:
+      swim.siteName: hub
+      enrollment.enabled: true
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+
+  - it: an explicit SWIM Service setting wins over the enrollment default
+    template: templates/service-swim.yaml
+    set:
+      swim.siteName: hub
+      enrollment.enabled: true
+      swim.service.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: without enrollment there is no SWIM Service, as before
+    template: templates/service-swim.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: an explicit SWIM Service stays ClusterIP without a type, as before
+    template: templates/service-swim.yaml
+    set:
+      swim.service.enabled: true
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: enrollment guards the grid-enrollment namespace by default
+    template: templates/rolebindings-resources.yaml
+    release:
+      namespace: grid-enrollment
+    set:
+      swim.siteName: hub
+      enrollment.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: must not get operator Secret access

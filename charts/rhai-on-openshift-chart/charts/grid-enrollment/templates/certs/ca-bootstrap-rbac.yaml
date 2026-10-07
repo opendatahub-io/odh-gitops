@@ -1,0 +1,104 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- if include "grid-enrollment.bootstrapRuns" . }}
+{{- $ca := ne (include "grid-enrollment.caProvided" .) "true" }}
+{{/*
+RBAC for the bootstrap Job: it reads and writes the CA, bundle, serving, DB
+serving, and generated credentials Secrets in this namespace only. get+create
+cover generate-if-absent; update covers ca.forceRegenerate (replace-in-place, no
+absent window).
+*/}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+rules:
+  # create cannot be resourceName-scoped (the object does not exist yet).
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  # get/update restricted to exactly the Secrets the bootstrap manages,
+  # so this SA cannot read any other Secret in the namespace.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      {{- if $ca }}
+      - {{ .Values.ca.keySecretName | quote }}
+      - {{ .Values.ca.bundleSecretName | quote }}
+      - {{ .Values.serving.secretName | quote }}
+      {{- if eq .Values.db.type "builtin" }}
+      - {{ .Values.db.builtin.tls.servingSecretName | quote }}
+      {{- end }}
+      {{- end }}
+      {{- if include "grid-enrollment.generatesDbCredentials" . }}
+      - {{ include "grid-enrollment.dbUrlSecret" . | quote }}
+      {{- end }}
+      {{- if include "grid-enrollment.generatesAdminTokens" . }}
+      - {{ include "grid-enrollment.adminTokensSecret" . | quote }}
+      {{- end }}
+    verbs: ["get", "update"]
+  {{- if or (include "grid-enrollment.generatesDbCredentials" .) (include "grid-enrollment.generatesAdminTokens" .) }}
+  # patch marks the generated credentials so Argo CD never prunes them.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      {{- if include "grid-enrollment.generatesDbCredentials" . }}
+      - {{ include "grid-enrollment.dbUrlSecret" . | quote }}
+      {{- end }}
+      {{- if include "grid-enrollment.generatesAdminTokens" . }}
+      - {{ include "grid-enrollment.adminTokensSecret" . | quote }}
+      {{- end }}
+    verbs: ["patch"]
+  {{- end }}
+  {{- if and $ca (eq .Values.db.type "builtin") }}
+  # Read and roll the builtin Postgres, and nothing else, so it serves the
+  # certificate its Secret holds.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames:
+      - {{ include "grid-enrollment.dbHost" . | quote }}
+    verbs: ["get", "patch"]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

@@ -1,0 +1,64 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- if eq .Values.enrollment.authz "kube" }}
+{{- $fullname := include "grid-enrollment.fullname" . }}
+{{- $admins := .Values.enrollment.gridAdmins }}
+{{- $subjects := $admins.subjects | default list }}
+{{- range $subjects }}
+{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$" .name }}
+{{- fail (printf "enrollment.gridAdmins.subjects: %q is a cluster-wide group and would make it grid-admin" .name) }}
+{{- end }}
+{{- end }}
+{{- if $admins.serviceAccount.create }}
+{{- $subjects = append $subjects (dict "kind" "ServiceAccount" "name" $admins.serviceAccount.name "namespace" .Release.Namespace) }}
+{{- end }}
+{{/*
+Grid-admin actions on the virtual enrollmenttokens resource. A template, since
+no CRD publishes the resource for kubectl create role to discover.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-grid-admin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["grid.praxis-proxy.io"]
+    resources: ["enrollmenttokens"]
+    verbs: ["create", "delete"]
+{{- if $admins.serviceAccount.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $admins.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+{{- end }}
+{{- with $subjects }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-grid-admin
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" $ | nindent 4 }}
+subjects:
+  {{- range . }}
+  - kind: {{ .kind }}
+    name: {{ .name | quote }}
+    {{- if eq .kind "ServiceAccount" }}
+    namespace: {{ .namespace | default $.Release.Namespace | quote }}
+    {{- else }}
+    apiGroup: rbac.authorization.k8s.io
+    {{- end }}
+  {{- end }}
+roleRef:
+  kind: Role
+  name: {{ $fullname }}-grid-admin
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}

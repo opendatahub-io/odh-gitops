@@ -1,0 +1,118 @@
+suite: Route
+templates:
+  - templates/route.yaml
+set:
+  fullnameOverride: grid-gateway
+  gatewayConfig:
+    render: true
+    model: m
+    localSite: hub
+    auth: {mode: none}
+    backends:
+      - cluster: c
+        endpoints: ["10.0.0.1:8000"]
+        transport: {mode: plaintext}
+    listenerTls:
+      enabled: true
+      existingSecret: listener-tls
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders a passthrough Route to the https port
+    set:
+      route.enabled: true
+      route.host: gw.apps.example.com
+      gatewayConfig.auth.allowUnauthenticatedExposure: true
+    asserts:
+      - isKind:
+          of: Route
+      - equal:
+          path: spec.host
+          value: gw.apps.example.com
+      - equal:
+          path: spec.to.name
+          value: grid-gateway
+      - equal:
+          path: spec.port.targetPort
+          value: https
+      - equal:
+          path: spec.tls.termination
+          value: passthrough
+      - notExists:
+          path: spec.tls.destinationCACertificate
+
+  - it: requires the chart Service
+    set:
+      route.enabled: true
+      route.host: gw.apps.example.com
+      service.enabled: false
+    asserts:
+      - failedTemplate:
+          errorPattern: route.enabled needs service.enabled
+
+  - it: requires a host
+    set:
+      route.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: route.host is required
+
+  - it: refuses a plaintext listener
+    set:
+      route.enabled: true
+      route.host: gw.apps.example.com
+      gatewayConfig.listenerTls.enabled: false
+    asserts:
+      - failedTemplate:
+          errorPattern: route needs TLS at the gateway
+
+  - it: refuses unauthenticated exposure
+    set:
+      route.enabled: true
+      route.host: gw.apps.example.com
+    asserts:
+      - failedTemplate:
+          errorPattern: exposes unauthenticated inference
+
+  - it: needs the destination CA for reencrypt
+    set:
+      route.enabled: true
+      route.host: gw.apps.example.com
+      route.tls.termination: reencrypt
+      gatewayConfig.auth.allowUnauthenticatedExposure: true
+    asserts:
+      - failedTemplate:
+          errorPattern: needs route.tls.destinationCACertificate
+
+  - it: carries the destination CA for reencrypt
+    set:
+      route.enabled: true
+      route.host: gw.apps.example.com
+      route.tls.termination: reencrypt
+      route.tls.destinationCACertificate: PEM
+      gatewayConfig.auth.allowUnauthenticatedExposure: true
+    asserts:
+      - matchRegex:
+          path: spec.tls.destinationCACertificate
+          pattern: ^PEM
+
+  - it: refuses reencrypt for a provider
+    set:
+      route.enabled: true
+      route.host: site-a.apps.example.com
+      route.tls.termination: reencrypt
+      route.tls.destinationCACertificate: PEM
+      image.flavor: grid-gateway
+      gatewayConfig.role: provider
+      gatewayConfig.listenerTls.enabled: false
+      gatewayConfig.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      tls:
+        enabled: true
+        existingSecret: grid-site-identity
+        caSecret: grid-ca
+    asserts:
+      - failedTemplate:
+          errorPattern: reencrypt drops the peer client certificate

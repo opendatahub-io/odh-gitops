@@ -1,0 +1,76 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- $fullname := include "praxis-gateway.fullname" . }}
+{{- $configSource := include "praxis-gateway.configSource" . }}
+{{- $scheme := ternary "https" "http" .Values.gatewayConfig.listenerTls.enabled -}}
+Praxis gateway installed.
+
+  Release:   {{ .Release.Name }}
+  Namespace: {{ .Release.Namespace }}
+  Image:     {{ include "praxis-gateway.image" . }}
+  Config:    {{ if eq $configSource "existing" }}ConfigMap {{ .Values.config.existingConfigMap }} (key {{ .Values.config.key }}){{ else if eq $configSource "render" }}rendered from gatewayConfig{{ else }}config.inline (ConfigMap {{ $fullname }}-config){{ end }}
+
+Wait for the rollout:
+
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ $fullname }}
+{{- if .Values.service.enabled }}
+
+Send a request through the gateway:
+
+  kubectl -n {{ .Release.Namespace }} port-forward service/{{ $fullname }} 8080:{{ .Values.service.port }}
+  curl {{ if eq $scheme "https" }}-k {{ end }}{{ $scheme }}://127.0.0.1:8080/
+
+Run the chart's connectivity test:
+
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+{{- end }}
+{{- if eq $configSource "inline" }}
+
+Change the configuration by setting config.inline (for example with
+--set-file config.inline=praxis.yaml) and running helm upgrade. The pods
+roll to pick it up.
+{{- else if eq $configSource "existing" }}
+
+The chart does not manage ConfigMap {{ .Values.config.existingConfigMap }}. After editing it,
+restart the pods to load it right away:
+
+  kubectl -n {{ .Release.Namespace }} rollout restart deployment/{{ $fullname }}
+{{- end }}
+{{- if .Values.overlay.enabled }}
+
+Overlay ConfigMap: {{ .Values.overlay.existingConfigMap }}
+  Mount path: {{ .Values.overlay.mountPath }}
+{{- end }}
+{{- if .Values.tls.enabled }}
+
+TLS Secret: {{ .Values.tls.existingSecret }}
+  Mount path: {{ .Values.tls.mountPath }}
+{{- end }}
+{{- if .Values.credentials }}
+
+Credential mounts:
+{{- range .Values.credentials }}
+  - {{ .name }} -> {{ .mountPath }}{{ if .optional }} (optional){{ end }}
+{{- end }}
+{{- end }}
+{{- if and .Values.gatewayConfig.render (not .Values.gatewayConfig.auth.stripAuthorization) }}
+
+WARNING: gatewayConfig.auth.stripAuthorization is false. The caller's Authorization
+header reaches every backend and cross-site peer. Use this only when the backend
+validates that same credential.
+{{- end }}
+{{- $sameNsAll := false }}
+{{- range .Values.networkPolicy.from }}
+{{- if and (hasKey . "podSelector") (include "praxis-gateway.selectsAll" .podSelector) (not (hasKey . "namespaceSelector")) (not .ipBlock) }}
+{{- $sameNsAll = true }}
+{{- end }}
+{{- end }}
+{{- if and .Values.gatewayConfig.render (eq .Values.gatewayConfig.auth.mode "none") (or (not .Values.networkPolicy.enabled) $sameNsAll) }}
+
+NOTE: gatewayConfig.auth.mode is none and
+{{- if .Values.networkPolicy.enabled }} networkPolicy.from admits every pod in this namespace
+({podSelector: {}}).
+{{- else }} no NetworkPolicy limits ingress.
+{{- end }}
+Anything that exposes the pod outside this chart serves unauthenticated inference.
+Limit networkPolicy.from to the authenticating front.
+{{- end }}

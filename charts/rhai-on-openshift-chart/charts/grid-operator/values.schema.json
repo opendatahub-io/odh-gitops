@@ -1,0 +1,489 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Subchart toggle set by a parent chart's dependency condition."
+    },
+    "global": {
+      "type": "object",
+      "description": "Global values Helm passes to every subchart."
+    },
+    "crds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Install and upgrade the Grid CRDs. Set false when the platform owns them."
+        },
+        "keep": {
+          "type": "boolean",
+          "description": "Keep the CRDs on helm uninstall and an Argo CD delete or prune."
+        }
+      }
+    },
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "description": "Number of operator replicas. Must be 1 until multi-replica operation is qualified."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Container image repository."
+        },
+        "tag": {
+          "type": "string",
+          "description": "Image tag. Defaults to the chart appVersion when empty."
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^(sha256:[0-9a-f]{64})?$",
+          "description": "Immutable image digest. When set, the tag is ignored."
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy."
+        }
+      }
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "description": "Image pull secrets for private registries."
+    },
+    "nameOverride": {
+      "type": "string",
+      "description": "Override the chart name used in resource names."
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "description": "Override the fully qualified app name."
+    },
+    "commonLabels": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Labels added to all resources."
+    },
+    "podLabels": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Labels added to the operator pod template."
+    },
+    "podAnnotations": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Annotations added to the operator pod template."
+    },
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create a ServiceAccount for the operator."
+        },
+        "name": {
+          "type": "string",
+          "description": "ServiceAccount name. Defaults to the fullname."
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Annotations on the ServiceAccount (e.g. for IAM role binding)."
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create ClusterRoles, ClusterRoleBindings, and RoleBindings."
+        },
+        "enrollmentNamespace": {
+          "type": "string",
+          "description": "The grid-enrollment namespace, which the render refuses to grant Secret access in."
+        }
+      }
+    },
+    "resourceNamespaces": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional namespaces where the operator needs Secret, ConfigMap, Event, and Service access. The release namespace is always included."
+    },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "RUST_LOG filter directive."
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bindAddress": {
+          "type": "string",
+          "description": "Metrics and health server bind address."
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create a ClusterIP Service for the metrics port."
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Service port number."
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Annotations on the metrics Service."
+            }
+          }
+        }
+      }
+    },
+    "swim": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bindAddress": {
+          "type": "string",
+          "description": "SWIM protocol bind address."
+        },
+        "advertiseAddress": {
+          "type": "string",
+          "description": "Externally reachable SWIM advertise address. Defaults to the SWIM Service LoadBalancer address when that Service is a LoadBalancer, else Pod IP and bind port."
+        },
+        "requireKey": {
+          "type": "boolean",
+          "description": "Hold SWIM traffic until the GridNetwork key loads or the network declares none. false opts out."
+        },
+        "siteName": {
+          "type": "string",
+          "description": "Bootstrap SWIM site name override."
+        },
+        "seeds": {
+          "type": "string",
+          "description": "Bootstrap SWIM seed addresses (comma-separated)."
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create a Service for the SWIM port."
+            },
+            "type": {
+              "type": "string",
+              "enum": ["ClusterIP", "LoadBalancer", "NodePort"],
+              "description": "SWIM Service type."
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "SWIM Service port."
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Annotations on the SWIM Service."
+            },
+            "loadBalancerIP": {
+              "type": "string",
+              "description": "Static IP for LoadBalancer type. Deprecated in Kubernetes, so prefer an annotation such as metallb.io/loadBalancerIPs."
+            },
+            "externalTrafficPolicy": {
+              "type": "string",
+              "enum": ["", "Cluster", "Local"],
+              "description": "External traffic policy for LoadBalancer or NodePort Services."
+            },
+            "loadBalancerSourceRanges": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^[0-9a-fA-F.:]+/[0-9]{1,3}$" },
+              "description": "CIDRs allowed to reach the SWIM and signals LoadBalancer."
+            }
+          }
+        }
+      }
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Serve the mTLS signals endpoint, expose it on the SWIM Service, and set GRID_SIGNALS_LOCAL_ADDR. For signalTransport poll."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Signals TCP port on the SWIM Service, gossiped to peers with its LoadBalancer address."
+        },
+        "advertiseAddress": {
+          "type": "string",
+          "description": "Signals endpoint gossiped to peers, ip:port, [ipv6]:port, or dns-name:port. Overrides the LoadBalancer discovery."
+        }
+      }
+    },
+    "gateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "type": "string",
+          "description": "Advertised gateway address override."
+        },
+        "serviceName": {
+          "type": "string",
+          "pattern": "^([a-z]([-a-z0-9]{0,61}[a-z0-9])?)?$",
+          "description": "Gateway Kubernetes Service name for discovery; empty uses provider-gateway."
+        },
+        "namespace": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)?$",
+          "description": "Namespace of the gateway Service; empty uses the release namespace."
+        },
+        "allowSystemNamespace": {
+          "type": "boolean",
+          "description": "Allow gateway.namespace to be default, kube-*, or openshift-*."
+        },
+        "port": {
+          "type": "string",
+          "description": "Gateway port for discovery."
+        }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "liveness": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "initialDelaySeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Liveness probe initial delay."
+            },
+            "periodSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Liveness probe period."
+            }
+          }
+        },
+        "readiness": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "initialDelaySeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Readiness probe initial delay."
+            },
+            "periodSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Readiness probe period."
+            }
+          }
+        }
+      }
+    },
+    "serviceMonitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Create a Prometheus ServiceMonitor."
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Additional ServiceMonitor labels."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "ServiceMonitor namespace override."
+        },
+        "interval": {
+          "type": "string",
+          "description": "Prometheus scrape interval."
+        },
+        "scrapeTimeout": {
+          "type": "string",
+          "description": "Prometheus scrape timeout."
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Container resource requests and limits."
+    },
+    "nodeSelector": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Node selector for pod scheduling."
+    },
+    "affinity": {
+      "type": "object",
+      "description": "Pod affinity rules."
+    },
+    "tolerations": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Pod tolerations."
+    },
+    "topologySpreadConstraints": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Topology spread constraints."
+    },
+    "priorityClassName": {
+      "type": "string",
+      "description": "Priority class for the operator pod."
+    },
+    "enrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Site auto-enroll on startup.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enroll on startup when the site identity Secret is absent."
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^(https://[^\\s]+)?$",
+          "description": "Enrollment service base URL (https)."
+        },
+        "siteName": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]{0,49}[a-z0-9])?)?$",
+          "description": "Site name the token pins, a DNS label of at most 51 characters."
+        },
+        "caBundle": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "CA bundle that pins the enrollment server, from at most one of configMap and secret.",
+          "properties": {
+            "configMap": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?)?$",
+              "description": "ConfigMap holding the bundle."
+            },
+            "secret": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?)?$",
+              "description": "Secret holding the bundle."
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key holding the PEM bundle."
+            }
+          },
+          "not": {
+            "required": [
+              "configMap",
+              "secret"
+            ],
+            "properties": {
+              "configMap": {
+                "minLength": 1
+              },
+              "secret": {
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "gridCaBundle": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Grid CA the returned CA must match, from at most one of configMap and secret.",
+          "properties": {
+            "configMap": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?)?$",
+              "description": "ConfigMap holding the bundle."
+            },
+            "secret": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?)?$",
+              "description": "Secret holding the bundle."
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key holding the PEM bundle."
+            }
+          },
+          "not": {
+            "required": [
+              "configMap",
+              "secret"
+            ],
+            "properties": {
+              "configMap": {
+                "minLength": 1
+              },
+              "secret": {
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "tokenSecretRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Secret holding the one-time site token.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?)?$",
+              "description": "Secret name."
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key holding the token."
+            }
+          }
+        }
+      }
+    }
+  }
+}

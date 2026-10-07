@@ -1,0 +1,8 @@
+# AI Grid profile - AI Grid multi-cluster routing only
+# Enables AIGateway with only the aiGrid sub-component.
+components:
+  aigateway:
+    dsc:
+      managementState: Managed
+      aiGrid:
+        managementState: Managed

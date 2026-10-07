@@ -1,0 +1,30 @@
+{{- include "grid-operator.normalize" . }}
+{{- if .Values.rbac.create }}
+{{- $fullname := include "grid-operator.fullname" . }}
+{{- $labels := include "grid-operator.labels" . }}
+{{- $saName := include "grid-operator.serviceAccountName" . }}
+{{- $namespaces := prepend .Values.resourceNamespaces .Release.Namespace | uniq }}
+{{- with .Values.rbac.enrollmentNamespace }}
+{{- if has . $namespaces }}
+{{- fail (printf "rbac.enrollmentNamespace %q must not get operator Secret access: install the operator elsewhere and leave it out of resourceNamespaces" .) }}
+{{- end }}
+{{- end }}
+{{- range $ns := $namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-resources
+  namespace: {{ $ns }}
+  labels:
+    {{- $labels | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ $.Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $fullname }}-resources
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}

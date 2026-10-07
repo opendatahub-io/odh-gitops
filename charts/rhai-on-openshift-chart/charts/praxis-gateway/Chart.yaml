@@ -1,0 +1,24 @@
+apiVersion: v2
+name: praxis-gateway
+description: >-
+  Deploys the Praxis proxy as a Kubernetes Deployment and Service, configured
+  from Helm values or an existing ConfigMap. Works on its own as a gateway or
+  reverse proxy; no operator or CRDs required.
+type: application
+version: 0.1.4
+appVersion: "0.4.0"
+kubeVersion: ">=1.26.0-0"
+home: https://github.com/praxis-proxy/grid
+sources:
+  - https://github.com/praxis-proxy/grid
+  - https://github.com/praxis-proxy/ai
+maintainers:
+  - name: Praxis Proxy
+    url: https://github.com/praxis-proxy
+keywords:
+  - praxis
+  - gateway
+  - ai
+  - inference
+  - proxy
+deprecated: false

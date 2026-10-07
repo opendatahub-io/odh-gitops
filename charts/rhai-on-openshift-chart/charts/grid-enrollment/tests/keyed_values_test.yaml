@@ -1,0 +1,64 @@
+suite: keyed invites and host
+templates:
+  - templates/enrollment/invite-job.yaml
+  - templates/certs/ca-bootstrap-job.yaml
+  - templates/enrollment/route.yaml
+tests:
+  - it: mints keyed invites in site order, network defaulting to grid
+    template: templates/enrollment/invite-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      invites.site-a.network: grid
+      invites.hub.expiresInSecs: 3600
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_INVITES")].value
+          value: '[{"expiresInSecs":3600,"gridNetworkRef":"grid","siteName":"hub"},{"gridNetworkRef":"grid","siteName":"site-a"}]'
+
+  - it: scopes the invite Job to the keyed invite Secrets
+    template: templates/enrollment/invite-job.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      invites.site-a.network: grid
+      invites.hub.network: grid
+    asserts:
+      - equal:
+          path: rules[1].resourceNames
+          value: [grid-invite-hub, grid-invite-site-a]
+
+  - it: the older invite list still renders
+    template: templates/enrollment/invite-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      invites:
+        - siteName: east
+          gridNetworkRef: g
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_INVITES")].value
+          value: '[{"gridNetworkRef":"g","siteName":"east"}]'
+
+  - it: host joins the serving cert names
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      host: enroll.grid.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: enroll.grid.example.com
+
+  - it: host is the default Route host
+    template: templates/enrollment/route.yaml
+    set:
+      host: enroll.apps.example.com
+      route.enabled: true
+    asserts:
+      - equal:
+          path: spec.host
+          value: enroll.apps.example.com

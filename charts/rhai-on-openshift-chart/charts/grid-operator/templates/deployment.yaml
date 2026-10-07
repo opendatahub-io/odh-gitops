@@ -1,0 +1,166 @@
+{{- include "grid-operator.normalize" . }}
+{{- include "grid-operator.validateDigest" . }}
+{{- include "grid-operator.enrollment.validate" . }}
+{{- include "grid-operator.validateSignals" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "grid-operator.fullname" . }}
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  # One SWIM identity per site: a surge pod would gossip a second one.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "grid-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- $selectorLabels := include "grid-operator.selectorLabels" . | fromYaml }}
+        {{- $podLabels := mustMergeOverwrite (dict "app.kubernetes.io/component" "operator") (.Values.podLabels | default dict) $selectorLabels }}
+        {{- toYaml $podLabels | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "grid-operator.serviceAccountName" . }}
+      # Service link env vars (a grid-gateway Service injects GRID_GATEWAY_PORT)
+      # would collide with the operator's GRID_* settings.
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: operator
+          image: {{ include "grid-operator.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: GRID_SWIM_BIND_ADDR
+              value: {{ .Values.swim.bindAddress | quote }}
+            {{- if eq (toString .Values.swim.requireKey) "false" }}
+            - name: GRID_SWIM_REQUIRE_KEY
+              value: "false"
+            {{- end }}
+            {{- $podAdvertise := printf "$(POD_IP):%s" (splitList ":" .Values.swim.bindAddress | last) }}
+            - name: GRID_SWIM_ADVERTISE_ADDR
+              value: {{ .Values.swim.advertiseAddress | default $podAdvertise | quote }}
+            {{- if not .Values.swim.advertiseAddress }}
+            {{- /* Equal values mark the chart's Pod IP default. */}}
+            - name: GRID_SWIM_ADVERTISE_FALLBACK
+              value: {{ $podAdvertise | quote }}
+            {{- if and .Values.swim.service.enabled (eq .Values.swim.service.type "LoadBalancer") }}
+            - name: GRID_SWIM_SERVICE_NAME
+              value: {{ printf "%s-swim" (include "grid-operator.fullname" .) | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.swim.siteName | default (and .Values.enrollment.enabled .Values.enrollment.siteName) }}
+            - name: GRID_SWIM_SITE_NAME
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if .Values.swim.seeds }}
+            - name: GRID_SWIM_SEEDS
+              value: {{ .Values.swim.seeds | quote }}
+            {{- end }}
+            {{- if .Values.gateway.address }}
+            - name: GRID_GATEWAY_ADDRESS
+              value: {{ .Values.gateway.address | quote }}
+            {{- end }}
+            {{- if .Values.gateway.serviceName }}
+            - name: GRID_GATEWAY_SERVICE_NAME
+              value: {{ .Values.gateway.serviceName | quote }}
+            {{- end }}
+            - name: GRID_GATEWAY_NAMESPACE
+              value: {{ .Values.gateway.namespace | default .Release.Namespace | quote }}
+            - name: GRID_GATEWAY_PORT
+              value: {{ .Values.gateway.port | default "8080" | quote }}
+            {{- if (.Values.signals).enabled }}
+            - name: GRID_SIGNALS_LOCAL_ADDR
+              value: {{ printf "%s-swim.%s.svc:%v" (include "grid-operator.fullname" .) .Release.Namespace .Values.signals.port | quote }}
+            {{- with .Values.signals.advertiseAddress }}
+            - name: GRID_SIGNALS_ADVERTISE_ADDR
+              value: {{ . | quote }}
+            {{- end }}
+            {{- end }}
+            - name: GRID_METRICS_ADDR
+              value: {{ .Values.metrics.bindAddress | quote }}
+            - name: RUST_LOG
+              value: {{ .Values.log.level | quote }}
+            {{- with include "grid-operator.enrollment.env" . | trim }}
+            {{- . | nindent 12 }}
+            {{- end }}
+          {{- with include "grid-operator.enrollment.volumeMounts" . | trim }}
+          volumeMounts:
+            {{- . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: swim-udp
+              containerPort: {{ splitList ":" .Values.swim.bindAddress | last }}
+              protocol: UDP
+            - name: metrics
+              containerPort: {{ splitList ":" .Values.metrics.bindAddress | last }}
+              protocol: TCP
+            {{- if (.Values.signals).enabled }}
+            {{- /* The binary's default listener, [::]:9091 with an IPv4 fallback. */}}
+            - name: signals
+              containerPort: 9091
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: {{ .Values.health.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.health.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: metrics
+            initialDelaySeconds: {{ .Values.health.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.health.readiness.periodSeconds }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with include "grid-operator.enrollment.volumes" . | trim }}
+      volumes:
+        {{- . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}

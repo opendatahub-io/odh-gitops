@@ -1,0 +1,166 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- if .Values.invites }}
+{{- if ne .Values.enrollment.authz "kube" }}
+{{- fail "invites need enrollment.authz=kube: the invite Job authenticates with an audience-bound ServiceAccount token" }}
+{{- end }}
+{{- $fullname := include "grid-enrollment.fullname" . }}
+{{- $name := printf "%s-invite" ($fullname | trunc 56 | trimSuffix "-") }}
+{{- if eq $name $fullname }}
+{{- fail "invite resource names collide with the release fullname: use a fullnameOverride that does not end in -invite" }}
+{{- end }}
+{{- $hook := dict "helm.sh/hook" "post-install,post-upgrade" "helm.sh/hook-weight" "-10" "helm.sh/hook-delete-policy" "before-hook-creation,hook-succeeded,hook-failed" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+rules:
+  # create cannot be scoped by resourceName.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  # get reads back only the invite Secrets.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames:
+      {{- range .Values.invites }}
+      - grid-invite-{{ .siteName }}
+      {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-grid-admin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}-grid-admin
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+    app.kubernetes.io/component: invite
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "grid-enrollment.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: invite
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: {{ $name }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.enrollment.podSecurityContext | nindent 8 }}
+      containers:
+        - name: invite
+          image: {{ include "grid-enrollment.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.enrollment.securityContext | nindent 12 }}
+          command: ["enrollment", "invite"]
+          args:
+            - "--namespace"
+            - "{{ .Release.Namespace }}"
+            - "--url"
+            - "https://{{ include "grid-enrollment.serviceDns" . }}:{{ include "grid-enrollment.listenPort" . }}"
+            - "--ca-file"
+            - "/etc/grid-ca/ca.crt"
+            - "--admin-token-file"
+            - "/var/run/secrets/grid-enrollment/token"
+          env:
+            - name: ENROLLMENT_INVITES
+              value: {{ toJson .Values.invites | quote }}
+          volumeMounts:
+            - name: grid-ca
+              mountPath: /etc/grid-ca
+              readOnly: true
+            - name: admin-token
+              mountPath: /var/run/secrets/grid-enrollment
+              readOnly: true
+          {{- with .Values.enrollment.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.enrollment.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.enrollment.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: grid-ca
+          secret:
+            secretName: {{ .Values.ca.bundleSecretName | quote }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: admin-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: {{ .Values.enrollment.tokenAudience | quote }}
+                  expirationSeconds: 600
+                  path: token
+{{- end }}

@@ -1,0 +1,31 @@
+suite: NOTES endpoint
+templates:
+  - templates/NOTES.txt
+tests:
+  - it: points at the Route host when one is set
+    set:
+      route.enabled: true
+      route.host: enroll.apps.example.com
+    asserts:
+      - matchRegexRaw:
+          pattern: "Endpoint: https://enroll.apps.example.com\n"
+      - notMatchRegexRaw:
+          pattern: In-cluster only
+
+  - it: says the router assigns the host when a Route renders without one
+    set:
+      route.enabled: true
+      route.tls.termination: reencrypt
+      route.tls.destinationCACertificate: ca
+    asserts:
+      - matchRegexRaw:
+          pattern: router-assigned host
+      - notMatchRegexRaw:
+          pattern: In-cluster only
+
+  - it: says in-cluster only without a Route
+    set:
+      route.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: In-cluster only

@@ -1,0 +1,25 @@
+{{- include "grid-operator.normalize" . }}
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "grid-operator.fullname" . }}-resources
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames:
+      - {{ .Values.gateway.serviceName | default "provider-gateway" | quote }}
+      - {{ printf "%s-swim" (include "grid-operator.fullname" .) | quote }}
+    verbs: ["get"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "patch", "update"]
+{{- end }}

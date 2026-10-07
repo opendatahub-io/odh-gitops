@@ -1,0 +1,57 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- $ns := .Release.Namespace -}}
+{{- $route := and (include "grid-enrollment.routeEnabled" .) .Values.route.host -}}
+{{- $url := printf "https://%s:%s" (include "grid-enrollment.serviceDns" .) (include "grid-enrollment.listenPort" .) -}}
+{{- if $route -}}
+{{- $url = printf "https://%s" .Values.route.host -}}
+{{- end -}}
+grid-enrollment {{ .Chart.AppVersion }} is running in namespace {{ $ns }}.
+
+Endpoint: {{ $url }}
+{{- if and (include "grid-enrollment.routeEnabled" .) (not .Values.route.host) }}
+  A Route renders with a router-assigned host: oc -n {{ $ns }} get route
+{{- else if not $route }}
+  In-cluster only. Expose the Service with your own ingress or load balancer
+  (TLS passthrough) so remote sites can reach it.
+{{- end }}
+{{- if .Values.serving.existingSecretRef }}
+
+Serving cert: Secret/{{ .Values.serving.existingSecretRef }} (provided). It must carry
+{{ if $route }}{{ .Values.route.host }}{{ else }}the name clients connect to{{ end }} as a SAN. The chart cannot check this.
+{{- end }}
+
+1. Save the grid CA bundle. Admins and sites pin it with --cacert:
+{{ if eq (include "grid-enrollment.caProvided" .) "true" }}
+  kubectl -n {{ $ns }} get secret {{ include "grid-enrollment.caKeySecret" . }} -o jsonpath='{.data.tls\.crt}' | base64 -d > grid-ca.crt
+{{- else }}
+  kubectl -n {{ $ns }} get secret {{ .Values.ca.bundleSecretName }} -o jsonpath='{.data.ca\.crt}' | base64 -d > grid-ca.crt
+{{- end }}
+
+2. Get an admin bearer token:
+{{ if eq .Values.enrollment.authz "local" }}
+{{- if .Values.enrollment.gridAdminTokens.existingSecretRef }}
+  TOKEN=<token half of a name:token line in Secret/{{ .Values.enrollment.gridAdminTokens.existingSecretRef }}, key "tokens">
+{{- else }}
+  TOKEN=$(kubectl -n {{ $ns }} get secret {{ include "grid-enrollment.fullname" . }}-grid-admin-tokens -o jsonpath='{.data.tokens}' | base64 -d | head -1 | cut -d: -f2-)
+{{- end }}
+{{- else }}
+  Grid-admins hold Role/{{ include "grid-enrollment.fullname" . }}-grid-admin in this namespace.
+{{- if .Values.enrollment.gridAdmins.serviceAccount.create }}
+  TOKEN=$(kubectl -n {{ $ns }} create token {{ .Values.enrollment.gridAdmins.serviceAccount.name }} --audience {{ .Values.enrollment.tokenAudience }} --duration 10m)
+{{- else }}
+  Bind it with enrollment.gridAdmins.subjects, or set
+  enrollment.gridAdmins.serviceAccount.create=true, then mint an audience-bound token:
+  TOKEN=$(kubectl -n {{ $ns }} create token <grid-admin-sa> --audience {{ .Values.enrollment.tokenAudience }} --duration 10m)
+{{- end }}
+{{- end }}
+
+3. Mint a one-time site token:
+
+  curl --cacert grid-ca.crt -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"siteName": "<site>", "gridNetworkRef": "<grid-network>"}' \
+    {{ $url }}/v1alpha1/enrollmenttokens
+
+Give the site the token and grid-ca.crt out of band. The CA signing key lives in a
+Secret, so enable etcd encryption at rest before production.
+Docs: https://github.com/praxis-proxy/grid/blob/main/docs/installation/enrollment.md

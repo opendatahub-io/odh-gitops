@@ -1,0 +1,25 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type | quote }}
+  {{- if and (eq .Values.service.type "LoadBalancer") .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP | quote }}
+  {{- end }}
+  ports:
+    - name: {{ include "praxis-gateway.portName" . }}
+      port: {{ .Values.service.port }}
+      targetPort: {{ include "praxis-gateway.portName" . }}
+      protocol: {{ .Values.port.protocol | quote }}
+  selector:
+    {{- include "praxis-gateway.selectorLabels" . | nindent 4 }}
+{{- end }}

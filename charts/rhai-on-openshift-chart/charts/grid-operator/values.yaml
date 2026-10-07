@@ -1,0 +1,207 @@
+# -- Grid CRDs.
+crds:
+  # -- Install and upgrade the CRDs. Set false when the platform owns them, or for a second release in the cluster.
+  enabled: true
+  # -- Keep the CRDs on helm uninstall and an Argo CD delete or prune.
+  keep: true
+
+# -- Number of operator replicas. Must be 1 until multi-replica operation
+# is qualified.
+replicaCount: 1
+
+# -- Operator container image settings.
+image:
+  # -- Image repository.
+  repository: ghcr.io/praxis-proxy/grid-operator
+  # -- Image tag. Defaults to the chart appVersion when empty.
+  tag: ""
+  # -- Immutable image digest (sha256:<64 hex>). When set, tag is ignored.
+  digest: ""
+  # -- Image pull policy.
+  pullPolicy: "IfNotPresent"
+
+# -- Pull secrets for private registries.
+imagePullSecrets: []
+
+# -- Override the chart name used in resource names.
+nameOverride: ""
+# -- Override the fully qualified app name.
+fullnameOverride: ""
+# -- Labels added to all chart-managed resources.
+commonLabels: {}
+# -- Labels added to the operator pod template.
+podLabels: {}
+# -- Annotations added to the operator pod template.
+podAnnotations: {}
+
+# -- ServiceAccount configuration.
+serviceAccount:
+  # -- Create a ServiceAccount for the operator.
+  create: true
+  # -- ServiceAccount name. When create is true, defaults to the release
+  # fullname. When create is false, defaults to "default".
+  name: ""
+  # -- Annotations on the ServiceAccount (e.g. for IAM role binding).
+  annotations: {}
+
+# -- RBAC configuration.
+rbac:
+  # -- Create ClusterRoles, ClusterRoleBindings, and RoleBindings.
+  create: true
+  # -- The grid-enrollment namespace. The render fails if the operator would get Secret
+  # access there. Defaults to grid-enrollment with enrollment on.
+  enrollmentNamespace: ""
+
+# -- Additional namespaces where the operator needs Secret, ConfigMap,
+# Event, and Service access. The release namespace is always included.
+resourceNamespaces: []
+
+# -- Logging configuration.
+log:
+  # -- RUST_LOG filter directive.
+  level: "info"
+
+# Signal propagation mode is grid-wide configuration, set on the GridNetwork
+# via the grid-site chart's signalTransport value, not on the operator.
+
+# -- Metrics and health server configuration.
+metrics:
+  # -- Metrics server bind address (host:port).
+  bindAddress: "0.0.0.0:9090"
+  # -- Metrics ClusterIP Service.
+  service:
+    # -- Create a ClusterIP Service for the metrics port.
+    enabled: true
+    # -- Service port number.
+    port: 9090
+    # -- Service annotations.
+    annotations: {}
+
+# -- SWIM protocol configuration.
+swim:
+  # -- SWIM bind address (host:port).
+  bindAddress: "0.0.0.0:7946"
+  # -- SWIM advertise endpoint (ip:port, [ipv6]:port, or hostname:port). Defaults to the LoadBalancer SWIM Service address, else the Pod IP.
+  advertiseAddress: ""
+  # -- Hold SWIM traffic until the GridNetwork key loads or the network declares none. false opts out.
+  requireKey: true
+  # -- Bootstrap SWIM site name. Defaults to enrollment.siteName when enrollment is on.
+  siteName: ""
+  # -- Bootstrap SWIM seed endpoints (comma-separated ip:port, [ipv6]:port, or hostname:port).
+  seeds: ""
+  # -- SWIM Service.
+  service:
+    # -- Create a Service for the SWIM port. Unset, it is on with enrollment, else off.
+    # enabled: true
+    # -- Service type: ClusterIP, LoadBalancer, or NodePort. Unset, LoadBalancer when
+    # enrollment turns the Service on, else ClusterIP.
+    # type: LoadBalancer
+    # -- Service port number.
+    port: 7946
+    # -- Service annotations.
+    annotations: {}
+    # -- Static LoadBalancer IP. Deprecated in Kubernetes, so prefer a metallb.io/loadBalancerIPs annotation.
+    loadBalancerIP: ""
+    # -- External traffic policy. Defaults to Local for LoadBalancer, omitted
+    # for ClusterIP and NodePort.
+    externalTrafficPolicy: ""
+    # -- Optional CIDRs allowed to reach the SWIM and signals LoadBalancer, where it enforces them.
+    loadBalancerSourceRanges: []
+
+# -- mTLS signals endpoint, for a GridNetwork with signalTransport poll.
+signals:
+  # -- Serve signals on the SWIM Service. Needs swim.service.enabled and, for a LoadBalancer, mixed UDP and TCP support.
+  enabled: false
+  # -- Signals TCP port on the SWIM Service, gossiped to peers with its LoadBalancer address.
+  port: 9091
+  # -- Signals endpoint gossiped to peers (ip:port, [ipv6]:port, or dns-name:port). Set it when swim.advertiseAddress is set or the Service is not a LoadBalancer.
+  advertiseAddress: ""
+
+# -- Advertised gateway address configuration.
+gateway:
+  # -- Gateway address override.
+  address: ""
+  # -- Gateway Kubernetes Service name for the operator to discover. Maps to
+  # GRID_GATEWAY_SERVICE_NAME. Defaults to grid-gateway with enrollment on.
+  serviceName: ""
+  # -- Namespace of the gateway Service. Empty uses the release namespace. Maps
+  # to GRID_GATEWAY_NAMESPACE.
+  namespace: ""
+  # -- Allow gateway.namespace to be default, kube-*, or openshift-*.
+  allowSystemNamespace: false
+  # -- Gateway port for operator-to-gateway discovery. Maps to
+  # GRID_GATEWAY_PORT.
+  port: ""
+
+# -- Probe timing configuration.
+health:
+  # -- Liveness probe settings.
+  liveness:
+    # -- Initial delay before the first liveness probe.
+    initialDelaySeconds: 5
+    # -- Period between liveness probes.
+    periodSeconds: 10
+  # -- Readiness probe settings.
+  readiness:
+    # -- Initial delay before the first readiness probe.
+    initialDelaySeconds: 5
+    # -- Period between readiness probes.
+    periodSeconds: 10
+
+# -- Prometheus ServiceMonitor (requires the Prometheus Operator CRD).
+serviceMonitor:
+  # -- Create a ServiceMonitor resource.
+  enabled: false
+  # -- Additional labels on the ServiceMonitor.
+  labels: {}
+  # -- ServiceMonitor namespace override.
+  namespace: ""
+  # -- Prometheus scrape interval.
+  interval: ""
+  # -- Prometheus scrape timeout.
+  scrapeTimeout: ""
+
+# -- Container resource requests and limits.
+resources: {}
+# -- Node selector for pod scheduling.
+nodeSelector: {}
+# -- Pod affinity rules.
+affinity: {}
+# -- Pod tolerations.
+tolerations: []
+# -- Topology spread constraints.
+topologySpreadConstraints: []
+# -- Priority class for the operator pod.
+priorityClassName: ""
+
+# -- Site auto-enroll on startup.
+enrollment:
+  # -- Enroll when the site identity Secret is absent.
+  enabled: false
+  # -- Enrollment service https base URL. Defaults to the in-cluster grid-enrollment
+  # Service in rbac.enrollmentNamespace, the hub's own.
+  url: ""
+  # -- Site name the token pins, at most 51 characters. Defaults to swim.siteName.
+  siteName: ""
+  # -- CA pinning the enrollment server, and the grid CA by default. With neither set, Secret grid-ca-bundle.
+  caBundle:
+    # -- ConfigMap holding the bundle. Set this or secret.
+    configMap: ""
+    # -- Secret holding the bundle.
+    secret: ""
+    # -- Key holding the PEM bundle.
+    key: ca.crt
+  # -- Grid CA anchor, when it differs from caBundle.
+  gridCaBundle:
+    # -- ConfigMap holding the grid CA. Set this or secret.
+    configMap: ""
+    # -- Secret holding the grid CA.
+    secret: ""
+    # -- Key holding the PEM bundle.
+    key: ca.crt
+  # -- Secret holding the one-time site token.
+  tokenSecretRef:
+    # -- Secret name. Defaults to grid-invite-<siteName>.
+    name: ""
+    # -- Key holding the token.
+    key: token

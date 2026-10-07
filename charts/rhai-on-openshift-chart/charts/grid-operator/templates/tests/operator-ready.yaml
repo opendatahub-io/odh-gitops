@@ -1,0 +1,22 @@
+{{- if .Values.metrics.service.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "grid-operator.fullname" . }}-test
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: readiness-check
+      image: busybox:1.37
+      command:
+        - sh
+        - -c
+        - |
+          wget -qO- --timeout=5 \
+            http://{{ include "grid-operator.fullname" . }}-metrics:{{ .Values.metrics.service.port }}/readyz
+{{- end }}

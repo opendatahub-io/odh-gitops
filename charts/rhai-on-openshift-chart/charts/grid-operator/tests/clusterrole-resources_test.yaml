@@ -1,0 +1,12 @@
+suite: resources ClusterRole
+templates:
+  - templates/clusterrole-resources.yaml
+tests:
+  - it: lets auto-enroll read the token and write the identity Secrets
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["secrets"]
+            verbs: ["get", "create", "patch"]

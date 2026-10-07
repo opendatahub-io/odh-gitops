@@ -1,0 +1,192 @@
+# grid-enrollment: batteries-included by default.
+# `helm install` with no overrides stands up a full grid site ready to enroll:
+# it generates the Grid CA, issues the enrollment endpoint's serving cert,
+# deploys Postgres, generates a grid-admin token, and runs the enrollment
+# service over TLS. Every escape hatch below overrides one of those defaults.
+
+# -- The enrollment name sites connect to. It joins the serving cert names and is the
+# default route.host.
+host: ""
+
+nameOverride: ""
+fullnameOverride: ""
+commonLabels: {}
+
+image:
+  # Enrollment app image. The same binary serves the API and runs the
+  # `enrollment bootstrap` Job (the sar and bootstrap features, on by default).
+  repository: quay.io/praxis-proxy/grid-enrollment
+  tag: ""            # defaults to .Chart.AppVersion
+  digest: ""         # sha256:<64 hex>; when set, tag is ignored
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# ------------------------------------------------------------------------------
+# Grid CA. Default: GENERATE on install (bootstrap Job). Escape hatch: provide.
+# The signing key (grid-ca-key) is mounted ONLY into the enrollment pod. The
+# gateway and peers mount grid-ca-bundle (ca.crt), never the key.
+# Prerequisite: enable an etcd encryption-at-rest provider before holding the CA
+# key here. A k8s Secret is base64, not encrypted, without it. KMS/HSM is the GA gate.
+# ------------------------------------------------------------------------------
+ca:
+  method: builtin                 # builtin = generate on install; provided = bring your own
+  commonName: grid-ca
+  keySecretName: grid-ca-key      # kubernetes.io/tls: tls.crt + tls.key (signing key)
+  bundleSecretName: grid-ca-bundle # Opaque: ca.crt (public trust anchor)
+  # Replace an existing CA in place. Off by default: regenerating the CA
+  # invalidates every certificate it has issued.
+  forceRegenerate: false
+  provided:
+    # Reference to a pre-created {tls.crt,tls.key} Secret. Never inline the key
+    # in values: Helm persists release values (helm get values, GitOps, CI logs).
+    keySecretRef: ""
+  bootstrap:
+    # The `enrollment bootstrap` subcommand runs as the pre-install Job.
+    resources: {}
+    # Seconds a finished bootstrap Job is kept for its logs. Null keeps it until the next hook.
+    ttlSecondsAfterFinished: 86400
+
+# ------------------------------------------------------------------------------
+# Enrollment endpoint serving cert (in-process TLS). Default: issued from the
+# CA by the bootstrap. Escape hatch: provide an existing cert.
+# ------------------------------------------------------------------------------
+serving:
+  secretName: enrollment-serving-tls  # kubernetes.io/tls: tls.crt + tls.key
+  existingSecretRef: ""               # BYO serving cert; else the bootstrap issues it. With a Route, it must carry route.host
+  extraDnsNames: []                   # extra SANs beyond the in-cluster Service DNS
+
+# ------------------------------------------------------------------------------
+# Route: enrollment is a cross-peer front door, so a Route ships by default on
+# OpenShift. Passthrough keeps the grid-CA serving cert end-to-end; the site validates
+# it with the out-of-band grid-CA bundle (--cacert). When a Route renders, route.host
+# is required for passthrough and is auto-added to the serving cert SAN. Reencrypt
+# is the opt-out for a trusted router cert. Edge is rejected.
+# ------------------------------------------------------------------------------
+route:
+  # -- auto renders the Route when the cluster serves route.openshift.io/v1; true or
+  # false forces it. helm template without --api-versions route.openshift.io/v1 renders
+  # auto as off.
+  enabled: auto
+  # -- External hostname. Required for passthrough when a Route renders (auto-added to
+  # the serving cert SAN). A DNS-1123 subdomain, no wildcard.
+  host: ""
+  # -- Extra Route annotations. They override rateLimit's annotations on a key clash.
+  annotations: {}
+  # -- Per-source-IP connection limits in the OpenShift router (they apply to
+  # passthrough). Clients behind one SNAT address share a limit.
+  rateLimit:
+    enabled: true
+    # -- Concurrent TCP connections per source IP.
+    concurrentTcp: 10
+    # -- TCP connection rate per source IP, in the router's rate window.
+    rateTcp: 20
+  tls:
+    # -- passthrough keeps the grid-CA cert and the one-time token end-to-end.
+    # reencrypt terminates at the router: it exposes the enrollment token to the
+    # ingress and breaks the site's out-of-band grid-CA pin. edge is rejected,
+    # since enrollment serves TLS only.
+    termination: passthrough
+    # -- Redirect or None. Allow is refused: plaintext would leak the token.
+    insecureEdgeTerminationPolicy: None
+    # -- PEM CA for reencrypt to verify the backend (grid-CA bundle, ca.crt from
+    # Secret grid-ca-bundle). Required for reencrypt.
+    destinationCACertificate: ""
+
+# ------------------------------------------------------------------------------
+# Enrollment service
+# ------------------------------------------------------------------------------
+enrollment:
+  replicaCount: 1
+  listenAddr: "0.0.0.0:8443"
+  certLifetimeSecs: ""               # empty => service default (ENROLLMENT_CERT_LIFETIME_SECS)
+  # kube (default): SAR via TokenReview + SubjectAccessReview, the in-cluster path
+  # (needs the sar-feature image and the auth-delegator RBAC this chart binds).
+  # local: the standalone grid-admin-token table, for non-kube deploys.
+  authz: kube                        # kube | local
+  # Audience a grid-admin token must be bound to under authz=kube, e.g.
+  # kubectl create token <sa> --audience grid-enrollment --duration 10m.
+  # Never an API-server audience (kubernetes, https://kubernetes.default.svc,
+  # or the cluster's service account issuer): every API token carries it.
+  tokenAudience: grid-enrollment
+  # Grid-admins under authz=kube. The chart always creates the
+  # <fullname>-grid-admin Role (create/delete on enrollmenttokens) in the release
+  # namespace and binds it to these subjects.
+  gridAdmins:
+    # RBAC subjects, e.g. [{kind: Group, name: grid-admins}].
+    subjects: []
+    serviceAccount:
+      # Create a ServiceAccount to mint grid-admin tokens from, and bind it.
+      create: false
+      name: grid-admin
+  gridAdminTokens:
+    generate: true                   # the bootstrap Job creates a grid-admin-token Secret once
+    existingSecretRef: ""            # BYO Secret with key "tokens" (name:token lines)
+  serviceAccount:
+    create: true
+    name: ""
+  service:
+    # Port is derived from listenAddr (single source of truth); set the type only.
+    # Empty: LoadBalancer when host is set and no Route renders, else ClusterIP.
+    type: ""
+    # Static LoadBalancer address, so the enrollment URL is known before install.
+    loadBalancerIP: ""
+  resources: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+
+# ------------------------------------------------------------------------------
+# Database. Default: builtin Postgres. Escape hatch: external (e.g. MaaS).
+# ------------------------------------------------------------------------------
+db:
+  type: builtin                      # builtin = in-chart Postgres; external = bring your own
+  builtin:
+    image: quay.io/sclorg/postgresql-16-c9s:20260923
+    imageDigest: ""                  # sha256:<64 hex>; appended as image@digest when set
+    # Registry image, decoupled from image.pullPolicy so a locally-loaded app
+    # image (image.pullPolicy=Never, kind/airgap) does not force Postgres to Never.
+    pullPolicy: IfNotPresent
+    storage: 8Gi
+    resources: {}
+    auth:
+      database: enrollment
+      username: enrollment
+      # Without it, the bootstrap Job creates <fullname>-db once with a generated password.
+      existingSecretRef: ""          # Secret with keys: password, DB_CONNECTION_URL
+    # Builtin Postgres serves TLS with a grid-CA-issued cert minted by the
+    # bootstrap Job; the enrollment client connects sslmode=verify-full against
+    # the grid CA bundle. The enrollment binary refuses a plaintext DB, so this
+    # is not optional on the builtin path. Requires the generated CA
+    # (ca.method=builtin); with a provided CA, use an external DB. Bootstrap
+    # rolls the builtin DB when it re-issues this cert.
+    tls:
+      servingSecretName: grid-db-serving-tls
+  external:
+    # Secret carrying the full connection URL under connectionUrlSecretKey.
+    # Point this at MaaS's maas-db-config to share its database. The URL must
+    # require TLS (sslmode=require min, verify-full for fips); the binary refuses
+    # a plaintext DB. For verify-full, set caConfigMapName so the client trusts
+    # the DB's issuer and reference it as sslrootcert in the URL.
+    connectionUrlSecretRef: ""
+    connectionUrlSecretKey: DB_CONNECTION_URL
+    # Optional CA bundle for the external DB, mounted at /etc/grid-db-ca (mirrors
+    # FlightCtl's db.external.tlsConfigMapName). Reference it in the URL as
+    # sslrootcert=/etc/grid-db-ca/<key>.
+    caConfigMapName: ""
+    caConfigMapKey: ca.crt
+
+# -- Sites to invite, keyed by site name: network (default grid) and expiresInSecs. Each
+# run skips sites whose invite Secret exists. The older list of {siteName,
+# gridNetworkRef, expiresInSecs} still renders.
+# invites:
+#   site-a:
+#     network: grid

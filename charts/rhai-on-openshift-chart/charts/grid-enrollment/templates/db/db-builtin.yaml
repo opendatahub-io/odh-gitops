@@ -1,0 +1,161 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- if and (eq (include "grid-enrollment.caProvided" .) "true") (eq .Values.db.type "builtin") }}
+{{- fail "ca.method=provided (or ca.provided.keySecretRef) requires db.type=external: the builtin Postgres TLS cert is issued by the bootstrap Job, which a provided CA skips, so the builtin DB would serve plaintext and the service refuses it" }}
+{{- end }}
+{{- if eq .Values.db.type "builtin" }}
+{{/*
+Builtin Postgres: a PVC, a Service, and the Deployment. The bootstrap Job creates
+the credentials Secret (password + the full DB_CONNECTION_URL the service reads)
+once, unless db.builtin.auth.existingSecretRef brings one.
+
+TLS ($tls): serves over TLS with the grid-CA-issued cert the bootstrap Job mints
+(grid-db-serving-tls), so the enrollment client can connect verify-full; the
+binary refuses a plaintext DB. Active on the generated-CA path (the Job runs);
+with a provided CA use an external DB. A BYO DB secret must carry a
+DB_CONNECTION_URL that requires TLS to this Postgres (sslmode=verify-full).
+*/}}
+{{- $tls := ne (include "grid-enrollment.caProvided" .) "true" }}
+{{- $dbName := include "grid-enrollment.dbHost" . }}
+{{- $user := .Values.db.builtin.auth.username }}
+{{- $database := .Values.db.builtin.auth.database }}
+{{- $secretName := include "grid-enrollment.dbUrlSecret" . }}
+{{- if $tls }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $dbName }}-tls
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+data:
+  # Included at the end of postgresql.conf by the sclorg image (postgresql-cfg/).
+  ssl.conf: |
+    ssl = on
+    ssl_cert_file = '/tls/server.crt'
+    ssl_key_file = '/tls/server.key'
+---
+{{- end }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $dbName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: {{ .Values.db.builtin.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $dbName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "grid-enrollment.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $dbName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "grid-enrollment.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: db
+  template:
+    metadata:
+      labels:
+        {{- include "grid-enrollment.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: db
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        {{- toYaml .Values.enrollment.podSecurityContext | nindent 8 }}
+      {{- if $tls }}
+      initContainers:
+        # Postgres refuses a key with group/world access. The Secret mount is
+        # root-owned and group-readable, so copy the pair into an emptyDir owned
+        # by this uid with the key at 0600.
+        - name: db-tls-perms
+          image: {{ include "grid-enrollment.dbImage" . | quote }}
+          imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - "install -m 0644 /tls-src/tls.crt /tls/server.crt && install -m 0600 /tls-src/tls.key /tls/server.key"
+          volumeMounts:
+            - name: db-tls-src
+              mountPath: /tls-src
+              readOnly: true
+            - name: db-tls
+              mountPath: /tls
+      {{- end }}
+      containers:
+        - name: postgres
+          image: {{ include "grid-enrollment.dbImage" . | quote }}
+          imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_DATABASE
+              value: {{ $database | quote }}
+            - name: POSTGRESQL_USER
+              value: {{ $user | quote }}
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ $user | quote }}, "-d", {{ $database | quote }}]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgsql/data
+            {{- if $tls }}
+            - name: db-tls
+              mountPath: /tls
+              readOnly: true
+            - name: db-ssl-config
+              mountPath: /opt/app-root/src/postgresql-cfg
+              readOnly: true
+            {{- end }}
+          {{- with .Values.db.builtin.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $dbName }}
+        {{- if $tls }}
+        - name: db-tls-src
+          secret:
+            secretName: {{ .Values.db.builtin.tls.servingSecretName }}
+        - name: db-tls
+          emptyDir: {}
+        - name: db-ssl-config
+          configMap:
+            name: {{ $dbName }}-tls
+        {{- end }}
+{{- end }}

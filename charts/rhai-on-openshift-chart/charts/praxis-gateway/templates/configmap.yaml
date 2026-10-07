@@ -1,0 +1,11 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- if eq (include "praxis-gateway.configSource" .) "inline" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}-config
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+data:
+  {{- dict "praxis.yaml" (toString .Values.config.inline) | toYaml | nindent 2 }}
+{{- end }}

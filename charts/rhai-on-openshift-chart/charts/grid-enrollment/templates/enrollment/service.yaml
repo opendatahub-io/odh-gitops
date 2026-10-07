@@ -1,0 +1,36 @@
+{{- include "grid-enrollment.normalize" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+    app.kubernetes.io/component: enrollment
+spec:
+  type: {{ .Values.enrollment.service.type }}
+  {{- if and (eq .Values.enrollment.service.type "LoadBalancer") .Values.enrollment.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.enrollment.service.loadBalancerIP | quote }}
+  {{- end }}
+  selector:
+    {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: https
+      port: {{ include "grid-enrollment.listenPort" . }}
+      targetPort: https
+      protocol: TCP
+{{- if .Values.enrollment.serviceAccount.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "grid-enrollment.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+    app.kubernetes.io/component: enrollment
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

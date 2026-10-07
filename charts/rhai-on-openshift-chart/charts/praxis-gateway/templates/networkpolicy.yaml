@@ -1,0 +1,36 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- if .Values.networkPolicy.enabled }}
+{{- if not .Values.networkPolicy.from }}
+{{- fail "networkPolicy.from needs at least one peer when networkPolicy.enabled is true" }}
+{{- end }}
+{{- range .Values.networkPolicy.from }}
+{{- if not . }}
+{{- fail "networkPolicy.from: an empty peer {} admits everyone; select the authenticating front" }}
+{{- end }}
+{{- $nsAll := and (hasKey . "namespaceSelector") (include "praxis-gateway.selectsAll" .namespaceSelector) }}
+{{- $podAll := or (not (hasKey . "podSelector")) (include "praxis-gateway.selectsAll" .podSelector) }}
+{{- if and $nsAll $podAll }}
+{{- fail "networkPolicy.from: an empty namespaceSelector admits every pod in every namespace; select the authenticating front" }}
+{{- end }}
+{{- if and .ipBlock (has .ipBlock.cidr (list "0.0.0.0/0" "::/0")) (not .ipBlock.except) }}
+{{- fail (printf "networkPolicy.from: ipBlock %s admits every address; select the authenticating front" .ipBlock.cidr) }}
+{{- end }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "praxis-gateway.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        {{- toYaml .Values.networkPolicy.from | nindent 8 }}
+      ports:
+        - port: {{ .Values.port.containerPort }}
+          protocol: {{ .Values.port.protocol }}
+{{- end }}

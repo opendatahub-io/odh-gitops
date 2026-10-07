@@ -1,0 +1,113 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- if include "grid-enrollment.bootstrapRuns" . }}
+{{/*
+Generate the Grid CA (if absent), derive the public bundle, and issue the
+enrollment serving and DB serving certs, before the service starts. Also creates
+the builtin DB credentials and the local grid-admin token table once. Runs
+`enrollment bootstrap` in the app image (bootstrap feature). Idempotent: it loads
+an existing CA rather than regenerate unless ca.forceRegenerate is set, and never
+rotates a credentials Secret.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-ca-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ca-bootstrap
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    # Kept for its logs until the next hook run or its TTL.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  {{- $ttl := ((.Values.ca).bootstrap).ttlSecondsAfterFinished }}
+  {{- if not (kindIs "invalid" $ttl) }}
+  ttlSecondsAfterFinished: {{ $ttl }}
+  {{- end }}
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "grid-enrollment.selectorLabels" . | nindent 8 }}
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.enrollment.podSecurityContext | nindent 8 }}
+      containers:
+        - name: ca-bootstrap
+          image: {{ include "grid-enrollment.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.enrollment.securityContext | nindent 12 }}
+          command: ["enrollment", "bootstrap"]
+          args:
+            - "--namespace"
+            - "{{ .Release.Namespace }}"
+            {{- if include "grid-enrollment.generatesDbCredentials" . }}
+            - "--db-credentials-secret"
+            - "{{ include "grid-enrollment.dbUrlSecret" . }}"
+            - "--db-user"
+            - "{{ .Values.db.builtin.auth.username }}"
+            - "--db-database"
+            - "{{ .Values.db.builtin.auth.database }}"
+            - "--db-host"
+            - "{{ include "grid-enrollment.dbHost" . }}"
+            {{- end }}
+            {{- if include "grid-enrollment.generatesAdminTokens" . }}
+            - "--admin-tokens-secret"
+            - "{{ include "grid-enrollment.adminTokensSecret" . }}"
+            {{- end }}
+            {{- if eq (include "grid-enrollment.caProvided" .) "true" }}
+            - "--skip-ca"
+            {{- else }}
+            - "--common-name"
+            - "{{ .Values.ca.commonName }}"
+            - "--ca-key-secret"
+            - "{{ .Values.ca.keySecretName }}"
+            - "--ca-bundle-secret"
+            - "{{ .Values.ca.bundleSecretName }}"
+            {{- if .Values.serving.existingSecretRef }}
+            {{- /* A BYO serving cert serves; issue none. */}}
+            - "--skip-serving"
+            {{- else }}
+            - "--serving-secret"
+            - "{{ .Values.serving.secretName }}"
+            - "--serving-dns"
+            - "{{ include "grid-enrollment.serviceDns" . }}"
+            {{- range .Values.serving.extraDnsNames }}
+            - "--serving-dns"
+            - "{{ . }}"
+            {{- end }}
+            {{- if and (include "grid-enrollment.routeEnabled" .) .Values.route.host }}
+            {{- /* auto-add the Route host so passthrough validates against the serving cert SAN */}}
+            - "--serving-dns"
+            - "{{ .Values.route.host }}"
+            {{- end }}
+            {{- end }}
+            {{- if eq .Values.db.type "builtin" }}
+            - "--db-serving-secret"
+            - "{{ .Values.db.builtin.tls.servingSecretName }}"
+            - "--db-dns"
+            - "{{ include "grid-enrollment.dbHost" . }}"
+            - "--db-dns"
+            - "{{ include "grid-enrollment.dbHost" . }}.{{ .Release.Namespace }}.svc"
+            - "--db-deployment"
+            - "{{ include "grid-enrollment.dbHost" . }}"
+            {{- end }}
+            {{- if .Values.ca.forceRegenerate }}
+            - "--force-regenerate"
+            {{- end }}
+            {{- end }}
+          {{- with .Values.ca.bootstrap.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

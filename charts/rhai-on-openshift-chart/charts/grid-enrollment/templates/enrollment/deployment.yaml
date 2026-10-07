@@ -1,0 +1,167 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- include "grid-enrollment.validateAuthz" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.enrollment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 8 }}
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: {{ include "grid-enrollment.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.enrollment.podSecurityContext | nindent 8 }}
+      {{- if eq .Values.db.type "builtin" }}
+      initContainers:
+        # The service applies its schema on first connect, so it only needs the
+        # DB reachable. External DBs are assumed already up.
+        - name: wait-for-db
+          image: {{ include "grid-enrollment.dbImage" . | quote }}
+          imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.enrollment.securityContext | nindent 12 }}
+          command:
+            - sh
+            - -c
+            - "until pg_isready -h {{ include "grid-enrollment.dbHost" . }} -p 5432; do echo 'waiting for db'; sleep 2; done"
+      {{- end }}
+      containers:
+        - name: enrollment
+          image: {{ include "grid-enrollment.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.enrollment.securityContext | nindent 12 }}
+          ports:
+            - name: https
+              containerPort: {{ include "grid-enrollment.listenPort" . }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          env:
+            # CA signing material (file paths; read via std::fs). Key is mounted
+            # ONLY into this pod, never the gateway.
+            - name: ENROLLMENT_CA_CERT
+              value: /etc/grid-ca/tls.crt
+            - name: ENROLLMENT_CA_KEY
+              value: /etc/grid-ca/tls.key
+            - name: ENROLLMENT_CA_COMMON_NAME
+              value: {{ .Values.ca.commonName | quote }}
+            # In-process TLS serving cert (file paths).
+            - name: ENROLLMENT_TLS_CERT
+              value: /etc/grid-tls/tls.crt
+            - name: ENROLLMENT_TLS_KEY
+              value: /etc/grid-tls/tls.key
+            - name: ENROLLMENT_LISTEN_ADDR
+              value: {{ .Values.enrollment.listenAddr | quote }}
+            - name: ENROLLMENT_AUTHZ
+              value: {{ .Values.enrollment.authz | quote }}
+            {{- if eq .Values.enrollment.authz "kube" }}
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ENROLLMENT_TOKEN_AUDIENCE
+              value: {{ .Values.enrollment.tokenAudience | quote }}
+            {{- end }}
+            {{- if .Values.enrollment.certLifetimeSecs }}
+            - name: ENROLLMENT_CERT_LIFETIME_SECS
+              value: {{ .Values.enrollment.certLifetimeSecs | quote }}
+            {{- end }}
+            {{- if eq .Values.enrollment.authz "local" }}
+            # local authz reads the grid-admin table from a mounted file, not the
+            # env value: the binary treats this as a path (name:token lines).
+            - name: ENROLLMENT_GRID_ADMIN_TOKENS
+              value: /etc/grid-admin-tokens/tokens
+            {{- end }}
+            - name: DB_CONNECTION_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "grid-enrollment.dbUrlSecret" . }}
+                  key: {{ include "grid-enrollment.dbUrlSecretKey" . }}
+          volumeMounts:
+            - name: grid-ca
+              mountPath: /etc/grid-ca
+              readOnly: true
+            - name: grid-tls
+              mountPath: /etc/grid-tls
+              readOnly: true
+            {{- if and (eq .Values.db.type "builtin") (ne (include "grid-enrollment.caProvided" .) "true") }}
+            # sslrootcert for the builtin DB's verify-full connection.
+            - name: grid-ca-bundle
+              mountPath: /etc/grid-ca-bundle
+              readOnly: true
+            {{- end }}
+            {{- if and (eq .Values.db.type "external") .Values.db.external.caConfigMapName }}
+            - name: grid-db-ca
+              mountPath: /etc/grid-db-ca
+              readOnly: true
+            {{- end }}
+            {{- if eq .Values.enrollment.authz "local" }}
+            - name: grid-admin-tokens
+              mountPath: /etc/grid-admin-tokens
+              readOnly: true
+            {{- end }}
+          {{- with .Values.enrollment.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        # Signing key + cert. This is the only pod that mounts grid-ca-key.
+        - name: grid-ca
+          secret:
+            secretName: {{ include "grid-enrollment.caKeySecret" . }}
+        - name: grid-tls
+          secret:
+            secretName: {{ include "grid-enrollment.servingSecret" . }}
+        {{- if and (eq .Values.db.type "builtin") (ne (include "grid-enrollment.caProvided" .) "true") }}
+        - name: grid-ca-bundle
+          secret:
+            secretName: {{ .Values.ca.bundleSecretName }}
+        {{- end }}
+        {{- if and (eq .Values.db.type "external") .Values.db.external.caConfigMapName }}
+        - name: grid-db-ca
+          configMap:
+            name: {{ .Values.db.external.caConfigMapName }}
+        {{- end }}
+        {{- if eq .Values.enrollment.authz "local" }}
+        - name: grid-admin-tokens
+          secret:
+            secretName: {{ .Values.enrollment.gridAdminTokens.existingSecretRef | default (include "grid-enrollment.adminTokensSecret" .) }}
+        {{- end }}
+      {{- with .Values.enrollment.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.enrollment.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.enrollment.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

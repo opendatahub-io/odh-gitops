@@ -1,0 +1,12 @@
+apiVersion: v2
+name: grid-enrollment
+description: Grid enrollment service with self-provisioned Grid CA and Postgres
+type: application
+version: 0.1.0
+appVersion: "v0.1.0"
+kubeVersion: ">=1.26.0-0"
+home: https://github.com/praxis-proxy/grid
+sources:
+  - https://github.com/praxis-proxy/grid
+maintainers:
+  - name: Praxis Proxy

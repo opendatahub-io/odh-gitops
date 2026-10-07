@@ -1,0 +1,28 @@
+suite: enrollment namespace isolation
+templates:
+  - templates/rolebindings-resources.yaml
+release:
+  namespace: grid
+tests:
+  - it: binds the operator in its own namespace
+    set:
+      rbac.enrollmentNamespace: grid-enrollment
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: grid
+
+  - it: refuses Secret access in the enrollment namespace through resourceNamespaces
+    set:
+      rbac.enrollmentNamespace: grid-enrollment
+      resourceNamespaces: [grid-enrollment]
+    asserts:
+      - failedTemplate:
+          errorPattern: must not get operator Secret access
+
+  - it: refuses an operator installed in the enrollment namespace
+    set:
+      rbac.enrollmentNamespace: grid
+    asserts:
+      - failedTemplate:
+          errorPattern: must not get operator Secret access

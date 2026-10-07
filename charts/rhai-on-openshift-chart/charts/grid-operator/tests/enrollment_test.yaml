@@ -1,0 +1,234 @@
+suite: operator auto-enroll
+templates:
+  - templates/deployment.yaml
+set:
+  enrollment.url: https://enroll.example.com
+  enrollment.siteName: site-d
+  enrollment.caBundle.configMap: grid-ca
+  enrollment.tokenSecretRef.name: grid-invite-site-d
+tests:
+  - it: renders no enrollment wiring when disabled
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_ENABLED
+            value: "true"
+      - notExists:
+          path: spec.template.spec.volumes
+
+  - it: passes the enrollment settings as env
+    set:
+      enrollment.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_URL
+            value: https://enroll.example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_SITE_NAME
+            value: site-d
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_TOKEN_SECRET
+            value: grid-invite-site-d
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_TOKEN_SECRET_KEY
+            value: token
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_CA_FILE
+            value: /etc/grid-enroll/pin/ca.crt
+
+  - it: mounts the pinned CA bundle from a ConfigMap
+    set:
+      enrollment.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[0]
+          value:
+            name: enroll-pin
+            configMap:
+              name: grid-ca
+              items:
+                - key: ca.crt
+                  path: ca.crt
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0]
+          value:
+            name: enroll-pin
+            mountPath: /etc/grid-enroll/pin
+            readOnly: true
+
+  - it: mounts the pinned CA bundle from a Secret
+    set:
+      enrollment.enabled: true
+      enrollment.caBundle.configMap: ""
+      enrollment.caBundle.secret: grid-ca-bundle
+      enrollment.caBundle.key: bundle.pem
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[0].secret
+          value:
+            secretName: grid-ca-bundle
+            items:
+              - key: bundle.pem
+                path: ca.crt
+
+  - it: reads the token from a custom key
+    set:
+      enrollment.enabled: true
+      enrollment.tokenSecretRef.key: site-token
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_TOKEN_SECRET_KEY
+            value: site-token
+
+  - it: anchors the returned CA to gridCaBundle when set
+    set:
+      enrollment.enabled: true
+      enrollment.gridCaBundle.secret: grid-ca-bundle
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_GRID_CA_FILE
+            value: /etc/grid-enroll/grid-ca/ca.crt
+      - equal:
+          path: spec.template.spec.volumes[1]
+          value:
+            name: enroll-grid-ca
+            secret:
+              secretName: grid-ca-bundle
+              items:
+                - key: ca.crt
+                  path: ca.crt
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[1].mountPath
+          value: /etc/grid-enroll/grid-ca
+
+  - it: anchors to the TLS pin by default
+    set:
+      enrollment.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_GRID_CA_FILE
+            value: /etc/grid-enroll/grid-ca/ca.crt
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+
+  - it: refuses a grid CA from both a ConfigMap and a Secret
+    set:
+      enrollment.enabled: true
+      enrollment.gridCaBundle.secret: a
+      enrollment.gridCaBundle.configMap: b
+    asserts:
+      - failedTemplate:
+          errorPattern: "enrollment[./]gridCaBundle"
+
+  - it: refuses a pin from both a ConfigMap and a Secret
+    set:
+      enrollment.enabled: true
+      enrollment.caBundle.secret: a
+    asserts:
+      - failedTemplate:
+          errorPattern: "enrollment[./]caBundle"
+
+  - it: refuses a site name too long for its invite Secret
+    set:
+      enrollment.siteName: a23456789-123456789-123456789-123456789-123456789-12
+    asserts:
+      - failedTemplate:
+          errorPattern: "enrollment[./]siteName"
+
+  - it: refuses a plaintext URL
+    set:
+      enrollment.enabled: true
+      enrollment.url: http://enroll.example.com
+    asserts:
+      - failedTemplate:
+          errorPattern: "enrollment[./]url"
+
+  - it: requires a site name
+    set:
+      enrollment.enabled: true
+      enrollment.siteName: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: enrollment.siteName is required
+
+  - it: defaults the token Secret to grid-invite-<siteName>
+    set:
+      enrollment.enabled: true
+      enrollment.tokenSecretRef.name: ""
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_TOKEN_SECRET
+            value: grid-invite-site-d
+
+  - it: defaults the pinned bundle to the grid-ca-bundle Secret
+    set:
+      enrollment.enabled: true
+      enrollment.caBundle.configMap: ""
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="enroll-pin")].secret.secretName
+          value: grid-ca-bundle
+
+  - it: defaults both refs when they are nulled
+    set:
+      enrollment.enabled: true
+      enrollment.caBundle: null
+      enrollment.tokenSecretRef: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_ENROLL_TOKEN_SECRET
+            value: grid-invite-site-d
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="enroll-pin")].secret.secretName
+          value: grid-ca-bundle
+
+  - it: names the SWIM site after the enrolling site
+    set:
+      enrollment.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_SITE_NAME
+            value: site-d
+
+  - it: keeps an explicit SWIM site name
+    set:
+      enrollment.enabled: true
+      swim.siteName: other
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_SITE_NAME
+            value: other
+
+  - it: sets no SWIM site name from a disabled enrollment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_SITE_NAME
+            value: site-d

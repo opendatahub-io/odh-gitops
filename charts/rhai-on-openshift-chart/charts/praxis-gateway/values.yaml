@@ -1,0 +1,426 @@
+# -- Number of gateway replicas.
+replicaCount: 1
+
+# -- Gateway container image settings.
+image:
+  # -- Image repository.
+  repository: ghcr.io/praxis-proxy/ai
+  # -- Image tag. Used when digest is empty.
+  tag: "0.4.0"
+  # -- Immutable image digest (sha256:<64 hex>). When set, tag is ignored.
+  digest: ""
+  # -- Image pull policy.
+  pullPolicy: "IfNotPresent"
+  # -- ai (praxis-proxy/ai) or grid-gateway, the grid build that role provider and gridServing need.
+  flavor: ai
+
+# -- Pull secrets for private registries.
+imagePullSecrets: []
+
+# -- Override the chart name used in resource names.
+nameOverride: ""
+# -- Override the fully qualified app name, which also names the Service. Empty keeps
+# the release-based name: {release}-praxis-gateway, or the release name when it already
+# contains the chart name or the gateway is a grid gateway.
+fullnameOverride: ""
+# -- Labels added to all chart-managed resources.
+commonLabels: {}
+# -- Additional labels on the gateway pod template. Selector labels cannot
+# be overridden.
+podLabels: {}
+# -- Annotations on the gateway pod template.
+podAnnotations: {}
+
+# -- Extra pod-level securityContext fields (e.g. runAsUser, runAsGroup).
+# runAsNonRoot and seccompProfile are always set by the chart.
+podSecurityContext: {}
+# runAsUser: 100
+# runAsGroup: 101
+
+# -- Numeric user and group for the Praxis container when podSecurityContext sets
+# no runAsUser; a podSecurityContext runAsGroup still replaces gid. The official
+# Praxis images run as the named user praxis (100:101). The kubelet can only enforce
+# runAsNonRoot against a numeric user, and refuses to start the container when it has
+# none.
+imageUser:
+  # -- auto applies uid and gid only to the official praxis-proxy ai, praxis, and
+  # grid-gateway images (mirrors that keep that path count), not their -fips tags,
+  # which run as 1001:1001, and not on OpenShift (security.openshift.io/v1 is served),
+  # where the restricted SCC assigns IDs from the namespace range. Other images keep
+  # the user they declare. true forces it for any image, such as one built FROM the
+  # official images that keeps the named user praxis; false never applies it. helm
+  # template without --api-versions security.openshift.io/v1 renders auto as on.
+  enabled: auto
+  # -- runAsUser for the Praxis container.
+  uid: 100
+  # -- runAsGroup for the Praxis container.
+  gid: 101
+
+# -- Container command, replacing the image entrypoint. Empty keeps the entrypoint.
+# Set it for images whose entrypoint already passes a config path, for example
+# ["praxis"] for the core image ghcr.io/praxis-proxy/praxis.
+command: []
+
+# -- Container arguments. Defaults to the config file path.
+args:
+  - "--config"
+  - "/etc/praxis/praxis.yaml"
+
+# -- Environment variables passed to the Praxis container. Use valueFrom for
+# -- credentials and other deployment-managed secrets.
+env: []
+
+# -- Praxis configuration (praxis.yaml). The first source that is set wins:
+# gatewayConfig.render, then config.existingConfigMap, then config.inline. render also
+# turns on by itself when existingConfigMap is empty and gatewayConfig configures grid
+# routing (backends, role provider, or gridServing). Setting gatewayConfig.localSite or
+# model without any of those fails the install rather than serving config.inline.
+config:
+  # -- Name of an existing ConfigMap holding the Praxis configuration. The chart mounts
+  # it but does not manage it, so editing it does not restart the pods.
+  existingConfigMap: ""
+  # -- Key within existingConfigMap that holds praxis.yaml.
+  key: "praxis.yaml"
+  # -- Praxis configuration the chart stores in its own ConfigMap when neither
+  # existingConfigMap nor gatewayConfig.render is set. Changing it rolls the pods. One
+  # listener must bind port.containerPort, or the install fails. The default answers GET / with a small
+  # JSON status and everything else with 404, so a bare install serves traffic. Replace
+  # it with your own listeners, routes, and clusters, for example with
+  # --set-file config.inline=praxis.yaml.
+  inline: |
+    admin:
+      address: "127.0.0.1:9901"
+    listeners:
+      - name: default
+        address: "0.0.0.0:8080"
+        filter_chains: [default]
+    filter_chains:
+      - name: default
+        filters:
+          - filter: static_response
+            status: 200
+            headers:
+              - name: Content-Type
+                value: application/json
+            body: '{"status": "ok", "server": "praxis"}'
+            conditions:
+              - when:
+                  path: "/"
+          - filter: static_response
+            status: 404
+            headers:
+              - name: Content-Type
+                value: application/json
+            body: '{"error": "not found"}'
+
+# Optional AI Grid Network (AGN) routing config. When render is true the chart emits
+# praxis.yaml + policy.yaml (the auth chain) from these values instead of config, and
+# never emits insecure_options; endpoints are values. Most installs leave this off.
+gatewayConfig:
+  # -- Render praxis.yaml + policy.yaml from these values instead of config. Also on
+  # when config.existingConfigMap is empty and backends, role provider, or gridServing is set.
+  render: false
+  # -- consumer routes callers. provider serves grid peers on the grid identity and forwards to one backend.
+  role: consumer
+  # -- Grid peers a provider accepts, each with a Grid-CA client certificate.
+  peerTrust:
+    # -- pin (certDigests) or spiffe (spiffeIds, experimental). Match the GridNetwork peerTrust.mode.
+    mode: pin
+    # -- pin mode: lowercase hex SHA-256 of each allowed peer's leaf certificate (DER).
+    certDigests: []
+    # -- pin mode: one allowed leaf digest, added to certDigests.
+    digest: ""
+    # -- pin mode: the next leaf digest during a rotation.
+    nextDigest: ""
+    # -- spiffe mode: allowed peer SPIFFE IDs (spiffe://grid.internal/site/<name>).
+    spiffeIds: []
+    # -- spiffe mode: one allowed SPIFFE ID, added to spiffeIds.
+    spiffeId: ""
+    # -- spiffe mode with no spiffeIds: accept any site the Grid CA signed.
+    allowAnyGridSite: false
+    # -- Optional inbound budget shared by all peers, for example { rate: 20, burst: 40 }.
+    rateLimit: {}
+  # -- Provider role settings.
+  provider:
+    # -- Exact paths forwarded to the local backend, GET and POST only. Other paths get a 404.
+    allowedPaths:
+      - /v1/chat/completions
+      - /v1/completions
+      - /v1/models
+      - /v1/embeddings
+  # -- This gateway's site name, required when render is true.
+  localSite: ""
+  # -- Model advertised on the routing candidates. A consumer without gridServing needs it.
+  model: ""
+  auth:
+    # -- Caller authentication, required when render is true. api-key validates the
+    # caller's key against validateUrl and needs an image whose policy engine registers
+    # identity/api-key (praxis-policy 0.4 or later); the render refuses it on the default
+    # ai:0.4.0 image. none
+    # renders no policy filter and belongs only behind an authenticating front.
+    # TODO: default to api-key once the default image carries praxis-policy 0.4.
+    mode: ""
+    # -- With mode none, allow a LoadBalancer or NodePort Service. Without it the render
+    # fails, since that exposes unauthenticated inference. The guard only sees this chart's
+    # Service; see networkPolicy for exposure created outside the chart.
+    allowUnauthenticatedExposure: false
+    # -- Remove the caller's Authorization header before routing, in either mode. The
+    # key authenticates this hop only. Forwarded grid hops authenticate by mTLS identity.
+    # false forwards the caller's key or bearer to every backend and cross-site peer; use
+    # it only when the backend validates that same credential.
+    stripAuthorization: true
+    # -- identity/validate endpoint URL (a backend answering the validate contract: POST {"key":...} returns {"valid":...}). Must be https, or the render fails, since a plaintext validate call ships the credential in the clear.
+    validateUrl: ""
+    # -- Let the validate call reach a private address (an in-cluster Service). Sets the
+    # policy filter's allow_private_idp, which is engine-wide: every policy callout may then
+    # reach any private, loopback, or link-local address, not only validateUrl.
+    allowPrivateEndpoint: false
+    # -- CA that signs the validate endpoint's certificate (for example the OpenShift
+    # service CA). Mounted and set as SSL_CERT_FILE, which REPLACES the platform trust
+    # store for the process: the validate call and https backends without a per-backend CA
+    # or upstreamCA use it; mutual_tls backends and upstreamCA do not. Build the bundle as
+    # the image's /etc/ssl/certs/ca-certificates.crt plus the service CA, or set upstreamCA
+    # for public https backends. Set configMap or secret, not both. Empty keeps the
+    # platform store.
+    validateCA:
+      # -- ConfigMap holding the bundle (for example one annotated
+      # service.beta.openshift.io/inject-cabundle, key service-ca.crt).
+      configMap: ""
+      # -- Secret holding the bundle.
+      secret: ""
+      # -- Key holding the PEM bundle.
+      key: "ca.crt"
+      # -- Mount path for the bundle.
+      mountPath: "/etc/praxis/validate-ca"
+    # -- Credential prefix the resolver strips before lookup.
+    prefix: "Bearer "
+    # -- Validate call timeout (seconds).
+    timeoutSecs: 5
+  # -- CA bundle for backend TLS without a per-cluster CA. Sets praxis upstream_ca_file,
+  # which replaces the system trust store for proxied upstreams. It does not apply to the
+  # api-key validate call; use auth.validateCA for that.
+  upstreamCA:
+    # -- Existing Secret holding the CA bundle. Empty keeps the system trust store.
+    secretName: ""
+    # -- Key within the Secret that holds the PEM bundle.
+    key: "ca.crt"
+    # -- Mount path for the CA bundle.
+    mountPath: "/etc/praxis/upstream-ca"
+  # -- Backend clusters. Each renders a health_check so a literal ClusterIP routes without
+  # allow_private_upstreams, plus an explicit transport. A backend omitting transport
+  # defaults to mutual_tls when the grid identity is mounted (tls.enabled), else plaintext.
+  # mutual_tls presents that identity (tls.mountPath tls.crt/tls.key, verified against its
+  # ca.crt) and needs a sni naming the peer. tls verifies the backend's server cert with
+  # no client cert: sni defaults to the endpoint host. Its trust, first match wins:
+  # transport.ca (a ConfigMap or Secret), then upstreamCA (upstream_ca_file), then the
+  # process store. With auth.validateCA set, SSL_CERT_FILE replaces the process store,
+  # so such a backend then trusts only that bundle. An in-cluster hostname
+  # resolves to a private address, which praxis refuses, so use the ClusterIP endpoint
+  # with sni set to the Service DNS name. plaintext is cleartext.
+  # The health_check type defaults to tcp for TLS transports (the active http probe is
+  # plaintext and cannot reach a TLS peer) and http for plaintext. Override per backend
+  # with healthCheck.type.
+  # Keyed by site. For a provider, local is its one local backend. The older list of
+  # {cluster, endpoints, ...} still renders.
+  # backends:
+  #   site-a:
+  #     endpoint: 203.0.113.20:8080        # transport mutual_tls, sni site-a.grid.internal
+  #   local:                               # provider role
+  #     endpoint: 10.96.0.20:8000
+  # The older list form:
+  #  - cluster: site-a
+  #    site: site-a                     # the grid site it serves; required for a remote backend
+  #    endpoints: ["172.30.202.42:8000"]
+  #    healthCheck: { type: http, path: /health, intervalMs: 5000, timeoutMs: 2000 }
+  #    transport: { mode: mutual_tls, sni: site-a.grid.internal }  # or { mode: plaintext }
+  #  - cluster: local-qwen3            # KServe LLMInferenceService on OpenShift, HTTPS :8000
+  #    endpoints: ["172.30.12.34:8000"]  # the workload Service ClusterIP
+  #    transport:
+  #      mode: tls
+  #      sni: qwen3-kserve-workload-svc.llm.svc
+  #      ca: { configMap: openshift-service-ca.crt, key: service-ca.crt }
+  # -- Inbound TLS on the gateway listener. The default posture assumes an inbound TLS
+  # front (an OpenShift Route or a Gateway) terminates TLS and forwards to this plaintext
+  # listener. Enable to terminate TLS at the gateway itself from a mounted server cert
+  # (tls.crt/tls.key in the Secret). Works with render and with a BYO config, which must
+  # reference mountPath (a BYO config moving off tls.enabled must change its listener
+  # cert paths to it). Enabling it names the container port https. On OpenShift, set
+  # service.annotations service.beta.openshift.io/serving-cert-secret-name to the Secret
+  # name and the service CA issues the cert.
+  listenerTls:
+    # -- Terminate TLS at the gateway listener instead of at an inbound front.
+    enabled: false
+    # -- Existing Secret holding the server certificate (tls.crt) and key (tls.key).
+    existingSecret: ""
+    # -- Mount path for the listener certificate.
+    mountPath: "/etc/praxis/listener-tls"
+
+# -- Primary listener port configuration.
+port:
+  # -- Container port number.
+  containerPort: 8080
+  # -- Port name. Empty: https when gatewayConfig.listenerTls.enabled, else http.
+  name: ""
+  # -- Port protocol.
+  protocol: "TCP"
+
+# -- NetworkPolicy that limits which pods can reach the listener port, where the CNI
+# enforces NetworkPolicy. It is not authentication. With auth.mode none it narrows
+# exposure the Service guard cannot see (oc expose, another Service, an HTTPRoute): list
+# only the authenticating front. Node and host-network traffic handling is CNI-specific
+# (OVN-Kubernetes: the policy-group.network.openshift.io/host-network namespace label), and
+# a LoadBalancer with externalTrafficPolicy Cluster can SNAT clients to node IPs.
+networkPolicy:
+  # -- Render the NetworkPolicy.
+  enabled: false
+  # -- NetworkPolicyPeer entries allowed to reach the listener. Required when enabled.
+  # {podSelector: {}} admits every pod in this namespace. An empty namespaceSelector and an
+  # ipBlock of 0.0.0.0/0 or ::/0 admit everyone and fail the render.
+  from: []
+  # - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress}}
+  #   podSelector: {matchLabels: {app: authenticating-front}}
+
+# -- Gateway Service configuration.
+service:
+  # -- Create a Service for the gateway.
+  enabled: true
+  # -- Service type. Empty: LoadBalancer for a provider, which peers dial, else ClusterIP.
+  type: ""
+  # -- Service port number.
+  port: 8080
+  # -- Service annotations.
+  annotations: {}
+  # -- Static IP for LoadBalancer type.
+  loadBalancerIP: ""
+
+# -- OpenShift Route to the Service, for a stable HTTPS name. The gateway terminates TLS.
+route:
+  # -- Render the Route. Needs the route.openshift.io/v1 API.
+  enabled: false
+  # -- External hostname, a name on the gateway certificate. Required when enabled.
+  host: ""
+  # -- Route annotations.
+  annotations: {}
+  tls:
+    # -- passthrough keeps TLS and client certificates end to end. reencrypt terminates at the router.
+    termination: passthrough
+    # -- PEM CA that signed the gateway certificate. Required for reencrypt.
+    destinationCACertificate: ""
+
+# -- Optional routing overlay ConfigMap mount, as published by the AGN operator for
+# its edge gateways.
+overlay:
+  # -- Enable overlay ConfigMap mount.
+  enabled: false
+  # -- Name of the existing overlay ConfigMap.
+  existingConfigMap: ""
+  # -- Mount path for overlay files.
+  mountPath: "/etc/praxis/routing"
+  # -- Items to project from the ConfigMap (used when sidecar is disabled).
+  items:
+    - key: "routing-config.json"
+      path: "routing-config.json"
+    - key: "routing-overlay.json"
+      path: "routing-overlay.json"
+  # -- Overlay sync sidecar settings. When enabled, the sidecar watches the
+  # ConfigMap via the Kubernetes API and writes validated overlays to a shared
+  # emptyDir, replacing the kubelet volume sync.
+  sidecar:
+    # -- Enable the overlay-sync sidecar.
+    enabled: false
+    # -- Sidecar container image.
+    image:
+      # -- Image repository.
+      repository: ghcr.io/praxis-proxy/grid-overlay-sync
+      # -- Image tag. Empty uses the chart appVersion, which is the praxis version,
+      # not a grid-overlay-sync tag, so keep this set.
+      tag: "v0.1.4"
+      # -- Image pull policy.
+      pullPolicy: IfNotPresent
+    # -- ConfigMap data key containing the overlay envelope.
+    dataKey: "routing-overlay.json"
+    # -- Expected GridNetwork name for scope validation.
+    expectedNetwork: ""
+    # -- Expected local site name for scope validation.
+    expectedLocalSite: ""
+    # -- Sidecar resource requests and limits.
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 32Mi
+
+# -- Operator-rendered serving config for grid_site_route. See the README Cross-Site Routing section.
+gridServing:
+  # -- Mount the serving config and set GRID_SERVING_CONFIG.
+  enabled: false
+  # -- GridNetwork name, which with gatewayRef names the operator's ConfigMap.
+  network: ""
+  # -- This gateway's gatewayRef name in the GridNetwork. Defaults to the release fullname.
+  gatewayRef: ""
+  # -- The operator's ConfigMap, overriding grid-serving-<network>-<gatewayRef>.
+  configMap: ""
+  # -- Mount directory for the ConfigMap.
+  mountPath: "/etc/praxis/grid-serving"
+
+# -- Optional TLS Secret mounted at tls.mountPath: the grid site identity, or a client
+# identity for upstream mTLS that the Praxis config references.
+tls:
+  # -- Enable TLS Secret mount.
+  enabled: false
+  # -- Name of the existing TLS Secret, the site identity the grid operator writes.
+  existingSecret: grid-site-identity
+  # -- Secret holding the Grid CA (ca.crt), projected beside existingSecret. A provider defaults to grid-ca.
+  caSecret: ""
+  # -- Mount path for TLS files.
+  mountPath: "/etc/praxis/tls"
+
+# -- Existing Secrets mounted read-only into the Praxis container, for example
+# upstream API credentials that the Praxis config references.
+credentials: []
+# - name: upstream-api-key
+#   mountPath: /etc/praxis/credentials/upstream
+#   optional: false
+
+# -- Probe configuration.
+health:
+  # -- Readiness probe settings. Set to null to disable.
+  # A tcpSocket without a port targets the listener port.
+  readiness:
+    tcpSocket: {}
+    initialDelaySeconds: 3
+    periodSeconds: 5
+  # -- Liveness probe settings. Set to null to disable.
+  liveness:
+    tcpSocket: {}
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# -- Seconds a terminating pod keeps serving before Praxis is told to stop. Praxis
+# closes its listener as soon as it gets SIGTERM, but Service endpoints take a moment
+# to drop the pod, so without a delay every rollout refuses a few requests. Runs the
+# image's sleep binary as a preStop hook, and the default terminationGracePeriodSeconds
+# grows to cover it. 0 disables it, which an image without sleep (distroless or
+# scratch) needs.
+shutdownDelaySeconds: 5
+
+# -- Seconds Kubernetes gives a terminating pod before killing it. Empty: 30 plus
+# shutdownDelaySeconds, so Praxis still gets its default 30 seconds
+# (shutdown_timeout_secs) to drain in-flight requests after the delay. Raise it if your
+# Praxis config sets a longer shutdown_timeout_secs. Must exceed shutdownDelaySeconds.
+terminationGracePeriodSeconds: null
+
+# -- Container resource requests and limits.
+resources: {}
+# -- Node selector for pod scheduling.
+nodeSelector: {}
+# -- Pod affinity rules.
+affinity: {}
+# -- Pod tolerations.
+tolerations: []
+# -- Topology spread constraints.
+topologySpreadConstraints: []
+# -- Priority class for the gateway pod.
+priorityClassName: ""

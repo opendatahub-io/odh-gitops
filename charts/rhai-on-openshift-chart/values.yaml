@@ -120,6 +120,10 @@ components:
         managementState:
       batchGateway:
         managementState:
+      # AI Grid sub-component (AI Grid CRDs). Omitted from the DSC unless set,
+      # since operators without the field reject it.
+      # aiGrid:
+      #   managementState: Managed
     # -- Gateway and GatewayClass resources for MaaS (created independently of DSC)
     modelsAsAService:
       # -- GatewayClass configuration for the LLMInferenceService.
@@ -636,3 +640,32 @@ dependencies:
     #       enabled: true
     #     nodeStatusExporter:
     #       enabled: true
+
+# =============================================================================
+# AI GRID - Optional subcharts vendored from github.com/praxis-proxy/grid.
+# Values under each key pass through to the subchart; see charts/<name> in this chart.
+# =============================================================================
+# -- AI Grid enrollment service
+grid-enrollment:
+  # -- Install the AI Grid enrollment service
+  enabled: false
+  # -- Stable resource names, independent of the release name
+  fullnameOverride: grid-enrollment
+
+# -- AI Grid operator. Its CRDs are owned by the aigateway aiGrid sub-component, not this chart;
+# render with skipCrds under Argo CD so the two do not fight over them.
+grid-operator:
+  # -- Install the AI Grid operator
+  enabled: false
+  # -- Stable resource names, independent of the release name
+  fullnameOverride: grid-operator
+  gateway:
+    # -- Gateway Service the operator discovers; matches praxis-gateway.fullnameOverride
+    serviceName: grid-gateway
+
+# -- AI Grid gateway (Praxis)
+praxis-gateway:
+  # -- Install the AI Grid gateway
+  enabled: false
+  # -- Stable resource names, independent of the release name
+  fullnameOverride: grid-gateway

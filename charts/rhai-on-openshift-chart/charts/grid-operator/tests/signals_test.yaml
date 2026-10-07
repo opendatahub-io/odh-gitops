@@ -1,0 +1,125 @@
+suite: signals endpoint
+templates:
+  - templates/deployment.yaml
+  - templates/service-swim.yaml
+release:
+  name: grid
+  namespace: grid-system
+tests:
+  - it: is off by default
+    template: templates/deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: signals
+            containerPort: 9091
+            protocol: TCP
+
+  - it: serves, exposes, and points the local gateway at the SWIM Service
+    set:
+      signals.enabled: true
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+    asserts:
+      - template: templates/deployment.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SIGNALS_LOCAL_ADDR
+            value: grid-grid-operator-swim.grid-system.svc:9091
+      - template: templates/deployment.yaml
+        notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SIGNALS_ADDR
+          any: true
+      - template: templates/service-swim.yaml
+        contains:
+          path: spec.ports
+          content:
+            name: signals
+            port: 9091
+            targetPort: signals
+            protocol: TCP
+      - template: templates/service-swim.yaml
+        contains:
+          path: spec.ports
+          content:
+            name: swim-udp
+            port: 7946
+            targetPort: swim-udp
+            protocol: UDP
+
+  - it: maps the Service port to the binary's default listener
+    set:
+      signals.enabled: true
+      signals.port: 19091
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+    asserts:
+      - template: templates/deployment.yaml
+        contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: signals
+            containerPort: 9091
+            protocol: TCP
+      - template: templates/service-swim.yaml
+        contains:
+          path: spec.ports
+          content:
+            name: signals
+            port: 19091
+            targetPort: signals
+            protocol: TCP
+      - template: templates/deployment.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SIGNALS_LOCAL_ADDR
+            value: grid-grid-operator-swim.grid-system.svc:19091
+
+  - it: renders the signals advertise override
+    template: templates/deployment.yaml
+    set:
+      signals.enabled: true
+      signals.advertiseAddress: signals.example.com:9091
+      swim.service.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SIGNALS_ADVERTISE_ADDR
+            value: signals.example.com:9091
+
+  - it: refuses Cluster traffic policy on a signals LoadBalancer
+    template: templates/deployment.yaml
+    set:
+      signals.enabled: true
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+      swim.service.externalTrafficPolicy: Cluster
+    asserts:
+      - failedTemplate:
+          errorPattern: "externalTrafficPolicy Local"
+
+  - it: needs the SWIM Service
+    template: templates/deployment.yaml
+    set:
+      signals.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "signals.enabled needs swim.service.enabled"
+
+  - it: limits LoadBalancer sources for SWIM and signals together
+    template: templates/service-swim.yaml
+    set:
+      signals.enabled: true
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+      swim.service.loadBalancerSourceRanges: ["203.0.113.0/24"]
+    asserts:
+      - equal:
+          path: spec.loadBalancerSourceRanges
+          value: ["203.0.113.0/24"]

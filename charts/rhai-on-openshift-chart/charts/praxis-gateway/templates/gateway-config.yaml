@@ -1,0 +1,205 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- /*
+Secure-by-default: renders praxis.yaml (and policy.yaml with auth.mode api-key), never
+emits insecure_options. Literal ClusterIP backends route through a per-cluster
+health_check. Endpoints are values, not defaults.
+*/ -}}
+{{- if .Values.gatewayConfig.render }}
+{{- $cfg := .Values.gatewayConfig }}
+{{- $provider := eq ($cfg.role | default "consumer") "provider" }}
+{{- $apiKey := and (not $provider) (eq ($cfg.auth.mode | default "none") "api-key") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}-config
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+data:
+  praxis.yaml: |
+    {{- with $cfg.upstreamCA.secretName }}
+    runtime:
+      upstream_ca_file: {{ printf "%s/%s" $cfg.upstreamCA.mountPath ($cfg.upstreamCA.key | default "ca.crt") | quote }}
+    {{- end }}
+    admin:
+      address: "127.0.0.1:9901"
+    listeners:
+      - name: gateway
+        address: "0.0.0.0:{{ .Values.port.containerPort }}"
+        {{- if $provider }}
+        tls:
+          certificates:
+            - cert_path: {{ printf "%s/tls.crt" .Values.tls.mountPath | quote }}
+              key_path: {{ printf "%s/tls.key" .Values.tls.mountPath | quote }}
+          client_ca:
+            ca_path: {{ printf "%s/ca.crt" .Values.tls.mountPath | quote }}
+          {{- if eq (($cfg.peerTrust).mode | default "pin") "spiffe" }}
+          client_cert_mode: require_named
+          {{- with ($cfg.peerTrust).spiffeIds }}
+          trusted_spiffe_ids:
+            {{- range . }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
+          {{- else }}
+          client_cert_mode: require
+          {{- end }}
+        {{- else if $cfg.listenerTls.enabled }}
+        tls:
+          certificates:
+            - cert_path: {{ printf "%s/tls.crt" $cfg.listenerTls.mountPath | quote }}
+              key_path: {{ printf "%s/tls.key" $cfg.listenerTls.mountPath | quote }}
+        {{- end }}
+        filter_chains: [main]
+    filter_chains:
+      - name: main
+        filters:
+          {{- if $provider }}
+          {{- if ne (($cfg.peerTrust).mode | default "pin") "spiffe" }}
+          - filter: peer_identity_trust
+            trusted_peers:
+              {{- range ($cfg.peerTrust).certDigests }}
+              - cert_digest: {{ . | quote }}
+              {{- end }}
+          {{- end }}
+          {{- with ($cfg.peerTrust).rateLimit }}
+          - filter: rate_limit
+            mode: global
+            rate: {{ .rate }}
+            burst: {{ .burst }}
+          {{- end }}
+          - filter: static_response
+            status: 405
+            conditions:
+              - unless:
+                  methods: [GET, POST]
+          # Exact paths: a traversal or a longer path never matches, so it gets a 404.
+          - filter: router
+            routes:
+              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings")) }}
+              - path: {{ . | quote }}
+                cluster: {{ (first $cfg.backends).cluster | quote }}
+              {{- end }}
+          - filter: headers
+            response_set:
+              - name: X-Grid-Provider-Site
+                value: {{ $cfg.localSite | quote }}
+          {{- else }}
+          {{- if $apiKey }}
+          - filter: policy
+            config_path: /etc/praxis/policy.yaml
+            require_protocol_metadata: false
+            {{- if $cfg.auth.allowPrivateEndpoint }}
+            allow_private_idp: true
+            {{- end }}
+          {{- end }}
+          {{- if $cfg.auth.stripAuthorization }}
+          # The caller's credential authenticates this hop only; never forward it upstream.
+          - filter: headers
+            request_remove: [Authorization]
+          {{- end }}
+          - filter: model_to_header
+            header: X-Gateway-Model-Name
+          {{- if ($.Values.gridServing).enabled }}
+          - filter: grid_site_route
+            model_header: X-Gateway-Model-Name
+          {{- else }}
+          - filter: intelligent_route
+            model_header: X-Gateway-Model-Name
+            local_site: {{ $cfg.localSite | quote }}
+            candidates:
+              {{- range $cfg.backends }}
+              - { kind: inference_model, name: {{ $cfg.model | quote }}, site: {{ .site | default $cfg.localSite | quote }}, cluster: {{ .cluster | quote }} }
+              {{- end }}
+          {{- end }}
+          {{- end }}
+          - filter: load_balancer
+            clusters:
+              {{- range $i, $backend := $cfg.backends }}
+              {{- $mode := (.transport).mode | default (ternary "mutual_tls" "plaintext" $.Values.tls.enabled) }}
+              {{- $hc := .healthCheck | default dict }}
+              - name: {{ .cluster | quote }}
+                {{- if eq $mode "mutual_tls" }}
+                tls:
+                  ca:
+                    ca_path: {{ printf "%s/ca.crt" $.Values.tls.mountPath | quote }}
+                  client_cert:
+                    cert_path: {{ printf "%s/tls.crt" $.Values.tls.mountPath | quote }}
+                    key_path: {{ printf "%s/tls.key" $.Values.tls.mountPath | quote }}
+                  sni: {{ include "praxis-gateway.backendSni" . | quote }}
+                  verify: true
+                {{- else if eq $mode "tls" }}
+                tls:
+                  {{- with (.transport).ca }}
+                  ca:
+                    ca_path: {{ printf "/etc/praxis/backend-ca/%d/%s" $i (.key | default "ca.crt") | quote }}
+                  {{- end }}
+                  sni: {{ include "praxis-gateway.backendSni" . | quote }}
+                  verify: true
+                {{- end }}
+                endpoints:
+                  {{- range .endpoints }}
+                  - {{ . | quote }}
+                  {{- end }}
+                {{- if .trustPrivate }}
+                trusted_private_endpoints:
+                  {{- range .endpoints }}
+                  {{- $host := include "praxis-gateway.endpointHost" . }}
+                  {{- if not (include "praxis-gateway.isIPHost" $host) }}
+                  - {{ $host | quote }}
+                  {{- end }}
+                  {{- end }}
+                {{- end }}
+                {{- with .connectTimeoutMs }}
+                connection_timeout_ms: {{ . }}
+                {{- end }}
+                {{- with .totalConnectTimeoutMs }}
+                total_connection_timeout_ms: {{ . }}
+                {{- end }}
+                health_check:
+                  {{- /* TLS backends default to a tcp probe. The active http probe is plaintext and cannot reach a TLS peer. A tcp connect works and still satisfies the present-health_check SSRF-skip guard. */}}
+                  {{- $hcType := $hc.type | default (ternary "http" "tcp" (eq $mode "plaintext")) }}
+                  type: {{ $hcType | quote }}
+                  {{- if eq $hcType "http" }}
+                  path: {{ $hc.path | default "/health" | quote }}
+                  {{- end }}
+                  interval_ms: {{ $hc.intervalMs | default 5000 }}
+                  timeout_ms: {{ $hc.timeoutMs | default 2000 }}
+                  healthy_threshold: {{ $hc.healthyThreshold | default 1 }}
+                  unhealthy_threshold: {{ $hc.unhealthyThreshold | default 3 }}
+              {{- end }}
+  {{- if $apiKey }}
+  policy.yaml: |
+    engine_settings:
+      dispatch: policy
+    plugins:
+      - name: api-key
+        kind: identity/api-key
+        hooks: [identity.resolve]
+        on_error: fail
+        capabilities: [perform_http]
+        config:
+          credential:
+            kind: header
+            name: Authorization
+          prefix: {{ $cfg.auth.prefix | default "Bearer " | quote }}
+          provider:
+            kind: http
+            url: {{ $cfg.auth.validateUrl | quote }}
+            key_field: key
+            valid_field: valid
+            timeout_secs: {{ $cfg.auth.timeoutSecs | default 5 }}
+          record_map:
+            subject:
+              id: username
+              roles: groups
+          claims:
+            include: [subscription, tenant, region, tokenBudget]
+    global:
+      authentication: [api-key]
+      authorization:
+        pre_invocation: ["require(authenticated)"]
+      response:
+        status: 401
+        body: "{\"error\":\"authentication required\"}"
+  {{- end }}
+{{- end }}

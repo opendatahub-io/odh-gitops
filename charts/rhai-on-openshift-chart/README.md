@@ -194,8 +194,13 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 |---------|-------------|--------------------|-----------------------------|
 | `default` | All components Removed (manual configuration) | None | None |
 | `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
+| `ai-grid` | AI Grid multi-cluster routing | aigateway (aiGrid) | None |
 
 Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
+
+### AI Grid
+
+The `ai-grid` profile sets the `aigateway` `aiGrid` sub-component, and the operator then owns the AI Grid CRDs. The optional `grid-operator`, `praxis-gateway` and `grid-enrollment` subcharts deploy the workloads. With Argo CD, render the grid charts with `skipCrds: true` so Argo CD and the operator do not both manage the CRDs. Helm prints subchart NOTES only with `--render-subchart-notes`; setup steps are in the grid installation docs.
 
 ### How profiles work
 

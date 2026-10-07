@@ -1,0 +1,53 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- if .Values.route.enabled }}
+{{- $termination := .Values.route.tls.termination }}
+{{- if not .Values.service.enabled }}
+{{- fail "route.enabled needs service.enabled: the Route targets the chart Service" }}
+{{- end }}
+{{- if not .Values.route.host }}
+{{- fail "route.host is required when route.enabled is true: it must be a name on the gateway certificate" }}
+{{- end }}
+{{- if .Values.gatewayConfig.render }}
+{{- $provider := eq (.Values.gatewayConfig.role | default "consumer") "provider" }}
+{{- if not (or $provider .Values.gatewayConfig.listenerTls.enabled) }}
+{{- fail "route needs TLS at the gateway: set gatewayConfig.listenerTls or use the provider role" }}
+{{- end }}
+{{- if and $provider (eq $termination "reencrypt") }}
+{{- fail "route.tls.termination reencrypt drops the peer client certificate a provider requires; use passthrough" }}
+{{- end }}
+{{- if and (not $provider) (eq .Values.gatewayConfig.auth.mode "none") (not .Values.gatewayConfig.auth.allowUnauthenticatedExposure) }}
+{{- fail "gatewayConfig.auth.mode none with a Route exposes unauthenticated inference; use api-key or set gatewayConfig.auth.allowUnauthenticatedExposure" }}
+{{- end }}
+{{- end }}
+{{- if and (eq $termination "reencrypt") (not .Values.route.tls.destinationCACertificate) }}
+{{- fail "route.tls.termination reencrypt needs route.tls.destinationCACertificate, the CA that signed the gateway certificate" }}
+{{- end }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+  {{- with .Values.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  host: {{ .Values.route.host | quote }}
+  to:
+    kind: Service
+    name: {{ include "praxis-gateway.fullname" . }}
+    weight: 100
+  port:
+    targetPort: {{ include "praxis-gateway.portName" . }}
+  tls:
+    termination: {{ $termination }}
+    {{- with .Values.route.tls.destinationCACertificate }}
+    {{- if eq $termination "reencrypt" }}
+    destinationCACertificate: |
+      {{- . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    insecureEdgeTerminationPolicy: None
+  wildcardPolicy: None
+{{- end }}

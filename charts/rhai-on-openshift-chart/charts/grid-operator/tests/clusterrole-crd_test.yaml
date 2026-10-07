@@ -1,0 +1,28 @@
+suite: ClusterRole CRD template
+templates:
+  - templates/clusterrole-crd.yaml
+tests:
+  - it: grants agenttoolproviders the same verbs as gridnetworks and inferenceproviders
+    asserts:
+      - contains:
+          path: rules[0].resources
+          content: agenttoolproviders
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "list", "watch", "patch"]
+
+  - it: grants agenttoolproviders/status get and patch, mirroring the other status subresources
+    asserts:
+      - contains:
+          path: rules[2].resources
+          content: agenttoolproviders/status
+      - equal:
+          path: rules[2].verbs
+          value: ["get", "patch"]
+
+  - it: renders nothing when rbac.create is false
+    set:
+      rbac.create: false
+    asserts:
+      - hasDocuments:
+          count: 0

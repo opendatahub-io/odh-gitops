@@ -1,0 +1,76 @@
+suite: grid serving
+templates:
+  - templates/gateway-config.yaml
+  - templates/deployment.yaml
+release:
+  name: gw
+  namespace: grid
+set:
+  image.flavor: grid-gateway
+  gatewayConfig.render: true
+  gatewayConfig.localSite: hub
+  gatewayConfig.auth.mode: none
+  tls.enabled: true
+  tls.existingSecret: grid-site-identity
+  tls.caSecret: grid-ca
+  gridServing.enabled: true
+  gridServing.network: grid
+  gatewayConfig.backends:
+    - cluster: pool-b
+      endpoints: ["203.0.113.7:8443"]
+      transport: { mode: mutual_tls, sni: site-b.grid.internal }
+tests:
+  - it: routes with grid_site_route and needs no model
+    template: templates/gateway-config.yaml
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'filter: grid_site_route'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: intelligent_route
+
+  - it: points GRID_SERVING_CONFIG at the mounted operator ConfigMap
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SERVING_CONFIG
+            value: /etc/praxis/grid-serving/serving-config.json
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grid-serving
+            configMap:
+              name: grid-serving-grid-gw-praxis-gateway
+              optional: false
+
+  - it: an explicit configMap overrides the derived name
+    template: templates/deployment.yaml
+    set:
+      gridServing.configMap: custom
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grid-serving
+            configMap:
+              name: custom
+              optional: false
+
+  - it: needs the grid-gateway flavor
+    template: templates/deployment.yaml
+    set:
+      image.flavor: ai
+    asserts:
+      - failedTemplate:
+          errorPattern: "gridServing needs image.flavor grid-gateway"
+
+  - it: refuses a derived name the operator would hash
+    template: templates/deployment.yaml
+    set:
+      gridServing.network: a-network-name-long-enough-to-push-the-configmap-name-past-63
+    asserts:
+      - failedTemplate:
+          errorPattern: "set gridServing.configMap"

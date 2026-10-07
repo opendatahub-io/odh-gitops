@@ -1,0 +1,39 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}-test
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    {{- if not (include "praxis-gateway.openshift" .) }}
+    runAsUser: 65534
+    runAsGroup: 65534
+    {{- end }}
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: connectivity-check
+      image: busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+      command:
+        - sh
+        - -c
+        - |
+          wget -qO /dev/null --timeout=5 \
+            http://{{ include "praxis-gateway.fullname" . }}:{{ .Values.service.port }}/ \
+            2>&1 || true
+          nc -z -w5 {{ include "praxis-gateway.fullname" . }} {{ .Values.service.port }}
+{{- end }}

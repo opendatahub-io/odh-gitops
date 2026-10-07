@@ -1,0 +1,35 @@
+{{- include "grid-operator.normalize" . }}
+{{- if .Values.serviceMonitor.enabled }}
+{{- if not .Values.metrics.service.enabled }}
+{{- fail "serviceMonitor.enabled requires metrics.service.enabled" }}
+{{- end }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "grid-operator.fullname" . }}
+  {{- if .Values.serviceMonitor.namespace }}
+  namespace: {{ .Values.serviceMonitor.namespace }}
+  {{- else }}
+  namespace: {{ .Release.Namespace }}
+  {{- end }}
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "grid-operator.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      {{- with .Values.serviceMonitor.interval }}
+      interval: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . | quote }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,46 @@
+{{- include "grid-operator.normalize" . }}
+{{- if .Values.swim.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grid-operator.fullname" . }}-swim
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+  {{- with .Values.swim.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.swim.service.type | quote }}
+  {{- if and (eq .Values.swim.service.type "LoadBalancer") .Values.swim.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.swim.service.loadBalancerIP | quote }}
+  {{- end }}
+  {{- if eq .Values.swim.service.type "LoadBalancer" }}
+  {{- with .Values.swim.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.swim.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.swim.service.externalTrafficPolicy | quote }}
+  {{- else if eq .Values.swim.service.type "LoadBalancer" }}
+  externalTrafficPolicy: "Local"
+  {{- end }}
+  {{- if eq .Values.swim.service.type "LoadBalancer" }}
+  {{- /* Some LBs publish an address only once an endpoint exists. */}}
+  publishNotReadyAddresses: true
+  {{- end }}
+  ports:
+    - name: swim-udp
+      port: {{ .Values.swim.service.port }}
+      targetPort: swim-udp
+      protocol: UDP
+    {{- if (.Values.signals).enabled }}
+    - name: signals
+      port: {{ .Values.signals.port }}
+      targetPort: signals
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "grid-operator.selectorLabels" . | nindent 4 }}
+{{- end }}

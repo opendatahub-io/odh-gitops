@@ -1,0 +1,114 @@
+suite: enrollment Route
+templates:
+  - templates/enrollment/route.yaml
+  - templates/certs/ca-bootstrap-job.yaml
+  - templates/certs/ca-bootstrap-rbac.yaml
+tests:
+  - it: renders a passthrough Route with its host where the Route API is served
+    template: templates/enrollment/route.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      route.host: enroll.apps.example.com
+    asserts:
+      - isKind:
+          of: Route
+      - equal:
+          path: spec.host
+          value: enroll.apps.example.com
+      - equal:
+          path: spec.tls.termination
+          value: passthrough
+      - equal:
+          path: metadata.annotations["haproxy.router.openshift.io/rate-limit-connections"]
+          value: "true"
+
+  - it: rejects edge termination, since enrollment serves TLS only
+    template: templates/enrollment/route.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      route.host: enroll.apps.example.com
+      route.tls.termination: edge
+    asserts:
+      - failedTemplate: {}
+
+  - it: renders no Route without the Route API
+    template: templates/enrollment/route.yaml
+    set:
+      route.host: enroll.apps.example.com
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: fails a rendered passthrough Route without a host
+    template: templates/enrollment/route.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    asserts:
+      - failedTemplate:
+          errorPattern: route.host is required
+
+  - it: accepts route.enabled as the string "false"
+    template: templates/enrollment/route.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      route.enabled: "false"
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: adds the Route host to the serving cert SAN when the Route renders
+    template: templates/certs/ca-bootstrap-job.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      route.host: enroll.apps.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: enroll.apps.example.com
+
+  - it: leaves the serving cert SAN alone without a Route
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      route.host: enroll.apps.example.com
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: enroll.apps.example.com
+
+  - it: removes the bootstrap RBAC after the hook succeeds or fails
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation,hook-succeeded,hook-failed
+
+  - it: issues no serving cert when a BYO serving Secret serves
+    template: templates/certs/ca-bootstrap-job.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      route.host: enroll.apps.example.com
+      serving.existingSecretRef: byo-serving
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --skip-serving
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --serving-secret
+
+  - it: refuses reencrypt without a destination CA
+    template: templates/enrollment/route.yaml
+    capabilities:
+      apiVersions:
+        - route.openshift.io/v1
+    set:
+      route.host: h.example.com
+      route.tls.termination: reencrypt
+    asserts:
+      - failedTemplate:
+          errorMessage: "reencrypt needs route.tls.destinationCACertificate (the grid CA bundle, ca.crt from Secret grid-ca-bundle); passthrough is recommended"

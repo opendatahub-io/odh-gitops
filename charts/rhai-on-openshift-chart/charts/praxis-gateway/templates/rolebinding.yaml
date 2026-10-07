@@ -1,0 +1,17 @@
+{{- include "praxis-gateway.normalize" . }}
+{{- if and .Values.overlay.enabled .Values.overlay.sidecar.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}-overlay-sync
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "praxis-gateway.fullname" . }}-overlay-sync
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "praxis-gateway.fullname" . }}-overlay-sync
+    namespace: {{ .Release.Namespace }}
+{{- end }}

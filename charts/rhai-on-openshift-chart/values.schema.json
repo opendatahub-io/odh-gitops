@@ -21,11 +21,41 @@
       "default": false,
       "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
     },
+    "grid-enrollment": {
+      "type": "object",
+      "description": "AI Grid enrollment service subchart. See charts/dependencies/grid-enrollment for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "grid-operator": {
+      "type": "object",
+      "description": "AI Grid operator subchart. See charts/dependencies/grid-operator for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "praxis-gateway": {
+      "type": "object",
+      "description": "AI Grid gateway (Praxis) subchart. See charts/dependencies/praxis-gateway for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
     "profile": {
       "type": "string",
-      "enum": ["default", "maas", "rhaii"],
+      "enum": ["default", "maas", "ai-grid", "rhaii"],
       "default": "default",
-      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
+      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid' enables AIGateway with only the aiGrid sub-component. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
     },
     "olm": {
       "type": "object",
@@ -579,6 +609,16 @@
             "batchGateway": {
               "type": "object",
               "description": "Batch Gateway sub-component",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            },
+            "aiGrid": {
+              "type": "object",
+              "description": "AI Grid sub-component",
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"

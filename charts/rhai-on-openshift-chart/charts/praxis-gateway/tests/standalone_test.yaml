@@ -1,0 +1,198 @@
+suite: standalone install
+templates:
+  - templates/configmap.yaml
+  - templates/deployment.yaml
+  - templates/service.yaml
+  - templates/gateway-config.yaml
+  - templates/networkpolicy.yaml
+  - templates/serviceaccount.yaml
+  - templates/role.yaml
+  - templates/rolebinding.yaml
+  - templates/NOTES.txt
+release:
+  name: praxis-gateway
+  namespace: praxis
+tests:
+  - it: stores the built-in Praxis config in a chart-managed ConfigMap
+    template: templates/configmap.yaml
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: praxis-gateway-config
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'address: "0\.0\.0\.0:8080"'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '"server": "praxis"'
+
+  - it: mounts the chart-managed config and rolls pods when it changes
+    template: templates/deployment.yaml
+    set:
+      config.inline: 'listeners: [{name: default, address: "0.0.0.0:8080"}]'
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
+          value: praxis-gateway-config
+      - equal:
+          path: spec.template.metadata.annotations["checksum/config"]
+          value: a57d7f9e283ac1782f59ef0fdd09f136e368b10093eef3bb5be3ab463a1fb779
+
+  - it: keeps user pod annotations next to the config checksum
+    template: templates/deployment.yaml
+    set:
+      podAnnotations:
+        example.com/team: edge
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["example.com/team"]
+          value: edge
+      - exists:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  - it: renders only the proxy workload, with no operator, RBAC, or Grid resources
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/gateway-config.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/networkpolicy.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/serviceaccount.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/role.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/rolebinding.yaml
+      - isKind:
+          of: Service
+        template: templates/service.yaml
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 1
+        template: templates/deployment.yaml
+      - notExists:
+          path: spec.template.spec.serviceAccountName
+        template: templates/deployment.yaml
+
+  - it: prefers an existing ConfigMap over config.inline
+    set:
+      config.existingConfigMap: my-praxis
+      config.key: gateway.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/configmap.yaml
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
+          value: my-praxis
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.items[0].key
+          value: gateway.yaml
+        template: templates/deployment.yaml
+      - notExists:
+          path: spec.template.metadata.annotations["checksum/config"]
+        template: templates/deployment.yaml
+
+  - it: leaves config to gatewayConfig when render is on
+    template: templates/configmap.yaml
+    set:
+      gatewayConfig.render: true
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: m
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        - cluster: a
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: still renders the Grid config when backends are set without render
+    set:
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: m
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/configmap.yaml
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "filter: intelligent_route"
+        template: templates/gateway-config.yaml
+
+  - it: fails a blank config.inline
+    template: templates/deployment.yaml
+    set:
+      config.inline: "  "
+    asserts:
+      - failedTemplate:
+          errorPattern: config.inline is empty
+
+  - it: fails a config.inline that is not a YAML mapping
+    template: templates/deployment.yaml
+    set:
+      config.inline: not-a-mapping
+    asserts:
+      - failedTemplate:
+          errorPattern: config.inline is not a valid YAML mapping
+
+  - it: fails a config.inline with no listener on port.containerPort
+    template: templates/deployment.yaml
+    set:
+      port.containerPort: 9090
+    asserts:
+      - failedTemplate:
+          errorPattern: config.inline has no listener on port.containerPort 9090
+
+  - it: accepts a config.inline listener on a custom port.containerPort
+    template: templates/deployment.yaml
+    set:
+      port.containerPort: 9090
+      config.inline: 'listeners: [{name: default, address: "[::]:9090"}]'
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: fails grid settings that config.inline would ignore
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: qwen3
+    asserts:
+      - failedTemplate:
+          errorPattern: gatewayConfig.localSite is set but config.inline is serving
+
+  - it: fails a model without any grid routing to render it
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.model: qwen3
+    asserts:
+      - failedTemplate:
+          errorPattern: gatewayConfig.model is set but config.inline is serving
+
+  - it: writes install notes that stand on their own without Grid
+    template: templates/NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: "Config:    config.inline \\(ConfigMap praxis-gateway-config\\)"
+      - matchRegexRaw:
+          pattern: port-forward service/praxis-gateway 8080:8080
+      - notMatchRegexRaw:
+          pattern: (?i)grid|\bAGN\b|operator|temporary
+
+  - it: tells existing ConfigMap users how to load an edited config
+    template: templates/NOTES.txt
+    set:
+      config.existingConfigMap: my-praxis
+    asserts:
+      - matchRegexRaw:
+          pattern: rollout restart deployment/praxis-gateway

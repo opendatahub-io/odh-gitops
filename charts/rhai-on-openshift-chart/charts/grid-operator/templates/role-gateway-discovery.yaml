@@ -1,0 +1,41 @@
+{{- include "grid-operator.normalize" . }}
+{{- $gwNs := .Values.gateway.namespace }}
+{{- /* The operator trims the address, so blank would skip the Role yet still discover. */}}
+{{- if and .Values.gateway.address (eq (trim .Values.gateway.address) "") }}
+{{- fail "gateway.address must not be blank" }}
+{{- end }}
+{{- if and $gwNs (not .Values.gateway.address) (regexMatch "^(default|kube-.*|openshift-.*)$" $gwNs) (not .Values.gateway.allowSystemNamespace) }}
+{{- fail (printf "gateway.namespace %q is a system namespace; set gateway.allowSystemNamespace=true to allow it" $gwNs) }}
+{{- end }}
+{{- if and .Values.rbac.create $gwNs (not .Values.gateway.address) (not (has $gwNs (prepend .Values.resourceNamespaces .Release.Namespace))) }}
+{{- $fullname := include "grid-operator.fullname" . }}
+# Only a get on the gateway Service; the resources Role is not bound here.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-gateway-discovery
+  namespace: {{ $gwNs }}
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: [{{ .Values.gateway.serviceName | default "provider-gateway" | quote }}]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-gateway-discovery
+  namespace: {{ $gwNs }}
+  labels:
+    {{- include "grid-operator.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ $fullname }}-gateway-discovery
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

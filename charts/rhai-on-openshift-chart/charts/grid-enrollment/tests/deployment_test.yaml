@@ -1,0 +1,130 @@
+suite: enrollment Deployment hardening
+templates:
+  - templates/enrollment/deployment.yaml
+tests:
+  - it: serves TLS with liveness and readiness probes over HTTPS
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.scheme
+          value: HTTPS
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /readyz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.scheme
+          value: HTTPS
+
+  - it: requires the in-process TLS cert and key
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_TLS_CERT")].value
+          value: /etc/grid-tls/tls.crt
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_TLS_KEY")].value
+          value: /etc/grid-tls/tls.key
+
+  - it: mounts only the CA signing key into the enrollment pod
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="grid-ca")].secret.secretName
+          value: grid-ca-key
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="grid-tls")].secret.secretName
+          value: enrollment-serving-tls
+
+  - it: reads the DB URL from the DB Secret
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="DB_CONNECTION_URL")].valueFrom.secretKeyRef.key
+          value: DB_CONNECTION_URL
+
+  - it: runs non-root with a hardened securityContext
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+
+  - it: carries no gossip env (identity-only, mesh key is the operator's job)
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_GOSSIP_KEY")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_GOSSIP_SEEDS")]
+
+  - it: binds grid-admin tokens to the configured audience under authz=kube
+    set:
+      enrollment.tokenAudience: grid-east
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_TOKEN_AUDIENCE")].value
+          value: grid-east
+
+  - it: omits the token audience under authz=local
+    set:
+      enrollment.authz: local
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENROLLMENT_TOKEN_AUDIENCE
+            value: grid-enrollment
+
+  - it: rejects a blank token audience
+    set:
+      enrollment.tokenAudience: ""
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects an API-server token audience
+    set:
+      enrollment.tokenAudience: https://kubernetes.default.svc
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a whitespace-padded token audience
+    set:
+      enrollment.tokenAudience: " grid-enrollment"
+    asserts:
+      - failedTemplate: {}
+
+  - it: passes its namespace to scope the access review under authz=kube
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POD_NAMESPACE")].valueFrom.fieldRef.fieldPath
+          value: metadata.namespace
+
+  - it: pins the image by digest when image.digest is set
+    set:
+      image.digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/praxis-proxy/grid-enrollment@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  - it: uses the tag when image.digest is empty
+    set:
+      image.tag: v1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/praxis-proxy/grid-enrollment:v1.2.3
+
+  - it: rejects a malformed image.digest
+    set:
+      image.digest: latest
+    asserts:
+      - failedTemplate: {}

@@ -1,0 +1,24 @@
+suite: enrollment Service
+templates:
+  - templates/enrollment/service.yaml
+tests:
+  - it: renders a static LoadBalancer address when set
+    documentIndex: 0
+    set:
+      enrollment.service.type: LoadBalancer
+      enrollment.service.loadBalancerIP: 192.0.2.10
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - equal:
+          path: spec.loadBalancerIP
+          value: 192.0.2.10
+
+  - it: omits the address on a ClusterIP Service
+    documentIndex: 0
+    set:
+      enrollment.service.loadBalancerIP: 192.0.2.10
+    asserts:
+      - notExists:
+          path: spec.loadBalancerIP

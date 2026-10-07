@@ -1,0 +1,155 @@
+suite: SWIM advertise address
+templates:
+  - templates/deployment.yaml
+  - templates/service-swim.yaml
+  - templates/clusterrole-resources.yaml
+  - templates/rolebindings-resources.yaml
+release:
+  name: grid
+  namespace: grid-system
+tests:
+  - it: defaults to the Pod IP without a LoadBalancer Service
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_ADVERTISE_ADDR
+            value: "$(POD_IP):7946"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_SERVICE_NAME
+            value: grid-grid-operator-swim
+
+  - it: discovers from the SWIM Service and keeps the Pod IP for older binaries
+    template: templates/deployment.yaml
+    set:
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_SERVICE_NAME
+            value: grid-grid-operator-swim
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_ADVERTISE_ADDR
+            value: "$(POD_IP):7946"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_ADVERTISE_FALLBACK
+            value: "$(POD_IP):7946"
+
+  - it: explicit advertiseAddress wins over LoadBalancer discovery
+    template: templates/deployment.yaml
+    set:
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+      swim.advertiseAddress: swim.example.com:7946
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_ADVERTISE_ADDR
+            value: swim.example.com:7946
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_SERVICE_NAME
+            value: grid-grid-operator-swim
+
+  - it: NodePort keeps the Pod IP default
+    template: templates/deployment.yaml
+    set:
+      swim.service.enabled: true
+      swim.service.type: NodePort
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_ADVERTISE_ADDR
+            value: "$(POD_IP):7946"
+
+  - it: operator may get only the gateway and SWIM Services
+    template: templates/clusterrole-resources.yaml
+    set:
+      gateway.serviceName: grid-gateway
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["services"]
+            resourceNames: ["grid-gateway", "grid-grid-operator-swim"]
+            verbs: ["get"]
+
+  - it: resources ClusterRole is bound in the release namespace
+    template: templates/rolebindings-resources.yaml
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: grid-system
+      - equal:
+          path: roleRef.name
+          value: grid-grid-operator-resources
+
+  - it: SWIM Service routes to the pod before it is ready
+    template: templates/service-swim.yaml
+    set:
+      swim.service.enabled: true
+      swim.service.type: LoadBalancer
+    asserts:
+      - equal:
+          path: spec.publishNotReadyAddresses
+          value: true
+
+  - it: only a LoadBalancer SWIM Service publishes not-ready addresses
+    template: templates/service-swim.yaml
+    set:
+      swim.service.enabled: true
+      swim.service.type: NodePort
+    asserts:
+      - notExists:
+          path: spec.publishNotReadyAddresses
+
+  - it: an explicit advertiseAddress renders no fallback marker
+    template: templates/deployment.yaml
+    set:
+      swim.advertiseAddress: swim.example.com:7946
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_ADVERTISE_FALLBACK
+          any: true
+
+  - it: leaves the key hold to the binary default
+    template: templates/deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_REQUIRE_KEY
+          any: true
+
+  - it: requireKey false opts out
+    template: templates/deployment.yaml
+    set:
+      swim.requireKey: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRID_SWIM_REQUIRE_KEY
+            value: "false"
+
+  - it: replaces the pod instead of surging a second SWIM identity
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate

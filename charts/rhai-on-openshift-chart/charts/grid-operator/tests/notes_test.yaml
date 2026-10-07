@@ -1,0 +1,27 @@
+suite: install notes
+templates:
+  - templates/NOTES.txt
+tests:
+  - it: names the Secret permissions auto-enroll needs without chart RBAC
+    set:
+      rbac.create: false
+      enrollment.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: get, create, and patch on Secrets
+  - it: says nothing extra with chart RBAC
+    set:
+      enrollment.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: get, create, and patch on Secrets
+  - it: says the platform owns the CRDs when crds.enabled is false
+    set:
+      crds.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: the platform installs the Grid CRDs
+  - it: points at the release-managed CRDs by default
+    asserts:
+      - matchRegexRaw:
+          pattern: CRDs install and upgrade with this release and stay on uninstall

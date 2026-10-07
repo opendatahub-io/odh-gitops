@@ -1,0 +1,53 @@
+{{- include "grid-enrollment.normalize" . }}
+{{- include "grid-enrollment.validateRoute" . }}
+{{- if include "grid-enrollment.routeEnabled" . }}
+{{- /*
+Enrollment front door for remote sites; ships by default on OpenShift. Passthrough serves the
+grid-CA-signed cert end-to-end so the site validates it with the out-of-band
+grid-CA bundle; route.host is auto-added to the serving cert SAN (see ca-bootstrap).
+*/ -}}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+    app.kubernetes.io/component: enrollment
+  {{- $annotations := dict }}
+  {{- with .Values.route.rateLimit }}
+  {{- if .enabled }}
+  {{- $_ := set $annotations "haproxy.router.openshift.io/rate-limit-connections" "true" }}
+  {{- $_ := set $annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" (toString .concurrentTcp) }}
+  {{- $_ := set $annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" (toString .rateTcp) }}
+  {{- end }}
+  {{- end }}
+  {{- $annotations = mergeOverwrite $annotations (.Values.route.annotations | default dict) }}
+  {{- with $annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.route.host }}
+  host: {{ . | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "grid-enrollment.fullname" . }}
+    weight: 100
+  port:
+    targetPort: https
+  tls:
+    {{- if eq .Values.route.tls.termination "edge" }}
+    {{- fail "route.tls.termination=edge requires an HTTP backend; use passthrough or reencrypt" }}
+    {{- end }}
+    termination: {{ .Values.route.tls.termination }}
+    {{- if eq .Values.route.tls.termination "reencrypt" }}
+    {{- with .Values.route.tls.destinationCACertificate }}
+    destinationCACertificate: |
+      {{- . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    insecureEdgeTerminationPolicy: {{ .Values.route.tls.insecureEdgeTerminationPolicy | default "None" }}
+  wildcardPolicy: None
+{{- end }}

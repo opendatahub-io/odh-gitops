@@ -1,0 +1,112 @@
+suite: grid-admin RBAC
+templates:
+  - templates/enrollment/grid-admin-rbac.yaml
+tests:
+  - it: ships a Role limited to create and delete on enrollmenttokens
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-grid-enrollment-grid-admin
+      - equal:
+          path: rules
+          value:
+            - apiGroups: ["grid.praxis-proxy.io"]
+              resources: ["enrollmenttokens"]
+              verbs: ["create", "delete"]
+
+  - it: binds nobody by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Role
+
+  - it: binds the configured subjects
+    set:
+      enrollment.gridAdmins.subjects:
+        - kind: Group
+          name: grid-admins
+    documentSelector:
+      path: kind
+      value: RoleBinding
+    asserts:
+      - equal:
+          path: subjects
+          value:
+            - kind: Group
+              name: grid-admins
+              apiGroup: rbac.authorization.k8s.io
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-grid-enrollment-grid-admin
+
+  - it: creates and binds the grid-admin ServiceAccount when asked
+    set:
+      enrollment.gridAdmins.serviceAccount.create: true
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: grid-admin
+              namespace: NAMESPACE
+        documentSelector:
+          path: kind
+          value: RoleBinding
+      - equal:
+          path: metadata.name
+          value: grid-admin
+        documentSelector:
+          path: kind
+          value: ServiceAccount
+
+  - it: renders nothing under authz=local
+    set:
+      enrollment.authz: local
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: quotes a subject namespace so it cannot inject subjects
+    set:
+      enrollment.gridAdmins.subjects:
+        - kind: ServiceAccount
+          name: ops
+          namespace: ops
+    documentSelector:
+      path: kind
+      value: RoleBinding
+    asserts:
+      - equal:
+          path: subjects[0].namespace
+          value: ops
+
+  - it: rejects a subject namespace that is not a DNS-1123 label
+    set:
+      enrollment.gridAdmins.subjects:
+        - kind: ServiceAccount
+          name: ops
+          namespace: "ops\n  - kind: Group\n    name: system:masters"
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects cluster-wide groups as grid-admins
+    set:
+      enrollment.gridAdmins.subjects:
+        - kind: Group
+          name: system:authenticated
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects system:masters and serviceaccounts groups
+    set:
+      enrollment.gridAdmins.subjects:
+        - kind: Group
+          name: system:serviceaccounts:grid
+    asserts:
+      - failedTemplate: {}

@@ -1,0 +1,2954 @@
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opendatahub-operator-system
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/service.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-enrollment
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: enrollment
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/crds/agenttoolprovider.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: agenttoolproviders.grid.praxis-proxy.io
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false,ServerSideApply=true
+spec:
+  group: grid.praxis-proxy.io
+  names:
+    kind: AgentToolProvider
+    plural: agenttoolproviders
+    shortNames:
+      - atp
+    singular: agenttoolprovider
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.protocol
+          name: Protocol
+          type: string
+        - jsonPath: .status.phase
+          name: Phase
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for AgentToolProviderSpec via `CustomResource`
+          properties:
+            spec:
+              description: Specification for an [`AgentToolProvider`].
+              properties:
+                accessPolicy:
+                  default:
+                    siteSelector:
+                      matchLabels: {}
+                  description: Which sites can consume these tools.
+                  properties:
+                    siteSelector:
+                      default:
+                        matchLabels: {}
+                      description: Which sites can route to this provider.
+                      properties:
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          default: {}
+                          description: Label key-value pairs that must match.
+                          type: object
+                      type: object
+                  type: object
+                auth:
+                  description: Authentication configuration.
+                  nullable: true
+                  properties:
+                    manual:
+                      default: false
+                      description: |-
+                        Whether the user manages credentials manually.
+
+                        When true, the operator does not inject credentials
+                        and the user is responsible for configuring auth.
+                      type: boolean
+                    secretRef:
+                      description: Reference to a Secret containing the credential.
+                      nullable: true
+                      properties:
+                        key:
+                          description: |-
+                            Key within the Secret's `data` map.
+
+                            Required when the Secret holds multiple keys (e.g. credential references
+                            in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                            Secret is consumed (e.g. TLS `ca_secret_ref`).
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                    strategy:
+                      description: How credentials are presented to the provider.
+                      enum:
+                        - api_key
+                        - bearer_token
+                        - custom
+                        - mtls_only
+                        - oauth2
+                        - service_account
+                        - sigv4
+                      type: string
+                  required:
+                    - strategy
+                  type: object
+                endpoint:
+                  description: HTTP endpoint of the MCP server.
+                  type: string
+                gridNetworkRef:
+                  description: |-
+                    Name of the [`GridNetwork`] this provider belongs to.
+
+                    [`GridNetwork`]: crate::crd::grid_network::GridNetwork
+                  type: string
+                protocol:
+                  default: mcp
+                  description: Protocol used (only "mcp" initially).
+                  type: string
+                siteSelector:
+                  default:
+                    matchLabels: {}
+                  description: Which sites host this provider.
+                  properties:
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      default: {}
+                      description: Label key-value pairs that must match.
+                      type: object
+                  type: object
+                tls:
+                  description: |-
+                    TLS configuration for the operator's own MCP `tools/list` probe.
+
+                    Reuses [`EndpointTlsConfig`] from [`InferenceProvider`] (CA trust and
+                    optional mTLS client identity for the probe connection). When absent,
+                    the probe uses native root certificates and no client certificate.
+
+                    [`InferenceProvider`]: crate::crd::inference_provider::InferenceProvider
+                  nullable: true
+                  properties:
+                    caSecretRef:
+                      description: |-
+                        Reference to a Secret containing the CA certificate PEM for server
+                        verification.
+
+                        The Secret must contain the PEM-encoded CA certificate under the key
+                        `ca.crt` (or the key specified by `key`).  When this CA is
+                        set, the scraper trusts **only** this CA; system root certificates
+                        are not consulted.
+                      properties:
+                        key:
+                          description: |-
+                            Key within the Secret's `data` map.
+
+                            Required when the Secret holds multiple keys (e.g. credential references
+                            in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                            Secret is consumed (e.g. TLS `ca_secret_ref`).
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                    clientCertificateSecretRef:
+                      description: |-
+                        Reference to a Secret containing the client certificate and private
+                        key for mutual TLS.
+
+                        When set, the scraper presents this identity during the TLS handshake.
+                        The Secret must contain `tls.crt` (or `certificate_key`) and
+                        `tls.key` (or `private_key_key`) in PEM format.
+
+                        When absent, the scraper performs one-way TLS only (server verification
+                        with the CA from `ca_secret_ref`, no client certificate).
+                      nullable: true
+                      properties:
+                        certificateKey:
+                          default: tls.crt
+                          description: Key within `Secret.data` holding the PEM-encoded client certificate.
+                          minLength: 1
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                        privateKeyKey:
+                          default: tls.key
+                          description: Key within `Secret.data` holding the PEM-encoded private key.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                  required:
+                    - caSecretRef
+                  type: object
+                tools:
+                  default: []
+                  description: Tool definitions (auto-discovered if omitted).
+                  items:
+                    description: Metadata for a single MCP tool.
+                    properties:
+                      description:
+                        description: Human-readable description.
+                        nullable: true
+                        type: string
+                      name:
+                        description: Tool name.
+                        type: string
+                    required:
+                      - name
+                    type: object
+                  type: array
+              required:
+                - endpoint
+                - gridNetworkRef
+              type: object
+            status:
+              description: |-
+                Observed status of an [`AgentToolProvider`].
+
+                # Stable `reason` values
+
+                `reason` is `None` while the provider is healthy. When set, it is one
+                of the following stable, machine-readable strings — following the
+                same naming convention as [`InferenceProvider`]'s `MetricsTls*`/
+                `HealthCheckTls*` reasons:
+
+                | Reason | Meaning |
+                |--------|---------|
+                | `ProviderConfigInvalid` | `spec.endpoint` or `spec.gridNetworkRef` is blank or whitespace-only. |
+                | `GridNetworkNotFound` | The `GridNetwork` referenced by `spec.gridNetworkRef` does not exist. |
+                | `McpEndpointUnreachable` | The MCP probe could not connect (transport failure, timeout, DNS error). |
+                | `McpToolsListInvalidResponse` | The endpoint responded but the `tools/list` response was malformed. |
+                | `McpAuthRejected` | The MCP server rejected the configured `spec.auth` credentials. |
+                | `McpAuthTokenInvalid` | The resolved `spec.auth` bearer token contains characters that cannot be sent as an HTTP header value; the probe fails closed rather than proceeding unauthenticated. |
+                | `EndpointTlsSecretMissing` | `spec.tls`'s referenced Secret does not exist in the cluster. |
+                | `EndpointTlsKeyMissing` | `spec.tls`'s referenced Secret exists but is missing the expected key. |
+                | `EndpointTlsMaterialInvalid` | `spec.tls`'s certificate or key material could not be parsed. |
+
+                [`InferenceProvider`]: crate::crd::inference_provider::InferenceProvider
+              nullable: true
+              properties:
+                discoveredTools:
+                  default: []
+                  description: Tools discovered via MCP `tools/list`.
+                  items:
+                    type: string
+                  type: array
+                matchingSites:
+                  default: []
+                  description: Sites matched by the site selector.
+                  items:
+                    type: string
+                  type: array
+                observedGeneration:
+                  default: 0
+                  description: Last observed generation.
+                  format: int64
+                  type: integer
+                phase:
+                  default: Pending
+                  description: Current phase.
+                  enum:
+                    - Pending
+                    - Available
+                    - Degraded
+                    - Unavailable
+                  type: string
+                reason:
+                  description: |-
+                    Machine-readable reason for the current phase, `None` when healthy.
+
+                    See the type-level doc comment for the table of stable values.
+                  nullable: true
+                  type: string
+              type: object
+          required:
+            - spec
+          title: AgentToolProvider
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/crds/gridnetwork.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gridnetworks.grid.praxis-proxy.io
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false,ServerSideApply=true
+spec:
+  group: grid.praxis-proxy.io
+  names:
+    kind: GridNetwork
+    plural: gridnetworks
+    shortNames:
+      - gnw
+    singular: gridnetwork
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.gridId
+          name: Grid ID
+          type: string
+        - jsonPath: .status.phase
+          name: Phase
+          type: string
+        - jsonPath: .status.connectedSites
+          name: Sites
+          type: integer
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for GridNetworkSpec via `CustomResource`
+          properties:
+            spec:
+              description: |-
+                Specification for a [`GridNetwork`].
+
+                Defines the grid's seed peers, gateway associations, SWIM
+                tuning, and TLS secret references.
+              properties:
+                admissionPolicy:
+                  description: |-
+                    Provider admission and pressure-recovery policy.
+
+                    When omitted, Grid preserves the historical instantaneous admission
+                    behaviour and providers without metrics remain eligible. Stabilized
+                    pressure transitions require an active metrics scoring strategy and a
+                    matching provider signal name. Without those, the observation is
+                    `NotConfigured` and the provider remains `new_and_existing`; the
+                    `missingMetrics` policy applies only after a configured signal is
+                    missing or stale.
+                  nullable: true
+                  properties:
+                    missingMetrics:
+                      default: existingOnly
+                      description: Fail-closed state for missing or expired metrics.
+                      enum:
+                        - existingOnly
+                        - excluded
+                      type: string
+                    mode:
+                      default: instantaneous
+                      description: Admission evaluation mode.
+                      enum:
+                        - instantaneous
+                        - stabilized
+                      type: string
+                    pressure:
+                      default:
+                        enterThreshold: 0.85
+                        exitThreshold: 0.7
+                        failureThreshold: 2
+                        minimumStateDuration: 10s
+                        recoveryHoldDown: 30s
+                        successThreshold: 3
+                      description: Pressure and recovery thresholds.
+                      properties:
+                        enterThreshold:
+                          description: Pressure level at which a provider is considered saturated.
+                          format: double
+                          maximum: 1.0
+                          minimum: 0.0
+                          type: number
+                        exitThreshold:
+                          description: Lower pressure level required before recovery can begin.
+                          format: double
+                          maximum: 1.0
+                          minimum: 0.0
+                          type: number
+                        failureThreshold:
+                          description: Consecutive pressure observations required to enter `existingOnly`.
+                          format: uint32
+                          maximum: 100.0
+                          minimum: 1.0
+                          type: integer
+                        minimumStateDuration:
+                          description: Minimum time a state must remain active before changing.
+                          pattern: ^[1-9][0-9]*s$
+                          type: string
+                        recoveryHoldDown:
+                          description: Additional time to hold a recovering provider in `existingOnly`.
+                          pattern: ^[1-9][0-9]*s$
+                          type: string
+                        successThreshold:
+                          description: Consecutive healthy observations required to recover new admission.
+                          format: uint32
+                          maximum: 100.0
+                          minimum: 1.0
+                          type: integer
+                      required:
+                        - enterThreshold
+                        - exitThreshold
+                        - failureThreshold
+                        - minimumStateDuration
+                        - recoveryHoldDown
+                        - successThreshold
+                      type: object
+                      x-kubernetes-validations:
+                        - message: exitThreshold must be less than enterThreshold
+                          rule: self.exitThreshold < self.enterThreshold
+                  type: object
+                budgetPolicy:
+                  description: |-
+                    Budget policy configuration for per-tenant spend tracking.
+
+                    Selects which tenants Grid tracks cumulative spend for. See
+                    [`BudgetPolicyConfig`] for what this does and does not do.
+
+                    **Default (absent):** no tenants are tracked; `budgetStatus` is
+                    always empty.
+                  nullable: true
+                  properties:
+                    tenants:
+                      default: []
+                      description: Per-tenant budget caps.
+                      items:
+                        description: Per-tenant budget cap declaration.
+                        properties:
+                          capUsd:
+                            description: |-
+                              Maximum cumulative spend in USD before this tenant is considered over budget.
+
+                              **Minimum value:** `0`. The generated CRD schema rejects negative caps;
+                              [`validate_budget_policy`] additionally rejects `NaN`/infinite values
+                              that the schema's numeric minimum does not catch.
+                            format: double
+                            minimum: 0.0
+                            type: number
+                          tenantId:
+                            description: Tenant identifier. Must be non-empty and unique within the policy.
+                            type: string
+                        required:
+                          - capUsd
+                          - tenantId
+                        type: object
+                      type: array
+                  type: object
+                gatewayRefs:
+                  default: []
+                  description: References to Praxis Gateways that participate in this grid.
+                  items:
+                    description: Reference to a Praxis Gateway that participates in this grid.
+                    properties:
+                      consumerConfig:
+                        description: |-
+                          Opt-in configuration for operator-managed consumer Praxis config generation.
+
+                          When absent or `enabled: false`, this gateway behaves exactly as before —
+                          only the routing overlay `ConfigMap` is applied.  When `enabled: true`, the
+                          operator additionally renders a consumer Praxis `ConfigMap` containing the
+                          `intelligent_route` candidates (with credential `secretRef` data), a
+                          `credential_inject` section for credential-bearing candidates, and a
+                          `load_balancer` section with one cluster entry per unique candidate cluster.
+
+                          The generated `ConfigMap` contains no token bytes.
+                        nullable: true
+                        properties:
+                          clusterEndpoints:
+                            default: []
+                            description: |-
+                              Endpoint topology for the generated `load_balancer` section.
+
+                              Each entry maps a routing candidate cluster name to a reachable endpoint
+                              address with explicit transport configuration.  Every cluster referenced
+                              by a routing candidate must have a matching entry here with a non-`None`
+                              `transport` field.
+
+                              Missing endpoint topology causes config generation to fail with
+                              `MissingClusterEndpoint`.  Missing transport fails with
+                              `MissingTransport`.  Mutual-TLS transport without SNI fails with
+                              `MissingSni`.
+
+                              In production, this is populated by whoever manages the consumer gateway
+                              deployment (platform automation, the gateway operator, or a Helm chart).
+                              In local Kind validation, the xtask harness discovers `NodePort` addresses
+                              and populates this field in the test fixture.
+
+                              Default: empty — valid only when the rendered overlay has no candidates.
+                            items:
+                              description: |-
+                                Endpoint configuration for one consumer `load_balancer` cluster.
+
+                                Maps a routing candidate cluster name to a reachable provider gateway
+                                endpoint with explicit transport intent.  Every cluster referenced by
+                                a routing candidate must have a matching entry.
+
+                                # Transport requirement
+
+                                The `transport` field is required.  Missing transport fails closed
+                                during config rendering with status reason `MissingTransport`.
+                                When `transport.mode` is `mutual_tls`, `transport.sni` must also
+                                be present and non-blank; otherwise rendering fails with status
+                                reason `MissingSni`.
+                              properties:
+                                address:
+                                  description: Reachable endpoint address (`host:port`).
+                                  type: string
+                                cluster:
+                                  description: Cluster name — must match a `candidate.cluster` value in the routing overlay.
+                                  type: string
+                                transport:
+                                  description: |-
+                                    Explicit transport configuration.
+
+                                    Required.  Use `mutual_tls` with `sni` for remote/provider-gateway
+                                    traffic.  Use `plaintext` only for local/dev-only endpoints.
+                                    Missing transport fails closed during config rendering.
+                                  nullable: true
+                                  properties:
+                                    mode:
+                                      description: 'Transport mode: `mutual_tls` or `plaintext`.'
+                                      enum:
+                                        - mutual_tls
+                                        - plaintext
+                                      type: string
+                                    sni:
+                                      description: |-
+                                        TLS Server Name Indication (required when mode is `mutual_tls`;
+                                        must not be set when mode is `plaintext`).
+                                      nullable: true
+                                      type: string
+                                  required:
+                                    - mode
+                                  type: object
+                              required:
+                                - address
+                                - cluster
+                              type: object
+                            type: array
+                          configMapName:
+                            default: praxis-consumer-config
+                            description: |-
+                              Name of the generated consumer Praxis `ConfigMap`.
+
+                              Default: `praxis-consumer-config`.
+                            type: string
+                          credentialMountBase:
+                            default: /run/secrets/grid-credentials
+                            description: |-
+                              Base directory for mounted credential Secret files inside the consumer pod.
+
+                              Each credential Secret is expected to be mounted at
+                              `{credentialMountBase}/{secret-name}/{secret-key}`.
+
+                              Default: `/run/secrets/grid-credentials`.
+                            type: string
+                          enabled:
+                            default: false
+                            description: |-
+                              Enable operator-managed consumer Praxis config generation for this gateway.
+
+                              Default: `false`.  Set to `true` to opt in.
+                            type: boolean
+                          listenerPort:
+                            default: 8080
+                            description: |-
+                              HTTP port for the generated Praxis listener.
+
+                              The rendered `listeners[0].address` is `0.0.0.0:{listenerPort}`.
+
+                              Default: `8080`.
+                            format: uint16
+                            maximum: 65535.0
+                            minimum: 0.0
+                            type: integer
+                          tlsCertMountPath:
+                            default: /etc/praxis/tls
+                            description: |-
+                              Mount path for TLS certificates inside the consumer pod.
+
+                              Used when rendering mTLS cluster entries from `clusterEndpoints`.
+                              The operator expects the consumer pod to mount a TLS Secret at this path,
+                              containing `ca.crt`, `tls.crt`, and `tls.key`.
+
+                              Default: `/etc/praxis/tls`.
+                            type: string
+                        type: object
+                      localSiteName:
+                        description: |-
+                          Local site name for the `intelligent_route` overlay generated for this gateway.
+
+                          Identifies which [`GridSite`] this gateway's cluster represents.
+                          Praxis uses `local_site` to score candidates running on the same site
+                          higher than remote candidates.
+
+                          When absent, the [`GridNetwork`] metadata name is used as a fallback.
+                          This is correct for single-site networks where the network name and
+                          site name are the same.  Multi-site networks should set this to the
+                          [`GridSite`] name for the cluster hosting this gateway.
+
+                          [`GridSite`]: crate::crd::grid_site::GridSite
+                          [`GridNetwork`]: crate::crd::grid_network::GridNetwork
+                        nullable: true
+                        type: string
+                      name:
+                        description: Gateway name.
+                        type: string
+                      namespace:
+                        description: Gateway namespace.
+                        type: string
+                    required:
+                      - name
+                      - namespace
+                    type: object
+                  type: array
+                gridId:
+                  default: ""
+                  description: |-
+                    Grid ID for tenancy. Empty on creation; auto-generated
+                    on first join with another site.
+                  type: string
+                metricsRefreshInterval:
+                  description: |-
+                    Maximum time between metric refreshes and score/ranking recalculation.
+
+                    This controls the `GridNetwork` reconcile cadence for provider metrics;
+                    it does not change request-path routing or the overlay watch latency.
+                    Use a duration of at least one second, such as `"10s"` or `"1500ms"`.
+                    The default cadence is 300 seconds. TLS-protected provider metrics cap
+                    the cadence at 60 seconds for bounded certificate-rotation detection.
+                  nullable: true
+                  pattern: ^([1-9][0-9]*s|[1-9][0-9]{3,}ms)$
+                  type: string
+                peerTrust:
+                  description: Grid-wide peer trust on the signals path, `pin` when absent, read at operator start.
+                  nullable: true
+                  properties:
+                    mode:
+                      description: Peer trust mode.
+                      enum:
+                        - pin
+                        - spiffe
+                      type: string
+                  required:
+                    - mode
+                  type: object
+                placementPolicy:
+                  description: Optional static capacity-placement policy.
+                  nullable: true
+                  properties:
+                    strategy:
+                      description: Placement strategy.
+                      enum:
+                        - static
+                      type: string
+                  required:
+                    - strategy
+                  type: object
+                region:
+                  description: Region where this site is deployed.
+                  nullable: true
+                  type: string
+                routingPolicy:
+                  description: |-
+                    Candidate ordering policy for the routing overlay.
+
+                    Controls whether geography (locality tier) or the scoring engine's
+                    weighted total score is the primary differentiator when ranking
+                    candidates after admission state and freshness.
+                  enum:
+                    - geographyFirst
+                    - scoreFirst
+                  nullable: true
+                  type: string
+                scoringPolicy:
+                  description: |-
+                    Scoring policy configuration.
+
+                    Selects how the operator scores providers for the routing overlay.
+
+                    **Default (absent):** the `noMetrics` strategy is used.
+
+                    See [`ScoringStrategy`] for the available provider-level strategies.
+                  nullable: true
+                  properties:
+                    strategy:
+                      description: |-
+                        Provider-level scoring strategy.
+
+                        Required when `scoringPolicy` is present. Omit the entire policy to use
+                        the `noMetrics` default.
+                      enum:
+                        - noMetrics
+                        - queueDepth
+                        - kvCachePressure
+                      type: string
+                  required:
+                    - strategy
+                  type: object
+                seeds:
+                  default: []
+                  description: |-
+                    Initial SWIM seed peer endpoints in host:port form. Literal IPv4, bracketed
+                    IPv6, and DNS hostnames are accepted.
+                  items:
+                    type: string
+                  type: array
+                selectionPolicy:
+                  description: |-
+                    Local request distribution policy for the active selection group.
+
+                    This is independent of scoring. When absent, the overlay carries no
+                    selection override and Praxis uses deterministic selection.
+                  nullable: true
+                  properties:
+                    mode:
+                      description: Local selection mode used by the data-plane gateway.
+                      enum:
+                        - deterministic
+                        - roundRobin
+                        - random
+                        - weightedRandom
+                      type: string
+                  required:
+                    - mode
+                  type: object
+                signalTransport:
+                  description: |-
+                    Grid-wide signal transport.
+
+                    **Default (absent):** `gossip`, the established SWIM and CRDT overlay
+                    path. Set `mode: poll` to propagate signals by direct mTLS pull instead.
+                    The mode is read at operator start, so a change requires an operator
+                    restart.
+                  nullable: true
+                  properties:
+                    mode:
+                      description: Signal dissemination mode.
+                      enum:
+                        - gossip
+                        - poll
+                      type: string
+                  required:
+                    - mode
+                  type: object
+                staleCandidateTtlSeconds:
+                  description: |-
+                    Maximum age in seconds before a stale (`fresh=false`) remote routing
+                    candidate is removed from the overlay.
+
+                    When a remote peer is declared `Dead` or `Suspect` by SWIM, its
+                    routing candidates are marked `fresh=false` and deprioritised.  Without
+                    this field those stale candidates remain in the overlay indefinitely,
+                    which is useful for observability but can accumulate over time if peers
+                    never recover.
+
+                    Setting this field activates overlay-level garbage collection: remote
+                    candidates whose SWIM member age is at or above this threshold are
+                    omitted from the rendered overlay.  Fresh (`fresh=true`) candidates and
+                    local candidates are never evicted.  CRDT provider records in storage
+                    are not deleted.
+
+                    **Default (absent):** stale candidates are retained indefinitely —
+                    the same behaviour as before this field existed.
+
+                    **Minimum value:** `1` second.  The generated CRD schema rejects `0`.
+                    The controller still treats an internally observed `0` as absent
+                    defensively, avoiding accidental immediate eviction if malformed data is
+                    deserialized outside the Kubernetes API path.
+
+                    A conservative starting value for production is `3600` (one hour),
+                    which allows short failures to recover without overlay churn while
+                    still bounding accumulation of truly dead peers.
+                  format: uint32
+                  minimum: 1.0
+                  nullable: true
+                  type: integer
+                swim:
+                  default:
+                    gossipNodes: 3
+                    probeInterval: 5s
+                    suspicionTimeout: 10s
+                  description: SWIM protocol configuration.
+                  properties:
+                    gossipNodes:
+                      default: 3
+                      description: Fanout for indirect probes.
+                      format: uint32
+                      minimum: 0.0
+                      type: integer
+                    probeInterval:
+                      default: 5s
+                      description: WAN probe interval (e.g. "5s").
+                      type: string
+                    suspicionTimeout:
+                      default: 10s
+                      description: Suspicion timeout before declaring dead (e.g. "10s").
+                      type: string
+                  type: object
+                tls:
+                  default:
+                    caSecretRef: null
+                    siteSecretRef: null
+                    swimKeyRef: null
+                  description: TLS secret references for grid certificate management.
+                  properties:
+                    caSecretRef:
+                      description: Secret storing the grid CA certificate and key.
+                      nullable: true
+                      properties:
+                        key:
+                          description: |-
+                            Key within the Secret's `data` map.
+
+                            Required when the Secret holds multiple keys (e.g. credential references
+                            in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                            Secret is consumed (e.g. TLS `ca_secret_ref`).
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                    siteSecretRef:
+                      description: Secret storing this site's certificate and key.
+                      nullable: true
+                      properties:
+                        key:
+                          description: |-
+                            Key within the Secret's `data` map.
+
+                            Required when the Secret holds multiple keys (e.g. credential references
+                            in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                            Secret is consumed (e.g. TLS `ca_secret_ref`).
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                    swimKeyRef:
+                      description: Secret storing the SWIM encryption key.
+                      nullable: true
+                      properties:
+                        key:
+                          description: |-
+                            Key within the Secret's `data` map.
+
+                            Required when the Secret holds multiple keys (e.g. credential references
+                            in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                            Secret is consumed (e.g. TLS `ca_secret_ref`).
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                  type: object
+                zone:
+                  description: Availability zone.
+                  nullable: true
+                  type: string
+              type: object
+              x-kubernetes-validations:
+                - message: placementPolicy must be set if and only if selectionPolicy.mode is weightedRandom
+                  rule: has(self.placementPolicy) == (has(self.selectionPolicy) && self.selectionPolicy.mode == 'weightedRandom')
+            status:
+              description: Observed status of a [`GridNetwork`].
+              nullable: true
+              properties:
+                budgetStatus:
+                  description: |-
+                    Per-tenant budget status, derived from `spec.budgetPolicy` and merged
+                    cross-site CRDT spend state.
+
+                    Empty when `budgetPolicy` is absent. This is a status signal only —
+                    Grid does not enforce budget limits itself (see [`BudgetPolicyConfig`]).
+                  items:
+                    description: |-
+                      Per-tenant budget status derived from policy + merged CRDT spend state.
+
+                      Populated in [`GridNetworkStatus::budget_status`] for every tenant
+                      declared in `spec.budgetPolicy`, regardless of whether spend has been
+                      recorded for that tenant yet. This is a status signal only — Grid does
+                      not enforce budget limits (see [`BudgetPolicyConfig`] doc).
+                    properties:
+                      capUsd:
+                        description: Budget cap for this tenant, in USD, copied from `spec.budgetPolicy`.
+                        format: double
+                        type: number
+                      spendRatio:
+                        description: '`spend_usd / cap_usd`, clamped to `0.0..=1.0`. See [`spend_ratio`].'
+                        format: double
+                        type: number
+                      spendUsd:
+                        description: |-
+                          Cumulative spend observed for this tenant, in USD.
+
+                          Converged across all sites that have merged CRDT state for this
+                          tenant; may lag briefly during a partition (see [`GCounter`]).
+                        format: double
+                        type: number
+                      tenantId:
+                        description: Tenant identifier, matching `spec.budgetPolicy.tenants[].tenantId`.
+                        type: string
+                    required:
+                      - capUsd
+                      - spendRatio
+                      - spendUsd
+                      - tenantId
+                    type: object
+                  type: array
+                connectedSites:
+                  default: 0
+                  description: Number of connected (Active) sites.
+                  format: uint32
+                  minimum: 0.0
+                  type: integer
+                consumerConfigStatus:
+                  description: |-
+                    Per-gateway consumer Praxis config render and apply status.
+
+                    Populated for every gateway reference that has `consumerConfig.enabled: true`.
+                    Gateways without `consumerConfig` are omitted.  Use this field to
+                    determine whether the operator successfully rendered and applied a
+                    consumer `ConfigMap` for each opted-in gateway.
+                  items:
+                    description: |-
+                      Per-gateway status for operator-managed consumer Praxis config generation.
+
+                      Reported in [`GridNetworkStatus::consumer_config_status`] for each gateway
+                      reference with `consumerConfig.enabled: true`.
+
+                      # Security
+
+                      `message` must never contain credential token bytes.  Error messages from
+                      rendering only describe structural problems (blank fields, unsupported
+                      strategies); credential bytes are never included.
+                    properties:
+                      configMapName:
+                        default: ""
+                        description: |-
+                          Name of the generated `ConfigMap`.
+
+                          Populated from `consumerConfig.configMapName`; empty for `Disabled` entries.
+                        type: string
+                      gatewayName:
+                        description: Name of the `GatewayRef` this status entry corresponds to.
+                        type: string
+                      message:
+                        default: ""
+                        description: |-
+                          Human-readable diagnostic message.
+
+                          Never contains credential token bytes.
+                        type: string
+                      namespace:
+                        description: Namespace of the gateway (and the generated `ConfigMap`).
+                        type: string
+                      observedGeneration:
+                        default: 0
+                        description: '`GridNetwork` generation when this entry was last updated.'
+                        format: int64
+                        type: integer
+                      phase:
+                        description: Current render/apply phase.
+                        enum:
+                          - Rendered
+                          - Error
+                          - Disabled
+                        type: string
+                      reason:
+                        default: ""
+                        description: |-
+                          Machine-readable reason for the current phase.
+
+                          `""` when `phase` is `Rendered`.
+                          One of `MissingClusterEndpoint`, `MissingTransport`, `MissingSni`,
+                          `PlaintextWithSni`, `ConsumerConfigRenderFailed`,
+                          `ConsumerConfigApplyFailed`, `ConsumerConfigDisabled` otherwise.
+                        type: string
+                    required:
+                      - gatewayName
+                      - namespace
+                      - phase
+                    type: object
+                  type: array
+                distributedProviderCount:
+                  default: 0
+                  description: |-
+                    Number of remote provider records received for this network via CRDT state broadcasts.
+
+                    Counts remote provider records from the local SWIM runtime's merged
+                    CRDT state.  Local provider records and records for other `GridNetwork`s
+                    are excluded.  Zero when SWIM is disabled or no remote state has been
+                    received yet.
+                  format: uint32
+                  minimum: 0.0
+                  type: integer
+                gridId:
+                  default: ""
+                  description: The negotiated grid ID.
+                  type: string
+                observedGeneration:
+                  default: 0
+                  description: Last observed generation.
+                  format: int64
+                  type: integer
+                overlayStatus:
+                  description: |-
+                    Per-gateway overlay revision status.
+
+                    Populated after each overlay reconcile attempt. Captures rendered and
+                    distributed revisions so operators can verify propagation without
+                    inspecting `ConfigMap` contents. A failed update retains evidence for
+                    the last successfully distributed revision.
+                  items:
+                    description: |-
+                      Per-gateway overlay revision status for observability.
+
+                      Reported in [`GridNetworkStatus::overlay_status`] for each gateway
+                      after each reconcile attempt.
+
+                      # Security
+
+                      `rendered_revision`, `distributed_revision`, and `content_digest` are
+                      SHA-256 hex digests — they do not contain credential token bytes.
+                      `message` must never contain credential bytes.
+                    properties:
+                      candidateCount:
+                        default: 0
+                        description: Number of candidates in the rendered overlay.
+                        format: uint32
+                        minimum: 0.0
+                        type: integer
+                      configMapName:
+                        description: Name of the overlay `ConfigMap`.
+                        type: string
+                      configMapResourceVersion:
+                        default: ""
+                        description: Kubernetes `resourceVersion` of the distributed `ConfigMap`.
+                        type: string
+                      contentDigest:
+                        description: Content digest (SHA-256 hex) of the rendered overlay.
+                        type: string
+                      distributedRevision:
+                        description: |-
+                          Semantic revision (SHA-256 hex) last distributed through the
+                          `ConfigMap`.
+                        type: string
+                      gatewayName:
+                        description: Name of the `GatewayRef` this status entry corresponds to.
+                        type: string
+                      message:
+                        default: ""
+                        description: |-
+                          Human-readable diagnostic message.
+
+                          Never contains credential token bytes.
+                        type: string
+                      namespace:
+                        description: Namespace of the gateway (and the overlay `ConfigMap`).
+                        type: string
+                      observedGeneration:
+                        default: 0
+                        description: '`GridNetwork` generation when this entry was last updated.'
+                        format: int64
+                        type: integer
+                      phase:
+                        default: Pending
+                        description: Current overlay lifecycle phase.
+                        enum:
+                          - Pending
+                          - Distributed
+                          - Error
+                          - Retained
+                        type: string
+                      reason:
+                        default: ""
+                        description: |-
+                          Machine-readable reason for the current phase.
+
+                          Empty when `phase` is [`OverlayPhase::Distributed`].
+                        type: string
+                      renderedAt:
+                        default: ""
+                        description: RFC 3339 timestamp when the overlay was rendered.
+                        type: string
+                      renderedRevision:
+                        description: Semantic revision (SHA-256 hex) of the last valid rendered overlay.
+                        type: string
+                      schemaVersion:
+                        description: Envelope schema version.
+                        type: string
+                    required:
+                      - configMapName
+                      - contentDigest
+                      - distributedRevision
+                      - gatewayName
+                      - namespace
+                      - renderedRevision
+                      - schemaVersion
+                    type: object
+                  type: array
+                phase:
+                  default: Pending
+                  description: Current lifecycle phase.
+                  enum:
+                    - Pending
+                    - Initializing
+                    - Active
+                    - Degraded
+                  type: string
+              type: object
+          required:
+            - spec
+          title: GridNetwork
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/crds/gridsite.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gridsites.grid.praxis-proxy.io
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false,ServerSideApply=true
+spec:
+  group: grid.praxis-proxy.io
+  names:
+    kind: GridSite
+    plural: gridsites
+    shortNames:
+      - gs
+    singular: gridsite
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.phase
+          name: Phase
+          type: string
+        - jsonPath: .spec.gridNetworkRef
+          name: Network
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for GridSiteSpec via `CustomResource`
+          properties:
+            spec:
+              description: |-
+                Specification for a [`GridSite`].
+
+                Describes a remote site's egress endpoint, region, and
+                grid membership.
+              properties:
+                egress:
+                  description: Egress endpoint for data-plane connectivity.
+                  nullable: true
+                  properties:
+                    address:
+                      description: Address of the egress gateway (host:port).
+                      type: string
+                    tls:
+                      default:
+                        mode: Mutual
+                      description: TLS mode for the connection.
+                      properties:
+                        mode:
+                          default: Mutual
+                          description: TLS transport mode.
+                          enum:
+                            - Mutual
+                            - Plaintext
+                          type: string
+                        serverName:
+                          description: |-
+                            Expected DNS identity for TLS verification.
+
+                            Used as both the TLS SNI value and for certificate SAN
+                            verification.  Required when `mode` is [`EgressTlsMode::Mutual`];
+                            must be absent for [`EgressTlsMode::Plaintext`].
+
+                            Must be a valid DNS name (not an IP address), at most 253
+                            characters.
+                          maxLength: 253
+                          minLength: 1
+                          nullable: true
+                          type: string
+                      type: object
+                  required:
+                    - address
+                  type: object
+                gridNetworkRef:
+                  description: |-
+                    Name of the [`GridNetwork`] this site belongs to.
+
+                    [`GridNetwork`]: crate::crd::grid_network::GridNetwork
+                  type: string
+                region:
+                  description: Deployment region.
+                  nullable: true
+                  type: string
+                sovereigntyZone:
+                  description: Sovereignty zone for data residency constraints.
+                  nullable: true
+                  type: string
+                trust:
+                  description: |-
+                    Trust policy for this site.
+
+                    When configured, the operator verifies the received public certificate against
+                    this policy before promoting the site to `Active`. If absent, the site remains
+                    `Connecting` with reason `TrustMaterialMissing` regardless of certificate
+                    material.
+                  nullable: true
+                  properties:
+                    canonicalFingerprints:
+                      description: |-
+                        Canonical DER-certificate SHA-256 fingerprint pins.
+
+                        Each entry is a 64-character lowercase hex string computed as
+                        `hex(sha256(der_bytes))` where `der_bytes` are the raw DER encoding
+                        of the leaf certificate.
+
+                        At most two entries are allowed: the current pin and an optional
+                        next pin for bounded rotation overlap.  The probe succeeds if the
+                        peer leaf certificate matches **any** entry in this list.
+                      items:
+                        pattern: ^[0-9a-f]{64}$
+                        type: string
+                      maxItems: 2
+                      minItems: 1
+                      nullable: true
+                      type: array
+                    certFingerprint:
+                      description: |-
+                        Legacy SHA-256 fingerprint of the remote site's public certificate PEM.
+
+                        Format: colon-separated lowercase hex bytes, e.g. `"ab:cd:ef:..."`.
+                        Computed as `sha256(pem_bytes)` where `pem_bytes` are the UTF-8 bytes of
+                        `status.publicCertPem`.
+
+                        **Deprecated:** use `canonicalFingerprints` for new deployments.
+                        The two fields must not both be set.
+                      nullable: true
+                      type: string
+                  type: object
+                zone:
+                  description: Availability zone.
+                  nullable: true
+                  type: string
+              required:
+                - gridNetworkRef
+              type: object
+            status:
+              description: Observed status of a [`GridSite`].
+              nullable: true
+              properties:
+                capabilities:
+                  default:
+                    agentToAgent: false
+                    agentTools: false
+                    inference: false
+                  description: Capabilities offered by this site.
+                  properties:
+                    agentToAgent:
+                      default: false
+                      description: Site offers A2A agent access.
+                      type: boolean
+                    agentTools:
+                      default: false
+                      description: Site offers MCP tool access.
+                      type: boolean
+                    inference:
+                      default: false
+                      description: Site offers inference access.
+                      type: boolean
+                  type: object
+                lastProbeTime:
+                  description: |-
+                    Timestamp of the last probe whose resulting status was persisted.
+
+                    This is not a liveness heartbeat; it may remain unchanged when a probe
+                    produces no status changes.
+                  nullable: true
+                  type: string
+                lastTransitionTime:
+                  description: Timestamp of the last phase transition.
+                  nullable: true
+                  type: string
+                message:
+                  default: ""
+                  description: |-
+                    Human-readable diagnostic for the current phase.
+
+                    Never contains credential token bytes.  Populated on every reconcile;
+                    empty when the operator has no additional context.
+                  type: string
+                observedGeneration:
+                  default: 0
+                  description: Last observed generation.
+                  format: int64
+                  type: integer
+                phase:
+                  default: Pending
+                  description: Current lifecycle phase.
+                  enum:
+                    - Pending
+                    - Discovered
+                    - Connecting
+                    - Active
+                    - Unreachable
+                    - Left
+                  type: string
+                publicCertPem:
+                  description: |-
+                    Remote site's public certificate PEM (received
+                    via SWIM state broadcast from the remote operator).
+                  nullable: true
+                  type: string
+                reason:
+                  default: ""
+                  description: |-
+                    Machine-readable reason for the current phase.
+
+                    Examples: `"AwaitingDiscovery"`, `"GatewayAddressKnown"`,
+                    `"TlsVerified"`, and `"IdentityVerificationRequired"`.
+                  type: string
+              type: object
+          required:
+            - spec
+          title: GridSite
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/crds/inferenceprovider.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: inferenceproviders.grid.praxis-proxy.io
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false,ServerSideApply=true
+spec:
+  group: grid.praxis-proxy.io
+  names:
+    kind: InferenceProvider
+    plural: inferenceproviders
+    shortNames:
+      - infpvd
+    singular: inferenceprovider
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.providerKind
+          name: Provider
+          type: string
+        - jsonPath: .status.phase
+          name: Phase
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for InferenceProviderSpec via `CustomResource`
+          properties:
+            spec:
+              description: Specification for an [`InferenceProvider`].
+              properties:
+                accessPolicy:
+                  default:
+                    siteSelector:
+                      matchLabels: {}
+                  description: Which sites can consume this provider.
+                  properties:
+                    siteSelector:
+                      default:
+                        matchLabels: {}
+                      description: Which sites can route to this provider.
+                      properties:
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          default: {}
+                          description: Label key-value pairs that must match.
+                          type: object
+                      type: object
+                  type: object
+                auth:
+                  description: Authentication configuration.
+                  nullable: true
+                  properties:
+                    manual:
+                      default: false
+                      description: |-
+                        Whether the user manages credentials manually.
+
+                        When true, the operator does not inject credentials
+                        and the user is responsible for configuring auth.
+                      type: boolean
+                    secretRef:
+                      description: Reference to a Secret containing the credential.
+                      nullable: true
+                      properties:
+                        key:
+                          description: |-
+                            Key within the Secret's `data` map.
+
+                            Required when the Secret holds multiple keys (e.g. credential references
+                            in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                            Secret is consumed (e.g. TLS `ca_secret_ref`).
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        name:
+                          description: Secret name.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Secret namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                        - name
+                        - namespace
+                      type: object
+                    strategy:
+                      description: How credentials are presented to the provider.
+                      enum:
+                        - api_key
+                        - bearer_token
+                        - custom
+                        - mtls_only
+                        - oauth2
+                        - service_account
+                        - sigv4
+                      type: string
+                  required:
+                    - strategy
+                  type: object
+                backendKind:
+                  description: Backend deployment category.
+                  type: string
+                capacityWeight:
+                  description: Relative capacity used by an opt-in placement policy.
+                  format: uint32
+                  maximum: 1000.0
+                  minimum: 1.0
+                  nullable: true
+                  type: integer
+                cost:
+                  description: Cost information.
+                  nullable: true
+                  properties:
+                    perMillionInputTokens:
+                      default: 0.0
+                      description: Cost per million input tokens (USD).
+                      format: double
+                      type: number
+                    perMillionOutputTokens:
+                      default: 0.0
+                      description: Cost per million output tokens (USD).
+                      format: double
+                      type: number
+                  type: object
+                endpoint:
+                  description: HTTP endpoint URL.
+                  type: string
+                gatewayRef:
+                  description: |-
+                    Stable provider-gateway identity used by administrative operations.
+
+                    Providers with the same value are drained together by the gateway-wide
+                    operation. It is an explicit control-plane relationship; the operator
+                    never infers it from endpoint URLs.
+                  minLength: 1
+                  nullable: true
+                  type: string
+                gridNetworkRef:
+                  description: |-
+                    Name of the [`GridNetwork`] this provider belongs to.
+
+                    [`GridNetwork`]: crate::crd::grid_network::GridNetwork
+                  type: string
+                healthCheck:
+                  description: Health check configuration.
+                  nullable: true
+                  properties:
+                    endpoint:
+                      description: |-
+                        Base URL for health probes, independent of `spec.endpoint`.
+
+                        When set, the probe URL is `{endpoint}{path}` instead of
+                        `{spec.endpoint}{path}`.  This allows probing a separate service
+                        (such as an llm-d EPP) while the provider inference endpoint
+                        points at the pool's request path.
+
+                        When absent, the probe URL uses `spec.endpoint` as before.
+                      minLength: 1
+                      nullable: true
+                      type: string
+                    interval:
+                      description: Check interval (e.g. "30s").
+                      nullable: true
+                      type: string
+                    path:
+                      description: HTTP path for health probes.
+                      nullable: true
+                      type: string
+                    timeout:
+                      description: Timeout per check (e.g. "5s").
+                      nullable: true
+                      type: string
+                    tls:
+                      description: |-
+                        TLS configuration for the health probe endpoint.
+
+                        When set, the operator uses the provided CA certificate for TLS server
+                        verification and optionally presents a client certificate for mutual TLS
+                        (mTLS).  When absent, the probe uses system root certificates
+                        (backward-compatible).
+
+                        **Fail-closed:** when configured but the referenced Secrets cannot be
+                        resolved or contain invalid material, the probe is skipped entirely.
+                        The operator never falls back to system roots or plain HTTP.
+                      nullable: true
+                      properties:
+                        caSecretRef:
+                          description: |-
+                            Reference to a Secret containing the CA certificate PEM for server
+                            verification.
+
+                            The Secret must contain the PEM-encoded CA certificate under the key
+                            `ca.crt` (or the key specified by `key`).  When this CA is
+                            set, the scraper trusts **only** this CA; system root certificates
+                            are not consulted.
+                          properties:
+                            key:
+                              description: |-
+                                Key within the Secret's `data` map.
+
+                                Required when the Secret holds multiple keys (e.g. credential references
+                                in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                                Secret is consumed (e.g. TLS `ca_secret_ref`).
+                              minLength: 1
+                              nullable: true
+                              type: string
+                            name:
+                              description: Secret name.
+                              minLength: 1
+                              type: string
+                            namespace:
+                              description: Secret namespace.
+                              minLength: 1
+                              type: string
+                          required:
+                            - name
+                            - namespace
+                          type: object
+                        clientCertificateSecretRef:
+                          description: |-
+                            Reference to a Secret containing the client certificate and private
+                            key for mutual TLS.
+
+                            When set, the scraper presents this identity during the TLS handshake.
+                            The Secret must contain `tls.crt` (or `certificate_key`) and
+                            `tls.key` (or `private_key_key`) in PEM format.
+
+                            When absent, the scraper performs one-way TLS only (server verification
+                            with the CA from `ca_secret_ref`, no client certificate).
+                          nullable: true
+                          properties:
+                            certificateKey:
+                              default: tls.crt
+                              description: Key within `Secret.data` holding the PEM-encoded client certificate.
+                              minLength: 1
+                              type: string
+                            name:
+                              description: Secret name.
+                              minLength: 1
+                              type: string
+                            namespace:
+                              description: Secret namespace.
+                              minLength: 1
+                              type: string
+                            privateKeyKey:
+                              default: tls.key
+                              description: Key within `Secret.data` holding the PEM-encoded private key.
+                              minLength: 1
+                              type: string
+                          required:
+                            - name
+                            - namespace
+                          type: object
+                      required:
+                        - caSecretRef
+                      type: object
+                  type: object
+                metricsConfig:
+                  description: |-
+                    Prometheus metrics scraping configuration.
+
+                    When set, the Grid operator scrapes the provider's metrics endpoint during
+                    each [`GridNetwork`] reconcile and incorporates the parsed signals into the
+                    routing overlay scoring pass.  When absent, the provider uses locality and
+                    cost as the only scoring signals (static ordering).
+
+                    [`GridNetwork`]: crate::crd::grid_network::GridNetwork
+                  nullable: true
+                  properties:
+                    metricsEndpoint:
+                      description: |-
+                        Base URL for the metrics endpoint, independent of `spec.endpoint`.
+
+                        When set, the scrape URL is `{metrics_endpoint}{path}` instead of
+                        `{spec.endpoint}{path}`.  This allows scraping metrics from a separate
+                        service (such as an llm-d EPP) while the provider inference endpoint
+                        points at the pool's request path.
+
+                        When absent, the scrape URL uses `spec.endpoint` as before.
+                      minLength: 1
+                      nullable: true
+                      type: string
+                    path:
+                      default: /metrics
+                      description: |-
+                        HTTP path for the Prometheus metrics endpoint.
+
+                        Appended to `metrics_endpoint` (when set) or `spec.endpoint`.
+                        Defaults to `"/metrics"` when absent.
+                      type: string
+                    poolName:
+                      description: |-
+                        Expected Prometheus `name` label value for pool-level metric selection.
+
+                        When set, the parser only matches metric samples whose `name` label
+                        equals this value.  This is required when scraping an endpoint that
+                        exposes metrics for multiple pools (such as an llm-d EPP), ensuring
+                        the configured pool is selected deterministically.
+
+                        The parser rejects the scrape when the expected pool series is absent
+                        or when a metric sample has no `name` label and this field is set.
+
+                        When absent, labels are stripped before matching as in v1 (backward
+                        compatible).
+                      minLength: 1
+                      nullable: true
+                      type: string
+                    queueCapacity:
+                      description: |-
+                        Maximum queue slot count for normalising a raw queue-size metric to
+                        0.0–1.0.
+
+                        When set, the `queue_depth` signal value is divided by this capacity
+                        and clamped to `[0.0, 1.0]` before scoring.  This allows consuming raw
+                        average queue-size metrics (such as `llm_d_router_epp_average_queue_size`)
+                        without requiring the exporter to pre-normalise.
+
+                        When absent, the `queue_depth` signal must already be normalised to
+                        0.0–1.0 by the exporter (backward compatible).
+                      format: uint32
+                      minimum: 1.0
+                      nullable: true
+                      type: integer
+                    signalNames:
+                      default:
+                        errorRate: null
+                        healthy: null
+                        kvCacheUtilization: null
+                        latencyP99Ms: null
+                        prefixCacheHitRatio: null
+                        queueDepth: null
+                      description: |-
+                        Mapping from scoring signal names to Prometheus metric names.
+
+                        Signals without a configured name are skipped during parsing and receive the
+                        neutral default value (`0.5`) in scoring.
+                      properties:
+                        errorRate:
+                          description: Metric name for normalised error rate (0.0–1.0).
+                          nullable: true
+                          type: string
+                        healthy:
+                          description: Metric name for a health gauge (any positive value = healthy).
+                          nullable: true
+                          type: string
+                        kvCacheUtilization:
+                          description: Metric name for KV-cache utilisation (0.0–1.0).
+                          nullable: true
+                          type: string
+                        latencyP99Ms:
+                          description: Metric name for P99 request latency in milliseconds (pre-computed gauge).
+                          nullable: true
+                          type: string
+                        prefixCacheHitRatio:
+                          description: Metric name for prefix-cache hit ratio (0.0–1.0).
+                          nullable: true
+                          type: string
+                        queueDepth:
+                          description: Metric name for normalised queue depth (0.0–1.0).
+                          nullable: true
+                          type: string
+                      type: object
+                    staleMetricsSeconds:
+                      description: |-
+                        Maximum age in seconds for which a previously-scraped metric sample may be
+                        used when the current scrape fails.
+
+                        When a Prometheus scrape fails (connection refused, timeout, HTTP error),
+                        setting this field enables a grace period: if the last *successful* scrape
+                        is no older than `stale_metrics_seconds`, that cached sample is reused.
+
+                        For plaintext metrics, after the grace period expires or before any
+                        successful scrape, metrics fall back to neutral scoring. When TLS is
+                        configured, the same condition marks the provider unhealthy and excludes
+                        it from routing.
+
+                        **Default (absent):** no grace period. Plaintext scrape failures immediately
+                        produce neutral scoring; TLS-configured failures without a cached sample
+                        fail closed.
+
+                        **Minimum value:** `1` second.  The schema rejects `0`; the operator also
+                        treats zero defensively as absent.
+                      format: uint32
+                      minimum: 1.0
+                      nullable: true
+                      type: integer
+                    timeout:
+                      default: 2s
+                      description: |-
+                        Per-request scrape timeout (e.g. `"2s"`, `"500ms"`).
+
+                        Defaults to `"2s"`.  Only `s` and `ms` suffixes are recognised; unrecognised
+                        values fall back to the default.
+                      type: string
+                    tls:
+                      description: |-
+                        TLS configuration for the metrics endpoint.
+
+                        When set, the operator uses the provided CA certificate for TLS server
+                        verification and optionally presents a client certificate for mutual TLS
+                        (mTLS).  When absent, the scraper uses system root certificates
+                        (backward-compatible).
+
+                        **Fail-closed:** when configured but the referenced Secrets cannot be
+                        resolved or contain invalid material, the scrape is skipped entirely.
+                        The scraper never falls back to system roots or plain HTTP.
+                      nullable: true
+                      properties:
+                        caSecretRef:
+                          description: |-
+                            Reference to a Secret containing the CA certificate PEM for server
+                            verification.
+
+                            The Secret must contain the PEM-encoded CA certificate under the key
+                            `ca.crt` (or the key specified by `key`).  When this CA is
+                            set, the scraper trusts **only** this CA; system root certificates
+                            are not consulted.
+                          properties:
+                            key:
+                              description: |-
+                                Key within the Secret's `data` map.
+
+                                Required when the Secret holds multiple keys (e.g. credential references
+                                in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                                Secret is consumed (e.g. TLS `ca_secret_ref`).
+                              minLength: 1
+                              nullable: true
+                              type: string
+                            name:
+                              description: Secret name.
+                              minLength: 1
+                              type: string
+                            namespace:
+                              description: Secret namespace.
+                              minLength: 1
+                              type: string
+                          required:
+                            - name
+                            - namespace
+                          type: object
+                        clientCertificateSecretRef:
+                          description: |-
+                            Reference to a Secret containing the client certificate and private
+                            key for mutual TLS.
+
+                            When set, the scraper presents this identity during the TLS handshake.
+                            The Secret must contain `tls.crt` (or `certificate_key`) and
+                            `tls.key` (or `private_key_key`) in PEM format.
+
+                            When absent, the scraper performs one-way TLS only (server verification
+                            with the CA from `ca_secret_ref`, no client certificate).
+                          nullable: true
+                          properties:
+                            certificateKey:
+                              default: tls.crt
+                              description: Key within `Secret.data` holding the PEM-encoded client certificate.
+                              minLength: 1
+                              type: string
+                            name:
+                              description: Secret name.
+                              minLength: 1
+                              type: string
+                            namespace:
+                              description: Secret namespace.
+                              minLength: 1
+                              type: string
+                            privateKeyKey:
+                              default: tls.key
+                              description: Key within `Secret.data` holding the PEM-encoded private key.
+                              minLength: 1
+                              type: string
+                          required:
+                            - name
+                            - namespace
+                          type: object
+                      required:
+                        - caSecretRef
+                      type: object
+                  type: object
+                modelDiscovery:
+                  description: |-
+                    Where to discover the models this provider serves.
+
+                    When set, the operator polls the backend on a fixed cadence and holds
+                    the served-model set in memory, expiring it when polls stop succeeding.
+                    Discovery does not yet affect routing or gossip; `spec.models` remains
+                    the routing source.
+                    When absent, no discovery runs.
+                  nullable: true
+                  oneOf:
+                    - required:
+                        - openAiModels
+                  properties:
+                    openAiModels:
+                      description: |-
+                        OpenAI-compatible `GET /v1/models` (vLLM, `KServe`, `OpenAI`).
+
+                        Reads `data[].id` from the response. The response is rejected as a
+                        whole when it is not valid JSON, has a blank, overlong, or duplicate
+                        id, or lists more models than the operator's cap. A rejected response
+                        never clears the previously discovered set.
+                      properties:
+                        endpoint:
+                          description: Base URL; defaults to `spec.endpoint`.
+                          minLength: 1
+                          nullable: true
+                          type: string
+                        path:
+                          default: /v1/models
+                          description: Path appended to the base URL.
+                          minLength: 1
+                          type: string
+                        tls:
+                          description: |-
+                            TLS configuration for the model-listing endpoint.
+
+                            When absent, system root certificates are used.
+                          nullable: true
+                          properties:
+                            caSecretRef:
+                              description: |-
+                                Reference to a Secret containing the CA certificate PEM for server
+                                verification.
+
+                                The Secret must contain the PEM-encoded CA certificate under the key
+                                `ca.crt` (or the key specified by `key`).  When this CA is
+                                set, the scraper trusts **only** this CA; system root certificates
+                                are not consulted.
+                              properties:
+                                key:
+                                  description: |-
+                                    Key within the Secret's `data` map.
+
+                                    Required when the Secret holds multiple keys (e.g. credential references
+                                    in `InferenceProvider.spec.auth.secretRef`).  Omit only when the entire
+                                    Secret is consumed (e.g. TLS `ca_secret_ref`).
+                                  minLength: 1
+                                  nullable: true
+                                  type: string
+                                name:
+                                  description: Secret name.
+                                  minLength: 1
+                                  type: string
+                                namespace:
+                                  description: Secret namespace.
+                                  minLength: 1
+                                  type: string
+                              required:
+                                - name
+                                - namespace
+                              type: object
+                            clientCertificateSecretRef:
+                              description: |-
+                                Reference to a Secret containing the client certificate and private
+                                key for mutual TLS.
+
+                                When set, the scraper presents this identity during the TLS handshake.
+                                The Secret must contain `tls.crt` (or `certificate_key`) and
+                                `tls.key` (or `private_key_key`) in PEM format.
+
+                                When absent, the scraper performs one-way TLS only (server verification
+                                with the CA from `ca_secret_ref`, no client certificate).
+                              nullable: true
+                              properties:
+                                certificateKey:
+                                  default: tls.crt
+                                  description: Key within `Secret.data` holding the PEM-encoded client certificate.
+                                  minLength: 1
+                                  type: string
+                                name:
+                                  description: Secret name.
+                                  minLength: 1
+                                  type: string
+                                namespace:
+                                  description: Secret namespace.
+                                  minLength: 1
+                                  type: string
+                                privateKeyKey:
+                                  default: tls.key
+                                  description: Key within `Secret.data` holding the PEM-encoded private key.
+                                  minLength: 1
+                                  type: string
+                              required:
+                                - name
+                                - namespace
+                              type: object
+                          required:
+                            - caSecretRef
+                          type: object
+                      type: object
+                  type: object
+                models:
+                  default: []
+                  description: Models served by this provider.
+                  items:
+                    description: Model metadata for an inference provider.
+                    properties:
+                      capabilities:
+                        default: []
+                        description: Supported capabilities.
+                        items:
+                          type: string
+                        type: array
+                      contextWindow:
+                        description: Maximum context window size.
+                        format: uint32
+                        minimum: 0.0
+                        nullable: true
+                        type: integer
+                      name:
+                        description: Model name.
+                        type: string
+                    required:
+                      - name
+                    type: object
+                  type: array
+                providerKind:
+                  description: Inference provider type.
+                  type: string
+                routingClusterRef:
+                  description: |-
+                    Optional routing identity used in overlay candidate `site` and `cluster` fields.
+
+                    When set, routing overlay candidates produced for this provider use this value
+                    instead of `metadata.name`:
+
+                    - In Phase 1 (no [`GridSite`] inventory), both `candidate.site` and `candidate.cluster` are set to this value.
+                    - When [`GridSite`] resources are present, only `candidate.cluster` is overridden; `candidate.site` is derived
+                      from the matched `GridSite`.
+
+                    Use this to align the provider's routing identity with an upstream cluster
+                    name already configured in the consumer gateway, such as a Praxis
+                    `load_balancer` cluster entry.  When absent, `metadata.name` is used.
+
+                    [`GridSite`]: crate::crd::grid_site::GridSite
+                  nullable: true
+                  type: string
+                siteSelector:
+                  default:
+                    matchLabels: {}
+                  description: Which sites host this provider.
+                  properties:
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      default: {}
+                      description: Label key-value pairs that must match.
+                      type: object
+                  type: object
+                trafficPolicy:
+                  description: Optional administrative traffic policy.
+                  nullable: true
+                  properties:
+                    drain:
+                      default: false
+                      description: Stop new sessions while preserving existing affinity sessions.
+                      type: boolean
+                  type: object
+              required:
+                - backendKind
+                - endpoint
+                - gridNetworkRef
+                - providerKind
+              type: object
+            status:
+              description: Observed status of an [`InferenceProvider`].
+              nullable: true
+              properties:
+                matchingSites:
+                  default: []
+                  description: Sites matched by the site selector.
+                  items:
+                    type: string
+                  type: array
+                modelDiscoveryError:
+                  description: Bounded reason for the latest model-discovery failure, absent after a successful poll.
+                  nullable: true
+                  type: string
+                modelDiscoveryUrl:
+                  description: |-
+                    Effective model-listing URL when discovery is configured.
+
+                    This is the requested URL, not an indication that polling succeeded.
+                  nullable: true
+                  type: string
+                observedGeneration:
+                  default: 0
+                  description: Last observed generation.
+                  format: int64
+                  type: integer
+                phase:
+                  default: Pending
+                  description: Current phase.
+                  enum:
+                    - Pending
+                    - Available
+                    - Degraded
+                    - Unavailable
+                  type: string
+                reason:
+                  description: |-
+                    Machine-readable reason for the current phase when not `Available`.
+
+                    Set when the provider cannot reach `Available` due to a configuration,
+                    credential, or metrics/health-check collection error.  `None` when the
+                    provider is `Available`, `Pending`, or the reason is unknown.
+
+                    Stable reason values:
+                    - `UnsupportedAuthStrategy`, `CredentialSecretRefInvalid`, `CredentialSecretMissing`,
+                      `CredentialSecretKeyMissing`, `CredentialSecretValueInvalid`
+                    - `MetricsTlsSecretMissing`, `MetricsTlsKeyMissing`, `MetricsTlsMaterialInvalid`, `MetricsTlsIdentityMismatch`
+                    - `HealthCheckTlsSecretMissing`, `HealthCheckTlsKeyMissing`, `HealthCheckTlsMaterialInvalid`,
+                      `HealthCheckTlsIdentityMismatch`
+                  nullable: true
+                  type: string
+              type: object
+          required:
+            - spec
+          title: InferenceProvider
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/clusterrole-crd.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grid-operator-crd
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: ["grid.praxis-proxy.io"]
+    resources:
+      - agenttoolproviders
+      - gridnetworks
+      - inferenceproviders
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["grid.praxis-proxy.io"]
+    resources:
+      - gridsites
+    verbs: ["get", "list", "watch", "patch", "create", "update"]
+  - apiGroups: ["grid.praxis-proxy.io"]
+    resources:
+      - agenttoolproviders/status
+      - gridnetworks/status
+      - gridsites/status
+      - inferenceproviders/status
+    verbs: ["get", "patch"]
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/clusterrole-resources.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grid-operator-resources
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames:
+      - "grid-gateway"
+      - "grid-operator-swim"
+    verbs: ["get"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "patch", "update"]
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/auth-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grid-enrollment-default-auth-delegator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: grid-enrollment
+    namespace: default
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/clusterrolebinding-crd.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grid-operator-crd
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+  - kind: ServiceAccount
+    name: grid-operator
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: grid-operator-crd
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/grid-admin-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grid-enrollment-grid-admin
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: ["grid.praxis-proxy.io"]
+    resources: ["enrollmenttokens"]
+    verbs: ["create", "delete"]
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/rolebindings-resources.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grid-operator-resources
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+  - kind: ServiceAccount
+    name: grid-operator
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: grid-operator-resources
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-enrollment
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: enrollment
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/component: enrollment
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+      protocol: TCP
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/service-metrics.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-operator-metrics
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+
+---
+# Source: rhai-on-openshift-chart/charts/praxis-gateway/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: "ClusterIP"
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: "TCP"
+  selector:
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grid-enrollment
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grid-enrollment
+      app.kubernetes.io/instance: release-test
+      app.kubernetes.io/component: enrollment
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grid-enrollment
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/component: enrollment
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: grid-enrollment
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: enrollment
+          image: "quay.io/praxis-proxy/grid-enrollment:v0.1.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: https
+              containerPort: 8443
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          env:
+            # CA signing material (file paths; read via std::fs). Key is mounted
+            # ONLY into this pod, never the gateway.
+            - name: ENROLLMENT_CA_CERT
+              value: /etc/grid-ca/tls.crt
+            - name: ENROLLMENT_CA_KEY
+              value: /etc/grid-ca/tls.key
+            - name: ENROLLMENT_CA_COMMON_NAME
+              value: "grid-ca"
+            # In-process TLS serving cert (file paths).
+            - name: ENROLLMENT_TLS_CERT
+              value: /etc/grid-tls/tls.crt
+            - name: ENROLLMENT_TLS_KEY
+              value: /etc/grid-tls/tls.key
+            - name: ENROLLMENT_LISTEN_ADDR
+              value: "0.0.0.0:8443"
+            - name: ENROLLMENT_AUTHZ
+              value: "kube"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ENROLLMENT_TOKEN_AUDIENCE
+              value: "grid-enrollment"
+            - name: DB_CONNECTION_URL
+              valueFrom:
+                secretKeyRef:
+                  name: maas-db-config
+                  key: DB_CONNECTION_URL
+          volumeMounts:
+            - name: grid-ca
+              mountPath: /etc/grid-ca
+              readOnly: true
+            - name: grid-tls
+              mountPath: /etc/grid-tls
+              readOnly: true
+      volumes:
+        # Signing key + cert. This is the only pod that mounts grid-ca-key.
+        - name: grid-ca
+          secret:
+            secretName: grid-ca-key
+        - name: grid-tls
+          secret:
+            secretName: enrollment-serving-tls
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grid-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  # One SWIM identity per site: a surge pod would gossip a second one.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grid-operator
+      app.kubernetes.io/instance: release-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/name: grid-operator
+    spec:
+      serviceAccountName: grid-operator
+      # Service link env vars (a grid-gateway Service injects GRID_GATEWAY_PORT)
+      # would collide with the operator's GRID_* settings.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: operator
+          image: ghcr.io/praxis-proxy/grid-operator:v0.1.4
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: GRID_SWIM_BIND_ADDR
+              value: "0.0.0.0:7946"
+            - name: GRID_SWIM_ADVERTISE_ADDR
+              value: "$(POD_IP):7946"
+            - name: GRID_SWIM_ADVERTISE_FALLBACK
+              value: "$(POD_IP):7946"
+            - name: GRID_GATEWAY_SERVICE_NAME
+              value: "grid-gateway"
+            - name: GRID_GATEWAY_NAMESPACE
+              value: "default"
+            - name: GRID_GATEWAY_PORT
+              value: "8080"
+            - name: GRID_METRICS_ADDR
+              value: "0.0.0.0:9090"
+            - name: RUST_LOG
+              value: "info"
+          ports:
+            - name: swim-udp
+              containerPort: 7946
+              protocol: UDP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+# Source: rhai-on-openshift-chart/charts/praxis-gateway/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grid-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/name: praxis-gateway
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 35
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: praxis
+          image: ghcr.io/praxis-proxy/ai:0.4.0
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --config
+            - /etc/praxis/praxis.yaml
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: "TCP"
+          readinessProbe:
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            tcpSocket:
+              port: http
+          livenessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            tcpSocket:
+              port: http
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/praxis
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: "grid-gateway-config"
+            items:
+              - key: "praxis.yaml"
+                path: "praxis.yaml"
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
+apiVersion: dscinitialization.opendatahub.io/v2
+kind: DSCInitialization
+metadata:
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  name: default-dsci
+spec:
+  monitoring:
+    managementState: Removed
+    namespace: opendatahub
+  applicationsNamespace: opendatahub
+  trustedCABundle:
+    managementState: Managed
+    customCABundle: ""
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  components:
+    aigateway:
+      batchGateway:
+        managementState: Removed
+      managementState: Removed
+      modelsAsAService:
+        managementState: Removed
+    aipipelines:
+      managementState: Removed
+    dashboard:
+      managementState: Removed
+    feastoperator:
+      managementState: Removed
+    kserve:
+      managementState: Removed
+      nim:
+        managementState: Removed
+      rawDeploymentServiceConfig: Headless
+      wva:
+        managementState: Removed
+    kueue:
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
+      managementState: Removed
+    mlflowoperator:
+      managementState: Removed
+    modelregistry:
+      managementState: Removed
+      registriesNamespace: odh-model-registry
+    ogx:
+      managementState: Removed
+    ray:
+      managementState: Removed
+    sparkoperator:
+      managementState: Removed
+    trainer:
+      managementState: Removed
+    trainingoperator:
+      managementState: Removed
+    trustyai:
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
+      managementState: Removed
+    workbenches:
+      managementState: Removed
+      workbenchNamespace: opendatahub
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: fast-3
+  installPlanApproval: Automatic
+  name: opendatahub-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: DISABLE_DSC_CONFIG
+      value: "true"
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/certs/ca-bootstrap-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-enrollment-ca-bootstrap
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/certs/ca-bootstrap-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grid-enrollment-ca-bootstrap
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+rules:
+  # create cannot be resourceName-scoped (the object does not exist yet).
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  # get/update restricted to exactly the Secrets the bootstrap manages,
+  # so this SA cannot read any other Secret in the namespace.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - "grid-ca-key"
+      - "grid-ca-bundle"
+      - "enrollment-serving-tls"
+    verbs: ["get", "update"]
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/certs/ca-bootstrap-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grid-enrollment-ca-bootstrap
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grid-enrollment-ca-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: grid-enrollment-ca-bootstrap
+    namespace: default
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-operator/templates/tests/operator-ready.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grid-operator-test
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-operator
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.4"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: readiness-check
+      image: busybox:1.37
+      command:
+        - sh
+        - -c
+        - |
+          wget -qO- --timeout=5 \
+            http://grid-operator-metrics:9090/readyz
+
+---
+# Source: rhai-on-openshift-chart/charts/praxis-gateway/templates/tests/gateway-ready.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grid-gateway-test
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: connectivity-check
+      image: busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+      command:
+        - sh
+        - -c
+        - |
+          wget -qO /dev/null --timeout=5 \
+            http://grid-gateway:8080/ \
+            2>&1 || true
+          nc -z -w5 grid-gateway 8080
+
+---
+# Source: rhai-on-openshift-chart/charts/grid-enrollment/templates/certs/ca-bootstrap-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: grid-enrollment-ca-bootstrap
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: ca-bootstrap
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    # Kept for its logs until the next hook run or its TTL.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grid-enrollment
+        app.kubernetes.io/instance: release-test
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: grid-enrollment-ca-bootstrap
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ca-bootstrap
+          image: "quay.io/praxis-proxy/grid-enrollment:v0.1.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["enrollment", "bootstrap"]
+          args:
+            - "--namespace"
+            - "default"
+            - "--common-name"
+            - "grid-ca"
+            - "--ca-key-secret"
+            - "grid-ca-key"
+            - "--ca-bundle-secret"
+            - "grid-ca-bundle"
+            - "--serving-secret"
+            - "enrollment-serving-tls"
+            - "--serving-dns"
+            - "grid-enrollment.default.svc"
+

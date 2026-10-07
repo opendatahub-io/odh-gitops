@@ -1,0 +1,617 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["config"],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Subchart toggle set by a parent chart's dependency condition."
+    },
+    "global": {
+      "type": "object",
+      "description": "Global values Helm passes to every subchart."
+    },
+    "gatewayConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Secure-by-default rendered gateway config (praxis.yaml + policy.yaml). Never emits insecure_options.",
+      "allOf": [
+        {
+          "if": { "required": ["render"], "properties": { "render": { "const": true } } },
+          "then": { "required": ["localSite"], "properties": { "localSite": { "minLength": 1, "pattern": "\\S" } } }
+        },
+        {
+          "if": { "required": ["role"], "properties": { "role": { "const": "provider" } } },
+          "then": {
+            "required": ["peerTrust"],
+            "properties": {
+              "peerTrust": {
+                "anyOf": [
+                  { "properties": { "mode": { "const": "pin" }, "certDigests": { "minItems": 1 } }, "required": ["certDigests"] },
+                  { "properties": { "mode": { "const": "pin" }, "digest": { "minLength": 64 } }, "required": ["digest"] },
+                  { "properties": { "mode": { "const": "spiffe" }, "spiffeIds": { "minItems": 1 } }, "required": ["mode", "spiffeIds"] },
+                  { "properties": { "mode": { "const": "spiffe" }, "spiffeId": { "minLength": 1 } }, "required": ["mode", "spiffeId"] },
+                  { "properties": { "mode": { "const": "spiffe" }, "allowAnyGridSite": { "const": true } }, "required": ["mode", "allowAnyGridSite"] }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "render": { "type": "boolean", "description": "Render praxis.yaml + policy.yaml from these values instead of a BYO ConfigMap." },
+        "role": { "type": "string", "enum": ["consumer", "provider"], "description": "consumer routes callers. provider serves grid peers with the grid identity." },
+        "peerTrust": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "type": "string", "enum": ["pin", "spiffe"], "description": "pin allows listed certificate digests. spiffe allows listed SPIFFE IDs." },
+            "certDigests": { "type": "array", "maxItems": 256, "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "description": "pin mode: lowercase hex SHA-256 of allowed peer leaf certificates." },
+            "spiffeIds": { "type": "array", "maxItems": 256, "items": { "type": "string", "pattern": "^spiffe://grid\\.internal/site/[a-z0-9]([-a-z0-9]*[a-z0-9])?$" }, "description": "spiffe mode: allowed peer SPIFFE IDs." },
+            "digest": { "type": "string", "pattern": "^([0-9a-f]{64})?$", "description": "pin mode: the allowed peer's leaf digest, added to certDigests." },
+            "nextDigest": { "type": "string", "pattern": "^([0-9a-f]{64})?$", "description": "pin mode: a second leaf digest during rotation." },
+            "spiffeId": { "type": "string", "pattern": "^(spiffe://grid\\.internal/site/[a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "spiffe mode: an allowed peer SPIFFE ID, added to spiffeIds." },
+            "allowAnyGridSite": { "type": "boolean", "description": "spiffe mode with no spiffeIds: accept any Grid-CA site." },
+            "rateLimit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": { "rate": { "type": "integer", "minimum": 1 }, "burst": { "type": "integer", "minimum": 1 } },
+              "dependencies": { "rate": ["burst"], "burst": ["rate"] }
+            }
+          }
+        },
+        "provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowedPaths": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^(/[A-Za-z0-9_-]+)+$" }, "description": "Exact paths forwarded to the local backend." }
+          }
+        },
+        "localSite": { "type": "string", "maxLength": 256, "description": "This gateway's site name, required when render is true." },
+        "model": { "type": "string" },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "type": "string", "enum": ["", "none", "api-key"], "description": "Caller authentication, required when render is true. api-key needs an image that registers identity/api-key." },
+            "allowUnauthenticatedExposure": { "type": "boolean", "description": "With mode none, allow a LoadBalancer or NodePort Service." },
+            "stripAuthorization": { "type": "boolean", "description": "Remove the caller's Authorization header before routing." },
+            "validateCA": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "CA for the validate call, set as SSL_CERT_FILE (replaces the platform trust store).",
+              "properties": {
+                "configMap": { "type": "string" },
+                "secret": { "type": "string" },
+                "key": { "type": "string" },
+                "mountPath": { "type": "string" }
+              }
+            },
+            "validateUrl": { "type": "string", "pattern": "^(https://[^/?#\\s]+.*)?$" },
+            "allowPrivateEndpoint": { "type": "boolean", "description": "Sets allow_private_idp: every policy callout may reach private, loopback, and link-local addresses." },
+            "prefix": { "type": "string" },
+            "timeoutSecs": { "type": "integer" }
+          }
+        },
+        "upstreamCA": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "CA bundle for backend TLS without a per-cluster CA. Sets praxis upstream_ca_file; the api-key validate call uses the platform trust store.",
+          "properties": {
+            "secretName": { "type": "string" },
+            "key": { "type": "string" },
+            "mountPath": { "type": "string" }
+          }
+        },
+        "backends": {
+          "description": "Backends keyed by site, local for a provider's backend, or the older list of {cluster, endpoints}.",
+          "oneOf": [
+            {
+              "type": "object",
+              "propertyNames": { "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" },
+              "additionalProperties": {"type": "object", "additionalProperties": false, "required": [], "properties": {"cluster": {"type": "string", "minLength": 1, "pattern": "\\S"}, "site": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "description": "Grid site this backend serves. Required for a consumer's remote mutual_tls backend. Defaults to localSite."}, "endpoints": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^\\S+:[0-9]+$"}}, "trustPrivate": {"type": "boolean"}, "allowPlaintextTrust": {"type": "boolean"}, "connectTimeoutMs": {"type": "integer", "minimum": 1}, "totalConnectTimeoutMs": {"type": "integer", "minimum": 1}, "healthCheck": {"type": "object", "additionalProperties": false, "properties": {"type": {"enum": ["http", "tcp"]}, "path": {"type": "string"}, "intervalMs": {"type": "integer", "minimum": 1}, "timeoutMs": {"type": "integer", "minimum": 1}, "healthyThreshold": {"type": "integer", "minimum": 1}, "unhealthyThreshold": {"type": "integer", "minimum": 1}}}, "transport": {"type": "object", "additionalProperties": false, "description": "Upstream transport. Defaults to mutual_tls when tls.enabled, else plaintext.", "properties": {"mode": {"type": "string", "enum": ["mutual_tls", "tls", "plaintext"]}, "sni": {"type": "string"}, "ca": {"type": "object", "additionalProperties": false, "description": "tls only: CA bundle that verifies this backend.", "properties": {"configMap": {"type": "string"}, "secret": {"type": "string"}, "key": {"type": "string"}}, "oneOf": [{"required": ["configMap"], "properties": {"configMap": {"minLength": 1}, "secret": {"maxLength": 0}}}, {"required": ["secret"], "properties": {"secret": {"minLength": 1}, "configMap": {"maxLength": 0}}}]}}, "if": {"required": ["ca"]}, "then": {"required": ["mode"], "properties": {"mode": {"const": "tls"}}}}, "endpoint": {"type": "string", "pattern": "^\\S+:[0-9]+$", "description": "Backend endpoint host:port."}}, "anyOf": [{"required": ["endpoint"]}, {"required": ["endpoints"]}]}
+            },
+            { "type": "array" }
+          ],
+          "type": ["array", "object"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cluster", "endpoints"],
+            "properties": {
+              "cluster": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "site": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "description": "Grid site this backend serves. Required for a consumer's remote mutual_tls backend. Defaults to localSite." },
+              "endpoints": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^\\S+:[0-9]+$" } },
+              "trustPrivate": { "type": "boolean" },
+              "allowPlaintextTrust": { "type": "boolean" },
+              "connectTimeoutMs": { "type": "integer", "minimum": 1 },
+              "totalConnectTimeoutMs": { "type": "integer", "minimum": 1 },
+              "healthCheck": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "type": { "enum": ["http", "tcp"] },
+                  "path": { "type": "string" },
+                  "intervalMs": { "type": "integer", "minimum": 1 },
+                  "timeoutMs": { "type": "integer", "minimum": 1 },
+                  "healthyThreshold": { "type": "integer", "minimum": 1 },
+                  "unhealthyThreshold": { "type": "integer", "minimum": 1 }
+                }
+              },
+              "transport": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Upstream transport. Defaults to mutual_tls when tls.enabled, else plaintext.",
+                "properties": {
+                  "mode": { "type": "string", "enum": ["mutual_tls", "tls", "plaintext"] },
+                  "sni": { "type": "string" },
+                  "ca": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "tls only: CA bundle that verifies this backend.",
+                    "properties": {
+                      "configMap": { "type": "string" },
+                      "secret": { "type": "string" },
+                      "key": { "type": "string" }
+                    },
+                    "oneOf": [
+                      { "required": ["configMap"], "properties": { "configMap": { "minLength": 1 }, "secret": { "maxLength": 0 } } },
+                      { "required": ["secret"], "properties": { "secret": { "minLength": 1 }, "configMap": { "maxLength": 0 } } }
+                    ]
+                  }
+                },
+                "if": { "required": ["ca"] },
+                "then": { "required": ["mode"], "properties": { "mode": { "const": "tls" } } }
+              }
+            }
+          }
+        },
+        "listenerTls": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Optional inbound TLS on the gateway listener. Default posture assumes an inbound TLS front terminates TLS.",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "existingSecret": { "type": "string" },
+            "mountPath": { "type": "string" }
+          }
+        }
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "NetworkPolicy limiting ingress to the listener port.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "from": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of gateway replicas."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Container image repository."
+        },
+        "tag": {
+          "type": "string",
+          "description": "Image tag. Defaults to the chart appVersion when empty."
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^(sha256:[0-9a-f]{64})?$",
+          "description": "Immutable image digest. When set, the tag is ignored."
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy."
+        },
+        "flavor": {
+          "type": "string",
+          "enum": ["ai", "grid-gateway"],
+          "description": "ai is praxis-proxy/ai. grid-gateway is the grid build with the provider and gridServing filters."
+        }
+      }
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "description": "Image pull secrets for private registries."
+    },
+    "nameOverride": {
+      "type": "string",
+      "description": "Override the chart name used in resource names."
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "description": "Override the fully qualified app name."
+    },
+    "commonLabels": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Labels added to all resources."
+    },
+    "podLabels": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Additional labels on the gateway pod template."
+    },
+    "podAnnotations": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Annotations on the gateway pod template."
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Extra pod-level securityContext fields. Protected fields (runAsNonRoot, seccompProfile) are chart-owned.",
+      "properties": {
+        "runAsUser": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "UID for the pod."
+        },
+        "runAsGroup": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "GID for the pod."
+        },
+        "fsGroup": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Filesystem group ID for volume mounts."
+        },
+        "supplementalGroups": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Additional group IDs."
+        }
+      }
+    },
+    "imageUser": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Numeric runAsUser and runAsGroup for the Praxis container when podSecurityContext sets no runAsUser. A podSecurityContext runAsGroup replaces gid.",
+      "required": ["uid", "gid"],
+      "properties": {
+        "enabled": {
+          "enum": [true, false, "true", "false", "auto"],
+          "description": "auto applies uid and gid to the official praxis-proxy ai, praxis, and grid-gateway images (not -fips tags), except when security.openshift.io/v1 is served. true applies them to any image."
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "runAsUser for the Praxis container."
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "runAsGroup for the Praxis container."
+        }
+      }
+    },
+    "command": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Container command, replacing the image entrypoint. Empty keeps the entrypoint."
+    },
+    "args": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Container arguments."
+    },
+    "env": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "value": { "type": "string" },
+          "valueFrom": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["secretKeyRef"],
+            "properties": {
+              "secretKeyRef": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "key"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "key": { "type": "string", "minLength": 1 },
+                  "optional": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "oneOf": [
+          { "required": ["value"] },
+          { "required": ["valueFrom"] }
+        ]
+      },
+      "description": "Environment variables passed to the Praxis container."
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existingConfigMap": {
+          "type": "string",
+          "description": "Name of an existing ConfigMap containing the Praxis configuration. Takes precedence over inline."
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Key within the ConfigMap that holds praxis.yaml."
+        },
+        "inline": {
+          "type": "string",
+          "description": "Praxis configuration stored in a chart-managed ConfigMap when neither existingConfigMap nor gatewayConfig.render is set."
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "containerPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Container port number."
+        },
+        "name": {
+          "type": "string",
+          "description": "Port name. Empty: https when gatewayConfig.listenerTls.enabled, else http."
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["TCP", "UDP"],
+          "description": "Port protocol."
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Create a Service for the gateway."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["", "ClusterIP", "LoadBalancer", "NodePort"],
+          "description": "Service type."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Service port."
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Service annotations."
+        },
+        "loadBalancerIP": {
+          "type": "string",
+          "description": "Static IP for LoadBalancer type."
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Render an OpenShift Route to the Service." },
+        "host": { "type": "string", "description": "External hostname, a name on the gateway certificate." },
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Route annotations." },
+        "tls": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "termination": { "type": "string", "enum": ["passthrough", "reencrypt"], "description": "Where the Route ends TLS." },
+            "destinationCACertificate": { "type": "string", "description": "PEM CA that signed the gateway certificate, for reencrypt." }
+          }
+        }
+      }
+    },
+    "overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable overlay ConfigMap mount."
+        },
+        "existingConfigMap": {
+          "type": "string",
+          "description": "Name of the existing overlay ConfigMap."
+        },
+        "mountPath": {
+          "type": "string",
+          "description": "Mount path for overlay files."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "path"],
+            "properties": {
+              "key": { "type": "string" },
+              "path": { "type": "string" }
+            }
+          },
+          "description": "Items to project from the ConfigMap."
+        },
+        "sidecar": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Overlay sync sidecar settings.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable the overlay-sync sidecar."
+            },
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repository": { "type": "string", "description": "Sidecar image repository." },
+                "tag": { "type": "string", "description": "Sidecar image tag." },
+                "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"], "description": "Sidecar image pull policy." }
+              }
+            },
+            "dataKey": {
+              "type": "string",
+              "description": "ConfigMap data key containing the overlay envelope."
+            },
+            "expectedNetwork": {
+              "type": "string",
+              "description": "Expected GridNetwork name for scope validation."
+            },
+            "expectedLocalSite": {
+              "type": "string",
+              "description": "Expected local site name for scope validation."
+            },
+            "resources": {
+              "type": "object",
+              "description": "Sidecar resource requests and limits."
+            }
+          }
+        }
+      }
+    },
+    "gridServing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Mount the operator's serving config, set GRID_SERVING_CONFIG, and route with grid_site_route." },
+        "network": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "GridNetwork name." },
+        "gatewayRef": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "This gateway's gatewayRef name. Defaults to the release fullname." },
+        "configMap": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$", "description": "Overrides grid-serving-<network>-<gatewayRef>." },
+        "mountPath": { "type": "string", "pattern": "^/", "description": "Directory the ConfigMap is mounted at." }
+      }
+    },
+    "tls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable TLS Secret mount."
+        },
+        "existingSecret": {
+          "type": "string",
+          "description": "Name of the existing TLS Secret."
+        },
+        "caSecret": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
+          "description": "Secret holding ca.crt (the Grid CA), projected beside existingSecret."
+        },
+        "mountPath": {
+          "type": "string",
+          "description": "Mount path for TLS files."
+        }
+      }
+    },
+    "credentials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "mountPath"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Secret name."
+          },
+          "mountPath": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Mount path for the credential Secret."
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether the Secret is optional."
+          }
+        }
+      },
+      "description": "Credential Secret mounts."
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "readiness": {
+          "description": "Readiness probe settings. Null to disable."
+        },
+        "liveness": {
+          "description": "Liveness probe settings. Null to disable."
+        }
+      }
+    },
+    "shutdownDelaySeconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 25,
+      "description": "Seconds a terminating pod keeps serving before Praxis gets SIGTERM, as a preStop sleep. 0 disables it, which an image without a sleep binary needs."
+    },
+    "terminationGracePeriodSeconds": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "Seconds Kubernetes gives a terminating pod before killing it. Null: 30 plus shutdownDelaySeconds."
+    },
+    "resources": {
+      "type": "object",
+      "description": "Container resource requests and limits."
+    },
+    "nodeSelector": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Node selector for pod scheduling."
+    },
+    "affinity": {
+      "type": "object",
+      "description": "Pod affinity rules."
+    },
+    "tolerations": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Pod tolerations."
+    },
+    "topologySpreadConstraints": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Topology spread constraints."
+    },
+    "priorityClassName": {
+      "type": "string",
+      "description": "Priority class for the gateway pod."
+    }
+  }
+}
