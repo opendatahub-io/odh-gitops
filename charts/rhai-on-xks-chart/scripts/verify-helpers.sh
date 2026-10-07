@@ -355,7 +355,7 @@ helm_deploy() {
     ${extra_args[@]+"${extra_args[@]}"} \
     --timeout 10m; then
     log "Helm deploy failed — dumping debug info..."
-    local hook_jobs=(rhai-pre-upgrade-migrate-certmanager rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
+    local hook_jobs=(rhai-pre-upgrade-migrate-certmanager rhai-pre-install-maas-ns rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
     for job in "${hook_jobs[@]}"; do
       if kubectl get "job/${job}" -n "$NAMESPACE" &>/dev/null; then
         echo "  === job: ${job} ==="

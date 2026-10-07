@@ -49,13 +49,13 @@ Return the imagePullSecret name.
 
 {{/*
 Render a dockerconfigjson Secret for a given namespace.
-Pass a dict with "root" (top-level context), "namespace", and optional "annotations" (dict).
+Pass a dict with "root" (top-level context), "namespace", and optional "name" (string) and "annotations" (dict).
 */}}
 {{- define "rhai-on-xks-chart.imagePullSecretResource" -}}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ include "rhai-on-xks-chart.imagePullSecretName" .root }}
+  name: {{ .name | default (include "rhai-on-xks-chart.imagePullSecretName" .root) }}
   namespace: {{ .namespace }}
   labels:
     {{- include "rhai-on-xks-chart.labels" .root | nindent 4 }}

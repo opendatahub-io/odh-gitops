@@ -1,4 +1,9 @@
 {{- if and .Values.enabled (include "rhai-on-xks-chart.imagePullSecretEnabled" .) (include "rhai-on-xks-chart.maasManaged" .) }}
+{{/* Keep hook cleanup separate from the release-managed pull Secret; pre-delete cleans up interrupted bootstrap runs. */}}
+{{- $bootstrapSecretName := "rhai-maas-ns-pull-secret" }}
+{{- $hookAnnotations := dict "helm.sh/hook" "pre-install,pre-upgrade,pre-delete" "helm.sh/hook-weight" "-1" "helm.sh/hook-delete-policy" "before-hook-creation,hook-succeeded" }}
+{{ include "rhai-on-xks-chart.imagePullSecretResource" (dict "root" . "namespace" .Release.Namespace "name" $bootstrapSecretName "annotations" $hookAnnotations) }}
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -70,7 +75,8 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: rhai-pre-install-maas-ns
-      {{- include "rhai-on-xks-chart.imagePullSecrets" . | nindent 6 }}
+      imagePullSecrets:
+        - name: {{ $bootstrapSecretName }}
       securityContext:
         runAsNonRoot: true
         seccompProfile:
