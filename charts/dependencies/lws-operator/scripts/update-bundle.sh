@@ -2,12 +2,12 @@
 # Update Helm chart with new bundle version
 # Usage: ./update-bundle.sh [version]
 # Examples:
-#   ./update-bundle.sh 1.0
-#   ./update-bundle.sh 1.1
+#   ./update-bundle.sh 1.1.0
+#   ./update-bundle.sh 1.2.0
 
 set -e
 
-VERSION="${1:-1.0}"
+VERSION="${1:-1.1.0}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHART_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
