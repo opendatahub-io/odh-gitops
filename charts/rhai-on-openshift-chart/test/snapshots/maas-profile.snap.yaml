@@ -104,8 +104,6 @@ spec:
       nim:
         managementState: Removed
       rawDeploymentServiceConfig: Headed
-      wva:
-        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default

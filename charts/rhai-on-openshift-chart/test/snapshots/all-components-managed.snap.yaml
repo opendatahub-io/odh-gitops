@@ -190,8 +190,6 @@ spec:
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
-      wva:
-        managementState: Managed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default

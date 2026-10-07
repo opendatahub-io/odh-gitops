@@ -217,11 +217,6 @@ components:
         managementState:
       # -- Raw deployment service config for KServe (Headless or Headed)
       rawDeploymentServiceConfig: Headless
-      # -- Enables llm-d Workload Variant Autoscaler
-      # -- Note: When run on Openshift, and set to Managed ensure Custom Metrics Autoscaler (CMA) or Prometheus Adapter is installed
-      wva:
-        # -- Management state for workload-variant-autoscaler. Null uses profile default.
-        managementState:
     # -- GatewayClass configuration for KServe inference
     gatewayClass:
       # -- Create the GatewayClass: auto (if KServe is Managed), true (always), false (never)
