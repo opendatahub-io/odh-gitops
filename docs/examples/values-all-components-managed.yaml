@@ -63,6 +63,8 @@ components:
         managementState: Managed
       wva:
         managementState: Managed
+      modelExpress:
+        managementState: Managed
     gateway:
       spec:
         gatewayClassName: openshift-ai-inference

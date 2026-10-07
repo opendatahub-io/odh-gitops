@@ -63,7 +63,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | components.kserve.enabled | bool | `true` |  |
 | components.kserve.gateway.allowedRoutes.namespaces | object | `{}` |  |
 | components.kserve.gateway.create | bool | `true` |  |
-| components.kserve.spec | object | `{}` |  |
+| components.kserve.spec.modelExpress.managementState | string | `"Removed"` |  |
 | coreweave.cloudManager.image | string | `"quay.io/opendatahub/opendatahub-operator:latest"` |  |
 | coreweave.cloudManager.imagePullPolicy | string | `"Always"` |  |
 | coreweave.cloudManager.namespace | string | `"rhai-cloudmanager-system"` |  |

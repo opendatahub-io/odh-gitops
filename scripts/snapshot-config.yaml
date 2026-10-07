@@ -56,6 +56,12 @@ charts:
           - components.kserve.dsc.wva.managementState=Managed
           - components.kserve.dependencies.customMetricsAutoscaler=true
 
+      - name: enable-modelexpress
+        setFlags:
+          - skipCrdCheck=true
+          - components.kserve.dsc.managementState=Managed
+          - components.kserve.dsc.modelExpress.managementState=Managed
+
       - name: with-rhcl-config
         setFlags:
           - skipCrdCheck=true
@@ -251,6 +257,13 @@ charts:
           - components.aigateway.enabled=true
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
           - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-modelexpress
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.spec.modelExpress.managementState=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-maas-and-pull-secret
         setFlags:

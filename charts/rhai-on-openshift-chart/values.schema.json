@@ -538,6 +538,16 @@
                 }
               },
               "additionalProperties": false
+            },
+            "modelExpress": {
+              "type": "object",
+              "description": "ModelExpress configuration for KServe",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
