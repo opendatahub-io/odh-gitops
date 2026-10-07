@@ -106,6 +106,9 @@ jobs:
             echo "=== AWSKubernetesEngine CR ==="
             kubectl get awskubernetesengines.infrastructure.opendatahub.io -A -o yaml 2>/dev/null || echo "No AWSKubernetesEngine CRs found"
           fi
+          echo ""
+          echo "=== GatewayConfig CR ==="
+          kubectl get gatewayconfigs.services.platform.opendatahub.io -A -o yaml 2>/dev/null || echo "No GatewayConfig CRs found"
 
   upgrade-test:
     needs: authorize
@@ -167,3 +170,6 @@ jobs:
             echo "=== AWSKubernetesEngine CR ==="
             kubectl get awskubernetesengines.infrastructure.opendatahub.io -A -o yaml 2>/dev/null || echo "No AWSKubernetesEngine CRs found"
           fi
+          echo ""
+          echo "=== GatewayConfig CR ==="
+          kubectl get gatewayconfigs.services.platform.opendatahub.io -A -o yaml 2>/dev/null || echo "No GatewayConfig CRs found"

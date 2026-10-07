@@ -1,5 +1,13 @@
 # helmtemplate-generator configuration for RHAI operator chart
 
+# Exclude resources owned by dependency charts from the generated parent chart.
+filter:
+  exclude:
+    - kinds:
+        - CustomResourceDefinition
+      names:
+        - gatewayconfigs.services.platform.opendatahub.io
+
 rules:
   # Replace namespace references with Helm template
   - match:
@@ -90,6 +98,8 @@ rules:
         value: '{{ .Values.rhaiOperator.applicationsNamespace | quote }}'
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_VERSION].value
         value: '{{ .Chart.AppVersion | quote }}'
+      - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_DISABLE_GATEWAY_SERVICE].value
+        value: '{{ ternary "false" "true" (index .Values "xks-gateway" "enabled") | quote }}'
       # Remove hardcoded kuberay operator image
       - action: delete
         path: .spec.template.spec.containers[name=rhods-operator].env[name=RELATED_IMAGE_*]
