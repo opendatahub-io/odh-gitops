@@ -168,6 +168,9 @@ azure:
             namespace: istio-system
         rhcl:
           managementPolicy: Unmanaged   # Opt-in: set to Managed to have CCM install RHCL (Kuadrant)
+          configuration:
+            operatorNamespace: kuadrant-operators
+            operandNamespace: kuadrant-system
 
 # CoreWeave cloud configuration
 coreweave:
@@ -207,6 +210,9 @@ coreweave:
             namespace: istio-system
         rhcl:
           managementPolicy: Unmanaged   # Opt-in: set to Managed to have CCM install RHCL (Kuadrant)
+          configuration:
+            operatorNamespace: kuadrant-operators
+            operandNamespace: kuadrant-system
 
 # AWS cloud configuration
 aws:
@@ -246,6 +252,9 @@ aws:
             namespace: istio-system
         rhcl:
           managementPolicy: Unmanaged   # Opt-in: set to Managed to have CCM install RHCL (Kuadrant)
+          configuration:
+            operatorNamespace: kuadrant-operators
+            operandNamespace: kuadrant-system
 
 # cert-manager operator subchart
 cert-manager-operator:

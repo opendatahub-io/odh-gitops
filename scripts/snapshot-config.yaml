@@ -130,6 +130,9 @@ charts:
           - azure.kubernetesEngine.spec.dependencies.lws.configuration.namespace=custom-lws
           - azure.kubernetesEngine.spec.dependencies.lws.managementPolicy=Managed
           - azure.kubernetesEngine.spec.dependencies.sailOperator.configuration.namespace=custom-istio
+          - azure.kubernetesEngine.spec.dependencies.rhcl.managementPolicy=Managed
+          - azure.kubernetesEngine.spec.dependencies.rhcl.configuration.operatorNamespace=custom-kuadrant-operators
+          - azure.kubernetesEngine.spec.dependencies.rhcl.configuration.operandNamespace=custom-kuadrant-system
         setJsonFlags:
           - 'components.kserve.gateway.allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"inference-gateway-access":"true"}}}'
 

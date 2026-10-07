@@ -49,13 +49,15 @@ podman login registry.redhat.io --authfile /path/to/auth.json
 
 The `imagePullSecret.dockerConfigJson` parameter:
 
-1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
+1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in the operator, applications, release, cloud manager and managed dependency namespaces
 2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, and the post-install hook)
 
 The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
 > [!NOTE]
-> Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To customize which dependency namespaces receive pull secrets, set `imagePullSecret.dependencyNamespaces`.
+> Pull secrets for managed dependency namespaces are created automatically when set as `Managed`. The chart uses the configured namespaces. Use `imagePullSecret.dependencyNamespaces` for additional namespaces.
+
+The chart renders Namespace resources for managed dependency namespaces. If a dependency namespace already exists and should be managed by this Helm release, rerun the installation or upgrade with Helm's `--take-ownership` flag. The chart keeps dependency namespaces on uninstall.
 
 ## Installation
 

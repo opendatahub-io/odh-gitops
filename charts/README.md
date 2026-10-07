@@ -20,6 +20,7 @@ Extracted from Red Hat operator bundles for deploying operators on vanilla Kuber
 | [`cert-manager-operator`](dependencies/cert-manager-operator/) | v1.18.1 | `cert-manager-operator` / `cert-manager` | Red Hat cert-manager Operator |
 | [`gateway-api`](dependencies/gateway-api/) | v1.4.0 | cluster-scoped | [Kubernetes Gateway API](https://github.com/kubernetes-sigs/gateway-api) CRDs |
 | [`lws-operator`](dependencies/lws-operator/) | 1.0 | `openshift-lws-operator` | Leader-Worker-Set Operator |
+| [`rhcl-operator`](dependencies/rhcl-operator/) | 1.3.0 | `kuadrant-operators` / `kuadrant-system` | Red Hat Connectivity Link (Kuadrant) operators |
 | [`sail-operator`](dependencies/sail-operator/) | 3.4.2 (Istio up to v1.30.4) | `istio-system` | Red Hat Sail (Istio) Operator |
 
 ---
@@ -78,6 +79,7 @@ EOF
 helm install cert-manager-operator charts/dependencies/cert-manager-operator/
 helm install gateway-api charts/dependencies/gateway-api/
 helm install lws-operator charts/dependencies/lws-operator/
+helm install rhcl-operator charts/dependencies/rhcl-operator/
 helm install sail-operator charts/dependencies/sail-operator/
 ```
 
@@ -127,6 +129,13 @@ Restart pods to pick up the secrets:
 kubectl delete pod --all -n cert-manager-operator
 kubectl delete pod --all -n openshift-lws-operator
 kubectl delete pod --all -n istio-system
+```
+
+RHCL service accounts already reference `rhai-pull-secret`. Create it in both RHCL namespaces during installation or upgrade:
+
+```bash
+helm upgrade --install rhcl-operator charts/dependencies/rhcl-operator/ \
+  --set-file imagePullSecret.dockerConfigJson=/path/to/pull-secret.txt
 ```
 
 ### 2. CertManager CR
@@ -282,6 +291,7 @@ podman login registry.redhat.io
 ```bash
 ./charts/dependencies/cert-manager-operator/scripts/update-bundle.sh v1.18.1
 ./charts/dependencies/lws-operator/scripts/update-bundle.sh 1.0
+./charts/dependencies/rhcl-operator/scripts/update-bundle.sh 1.3.0
 ./charts/dependencies/sail-operator/scripts/update-bundle.sh 3.2.1
 ```
 
