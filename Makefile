@@ -266,29 +266,28 @@ HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.man
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
-	@echo "=== Step 1: Install operators ==="
-	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --create-namespace $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
-	@echo "=== Step 2: Wait for CRDs (dependency) ==="
-	@./scripts/wait-for-crds.sh
-	@bash ./scripts/verify-dependencies.sh
-	@echo ""
-	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
-	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
-	@echo ""
-	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
-	@echo "Waiting for odh-dashboard deployment to exist in namespace $(APPLICATIONS_NAMESPACE)..."
-	@while ! $(K8S_CLI) get deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) >/dev/null 2>&1; do echo "Waiting for odh-dashboard deployment..."; sleep 5; done
-	$(K8S_CLI) scale deployment odh-dashboard -n $(APPLICATIONS_NAMESPACE) --replicas=1
-	$(K8S_CLI) describe nodes | grep -A 9 "Allocated resources:"
-	$(MAKE) helm-verify
-	@echo ""
-	@echo "=== Step 5: Enable Authorino TLS ==="
-	@$(K8S_CLI) delete pod -l app=kuadrant -n kuadrant-system
-	@echo ""
-	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
-	@echo ""
-	@echo "=== Step 6: Final helm upgrade with wait condition ==="
-	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --wait --timeout 10m $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
+	REPO_ROOT="$(CURDIR)" \
+	CHART=./$(CHART_PATH) \
+	OPERATOR_TYPE=$(OPERATOR_TYPE) \
+	HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" \
+	K8S_CLI=$(K8S_CLI) \
+	bash ./$(CHART_PATH)/scripts/install-to-steady-state.sh
+
+OCP_UPGRADE_FROM_CHART ?= oci://registry.redhat.io/rhai/rhai-on-openshift-chart
+OCP_UPGRADE_FROM_VERSION ?= v3.4
+
+.PHONY: helm-upgrade-verify
+helm-upgrade-verify: ## Upgrade test: OCI v3.4 → local chart, verify DSC health
+	REPO_ROOT="$(CURDIR)" \
+	RELEASE_NAME=odh \
+	NAMESPACE=opendatahub-gitops \
+	CHART=./$(CHART_PATH) \
+	UPGRADE_FROM_CHART="$(OCP_UPGRADE_FROM_CHART)" \
+	UPGRADE_FROM_VERSION="$(OCP_UPGRADE_FROM_VERSION)" \
+	OPERATOR_TYPE="$(OPERATOR_TYPE)" \
+	HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" \
+	K8S_CLI="$(K8S_CLI)" \
+	bash ./$(CHART_PATH)/scripts/verify-upgrade.sh
 
 ## RHAI on XKS Chart
 XKS_CHART_PATH ?= $(CHARTS_DIR)/rhai-on-xks-chart
