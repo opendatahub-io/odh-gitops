@@ -31,9 +31,9 @@ This repository provides a GitOps-based approach to deploying and managing OpenD
     - [Install a Subset of Dependencies](#install-a-subset-of-dependencies)
   - [Usage Guidelines](#usage-guidelines)
     - [For Administrators](#for-administrators)
+  - [Guides](#guides)
   - [Release Strategy](#release-strategy)
     - [Release Workflow](#release-workflow)
-  - [Guides](#guides)
 
 ## Overview
 
@@ -66,6 +66,7 @@ The repository is designed to be applied in **layers**, providing flexibility in
 | **MariaDB Operator** | MariaDB for OpenShift | `mariadb-operator` | TrustyAI (optional, only if using database mode) | |
 | **Node Feature Discovery** | Detects hardware features and capabilities of nodes | `openshift-nfd` | OGX | |
 | **NVIDIA GPU Operator** | Enables GPU-accelerated workloads on NVIDIA hardware | `nvidia-gpu-operator` | Model Serving, OGX | Node Feature Discovery |
+| **Red Hat build of Agent Sandbox** | Secure and isolated execution layer for autonomous AI agents | `agent-sandbox-system` | AgentOps (OpenShell) | |
 
 Helm-generated operator namespaces use `helm.sh/resource-policy: keep` and remain after chart uninstall. `openshift-operators-redhat` is a shared platform namespace; remove Loki `Subscription` and chart-owned `OperatorGroup` resources separately, but do not delete the namespace. If the namespace already exists, set `dependencies.loki.olm.createNamespace: false`. If an `OperatorGroup` already exists within it, set `dependencies.loki.olm.createOperatorGroup: false` to prevent duplicate OperatorGroup creation.
 

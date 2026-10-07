@@ -33,6 +33,7 @@ declare -A OPERATORS=(
     [rhcl-operator]="kuadrant-system app=kuadrant"
     [nfd]="openshift-nfd control-plane=controller-manager"
     [gpu-operator-certified]="nvidia-gpu-operator app=gpu-operator"
+    [agent-sandbox-operator]="agent-sandbox-system app=agent-sandbox-controller"
 
     [rhods-operator]="redhat-ods-operator name=rhods-operator"
     [opendatahub-operator]="opendatahub-operator-system name=opendatahub-operator"

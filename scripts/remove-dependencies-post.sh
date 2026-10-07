@@ -31,3 +31,9 @@ oc delete --ignore-not-found namespace openshift-nfd
 # Remove GPU operator
 oc delete --ignore-not-found crd clusterpolicies.nvidia.com nvidiadrivers.nvidia.com
 oc delete --ignore-not-found namespace nvidia-gpu-operator
+
+# Remove agent-sandbox-operator
+oc delete --ignore-not-found deployment -n agent-sandbox-system -l operators.coreos.com/agent-sandbox-operator.agent-sandbox-system
+oc delete --ignore-not-found crd sandboxes.agents.x-k8s.io
+oc delete --ignore-not-found crd sandboxclaims.extensions.agents.x-k8s.io sandboxtemplates.extensions.agents.x-k8s.io sandboxwarmpools.extensions.agents.x-k8s.io
+oc delete --ignore-not-found namespace agent-sandbox-system

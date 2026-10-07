@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: agent-sandbox-operator
+  namespace: agent-sandbox-system
+spec:
+  channel: preview-0.9
+  installPlanApproval: Automatic
+  name: agent-sandbox-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

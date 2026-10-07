@@ -12,6 +12,7 @@ components:
   - ../../components/operators/loki-operator
   - ../../components/operators/openshift-custom-metrics-autoscaler
   - ../../components/operators/rhcl-operator
+  - ../../components/operators/agent-sandbox-operator
   # TODO: The following operators need a manual configuration. It needs to be added if used ogx.
   # - ../../components/operators/nfd
   # - ../../components/operators/nvidia-gpu-operator
