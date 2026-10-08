@@ -191,7 +191,7 @@ spec:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
       wva:
-        managementState: Managed
+        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
