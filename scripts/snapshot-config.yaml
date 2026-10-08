@@ -99,6 +99,20 @@ charts:
           - dependencies.loki.olm.createNamespace=false
           - dependencies.loki.olm.createOperatorGroup=false
 
+      - name: monitoring-with-logs
+        valuesFiles:
+          - docs/examples/values-monitoring-with-logs.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+
+      - name: monitoring-with-usage-logs
+        valuesFiles:
+          - docs/examples/values-monitoring-with-usage-logs.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default

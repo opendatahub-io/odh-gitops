@@ -1,0 +1,40 @@
+# =============================================================================
+# Monitoring with built-in usage logs (DSCI spec.monitoring.usageLogs)
+#
+# Distinct from cluster log forwarding (dsci.logs / ClusterLogForwarder).
+# Requires operator that projects DSCI usageLogs onto the Monitoring CR,
+# Loki Operator, OpenTelemetry Operator, and an S3 credentials secret in
+# the monitoring namespace. CLO is not required for this path.
+#
+# Usage:
+#   helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+#     -f docs/examples/values-monitoring-with-usage-logs.yaml \
+#     --set operator.type=rhoai \
+#     -n rhoai-gitops --create-namespace
+# =============================================================================
+
+services:
+  monitoring:
+    dependencies:
+      clusterObservability: true
+      opentelemetry: true
+      tempo: true
+      loki: true
+    dsci:
+      managementState: Managed
+      metrics:
+        storage:
+          size: 5Gi
+          retention: 90d
+      traces:
+        sampleRatio: "0.1"
+        storage:
+          backend: pv
+          size: 5Gi
+          retention: 2160h
+      usageLogs:
+        storage:
+          type: s3
+          secretName: rhoai-logs-s3
+          credentialMode: static
+          storageClassName: gp3-csi
