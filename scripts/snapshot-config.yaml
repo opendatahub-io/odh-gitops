@@ -99,6 +99,11 @@ charts:
           - dependencies.loki.olm.createNamespace=false
           - dependencies.loki.olm.createOperatorGroup=false
 
+      - name: agent-sandbox-enabled
+        setFlags:
+          - skipCrdCheck=true
+          - dependencies.agentSandbox.enabled=true
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default

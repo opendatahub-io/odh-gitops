@@ -411,6 +411,17 @@ dependencies:
       name: openshift-cert-manager-operator
       namespace: cert-manager-operator
 
+  # -- Agent Sandbox operator (Red Hat build of Agent Sandbox)
+  agentSandbox:
+    # -- Enable agent-sandbox: auto (if needed), true (always), false (never)
+    enabled: auto
+    # -- Dependencies required by agent-sandbox
+    dependencies: {}
+    olm:
+      channel: preview-0.9
+      name: agent-sandbox-operator
+      namespace: agent-sandbox-system
+
   # -- Leader Worker Set operator
   leaderWorkerSet:
     # -- Enable leader-worker-set: auto (if needed), true (always), false (never)

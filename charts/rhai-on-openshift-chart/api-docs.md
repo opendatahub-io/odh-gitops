@@ -92,6 +92,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.workbenches.dsc | object | `{"managementState":null,"workbenchNamespace":null}` | DSC configuration for Workbenches |
 | components.workbenches.dsc.managementState | string | `nil` | Management state for Workbenches. Null uses profile default. |
 | components.workbenches.dsc.workbenchNamespace | string | `nil` | Workbench namespace for Workbenches (overrides defaults) |
+| dependencies.agentSandbox | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"preview-0.9","name":"agent-sandbox-operator","namespace":"agent-sandbox-system"}}` | Agent Sandbox operator (Red Hat build of Agent Sandbox) |
+| dependencies.agentSandbox.dependencies | object | `{}` | Dependencies required by agent-sandbox |
+| dependencies.agentSandbox.enabled | string | `"auto"` | Enable agent-sandbox: auto (if needed), true (always), false (never) |
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |

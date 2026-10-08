@@ -177,6 +177,9 @@
         "certManager": {
           "$ref": "#/definitions/dependency"
         },
+        "agentSandbox": {
+          "$ref": "#/definitions/dependency"
+        },
         "leaderWorkerSet": {
           "$ref": "#/definitions/dependencyWithConfig"
         },
