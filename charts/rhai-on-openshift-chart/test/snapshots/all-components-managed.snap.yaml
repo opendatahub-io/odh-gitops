@@ -191,7 +191,7 @@ spec:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
       wva:
-        managementState: Managed
+        managementState: Removed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -210,7 +210,7 @@ spec:
     trainer:
       managementState: Managed
     trainingoperator:
-      managementState: Managed
+      managementState: Removed
     trustyai:
       eval:
         lmeval:

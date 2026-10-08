@@ -822,6 +822,14 @@
           "type": "object",
           "description": "Alerting configuration"
         },
+        "logs": {
+          "type": "object",
+          "description": "Logs configuration"
+        },
+        "usageLogs": {
+          "type": "object",
+          "description": "Usage logs configuration"
+        },
         "collectorReplicas": {
           "type": "integer",
           "description": "Collector replicas"

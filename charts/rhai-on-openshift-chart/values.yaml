@@ -92,6 +92,8 @@ services:
       metrics: {}
       traces: {}
       alerting: {}
+      logs: {}
+      usageLogs: {}
 
 # =============================================================================
 # COMPONENTS - High-level features that auto-enable their dependencies
