@@ -13,6 +13,13 @@
 #
 # Configuration:
 #   Reads snapshot definitions from scripts/snapshot-config.yaml
+#   Each snapshot supports:
+#     setFlags / setJsonFlags / valuesFiles  - helm template arguments
+#     expectFail: true                       - the case must FAIL to render;
+#                                              no snapshot file is generated
+#     expectMessage: "..."                   - (with expectFail) the failure
+#                                              message that must appear in
+#                                              helm's stderr output
 #
 # Requirements: helm, yq (bin/yq), gsed (macOS) or sed (Linux)
 #
@@ -64,6 +71,8 @@ Options:
 
 Configuration:
   Reads snapshot definitions from scripts/snapshot-config.yaml
+  Snapshots may set expectFail: true (with optional expectMessage) to
+  assert that helm template fails with a specific error.
 
 Examples:
   # Generate snapshots for all charts
@@ -196,6 +205,20 @@ get_snapshot_values_files() {
     echo "${flags}"
 }
 
+# Get whether a snapshot is an expected-failure case (empty if not set)
+get_snapshot_expect_fail() {
+    local chart_name="$1"
+    local index="$2"
+    "${YQ}" eval ".charts.${chart_name}.snapshots[${index}].expectFail // \"\"" "${CONFIG_FILE}"
+}
+
+# Get the expected failure message for a snapshot (empty if not set)
+get_snapshot_expect_message() {
+    local chart_name="$1"
+    local index="$2"
+    "${YQ}" eval ".charts.${chart_name}.snapshots[${index}].expectMessage // \"\"" "${CONFIG_FILE}"
+}
+
 # Build helm template command for a chart
 build_helm_cmd() {
     local chart_name="$1"
@@ -243,6 +266,12 @@ process_snapshot() {
     local values_files
     values_files=$(get_snapshot_values_files "${chart_name}" "${snapshot_index}")
 
+    local expect_fail
+    expect_fail=$(get_snapshot_expect_fail "${chart_name}" "${snapshot_index}")
+
+    local expect_message
+    expect_message=$(get_snapshot_expect_message "${chart_name}" "${snapshot_index}")
+
     local helm_cmd
     helm_cmd=$(build_helm_cmd "${chart_name}")
 
@@ -251,6 +280,12 @@ process_snapshot() {
     echo "  ==> ${snapshot_name}"
 
     if [[ "${MODE}" == "generate" ]]; then
+        # Expected-failure cases have no snapshot artifact
+        if [[ "${expect_fail}" == "true" ]]; then
+            echo "      Skipped: expected-failure case (no snapshot generated)"
+            return 0
+        fi
+
         # Ensure snapshot directory exists
         mkdir -p "${snapshot_dir}"
 
@@ -267,9 +302,62 @@ process_snapshot() {
         local temp_file
         temp_file=$(mktemp)
 
-        # Generate to temp file
+        local stderr_file
+        stderr_file=$(mktemp)
+
+        # Run helm template, capturing stderr for expected-failure message checks.
+        # Wrapped in a condition so the global ERR trap does not abort the run:
+        # a failing case must be reported and counted, not kill the script.
+        local rc=0
         # shellcheck disable=SC2086
-        eval "${helm_cmd} ${values_files} ${set_flags} ${set_json_flags} ${chart_path}" > "${temp_file}"
+        if ! eval "${helm_cmd} ${values_files} ${set_flags} ${set_json_flags} ${chart_path}" > "${temp_file}" 2> "${stderr_file}"; then
+            rc=1
+        fi
+
+        if [[ "${expect_fail}" == "true" ]]; then
+            # Expected-failure case: helm must fail, and the expected message
+            # (when configured) must appear in stderr. Bash glob substring
+            # matching (not grep) so messages may start with "-" or span lines.
+            if [[ ${rc} -eq 0 ]]; then
+                echo "      FAIL: helm template succeeded, but a failure was expected"
+                rm -f "${temp_file}" "${stderr_file}"
+                return 1
+            fi
+
+            if [[ -n "${expect_message}" ]] && [[ "$(cat "${stderr_file}")" != *"${expect_message}"* ]]; then
+                echo "      FAIL: expected failure message not found in stderr"
+                echo "      Expected: ${expect_message}"
+                echo "      stderr was:"
+                "${SED}" 's/^/      /' "${stderr_file}"
+                rm -f "${temp_file}" "${stderr_file}"
+                return 1
+            fi
+
+            # Warn about stale snapshot files for expected-failure cases
+            # (clean_snapshots only runs in generate mode)
+            if [[ -f "${snapshot_file}" ]]; then
+                echo "      WARNING: stale snapshot file for expected-failure case: ${snapshot_file}"
+            fi
+
+            echo "      PASS (expected failure)"
+            rm -f "${temp_file}" "${stderr_file}"
+            return 0
+        fi
+
+        # Normal case: helm must succeed
+        if [[ ${rc} -ne 0 ]]; then
+            echo "      FAIL: helm template failed"
+            echo "      stderr was:"
+            "${SED}" 's/^/      /' "${stderr_file}"
+            rm -f "${temp_file}" "${stderr_file}"
+            return 1
+        fi
+
+        # Surface any helm warnings (stderr used to stream to the terminal
+        # before it was captured; keep it visible when non-empty)
+        if [[ -s "${stderr_file}" ]]; then
+            "${SED}" 's/^/      /' "${stderr_file}"
+        fi
 
         # Redact version
         redact_version "${temp_file}"
@@ -277,7 +365,7 @@ process_snapshot() {
         # Compare with existing snapshot
         if [[ ! -f "${snapshot_file}" ]]; then
             echo "      ERROR: Snapshot file not found: ${snapshot_file}"
-            rm -f "${temp_file}"
+            rm -f "${temp_file}" "${stderr_file}"
             return 1
         fi
 
@@ -288,11 +376,11 @@ process_snapshot() {
             echo ""
             diff "${temp_file}" "${snapshot_file}" || true
             echo ""
-            rm -f "${temp_file}"
+            rm -f "${temp_file}" "${stderr_file}"
             return 1
         fi
 
-        rm -f "${temp_file}"
+        rm -f "${temp_file}" "${stderr_file}"
     fi
 
     return 0
