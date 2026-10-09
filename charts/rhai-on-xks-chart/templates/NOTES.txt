@@ -30,20 +30,19 @@ issuer for external clients to trust it.
 
 == Custom Resources ==
 
+{{- if .Values.hooks.postInstallCrs.enabled }}
+
+On upgrade, disabling a component first deletes its chart-labeled CR and waits
+for cleanup before Helm removes its ServiceAccounts and unused pull Secrets.
+The Platform module is then set to Removed. Other CRs are left unchanged.
+{{- end }}
+
 {{- if .Values.components.kserve.enabled }}
 
 KServe CR was automatically created during the installation.
 {{- else }}
 
-Kserve CR is NOT automatically created. To create it manually:
-
-   kubectl apply -f - <<EOF
-   apiVersion: components.platform.opendatahub.io/v1alpha1
-   kind: Kserve
-   metadata:
-     name: default-kserve
-   spec: {}
-   EOF
+KServe is disabled. Set components.kserve.enabled=true to deploy it through Helm.
 {{- end }}
 
 {{- if .Values.azure.enabled }}

@@ -1,0 +1,108 @@
+{{- if and .Values.enabled .Values.hooks.postInstallCrs.enabled }}
+{{- $registry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
+{{- $disabled := dict }}
+{{- range $name, $meta := $registry }}
+  {{- if not (index $.Values.components $name).enabled }}
+    {{- $_ := set $disabled $name $meta }}
+  {{- end }}
+{{- end }}
+{{- if $disabled }}
+{{- /* Cleanup runs before cert-manager migration and normal Helm resource changes. */}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get]
+  {{- range $name := keys $disabled | sortAlpha }}
+  {{- $meta := index $disabled $name }}
+  - apiGroups: [{{ index $meta "apiGroup" }}]
+    resources: [{{ index $meta "resource" }}]
+    verbs: [get, list, watch, delete]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-upgrade-delete-crs
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: rhai-pre-upgrade-delete-crs
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-2"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        {{- include "rhai-on-xks-chart.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-upgrade-delete-crs
+      {{- include "rhai-on-xks-chart.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: delete-crs
+          image: {{ required "hooks.cliImage is required" .Values.hooks.cliImage | quote }}
+          resources:
+            {{- toYaml .Values.hooks.resources | nindent 12 }}
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              {{- include "rhai-on-xks-chart.disabledComponentDeleteCommands" . | trimPrefix "\n" | nindent 14 }}
+              echo "Disabled component cleanup complete."
+{{- end }}
+{{- end }}

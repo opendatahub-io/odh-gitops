@@ -33,8 +33,7 @@ rules:
   {{- $compRegistry := include "rhai-on-xks-chart.componentCRRegistry" . | fromYaml }}
   {{- range $name := keys $compRegistry | sortAlpha }}
     {{- $meta := index $compRegistry $name }}
-    {{- $compVals := index $.Values.components $name | default dict }}
-    {{- if $compVals.enabled }}
+    {{- if (index $.Values.components $name).enabled }}
   - apiGroups:
       - {{ index $meta "apiGroup" }}
     resources:

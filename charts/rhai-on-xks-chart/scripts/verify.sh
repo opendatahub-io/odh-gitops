@@ -2,9 +2,10 @@
 # Verify rhai-on-xks-chart installation and lifecycle in a Kubernetes cluster.
 #
 # Usage:
-#   ./verify.sh              # run all tests (1-4)
+#   ./verify.sh              # run all active tests
 #   ./verify.sh 1            # run only test 1 (install check)
 #   ./verify.sh 2 3          # run tests 2 and 3
+#   ./verify.sh 4            # standalone cert-manager; removes the test installation
 #
 # Environment variables:
 #   RELEASE_NAME     - Helm release name (default: rhai-on-xks)
@@ -24,10 +25,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=verify-helpers.sh
 source "${SCRIPT_DIR}/verify-helpers.sh"
 
-# ─── Test 1: Install check ─────────────────────────────────────────────────
+# ─── Test 1: Install check and component removed ─────────────────────────────
 
 test_1_install_check() {
-  ensure_deployed
+  ensure_deployed || return 1
 
   log "Verifying install..."
 
@@ -60,86 +61,150 @@ test_1_install_check() {
   wait_for_deployment "rhai-operator" "redhat-ods-operator"
 
   # KServe component CR
-  if ! assert_cr_not_degraded "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"; then
+  if ! wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"; then
     debug_namespace "redhat-ods-operator"
     debug_namespace "redhat-ods-applications" "app.kubernetes.io/part-of=kserve"
+    return 1
   fi
 
   # Inference Gateway Istio
+  wait_for_deployment "inference-gateway-istio" "redhat-ods-applications" || return 1
+
+  log "Uninstalling KServe through Helm"
+  helm_deploy --set components.kserve.enabled=false || return 1
+  kubectl wait --for=delete kserves.components.platform.opendatahub.io/default-kserve --timeout="${TIMEOUT}s" || return 1
+  kubectl wait --for=delete deployment/kserve-module-controller-manager -n redhat-ods-applications --timeout="${TIMEOUT}s" || return 1
+
+  log "Restoring KServe through Helm"
+  helm_deploy || return 1
+  wait_ke_ready || return 1
+  wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "KServe restored" || return 1
   wait_for_deployment "inference-gateway-istio" "redhat-ods-applications"
 }
 
-# ─── Test 2: sail + lws Managed→Unmanaged→Managed ──────────────────────────
+# ─── Tests 2 and 3: isolated dependency Managed→Unmanaged→Managed ────────────
 
-test_2_sail_lws_managed_unmanaged() {
-  ensure_deployed \
-    --set "${PROV_PREFIX}.lws.managementPolicy=Managed"
+test_dependency_cycle() {
+  local dependency="$1"
+  # Keep only the dependency under test managed; cert-manager remains for operator webhooks.
+  local HELM_EXTRA_ARGS="$HELM_EXTRA_ARGS --set components.kserve.enabled=false --set components.aigateway.enabled=false"
+  HELM_EXTRA_ARGS+=" --set ${PROV_PREFIX}.sailOperator.managementPolicy=Unmanaged --set ${PROV_PREFIX}.lws.managementPolicy=Unmanaged"
+  HELM_EXTRA_ARGS+=" --set ${PROV_PREFIX}.gatewayAPI.managementPolicy=Unmanaged --set ${PROV_PREFIX}.rhcl.managementPolicy=Unmanaged"
 
-  log "Step 1: sailOperator + lws → Unmanaged"
-  helm_deploy \
-    --set "${PROV_PREFIX}.sailOperator.managementPolicy=Unmanaged" \
-    --set "${PROV_PREFIX}.lws.managementPolicy=Unmanaged"
+  # helm_deploy appends explicit args after HELM_EXTRA_ARGS; Helm's last --set wins.
+  # The selected dependency starts Managed without an intermediate all-Unmanaged upgrade.
+  log "Deploying only ${dependency}"
+  ensure_deployed --set "${PROV_PREFIX}.${dependency}.managementPolicy=Managed" || return 1
 
-  log "Waiting for Istio CR deletion..."
-  kubectl wait --for=delete istio/default --timeout="${TIMEOUT}s" 2>/dev/null \
-    || { fail "Istio CR not deleted within timeout"; return; }
+  log "${dependency} → Unmanaged"
+  helm_deploy --set "${PROV_PREFIX}.${dependency}.managementPolicy=Unmanaged" || return 1
+  wait_ke_ready || return 1
 
-  log "Waiting for IstioRevision deletion..."
-  kubectl wait --for=delete istiorevision --all --timeout="${TIMEOUT}s" 2>/dev/null \
-    || { fail "IstioRevision not deleted within timeout"; return; }
+  if [[ "$dependency" == sailOperator ]]; then
+    kubectl wait --for=delete istio/default --timeout="${TIMEOUT}s" || return 1
+    kubectl wait --for=delete istiorevision --all --timeout="${TIMEOUT}s" || return 1
+    kubectl wait --for=delete deployment/istiod -n istio-system --timeout="${TIMEOUT}s" || return 1
+    assert_exists "istio-system namespace (persists)" namespace/istio-system
+    assert_no_stuck_istiorevision
+  else
+    kubectl wait --for=delete leaderworkersetoperator/cluster --timeout="${TIMEOUT}s" || return 1
+    assert_deployment_gone "openshift-lws-operator"
+    assert_exists "openshift-lws-operator namespace (persists)" namespace/openshift-lws-operator
+  fi
 
-  log "Waiting for istiod deletion..."
-  kubectl wait --for=delete deployment/istiod -n istio-system --timeout="${TIMEOUT}s" 2>/dev/null \
-    || { fail "istiod not deleted within timeout"; return; }
-
-  log "Waiting for LWS cleanup..."
-  kubectl wait --for=delete leaderworkersetoperator/cluster --timeout="${TIMEOUT}s" 2>/dev/null \
-    || { fail "LeaderWorkerSetOperator CR not deleted within timeout"; return; }
-  assert_deployment_gone "openshift-lws-operator"
-
-  assert_exists "istio-system namespace (persists)" namespace/istio-system
-  assert_exists "openshift-lws-operator namespace (persists)" namespace/openshift-lws-operator
-  assert_no_stuck_istiorevision
-
-  log "Step 2: sailOperator + lws → Managed (revert)"
-  helm_deploy \
-    --set "${PROV_PREFIX}.lws.managementPolicy=Managed"
-  wait_ke_ready
-
-  assert_cr_not_degraded "istio" "default" "Istio CR restored"
-  wait_for_deployment "istiod" "istio-system"
-  assert_cr_not_degraded "leaderworkersetoperator" "cluster" "LeaderWorkerSetOperator CR restored"
+  log "${dependency} → Managed (revert)"
+  helm_deploy --set "${PROV_PREFIX}.${dependency}.managementPolicy=Managed" || return 1
+  wait_ke_ready || return 1
+  if [[ "$dependency" == sailOperator ]]; then
+    assert_cr_not_degraded "istio" "default" "Istio CR restored"
+    wait_for_deployment "istiod" "istio-system"
+  else
+    assert_cr_not_degraded "leaderworkersetoperator" "cluster" "LeaderWorkerSetOperator CR restored"
+    wait_for_all_deployments_in_namespace "openshift-lws-operator"
+  fi
 }
 
-# ─── Test 3: External cert-manager (subchart disabled) ─────────────────────
+test_2_istio_managed_unmanaged() {
+  test_dependency_cycle sailOperator
+}
 
-test_3_external_certmanager() {
-  log "Deploying with cert-manager-operator.enabled=false (external cert-manager scenario)"
-  helm_deploy \
-    --set "cert-manager-operator.enabled=false"
+test_3_lws_managed_unmanaged() {
+  test_dependency_cycle lws
+}
 
-  # cert-manager-operator subchart resources must not be deployed
+# ─── Test 4: Standalone cert-manager (subchart disabled) ────────────────────
+
+test_4_external_certmanager() {
+  # Start a fresh installation, including when this test is selected on its own.
+  # Disabling the subchart on an existing release would delete operand credentials.
+  if helm status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
+    log "Removing RHAI before installing standalone cert-manager"
+    helm_deploy --reuse-values --set "uninstall.cleanupNamespaces=true" || return 1
+    bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
+    helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+  fi
   assert_deployment_gone "cert-manager-operator"
+  [[ "$ASSERT_FAILED" -eq 0 ]] || return 1
 
-  # cert-manager workloads must still be running (
-  wait_for_all_deployments_in_namespace "cert-manager"
+  # CCM requires CertManager/cluster, so install the existing operator chart
+  # independently. Its ServiceAccounts and credentials belong to this fixture.
+  local certmanager_release="${RELEASE_NAME}-external-certmanager"
+  local pull_args=(--set-json 'imagePullSecrets=[]')
+  if [[ -n "$PULL_SECRET" ]]; then
+    pull_args=(--set 'imagePullSecrets[0].name=external-cert-manager-pull-secret')
+  fi
+  log "Installing standalone cert-manager operator"
+  # Standalone installation supplies its own credentials after Helm creates namespaces.
+  helm upgrade --install "$certmanager_release" "${CHART}/../dependencies/cert-manager-operator" \
+    -n "$NAMESPACE" --create-namespace "${pull_args[@]}" --timeout 10m || return 1
+  if [[ -n "$PULL_SECRET" ]]; then
+    for namespace in cert-manager-operator cert-manager; do
+      kubectl create secret generic external-cert-manager-pull-secret -n "$namespace" \
+        --type=kubernetes.io/dockerconfigjson --from-file=".dockerconfigjson=${PULL_SECRET}" \
+        --dry-run=client -o yaml | kubectl apply -f - || return 1
+    done
+  fi
+  wait_for_deployment "cert-manager-operator-controller-manager" "cert-manager-operator" || return 1
+  for deployment in cert-manager cert-manager-cainjector cert-manager-webhook; do
+    wait_for_deployment "$deployment" "cert-manager" || return 1
+  done
 
-  # RHAI operator must still be healthy because cert-manager is running externally
-  wait_for_deployment "rhai-operator" "redhat-ods-operator"
-  assert_cr_not_degraded "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
+  log "Installing RHAI with the cert-manager subchart disabled"
+  helm_deploy --set "cert-manager-operator.enabled=false" --set "uninstall.cleanupNamespaces=true" || return 1
+  wait_ke_ready || return 1
+  # The operator must still be owned by the standalone release, not RHAI.
+  local owner
+  owner=$(kubectl get deployment cert-manager-operator-controller-manager -n cert-manager-operator \
+    -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}') || return 1
+  [[ "$owner" == "$certmanager_release" ]] || { fail "RHAI changed standalone cert-manager ownership"; return 1; }
+  wait_for_deployment "rhai-operator" "redhat-ods-operator" || return 1
+  wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'" || return 1
 
-  log "Reverting to default (enabled)"
-  helm_deploy
+  # Remove consumers first; standalone cert-manager must survive RHAI uninstall.
+  # As with the other tests, failures retain resources for debugging.
+  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+  for deployment in cert-manager cert-manager-cainjector cert-manager-webhook; do
+    wait_for_deployment "$deployment" "cert-manager" || return 1
+  done
+  bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
+  helm uninstall "$certmanager_release" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+  for namespace in cert-manager-operator cert-manager; do
+    kubectl delete secret external-cert-manager-pull-secret -n "$namespace" --ignore-not-found || return 1
+    assert_not_exists "${namespace} fixture pull secret" secret/external-cert-manager-pull-secret -n "$namespace"
+  done
+  kubectl delete namespace cert-manager-operator cert-manager --ignore-not-found --timeout="${TIMEOUT}s"
 }
 
 # ─── Test 5: Uninstall lifecycle ────────────────────────────────────────────
 
 test_5_uninstall_lifecycle() {
-  ensure_deployed
+  ensure_deployed || return 1
 
   # Phase A: uninstall without namespace cleanup (default)
   log "Phase A: helm uninstall (cleanupNamespaces=false)"
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT"
+  # Cert-manager teardown is a manual prerequisite, not a chart hook.
+  bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
+  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" || return 1
 
   wait_reconciliation 15
 
@@ -152,6 +217,7 @@ test_5_uninstall_lifecycle() {
   fi
 
   assert_not_exists "KubernetesEngine CR" "$KE_KIND/$KE_NAME"
+  assert_not_exists "CertManager CR" certmanagers.operator.openshift.io/cluster
   assert_not_exists "Kserve CR" kserves.components.platform.opendatahub.io/default-kserve
   assert_not_exists "Istio CR" istio/default
   assert_not_exists "istiod deployment" deployment/istiod -n istio-system
@@ -165,11 +231,13 @@ test_5_uninstall_lifecycle() {
 
   # Phase B: reinstall with cleanupNamespaces=true, then uninstall
   log "Phase B: reinstall with cleanupNamespaces=true"
-  helm_deploy --set "uninstall.cleanupNamespaces=true"
-  wait_ke_ready
+  helm_deploy --set "uninstall.cleanupNamespaces=true" || return 1
+  wait_ke_ready || return 1
 
   log "Phase B: helm uninstall (cleanupNamespaces=true)"
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT"
+  # Cert-manager teardown is a manual prerequisite, not a chart hook.
+  bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
+  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
 
   log "Verifying full cleanup including namespaces..."
   assert_not_exists "KubernetesEngine CR" "$KE_KIND/$KE_NAME"
@@ -183,11 +251,11 @@ test_5_uninstall_lifecycle() {
 # ─── Main ───────────────────────────────────────────────────────────────────
 
 ALL_TESTS=(
-  "1:Install check:test_1_install_check"
-  "2:sail+lws Managed→Unmanaged→Managed:test_2_sail_lws_managed_unmanaged"
-  "3:external cert-manager (subchart disabled):test_3_external_certmanager"
-  # TODO: this would not work correctly, since KServe is blocking the deletion.
-  # "5:Uninstall lifecycle (cleanup + cleanupNamespaces):test_5_uninstall_lifecycle"
+  "1:Install check and component removed:test_1_install_check"
+  "2:Istio Managed→Unmanaged→Managed:test_2_istio_managed_unmanaged"
+  "3:LWS Managed→Unmanaged→Managed:test_3_lws_managed_unmanaged"
+  "4:Standalone cert-manager (subchart disabled):test_4_external_certmanager"
+  "5:Uninstall lifecycle (cleanup + cleanupNamespaces):test_5_uninstall_lifecycle"
 )
 
 check_prerequisites

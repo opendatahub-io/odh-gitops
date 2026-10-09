@@ -133,8 +133,12 @@ wait_for_deployment() {
 
   if ! kubectl rollout status deployment "${name}" -n "${ns}" --timeout="${TIMEOUT}s"; then
     fail "Deployment '${name}' in '${ns}' did not become ready within ${TIMEOUT}s"
+    echo "  DEBUG: deployment '${name}' details:"
+    kubectl describe deployment "${name}" -n "${ns}" 2>/dev/null || true
     kubectl get deployment "${name}" -n "${ns}" -o wide 2>/dev/null || true
     kubectl get pods -n "${ns}" 2>/dev/null || true
+    echo "  DEBUG: recent warning events in '${ns}':"
+    kubectl get events -n "${ns}" --field-selector=type=Warning --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -n 50 || true
     return 1
   fi
 
@@ -355,7 +359,10 @@ helm_deploy() {
     ${extra_args[@]+"${extra_args[@]}"} \
     --timeout 10m; then
     log "Helm deploy failed — dumping debug info..."
-    local hook_jobs=(rhai-pre-upgrade-migrate-certmanager rhai-post-install-crs rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs)
+    local hook_jobs=(
+      rhai-pre-upgrade-delete-crs rhai-pre-upgrade-migrate-certmanager rhai-post-install-crs
+      rhai-post-create-gateway rhai-post-create-maas-gateway rhai-pre-delete-crs
+    )
     for job in "${hook_jobs[@]}"; do
       if kubectl get "job/${job}" -n "$NAMESPACE" &>/dev/null; then
         echo "  === job: ${job} ==="
@@ -398,7 +405,7 @@ ensure_deployed() {
     wait_ke_ready
     return $?
   fi
-  helm_deploy ${extra_args[@]+"${extra_args[@]}"}
+  helm_deploy ${extra_args[@]+"${extra_args[@]}"} || return 1
   wait_ke_ready
 }
 

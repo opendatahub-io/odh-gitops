@@ -17,6 +17,9 @@
 {{- end }}
 {{- $managedDepNamespaces := (include "rhai-on-xks-chart.kubernetesEngineDependencyNamespaces" (dict "root" . "managedOnly" true) | fromJson).items }}
 {{- $depNamespaces := concat (.Values.imagePullSecret.dependencyNamespaces | default list) $managedDepNamespaces | uniq }}
+{{- if (index .Values "cert-manager-operator" "enabled") }}
+  {{- $depNamespaces = concat $depNamespaces (list (index .Values "cert-manager-operator" "operatorNamespace") (index .Values "cert-manager-operator" "operandNamespace")) | uniq }}
+{{- end }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:

@@ -196,7 +196,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: rhai-pull-secret
-  namespace: redhat-ods-applications
+  namespace: default
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -210,7 +210,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: rhai-pull-secret
-  namespace: default
+  namespace: redhat-ods-applications
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -421,7 +421,32 @@ spec:
                       description: RHCL defines the RHCL (Red Hat Connectivity Link / Kuadrant) operator dependency.
                       properties:
                         configuration:
+                          default: {}
                           description: Configuration for the RHCL operator.
+                          properties:
+                            operandNamespace:
+                              default: kuadrant-system
+                              description: |-
+                                OperandNamespace is the namespace where the Kuadrant custom resource
+                                (the RHCL operand) is created.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
+                            operatorNamespace:
+                              default: kuadrant-operators
+                              description: |-
+                                OperatorNamespace is the namespace where the RHCL/Kuadrant operator
+                                Deployments (kuadrant-operator, authorino-operator, limitador-operator,
+                                dns-operator) are deployed.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
                           type: object
                         managementPolicy:
                           default: Unmanaged
@@ -547,10 +572,21 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
     controller-gen.kubebuilder.io/version: v0.17.3
     helm.sh/resource-policy: keep
   name: platforms.config.opendatahub.io
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: rhai-operator-webhook-service
+          namespace: redhat-ods-operator
+          path: /convert
+      conversionReviewVersions:
+        - v1
   group: config.opendatahub.io
   names:
     kind: Platform
@@ -623,8 +659,44 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
+                    aipipelines:
+                      description: AIPipelines controls the AI Pipelines module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
                     dashboard:
                       description: Dashboard controls the Dashboard module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    databaseservice:
+                      description: DatabaseService controls the shared database module operator lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -767,6 +839,24 @@ spec:
                           pattern: ^(Managed|Unmanaged|Force|Removed)$
                           type: string
                       type: object
+                    ray:
+                      description: Ray controls the Ray module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
                     sparkoperator:
                       description: SparkOperator controls the Spark Operator module lifecycle.
                       properties:
@@ -787,6 +877,431 @@ spec:
                       type: object
                     trainer:
                       description: Trainer controls the Trainer module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    trustyai:
+                      description: TrustyAI controls the TrustyAI module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    workbenches:
+                      description: Workbenches controls the workbenches module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                  type: object
+              type: object
+            status:
+              description: PlatformStatus defines the observed state of Platform.
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      lastHeartbeatTime:
+                        description: |-
+                          The last time we got an update on a given condition, this should not be set and is
+                          present only for backward compatibility reasons
+                        format: date-time
+                        type: string
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.
+                          If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: message is a human-readable message indicating details about the transition.
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          The value should be a CamelCase string.
+                        type: string
+                      severity:
+                        description: |-
+                          Severity with which to treat failures of this type of condition.
+                          When this is not specified, it defaults to Error.
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-type: atomic
+                observedGeneration:
+                  description: The generation observed by the resource controller.
+                  format: int64
+                  type: integer
+                phase:
+                  type: string
+              type: object
+          type: object
+          x-kubernetes-validations:
+            - message: Platform name must be default
+              rule: self.metadata.name == 'default'
+      served: true
+      storage: false
+      subresources:
+        status: {}
+    - additionalPrinterColumns:
+        - description: Ready
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - description: Reason
+          jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Reason
+          type: string
+      name: v1alpha2
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Platform is the Schema for the platforms API. It serves as the primary
+            reconcile trigger for the module reconciler on clusters where
+            DataScienceCluster is not installed (xKS / vanilla Kubernetes).
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: PlatformSpec defines the desired state of Platform.
+              properties:
+                modules:
+                  description: |-
+                    Modules declares the set of modules managed by this Platform instance.
+                    Each field corresponds to a registered module handler. Modules follow
+                    the same Managed/Removed/empty convention as DSC components: Managed
+                    deploys the module, Removed tears it down, empty means not managed.
+                  properties:
+                    aigateway:
+                      description: AIGateway controls the ai-gateway-operator module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    aihub:
+                      description: AIHub controls the AI Hub module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    aipipelines:
+                      description: AIPipelines controls the AI Pipelines module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    dashboard:
+                      description: Dashboard controls the Dashboard module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    data:
+                      description: Data controls the Data module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    databaseservice:
+                      description: DatabaseService controls the shared database module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    kserve:
+                      description: Kserve controls the kserve module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    mcplifecycleoperator:
+                      description: MCPLifecycleOperator controls the MCP Lifecycle Operator module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    mlflowoperator:
+                      description: MLflowOperator controls the MLflow module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    monitoring:
+                      description: Monitoring controls the monitoring module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    ogx:
+                      description: OGX controls the OGX module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    ray:
+                      description: Ray controls the Ray module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    sparkoperator:
+                      description: SparkOperator controls the Spark Operator module lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    trainer:
+                      description: Trainer controls the Trainer module operator lifecycle.
+                      properties:
+                        managementState:
+                          description: |-
+                            Set to one of the following values:
+
+                            - "Managed" : the operator is actively managing the component and trying to keep it active.
+                                          It will only upgrade the component if it is safe to do so
+
+                            - "Removed" : the operator is actively managing the component and will not install it,
+                                          or if it is installed, the operator will try to remove it
+                          enum:
+                            - Managed
+                            - Removed
+                          pattern: ^(Managed|Unmanaged|Force|Removed)$
+                          type: string
+                      type: object
+                    trustyai:
+                      description: TrustyAI controls the TrustyAI module operator lifecycle.
                       properties:
                         managementState:
                           description: |-
@@ -1324,6 +1839,18 @@ rules:
       - patch
       - update
   - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - operator.openshift.io
     resources:
       - certmanagers
@@ -1357,6 +1884,32 @@ rules:
       - create
       - get
       - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - authorino-authconfig-editor-role
+      - authorino-authconfig-viewer-role
+      - authorino-manager-k8s-auth-role
+      - authorino-manager-role
+      - authorino-operator-clusterrole
+      - dns-operator-controller-manager-clusterrole
+      - dns-operator-metrics-reader
+      - dns-operator-remote-cluster-role
+      - kuadrant-operator-controller-manager-clusterrole
+      - kuadrant-operator-controller-manager-clusterrole-1
+      - limitador-operator-controller-manager-clusterrole
+      - limitador-operator-metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -1411,6 +1964,25 @@ rules:
     verbs:
       - create
       - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - authorino-operator-role
+      - dns-operator-controller-manager-role
+      - kuadrant-operator-controller-manager-role
+      - kuadrant-operator-controller-manager-role-1
+      - limitador-operator-controller-manager-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -1638,18 +2210,6 @@ rules:
       - update
       - watch
   - apiGroups:
-      - argoproj.io
-    resources:
-      - workflows
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
       - authentication.k8s.io
     resources:
       - tokenreviews
@@ -1739,8 +2299,8 @@ rules:
     resources:
       - aigateways
       - aihubs
+      - aipipelines
       - dashboards
-      - datasciencepipelines
       - feastoperators
       - kserves
       - kueues
@@ -1767,7 +2327,6 @@ rules:
       - aigateways/finalizers
       - aihubs/finalizers
       - dashboards/finalizers
-      - datasciencepipelines/finalizers
       - feastoperators/finalizers
       - kserves/finalizers
       - kueues/finalizers
@@ -1788,7 +2347,6 @@ rules:
       - aigateways/status
       - aihubs/status
       - dashboards/status
-      - datasciencepipelines/status
       - feastoperators/status
       - kserves/status
       - kueues/status
@@ -1808,17 +2366,18 @@ rules:
   - apiGroups:
       - components.platform.opendatahub.io
     resources:
+      - aipipelines/status
+      - codeflares/status
+    verbs:
+      - get
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
       - codeflares
     verbs:
       - get
       - list
       - watch
-  - apiGroups:
-      - components.platform.opendatahub.io
-    resources:
-      - codeflares/status
-    verbs:
-      - get
   - apiGroups:
       - config.opendatahub.io
     resources:
@@ -1836,7 +2395,6 @@ rules:
     resources:
       - platforms/finalizers
     verbs:
-      - patch
       - update
   - apiGroups:
       - config.opendatahub.io
@@ -1853,16 +2411,11 @@ rules:
       - authentications
       - clusterversions
       - infrastructures
+      - ingresses
     verbs:
       - get
       - list
       - watch
-  - apiGroups:
-      - config.openshift.io
-    resources:
-      - ingresses
-    verbs:
-      - get
   - apiGroups:
       - console.openshift.io
     resources:
@@ -1933,27 +2486,6 @@ rules:
       - patch
       - update
   - apiGroups:
-      - datasciencepipelinesapplications.opendatahub.io
-    resources:
-      - datasciencepipelinesapplications
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - datasciencepipelinesapplications.opendatahub.io
-    resources:
-      - datasciencepipelinesapplications/finalizers
-      - datasciencepipelinesapplications/status
-    verbs:
-      - get
-      - patch
-      - update
-  - apiGroups:
       - dscinitialization.opendatahub.io
     resources:
       - dscinitializations
@@ -2008,27 +2540,6 @@ rules:
       - list
       - patch
       - watch
-  - apiGroups:
-      - features.opendatahub.io
-    resources:
-      - featuretrackers
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - features.opendatahub.io
-    resources:
-      - featuretrackers/finalizers
-      - featuretrackers/status
-    verbs:
-      - get
-      - patch
-      - update
   - apiGroups:
       - gateway.networking.k8s.io
     resources:
@@ -2289,6 +2800,23 @@ rules:
       - update
       - watch
   - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clustercatalogs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clusterextensions
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
       - opendatahub.io
     resources:
       - odhdashboardconfigs
@@ -2426,29 +2954,6 @@ rules:
       - update
       - watch
   - apiGroups:
-      - ray.io
-    resources:
-      - rayclusters
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayjobs
-      - rayservices
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
       - rbac.authorization.k8s.io
     resources:
       - clusterrolebindings
@@ -2500,6 +3005,7 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths
+      - databaseservices
       - gatewayconfigs
       - monitorings
     verbs:
@@ -2514,6 +3020,7 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths/finalizers
+      - databaseservices/finalizers
       - gatewayconfigs/finalizers
       - monitorings/finalizers
     verbs:
@@ -2522,6 +3029,7 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths/status
+      - databaseservices/status
       - gatewayconfigs/status
       - monitorings/status
     verbs:
@@ -3075,39 +3583,43 @@ spec:
               value: "true"
             - name: RHAI_DISABLE_DSCI_RESOURCE
               value: "true"
-            - name: RHAI_DISABLE_DASHBOARD_COMPONENT
-              value: "true"
-            - name: RHAI_DISABLE_DATASCIENCEPIPELINES_COMPONENT
-              value: "true"
-            - name: RHAI_DISABLE_FEASTOPERATOR_COMPONENT
-              value: "true"
             - name: RHAI_DISABLE_KUEUE_COMPONENT
               value: "true"
-            - name: RHAI_DISABLE_OGX_COMPONENT
+            - name: RHAI_DISABLE_AIGATEWAY_MODULE
+              value: "false"
+            - name: RHAI_DISABLE_AIPIPELINES_MODULE
               value: "true"
-            - name: RHAI_DISABLE_MLFLOWOPERATOR_COMPONENT
+            - name: RHAI_DISABLE_DASHBOARD_MODULE
               value: "true"
-            - name: RHAI_DISABLE_MODELCONTROLLER_COMPONENT
+            - name: RHAI_DISABLE_DATABASESERVICE_MODULE
               value: "true"
-            - name: RHAI_DISABLE_MODELREGISTRY_COMPONENT
+            - name: RHAI_DISABLE_DATA_MODULE
               value: "true"
-            - name: RHAI_DISABLE_RAY_COMPONENT
+            - name: RHAI_DISABLE_MCPLIFECYCLEOPERATOR_MODULE
               value: "true"
-            - name: RHAI_DISABLE_SPARKOPERATOR_COMPONENT
+            - name: RHAI_DISABLE_MLFLOWOPERATOR_MODULE
               value: "true"
-            - name: RHAI_DISABLE_TRAINER_COMPONENT
+            - name: RHAI_DISABLE_AIHUB_MODULE
               value: "true"
-            - name: RHAI_DISABLE_TRUSTYAI_COMPONENT
+            - name: RHAI_DISABLE_MONITORING_MODULE
               value: "true"
-            - name: RHAI_DISABLE_WORKBENCHES_COMPONENT
+            - name: RHAI_DISABLE_OGX_MODULE
+              value: "true"
+            - name: RHAI_DISABLE_RAY_MODULE
+              value: "true"
+            - name: RHAI_DISABLE_SPARKOPERATOR_MODULE
+              value: "true"
+            - name: RHAI_DISABLE_TRAINER_MODULE
+              value: "true"
+            - name: RHAI_DISABLE_TRUSTYAI_MODULE
+              value: "true"
+            - name: RHAI_DISABLE_WORKBENCHES_MODULE
               value: "true"
             - name: RHAI_DISABLE_AUTH_SERVICE
               value: "true"
             - name: RHAI_DISABLE_CERTCONFIGMAPGENERATOR_SERVICE
               value: "true"
             - name: RHAI_DISABLE_GATEWAY_SERVICE
-              value: "true"
-            - name: RHAI_DISABLE_MONITORING_SERVICE
               value: "true"
             - name: RHAI_DISABLE_SETUPCONTROLLER_SERVICE
               value: "true"
@@ -3256,6 +3768,21 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-delete-crs-job.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-3"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 
 ---
@@ -3439,6 +3966,27 @@ rules:
       - delete
 
 ---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-delete-crs-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get]
+  - apiGroups: [components.platform.opendatahub.io]
+    resources: [aigateways]
+    verbs: [get, list, watch, delete]
+
+---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -3539,6 +4087,28 @@ subjects:
   - kind: ServiceAccount
     name: rhai-pre-delete-hook
     namespace: default
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-delete-crs-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+subjects:
+  - kind: ServiceAccount
+    name: rhai-pre-upgrade-delete-crs
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: rhai-pre-upgrade-delete-crs
+  apiGroup: rbac.authorization.k8s.io
 
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
@@ -3689,8 +4259,18 @@ spec:
               echo "Waiting for CRD platforms.config.opendatahub.io to be established..."
               kubectl wait --for condition=established --timeout=300s crd/platforms.config.opendatahub.io
               echo "Creating Platform CR..."
-              kubectl apply -f - <<'EOF'
-              apiVersion: config.opendatahub.io/v1alpha1
+              apply_deadline=$((SECONDS + 300))
+              last_error=""
+              while true; do
+                remaining=$((apply_deadline - SECONDS))
+                if (( remaining <= 0 )); then
+                  echo "Timed out applying Platform CR. Last error: $last_error" >&2
+                  exit 1
+                fi
+                attempt_timeout=$((remaining < 15 ? remaining : 15))
+                # kubectl --request-timeout bypasses in-cluster configuration; bound the process instead.
+                if apply_output=$(timeout --kill-after=5s "${attempt_timeout}s" kubectl apply -f - 2>&1 <<'EOF'
+              apiVersion: config.opendatahub.io/v1alpha2
               kind: Platform
               metadata:
                 name: default
@@ -3699,9 +4279,30 @@ spec:
                   app.kubernetes.io/managed-by: Helm
               spec:
                 modules:
+                  aigateway:
+                    managementState: Removed
                   kserve:
                     managementState: Managed
               EOF
+                ); then
+                  echo "$apply_output"
+                  break
+                else
+                  apply_output="${apply_output:-kubectl apply failed with exit code $?}"
+                fi
+                case "$apply_output" in
+                  *'Error from server (Forbidden)'*|*'Error from server (Invalid)'*|*' is forbidden:'*|*' is invalid:'*|*'The request is invalid'*|\
+                  *'ValidationError('*)
+                    echo "Platform apply failed permanently: $apply_output" >&2
+                    exit 1
+                    ;;
+                esac
+                if [[ -z "$last_error" ]]; then
+                  echo "Platform apply failed; retrying every 5 seconds: $apply_output" >&2
+                fi
+                last_error="$apply_output"
+                sleep 5
+              done
               echo "Waiting for CRD kserves.components.platform.opendatahub.io to exist..."
               elapsed=0; while [ $elapsed -lt 300 ]; do
                 kubectl get crd/kserves.components.platform.opendatahub.io &>/dev/null && break
@@ -3975,6 +4576,72 @@ spec:
               echo "Deleting CoreWeaveKubernetesEngine CR 'default-coreweavekubernetesengine'..."
               kubectl delete coreweavekubernetesengine default-coreweavekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
+
+---
+# Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-delete-crs-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-pre-upgrade-delete-crs
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-2"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: HELM_CHART_VERSION_REDACTED
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-pre-upgrade-delete-crs
+      imagePullSecrets:
+        - name: rhai-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: delete-crs
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              crd_name=$(kubectl get crd/aigateways.components.platform.opendatahub.io --ignore-not-found -o name)
+              if [[ -n "$crd_name" ]]; then
+                cr_labels=$(kubectl get aigateways/default-aigateway --ignore-not-found \
+                  -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}{"|"}{.metadata.labels.helm\.sh/chart}')
+                # Match the chart name across versions so upgrades can clean up older CRs.
+                if [[ "$cr_labels" == "Helm|rhai-on-xks-chart-"* ]]; then
+                  echo "Deleting disabled AIGateway CR..."
+                  kubectl delete aigateways/default-aigateway --ignore-not-found --timeout=300s
+                elif [[ -n "$cr_labels" ]]; then
+                  echo "Skipping disabled AIGateway CR: not managed by this chart."
+                fi
+              fi
+              echo "Disabled component cleanup complete."
 
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
