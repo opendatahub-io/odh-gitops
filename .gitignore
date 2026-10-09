@@ -33,3 +33,6 @@ charts/rhai-on-xks-chart/charts/cert-manager-operator-*.tgz
 
 # graphify output
 graphify-out/
+
+# Local agent context (operator reference clones, plan files)
+.context/
