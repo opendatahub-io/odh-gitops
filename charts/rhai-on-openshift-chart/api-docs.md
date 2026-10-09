@@ -95,9 +95,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
-| dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
+| dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator","operatorGroupName":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
 | dependencies.clusterObservability.dependencies | object | `{"opentelemetry":true}` | Dependencies required by cluster-observability |
 | dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) |
+| dependencies.clusterObservability.olm.operatorGroupName | string | `"openshift-cluster-observability-operator"` | OperatorGroup name, matching the RHACM observability addon in the shared namespace. |
 | dependencies.customMetricsAutoscaler | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.dependencies | object | `{}` | Dependencies required by custom-metrics-autoscaler |
 | dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |

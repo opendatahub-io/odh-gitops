@@ -518,6 +518,8 @@ dependencies:
       channel: stable
       name: cluster-observability-operator
       namespace: openshift-cluster-observability-operator
+      # -- OperatorGroup name, matching the RHACM observability addon in the shared namespace.
+      operatorGroupName: openshift-cluster-observability-operator
 
   # -- OpenTelemetry operator
   opentelemetry:
