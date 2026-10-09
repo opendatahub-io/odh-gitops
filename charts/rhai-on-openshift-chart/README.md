@@ -285,6 +285,12 @@ Operators that can be installed. Use tri-state `enabled` field:
 | `nfd` | Node Feature Discovery (required for GPU support) | - |
 | `nvidiaGPUOperator` | NVIDIA GPU Operator (required for GPU support) | nfd |
 
+The COO OperatorGroup defaults to `openshift-cluster-observability-operator`, matching
+the RHACM observability addon. When RHACM owns COO, set
+`dependencies.clusterObservability.enabled: false` after coordinating the ownership
+handoff. See the [COO ownership and migration guide](../../docs/cluster-observability-migration.md)
+for existing installations and obsolete OperatorGroup cleanup.
+
 ### Example: Enable kserve
 
 ```yaml

@@ -99,6 +99,18 @@ charts:
           - dependencies.loki.olm.createNamespace=false
           - dependencies.loki.olm.createOperatorGroup=false
 
+      - name: monitoring-with-custom-coo-operatorgroup
+        setFlags:
+          - skipCrdCheck=true
+          - services.monitoring.dsci.managementState=Managed
+          - dependencies.clusterObservability.olm.operatorGroupName=custom-coo-group
+
+      - name: monitoring-with-external-coo
+        setFlags:
+          - skipCrdCheck=true
+          - services.monitoring.dsci.managementState=Managed
+          - dependencies.clusterObservability.enabled=false
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default
