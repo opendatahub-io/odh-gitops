@@ -217,6 +217,26 @@ redact_version() {
     rm -f "${file}.bak"
 }
 
+# Helm versions differ in blank lines between rendered resources. Ignore those
+# only when the YAML data is unchanged; blank lines in block scalars can matter.
+# Keep the text comparison so changes to comments are still detected.
+snapshots_match() {
+    local actual="$1"
+    local expected="$2"
+
+    if diff -q "${actual}" "${expected}" > /dev/null 2>&1; then
+        return 0
+    fi
+    if ! diff -B -q "${actual}" "${expected}" > /dev/null 2>&1; then
+        return 1
+    fi
+
+    local actual_json expected_json
+    actual_json=$("${YQ}" eval -o=json -I=0 '.' "${actual}") || return 1
+    expected_json=$("${YQ}" eval -o=json -I=0 '.' "${expected}") || return 1
+    [[ "${actual_json}" == "${expected_json}" ]]
+}
+
 # Process a single snapshot
 process_snapshot() {
     local chart_name="$1"
@@ -349,7 +369,7 @@ process_snapshot() {
             return 1
         fi
 
-        if diff -q "${temp_file}" "${snapshot_file}" > /dev/null 2>&1; then
+        if snapshots_match "${temp_file}" "${snapshot_file}"; then
             echo "      PASS"
         else
             echo "      FAIL: Differences found"
