@@ -963,6 +963,7 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths
+      - databaseservices
       - gatewayconfigs
       - monitorings
     verbs:
@@ -977,6 +978,7 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths/finalizers
+      - databaseservices/finalizers
       - gatewayconfigs/finalizers
       - monitorings/finalizers
     verbs:
@@ -985,6 +987,7 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths/status
+      - databaseservices/status
       - gatewayconfigs/status
       - monitorings/status
     verbs:

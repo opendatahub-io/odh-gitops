@@ -7,6 +7,10 @@ filter:
         - CustomResourceDefinition
       names:
         - gatewayconfigs.services.platform.opendatahub.io
+    - kinds:
+        - ValidatingWebhookConfiguration
+      names:
+        - rhai-operator-validating-webhook-configuration
 
 rules:
   # Replace namespace references with Helm template
