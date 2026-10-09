@@ -130,7 +130,32 @@ spec:
                       description: RHCL defines the RHCL (Red Hat Connectivity Link / Kuadrant) operator dependency.
                       properties:
                         configuration:
+                          default: {}
                           description: Configuration for the RHCL operator.
+                          properties:
+                            operandNamespace:
+                              default: kuadrant-system
+                              description: |-
+                                OperandNamespace is the namespace where the Kuadrant custom resource
+                                (the RHCL operand) is created.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
+                            operatorNamespace:
+                              default: kuadrant-operators
+                              description: |-
+                                OperatorNamespace is the namespace where the RHCL/Kuadrant operator
+                                Deployments (kuadrant-operator, authorino-operator, limitador-operator,
+                                dns-operator) are deployed.
+                              maxLength: 63
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                              type: string
+                              x-kubernetes-validations:
+                                - message: namespace is immutable
+                                  rule: self == oldSelf
                           type: object
                         managementPolicy:
                           default: Unmanaged

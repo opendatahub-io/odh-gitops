@@ -1,0 +1,31 @@
+{{- if .Values.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
+  name: rhai-operator-validating-webhook-configuration
+  namespace: {{ .Values.rhaiOperator.namespace }}
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: rhai-operator-webhook-service
+        namespace: {{ .Values.rhaiOperator.namespace }}
+        path: /validate-gatewayconfig
+    failurePolicy: Fail
+    matchPolicy: Exact
+    name: gatewayconfig-validator.opendatahub.io
+    rules:
+      - apiGroups:
+          - services.platform.opendatahub.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - gatewayconfigs
+    sideEffects: None
+{{- end }}
