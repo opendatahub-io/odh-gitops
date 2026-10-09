@@ -129,6 +129,15 @@
         "mcplifecycleoperator": {
           "$ref": "#/definitions/component"
         },
+        "modelregistry": {
+          "$ref": "#/definitions/modelregistryComponent"
+        },
+        "feastoperator": {
+          "$ref": "#/definitions/deprecatedComponent"
+        },
+        "trainingoperator": {
+          "$ref": "#/definitions/deprecatedComponent"
+        },
         "ray": {
           "$ref": "#/definitions/component"
         },
@@ -528,6 +537,16 @@
                 }
               },
               "additionalProperties": false
+            },
+            "wva": {
+              "type": "object",
+              "description": "DEPRECATED (DSC v2): removed in DSC v3. The operator treats the llm-d Workload Variant Autoscaler as always Removed. Setting a managementState here fails the render.",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -596,6 +615,56 @@
       "required": ["dsc"],
       "additionalProperties": false
     },
+    "deprecatedComponent": {
+      "type": "object",
+      "description": "DEPRECATED (DSC v2) component with no DSC v3 equivalent. Setting any field here fails the render with a migration hint. Unlike live components, no field is required: partial blocks from old values files must reach the template-level validation, not be rejected by the schema.",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration (deprecated)",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "additionalProperties": false
+    },
+    "modelregistryComponent": {
+      "type": "object",
+      "description": "DEPRECATED (DSC v2): use components.aiHub instead. Translated automatically (dsc.registriesNamespace -> aiHub.dsc.instancesNamespace) and removed in a future release. No field is required: partial blocks from old values files must reach the template-level validation.",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Model Registry (deprecated)",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "registriesNamespace": {
+              "type": ["string", "null"],
+              "description": "DEPRECATED: use components.aiHub.dsc.instancesNamespace. Overrides defaults if set."
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "additionalProperties": false
+    },
     "aiHubComponent": {
       "type": "object",
       "description": "AI Hub component configuration (Model Registry; replaces modelregistry from DSC v2).",
@@ -635,6 +704,10 @@
           "type": "object",
           "description": "DSC configuration for Dashboard",
           "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState",
+              "description": "DEPRECATED (DSC v2 flat key): translated to dsc.standard.managementState. Mutually exclusive with the structural children."
+            },
             "standard": {
               "type": "object",
               "description": "Core Dashboard configuration",

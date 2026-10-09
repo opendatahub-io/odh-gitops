@@ -10,7 +10,8 @@ Profile: {{ .Values.profile | default "default" }}
 
 === Enabled Components ===
 
-{{- range $name, $comp := .Values.components }}
+{{- $components := include "rhoai-dependencies.components" $ | fromYaml }}
+{{- range $name, $comp := $components }}
 {{- if include "rhoai-dependencies.isStructuralComponent" (dict "name" $name) }}
   - {{ $name }}:
   {{- range $childName, $child := ($comp.dsc | default dict) }}
@@ -20,6 +21,18 @@ Profile: {{ .Values.profile | default "default" }}
   {{- end }}
 {{- else }}
   - {{ $name }}: {{ include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $comp.dsc.managementState "root" $ "name" $name) }}
+{{- end }}
+{{- end }}
+
+{{- $translated := include "rhoai-dependencies.translatedComponents" $ | fromYaml }}
+{{- if gt (len $translated) 0 }}
+
+=== Deprecation Notices ===
+
+The following deprecated DSC v2 values keys are set and were translated
+to their DSC v3 equivalents. Migrate your values and remove the old keys:
+{{ range $name, $legacy := $translated }}
+  - components.{{ $legacy }} -> components.{{ $name }}
 {{- end }}
 {{- end }}
 

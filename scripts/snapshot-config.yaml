@@ -73,6 +73,75 @@ charts:
           - skipCrdCheck=true
           - components.dashboard.dependencies.certManager=true
 
+      # Deprecated DSC v2 keys: translated to v3 and rendered with
+      # deprecation comments (and a NOTES.txt Deprecation Notices section
+      # via install --dry-run)
+      - name: legacy-modelregistry
+        setFlags:
+          - skipCrdCheck=true
+          - components.modelregistry.dsc.managementState=Managed
+          - components.modelregistry.dsc.registriesNamespace=my-registries
+
+      - name: legacy-feastoperator
+        setFlags:
+          - skipCrdCheck=true
+          - components.feastoperator.dsc.managementState=Managed
+
+      - name: legacy-dashboard-managementstate
+        setFlags:
+          - skipCrdCheck=true
+          - components.dashboard.dsc.managementState=Managed
+
+      # Legacy key present but all-null: pruned silently, no translation,
+      # no deprecation notice, render identical to default
+      - name: legacy-null-key
+        setFlags:
+          - skipCrdCheck=true
+        setJsonFlags:
+          - 'components.modelregistry={"dsc":{"managementState":null}}'
+
+      # Legacy operator-type defaults are translated old-wins (upgrade
+      # continuity for customized defaults)
+      - name: legacy-modelregistry-defaults
+        setJsonFlags:
+          - 'components.modelregistry={"defaults":{"odh":{"registriesNamespace":"my-default-ns"}}}'
+        setFlags:
+          - skipCrdCheck=true
+
+      # Customizing defaults on BOTH old and new keys is ambiguous and must fail
+      - name: legacy-defaults-conflict
+        expectFail: true
+        expectMessage: "components.modelregistry.defaults.odh.registriesNamespace and components.aiHub.defaults.odh.instancesNamespace are both customized"
+        setJsonFlags:
+          - 'components.modelregistry={"defaults":{"odh":{"registriesNamespace":"old-ns"}}}'
+          - 'components.aiHub={"defaults":{"odh":{"instancesNamespace":"new-ns"}}}'
+        setFlags:
+          - skipCrdCheck=true
+
+      # Old and new keys set at once is ambiguous and must fail the render
+      - name: legacy-and-new-conflict
+        expectFail: true
+        expectMessage: "components.modelregistry and components.aiHub are mutually exclusive"
+        setFlags:
+          - skipCrdCheck=true
+          - components.modelregistry.dsc.managementState=Managed
+          - components.aiHub.dsc.managementState=Managed
+
+      # Deprecated keys with no DSC v3 equivalent must fail the render
+      - name: legacy-trainingoperator
+        expectFail: true
+        expectMessage: "components.trainingoperator was removed in DSC v3"
+        setFlags:
+          - skipCrdCheck=true
+          - components.trainingoperator.dsc.managementState=Managed
+
+      - name: legacy-kserve-wva
+        expectFail: true
+        expectMessage: "components.kserve.dsc.wva was removed in DSC v3"
+        setFlags:
+          - skipCrdCheck=true
+          - components.kserve.dsc.wva.managementState=Managed
+
       - name: with-rhcl-config
         setFlags:
           - skipCrdCheck=true

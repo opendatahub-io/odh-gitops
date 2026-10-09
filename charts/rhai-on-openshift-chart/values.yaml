@@ -298,6 +298,10 @@ components:
       # -- Namespace for model registry instances (overrides defaults).
       # -- Immutable in the operator while managementState is Managed.
       instancesNamespace:
+    # NOTE: the aiHub chart defaults must stay in sync with
+    # rhoai-dependencies.aiHubChartDefaultInstancesNamespaces in
+    # templates/definitions/_helpers.tpl (migration conflict detection).
+
     # -- Operator-type-specific defaults for dsc fields
     defaults:
       odh:

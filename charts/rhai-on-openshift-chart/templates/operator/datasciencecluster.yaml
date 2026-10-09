@@ -1,8 +1,13 @@
 {{- /*
 DataScienceCluster configuration
 Sets managementState from component configuration
+Deprecated DSC v2 values keys are validated and translated to their
+DSC v3 equivalents before rendering (see _helpers.tpl)
 */ -}}
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "datascienceclusters.datasciencecluster.opendatahub.io" "root" $) }}
+{{- include "rhoai-dependencies.validateMigration" $ }}
+{{- $components := include "rhoai-dependencies.components" $ | fromYaml }}
+{{- $translated := include "rhoai-dependencies.translatedComponents" $ | fromYaml }}
 apiVersion: datasciencecluster.opendatahub.io/v3
 kind: DataScienceCluster
 metadata:
@@ -11,7 +16,11 @@ metadata:
     {{- include "rhoai-dependencies.labels" . | nindent 4 }}
 spec:
   components:
-    {{- range $name, $comp := .Values.components }}
+    {{- range $name, $comp := $components }}
+    {{- if hasKey $translated $name }}
+    # components.{{ index $translated $name }} is deprecated (DSC v2); translated to components.{{ $name }}.
+    # See the chart README migration table, then migrate your values and remove the old key.
+    {{- end }}
     {{ $name }}:
       {{- include "rhoai-dependencies.componentDSCConfig" (dict "componentName" $name "component" $comp "root" $) | nindent 6 }}
     {{- end }}
