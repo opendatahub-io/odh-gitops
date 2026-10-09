@@ -105,11 +105,14 @@
         "aipipelines": {
           "$ref": "#/definitions/aipipelinesComponent"
         },
-        "dashboard": {
-          "$ref": "#/definitions/component"
+        "aiHub": {
+          "$ref": "#/definitions/aiHubComponent"
         },
-        "feastoperator": {
-          "$ref": "#/definitions/component"
+        "dashboard": {
+          "$ref": "#/definitions/dashboardComponent"
+        },
+        "data": {
+          "$ref": "#/definitions/dataComponent"
         },
         "aigateway": {
           "$ref": "#/definitions/aigatewayComponent"
@@ -123,16 +126,22 @@
         "mlflowoperator": {
           "$ref": "#/definitions/component"
         },
+        "mcplifecycleoperator": {
+          "$ref": "#/definitions/component"
+        },
         "modelregistry": {
           "$ref": "#/definitions/modelregistryComponent"
+        },
+        "feastoperator": {
+          "$ref": "#/definitions/deprecatedComponent"
+        },
+        "trainingoperator": {
+          "$ref": "#/definitions/deprecatedComponent"
         },
         "ray": {
           "$ref": "#/definitions/component"
         },
         "trainer": {
-          "$ref": "#/definitions/component"
-        },
-        "trainingoperator": {
           "$ref": "#/definitions/component"
         },
         "trustyai": {
@@ -531,7 +540,7 @@
             },
             "wva": {
               "type": "object",
-              "description": "Workload Variant Autoscaler configuration for KServe",
+              "description": "DEPRECATED (DSC v2): removed in DSC v3. The operator treats the llm-d Workload Variant Autoscaler as always Removed. Setting a managementState here fails the render.",
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"
@@ -606,23 +615,159 @@
       "required": ["dsc"],
       "additionalProperties": false
     },
-    "modelregistryComponent": {
+    "deprecatedComponent": {
       "type": "object",
-      "description": "Model Registry component configuration with operator-type defaults.",
+      "description": "DEPRECATED (DSC v2) component with no DSC v3 equivalent. Setting any field here fails the render with a migration hint. Unlike live components, no field is required: partial blocks from old values files must reach the template-level validation, not be rejected by the schema.",
       "properties": {
         "dependencies": {
           "$ref": "#/definitions/componentDeps"
         },
         "dsc": {
           "type": "object",
-          "description": "DSC configuration for Model Registry",
+          "description": "DSC configuration (deprecated)",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "additionalProperties": false
+    },
+    "modelregistryComponent": {
+      "type": "object",
+      "description": "DEPRECATED (DSC v2): use components.aiHub instead. Translated automatically (dsc.registriesNamespace -> aiHub.dsc.instancesNamespace) and removed in a future release. No field is required: partial blocks from old values files must reach the template-level validation.",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Model Registry (deprecated)",
           "properties": {
             "managementState": {
               "$ref": "#/definitions/defaultManagementState"
             },
             "registriesNamespace": {
               "type": ["string", "null"],
-              "description": "Namespace for model registries. Overrides defaults if set."
+              "description": "DEPRECATED: use components.aiHub.dsc.instancesNamespace. Overrides defaults if set."
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiHubComponent": {
+      "type": "object",
+      "description": "AI Hub component configuration (Model Registry; replaces modelregistry from DSC v2).",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for AI Hub",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "instancesNamespace": {
+              "type": ["string", "null"],
+              "description": "Namespace for model registry instances. Overrides defaults if set. Immutable in the operator while managementState is Managed."
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "dashboardComponent": {
+      "type": "object",
+      "description": "Dashboard component configuration (structural in DSC v3: the core Dashboard and the MaaS Consumer Portal are managed independently, no component-level managementState).",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Dashboard",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState",
+              "description": "DEPRECATED (DSC v2 flat key): translated to dsc.standard.managementState. Mutually exclusive with the structural children."
+            },
+            "standard": {
+              "type": "object",
+              "description": "Core Dashboard configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            },
+            "maasPortal": {
+              "type": "object",
+              "description": "MaaS Consumer Portal configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "dataComponent": {
+      "type": "object",
+      "description": "Data component configuration (structural in DSC v3: Feature Store and Data Registry are managed independently, no component-level managementState). Replaces feastoperator from DSC v2.",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Data",
+          "properties": {
+            "featureStore": {
+              "type": "object",
+              "description": "Feature Store configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            },
+            "dataRegistry": {
+              "type": "object",
+              "description": "Data Registry configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -651,6 +796,16 @@
             "workbenchNamespace": {
               "type": ["string", "null"],
               "description": "Namespace for workbenches. Overrides defaults if set."
+            },
+            "workbenchesV2": {
+              "type": "object",
+              "description": "Workbenches V2 configuration (new in DSC v3)",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
