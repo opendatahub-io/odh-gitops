@@ -187,6 +187,10 @@ components:
     dsc:
       # -- Management state for Dashboard. Null uses profile default.
       managementState:
+      # -- MaaS Consumer Portal sub-component
+      maasConsumerPortal:
+        # -- Management state for MaaS Consumer Portal. Null uses profile default.
+        managementState:
 
   # -- Feast Operator component
   feastoperator:

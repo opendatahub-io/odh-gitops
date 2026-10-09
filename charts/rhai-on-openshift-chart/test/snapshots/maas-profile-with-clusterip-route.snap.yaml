@@ -114,6 +114,8 @@ spec:
     aipipelines:
       managementState: Removed
     dashboard:
+      maasConsumerPortal:
+        managementState: Removed
       managementState: Removed
     feastoperator:
       managementState: Removed
