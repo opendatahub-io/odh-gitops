@@ -11,7 +11,16 @@ Profile: {{ .Values.profile | default "default" }}
 === Enabled Components ===
 
 {{- range $name, $comp := .Values.components }}
+{{- if include "rhoai-dependencies.isStructuralComponent" (dict "name" $name) }}
+  - {{ $name }}:
+  {{- range $childName, $child := ($comp.dsc | default dict) }}
+  {{- if kindIs "map" $child }}
+    - {{ $childName }}: {{ include "rhoai-dependencies.structuralChildEffectiveState" (dict "state" $child.managementState "root" $ "name" $name "child" $childName) }}
+  {{- end }}
+  {{- end }}
+{{- else }}
   - {{ $name }}: {{ include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $comp.dsc.managementState "root" $ "name" $name) }}
+{{- end }}
 {{- end }}
 
 === Enabled Services ===

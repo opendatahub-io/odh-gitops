@@ -179,7 +179,14 @@ Arguments (passed as dict):
 {{- range $name, $item := $items -}}
   {{- $stateObj := index $item $stateKey -}}
   {{- if and $item (hasKey $item $stateKey) -}}
-    {{- $effectiveState := include $stateHelper (dict "state" $stateObj.managementState "root" $root "name" $name) -}}
+    {{- /* Structural components (DSC v3): no component-level managementState;
+           active when any child's effective state is Managed/Unmanaged */ -}}
+    {{- $effectiveState := "" -}}
+    {{- if and (eq $stateKey "dsc") (include "rhoai-dependencies.isStructuralComponent" (dict "name" $name)) -}}
+      {{- $effectiveState = include "rhoai-dependencies.structuralComponentEffectiveState" (dict "dsc" $stateObj "root" $root "name" $name) -}}
+    {{- else -}}
+      {{- $effectiveState = include $stateHelper (dict "state" $stateObj.managementState "root" $root "name" $name) -}}
+    {{- end -}}
     {{- if include "rhoai-dependencies.isComponentActive" $effectiveState -}}
       {{- $itemDeps := $item.dependencies | default dict -}}
       {{- $depEnabled := index $itemDeps $dependencyName -}}
@@ -328,6 +335,74 @@ true
 {{- end }}
 
 {{/*
+ =============================================================================
+ Check if a component is structural in DSC v3 (children carry independent
+ managementState values; there is no component-level managementState).
+ Returns "true" for structural components, empty string otherwise.
+ =============================================================================
+Arguments (passed as dict):
+  - name: the component name
+*/}}
+{{- define "rhoai-dependencies.isStructuralComponent" -}}
+{{- if has .name (list "dashboard" "data") -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
+ =============================================================================
+ Resolve the effective managementState of a structural component child
+ (e.g. dashboard.standard, data.featureStore).
+ If the child state is explicitly set (non-null), use it.
+ Otherwise, fall back to the profile default for that child, then Removed.
+ =============================================================================
+Arguments (passed as dict):
+  - state: the child managementState value from values.yaml (may be null)
+  - root: root context ($)
+  - name: the component name
+  - child: the child key name (e.g. "standard", "featureStore")
+*/}}
+{{- define "rhoai-dependencies.structuralChildEffectiveState" -}}
+{{- if .state -}}
+{{- .state -}}
+{{- else -}}
+{{- $profileDefaults := include "rhoai-dependencies.profileComponentDefaults" (dict "root" .root "name" .name) | fromYaml -}}
+{{- $profileDsc := $profileDefaults.dsc | default dict -}}
+{{- index ($profileDsc | dig .child (dict) | default dict) "managementState" | default "Removed" -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+ =============================================================================
+ Compute the aggregate effective state of a structural component (DSC v3).
+ Uses the same child resolution as the rendered DSC (profile fallback via
+ resolveNestedManagementState), so dependency activation can never diverge
+ from what is rendered. Returns Managed if any child's effective state is
+ Managed or Unmanaged, otherwise Removed.
+ =============================================================================
+Arguments (passed as dict):
+  - dsc: the component's dsc config from values.yaml
+  - root: root context ($)
+  - name: the component name
+*/}}
+{{- define "rhoai-dependencies.structuralComponentEffectiveState" -}}
+{{- $dsc := deepCopy (.dsc | default dict) -}}
+{{- $profileDefaults := include "rhoai-dependencies.profileComponentDefaults" (dict "root" .root "name" .name) | fromYaml -}}
+{{- $profileDsc := $profileDefaults.dsc | default dict -}}
+{{- /* Resolve child managementStates with profile fallback (same logic as render) */ -}}
+{{- $_ := include "rhoai-dependencies.resolveNestedManagementState" (dict "merged" $dsc "profileDsc" $profileDsc) -}}
+{{- $state := "Removed" -}}
+{{- range $key, $val := $dsc -}}
+  {{- if kindIs "map" $val -}}
+    {{- if include "rhoai-dependencies.isComponentActive" (index $val "managementState") -}}
+      {{- $state = "Managed" -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $state -}}
+{{- end }}
+
+{{/*
 =============================================================================
 Resolve nested (one level deep) managementState values.
 For each map-valued key in the merged config, if it has a managementState
@@ -341,7 +416,7 @@ Arguments (passed as dict):
 {{- define "rhoai-dependencies.resolveNestedManagementState" -}}
 {{- $merged := .merged -}}
 {{- $profileDsc := .profileDsc -}}
-{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "nim" "wva" -}}
+{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "nim" "standard" "maasPortal" "featureStore" "dataRegistry" "workbenchesV2" -}}
 {{- range $key, $val := $merged -}}
   {{- if and (kindIs "map" $val) (has $key $subComponentKeys) -}}
     {{- if not (index $val "managementState") -}}
@@ -377,9 +452,13 @@ Arguments (passed as dict):
 {{- $profileDsc := $profileDefaults.dsc | default dict | deepCopy -}}
 {{- /* Merge: user dsc > operator defaults > profile defaults */ -}}
 {{- $merged := merge $dsc (deepCopy $operatorDefaults) $profileDsc -}}
-{{- /* Resolve top-level managementState */ -}}
-{{- $effectiveState := include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $merged.managementState "root" $root "name" $componentName) -}}
-{{- $_ := set $merged "managementState" $effectiveState -}}
+{{- /* Resolve top-level managementState (flat components only; structural
+       components in DSC v3 have no component-level managementState — their
+       children are resolved individually by resolveNestedManagementState) */ -}}
+{{- if not (include "rhoai-dependencies.isStructuralComponent" (dict "name" $componentName)) -}}
+{{-   $effectiveState := include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $merged.managementState "root" $root "name" $componentName) -}}
+{{-   $_ := set $merged "managementState" $effectiveState -}}
+{{- end -}}
 {{- /* Resolve sub-component managementStates (one level deep) */ -}}
 {{- $_ := include "rhoai-dependencies.resolveNestedManagementState" (dict "merged" $merged "profileDsc" $profileDsc) -}}
 {{- toYaml $merged -}}

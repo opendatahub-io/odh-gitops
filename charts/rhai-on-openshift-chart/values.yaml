@@ -180,22 +180,33 @@ components:
       # argoWorkflowsControllers:
       #   managementState: Managed
 
-  # -- Dashboard component
+  # -- Dashboard component (structural in DSC v3: no component-level managementState;
+  # -- the core Dashboard and the MaaS Consumer Portal are managed independently)
   dashboard:
     # -- Dependencies required by Dashboard
     dependencies: {}
+    # -- DSC configuration for Dashboard
     dsc:
-      # -- Management state for Dashboard. Null uses profile default.
-      managementState:
+      standard:
+        # -- Management state for the core Dashboard. Null uses profile default.
+        managementState:
+      maasPortal:
+        # -- Management state for the MaaS Consumer Portal. Null uses profile default.
+        managementState:
 
-  # -- Feast Operator component
-  feastoperator:
-    # -- Dependencies required by Feast Operator
+  # -- Data component (structural in DSC v3: no component-level managementState).
+  # -- Replaces feastoperator (featureStore) from DSC v2; dataRegistry is new in v3.
+  data:
+    # -- Dependencies required by Data
     dependencies: {}
-    # -- DSC configuration for Feast Operator
+    # -- DSC configuration for Data
     dsc:
-      # -- Management state for Feast Operator. Null uses profile default.
-      managementState:
+      featureStore:
+        # -- Management state for Feature Store. Null uses profile default.
+        managementState:
+      dataRegistry:
+        # -- Management state for Data Registry. Null uses profile default.
+        managementState:
 
   # -- KServe model serving component
   kserve:
@@ -217,11 +228,6 @@ components:
         managementState:
       # -- Raw deployment service config for KServe (Headless or Headed)
       rawDeploymentServiceConfig: Headless
-      # -- Enables llm-d Workload Variant Autoscaler
-      # -- Note: When run on Openshift, and set to Managed ensure Custom Metrics Autoscaler (CMA) or Prometheus Adapter is installed
-      wva:
-        # -- Management state for workload-variant-autoscaler. Null uses profile default.
-        managementState:
     # -- GatewayClass configuration for KServe inference
     gatewayClass:
       # -- Create the GatewayClass: auto (if KServe is Managed), true (always), false (never)
@@ -281,22 +287,23 @@ components:
       defaultLocalQueueName: default
       defaultClusterQueueName: default
 
-  # -- Model Registry component
-  modelregistry:
-    # -- Dependencies required by Model Registry
+  # -- AI Hub component (Model Registry; replaces modelregistry from DSC v2)
+  aiHub:
+    # -- Dependencies required by AI Hub
     dependencies: {}
-    # -- DSC configuration for Model Registry
+    # -- DSC configuration for AI Hub
     dsc:
-      # -- Management state for Model Registry. Null uses profile default.
+      # -- Management state for AI Hub. Null uses profile default.
       managementState:
-      # -- Registries namespace for Model Registry (overrides defaults)
-      registriesNamespace:
+      # -- Namespace for model registry instances (overrides defaults).
+      # -- Immutable in the operator while managementState is Managed.
+      instancesNamespace:
     # -- Operator-type-specific defaults for dsc fields
     defaults:
       odh:
-        registriesNamespace: odh-model-registry
+        instancesNamespace: odh-model-registry
       rhoai:
-        registriesNamespace: rhoai-model-registries
+        instancesNamespace: rhoai-model-registries
 
   # -- Ray component
   ray:
@@ -319,13 +326,13 @@ components:
       # -- Management state for Trainer. Null uses profile default.
       managementState:
 
-  # -- Kubeflow Training Operator component
-  trainingoperator:
-    # -- Dependencies required by Kubeflow Training Operator
+  # -- MCP Lifecycle Operator component (new in DSC v3)
+  mcplifecycleoperator:
+    # -- Dependencies required by MCP Lifecycle Operator
     dependencies: {}
-    # -- DSC configuration for Kubeflow Training Operator
+    # -- DSC configuration for MCP Lifecycle Operator
     dsc:
-      # -- Management state for Kubeflow Training Operator. Null uses profile default.
+      # -- Management state for MCP Lifecycle Operator. Null uses profile default.
       managementState:
 
   # -- TrustyAI component
@@ -352,6 +359,10 @@ components:
       managementState:
       # -- Workbench namespace for Workbenches (overrides defaults)
       workbenchNamespace:
+      # -- Workbenches V2 (new in DSC v3)
+      workbenchesV2:
+        # -- Management state for Workbenches V2 (Managed or Removed). Null uses profile default.
+        managementState:
     # -- Operator-type-specific defaults for dsc fields
     defaults:
       odh:
@@ -387,6 +398,28 @@ components:
     dsc:
       # -- Management state for Spark Operator (Managed or Removed)
       managementState: Removed
+
+  # DEPRECATED keys removed in DSC v3 (setting them fails validation):
+  #   modelregistry    -> components.aiHub (dsc.registriesNamespace -> dsc.instancesNamespace)
+  #   feastoperator    -> components.data.dsc.featureStore
+  #   trainingoperator -> removed in DSC v3 (use components.trainer)
+  #   kserve.dsc.wva   -> removed in DSC v3 (the operator treats WVA as always Removed)
+  # Old DSC v2 shapes, for reference only (DO NOT uncomment):
+  #   modelregistry:
+  #     dsc:
+  #       managementState: Managed
+  #       registriesNamespace: my-namespace
+  #   feastoperator:
+  #     dsc:
+  #       managementState: Managed
+  #   trainingoperator:
+  #     dsc:
+  #       managementState: Managed
+  #   kserve:
+  #     dsc:
+  #       wva:
+  #         managementState: Managed
+  # See the README migration table for details.
 
 # =============================================================================
 # DEPENDENCIES - Operators required by components

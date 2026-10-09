@@ -49,12 +49,29 @@ charts:
           - profile=rhaii
           - components.kserve.dependencies.jobSet=true
 
-      - name: enable-llm-d-wva
+      - name: v3-aihub-data
         setFlags:
           - skipCrdCheck=true
-          - components.kserve.dsc.managementState=Managed
-          - components.kserve.dsc.wva.managementState=Managed
-          - components.kserve.dependencies.customMetricsAutoscaler=true
+          - components.aiHub.dsc.managementState=Managed
+          - components.data.dsc.featureStore.managementState=Managed
+          - components.data.dsc.dataRegistry.managementState=Managed
+          - components.dashboard.dsc.standard.managementState=Managed
+          - components.dashboard.dsc.maasPortal.managementState=Managed
+          - components.workbenches.dsc.workbenchesV2.managementState=Managed
+          - components.mcplifecycleoperator.dsc.managementState=Managed
+
+      # Structural components must activate dependencies through their children
+      # (correct-by-test for the DSC v3 structural branch in the shared helpers)
+      - name: structural-component-dependency
+        setFlags:
+          - skipCrdCheck=true
+          - components.dashboard.dependencies.certManager=true
+          - components.dashboard.dsc.standard.managementState=Managed
+
+      - name: structural-component-dependency-removed
+        setFlags:
+          - skipCrdCheck=true
+          - components.dashboard.dependencies.certManager=true
 
       - name: with-rhcl-config
         setFlags:
