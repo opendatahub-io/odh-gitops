@@ -195,7 +195,13 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 |---------|-------------|--------------------|-----------------------------|
 | `default` | All components Removed (manual configuration) | None | None |
 | `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
-| `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, leaderWorkerSet, rhcl |
+| `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, rhcl |
+
+With ordinary chart defaults, the `maas` profile installs `certManager` and `rhcl` (through `kserve`) but not
+`leaderWorkerSet` — `aigateway`'s `null` dependency default for it is not activated. Enable it explicitly
+with `--set components.aigateway.dependencies.leaderWorkerSet=true`. The profile also requires Gateway
+listener configuration for both `aigateway` and `kserve` before it renders — see
+[Enable Models as Service](#enable-models-as-service) and [KServe Gateway](#kserve-gateway).
 
 Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
 
@@ -263,6 +269,9 @@ High-level features that:
 | `trainer`          | Trainer                            | Removed | certManager, jobSet |
 | `trustyai`         | TrustyAI                           | Removed | - |
 | `workbenches`      | Workbenches (incl. `workbenchesV2`) | Removed | - |
+
+With ordinary chart defaults, `aigateway`'s `null`-defaulted dependencies are not activated when the
+component is enabled — set them to `true` explicitly to install them.
 
 #### Structural components
 
