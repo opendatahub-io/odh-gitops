@@ -12,7 +12,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.aiHub.defaults | object | `{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.aiHub.dependencies | object | `{}` | Dependencies required by AI Hub |
 | components.aiHub.dsc | object | `{"instancesNamespace":null,"managementState":null}` | DSC configuration for AI Hub |
-| components.aiHub.dsc.instancesNamespace | string | `nil` | Immutable in the operator while managementState is Managed. |
+| components.aiHub.dsc.instancesNamespace | string | `nil` | Namespace for model registry instances (overrides defaults). Immutable in the operator while managementState is Managed. |
 | components.aiHub.dsc.managementState | string | `nil` | Management state for AI Hub. Null uses profile default. |
 | components.aigateway | object | `{"dependencies":{"certManager":null,"leaderWorkerSet":null,"rhcl":null},"dsc":{"batchGateway":{"managementState":null},"managementState":null,"modelsAsAService":{"managementState":null}},"modelsAsAService":{"gateway":{"annotations":{"opendatahub.io/managed":"false","security.opendatahub.io/authorino-tls-bootstrap":"true"},"create":"auto","name":"maas-default-gateway","namespace":"openshift-ingress","openshiftRoute":{"enabled":false,"gatewayParametersName":"maas-gateway-options","host":"","name":"maas-gateway-route","servingCertSecretName":"maas-gw-service-tls"},"spec":{"gatewayClassName":"maas-gateway-class","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"maas-gateway-class","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}}` | AI Gateway component (manages MaaS and BatchGateway sub-components) |
 | components.aigateway.dsc | object | `{"batchGateway":{"managementState":null},"managementState":null,"modelsAsAService":{"managementState":null}}` | DSC configuration for AI Gateway |
@@ -29,12 +29,12 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.aipipelines | object | `{"dependencies":{},"dsc":{"managementState":null}}` | AI Pipelines component |
 | components.aipipelines.dependencies | object | `{}` | Dependencies required by AI Pipelines |
 | components.aipipelines.dsc.managementState | string | `nil` | Management state for AI Pipelines. Null uses profile default. |
-| components.dashboard | object | `{"dependencies":{},"dsc":{"maasPortal":{"managementState":null},"standard":{"managementState":null}}}` | the core Dashboard and the MaaS Consumer Portal are managed independently) |
+| components.dashboard | object | `{"dependencies":{},"dsc":{"maasPortal":{"managementState":null},"standard":{"managementState":null}}}` | Dashboard component (structural in DSC v3: no component-level managementState; the core Dashboard and the MaaS Consumer Portal are managed independently) |
 | components.dashboard.dependencies | object | `{}` | Dependencies required by Dashboard |
 | components.dashboard.dsc | object | `{"maasPortal":{"managementState":null},"standard":{"managementState":null}}` | DSC configuration for Dashboard |
 | components.dashboard.dsc.maasPortal.managementState | string | `nil` | Management state for the MaaS Consumer Portal. Null uses profile default. |
 | components.dashboard.dsc.standard.managementState | string | `nil` | Management state for the core Dashboard. Null uses profile default. |
-| components.data | object | `{"dependencies":{},"dsc":{"dataRegistry":{"managementState":null},"featureStore":{"managementState":null}}}` | Replaces feastoperator (featureStore) from DSC v2; dataRegistry is new in v3. |
+| components.data | object | `{"dependencies":{},"dsc":{"dataRegistry":{"managementState":null},"featureStore":{"managementState":null}}}` | Data component (structural in DSC v3: no component-level managementState). Replaces feastoperator (featureStore) from DSC v2; dataRegistry is new in v3. |
 | components.data.dependencies | object | `{}` | Dependencies required by Data |
 | components.data.dsc | object | `{"dataRegistry":{"managementState":null},"featureStore":{"managementState":null}}` | DSC configuration for Data |
 | components.data.dsc.dataRegistry.managementState | string | `nil` | Management state for Data Registry. Null uses profile default. |

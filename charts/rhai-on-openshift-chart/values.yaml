@@ -180,8 +180,7 @@ components:
       # argoWorkflowsControllers:
       #   managementState: Managed
 
-  # -- Dashboard component (structural in DSC v3: no component-level managementState;
-  # -- the core Dashboard and the MaaS Consumer Portal are managed independently)
+  # -- Dashboard component (structural in DSC v3: no component-level managementState; the core Dashboard and the MaaS Consumer Portal are managed independently)
   dashboard:
     # -- Dependencies required by Dashboard
     dependencies: {}
@@ -194,8 +193,7 @@ components:
         # -- Management state for the MaaS Consumer Portal. Null uses profile default.
         managementState:
 
-  # -- Data component (structural in DSC v3: no component-level managementState).
-  # -- Replaces feastoperator (featureStore) from DSC v2; dataRegistry is new in v3.
+  # -- Data component (structural in DSC v3: no component-level managementState). Replaces feastoperator (featureStore) from DSC v2; dataRegistry is new in v3.
   data:
     # -- Dependencies required by Data
     dependencies: {}
@@ -295,8 +293,7 @@ components:
     dsc:
       # -- Management state for AI Hub. Null uses profile default.
       managementState:
-      # -- Namespace for model registry instances (overrides defaults).
-      # -- Immutable in the operator while managementState is Managed.
+      # -- Namespace for model registry instances (overrides defaults). Immutable in the operator while managementState is Managed.
       instancesNamespace:
     # NOTE: the aiHub chart defaults must stay in sync with
     # rhoai-dependencies.aiHubChartDefaultInstancesNamespaces in
