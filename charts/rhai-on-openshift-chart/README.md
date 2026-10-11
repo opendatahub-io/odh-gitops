@@ -8,7 +8,7 @@ This chart provides a flexible way to install the operators and configurations r
 
 - **Deploy profiles**: Preconfigured deployment types (e.g., `rhaii`) that enable the right components and dependencies with a single flag
 - **Component-based installation**: Enable high-level components (kserve, kueue, aipipelines, ...) and their dependencies are automatically installed
-- **DSC v3 rendering**: The chart renders `datasciencecluster.opendatahub.io/v3` (requires ODH/RHOAI operator 3.6+); DSC v2 values keys are translated automatically (see [Upgrading from DSC v2 values](#upgrading-from-dsc-v2-values))
+- **DSC v3 rendering**: The chart renders `datasciencecluster.opendatahub.io/v3` (requires ODH/RHOAI operator 3.6+); DSC v2 values keys are translated automatically, and ambiguous or removed input fails the render with an actionable message (see [Upgrading from DSC v2 values](#upgrading-from-dsc-v2-values))
 - **Tri-state dependency management**: Dependencies can be `auto` (install if needed), `true` (always install), or `false` (skip - user has it already)
 - **OLM installation**: Operators are installed via Operator Lifecycle Manager (OLM)
 - **Idempotent installation**: Run the same command multiple times until all resources are applied
@@ -267,8 +267,8 @@ High-level features that:
 #### Structural components
 
 `dashboard` and `data` are **structural** in DSC v3: they have no component-level
-`managementState`. Each child carries its own state and activates dependencies
-independently:
+`managementState`. Each child carries its own state, and the component-level
+dependencies activate when any child is Managed or Unmanaged:
 
 ```yaml
 components:
@@ -353,9 +353,10 @@ a 3.6 operator:
 : "${OPERATOR_TYPE:?set OPERATOR_TYPE to odh or rhoai, matching the existing install}"
 
 # 1. Upgrade the operator subscription to a 3.6+ channel/build first, and wait
-#    for the operator to serve the v3 CRDs:
+#    for the operator to serve the v3 CRDs (a listed version is not necessarily
+#    served — filter for the served ones):
 kubectl get crd datascienceclusters.datasciencecluster.opendatahub.io \
-  -o jsonpath='{.spec.versions[*].name}'   # must list v3
+  -o jsonpath='{.spec.versions[?(@.served==true)].name}'   # must list v3
 
 # 2. If your values file sets components.trainingoperator or
 #    components.kserve.dsc.wva, remove those keys first — they fail the
