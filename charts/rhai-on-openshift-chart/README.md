@@ -302,8 +302,29 @@ input fails the render with an actionable message.
 | `components.kserve.dsc.wva` | — | **Fails**: removed in DSC v3; the operator treats WVA as always Removed |
 
 Rules:
-- Setting an old key **and** its replacement fails the render (ambiguous) — migrate
-  your values, then remove the old key.
+- Conflicts can extend beyond the mapped replacement — migrate your values,
+  then remove the deprecated key. Management-state and namespace values count
+  as set when non-null and non-empty; dependencies and defaults maps count
+  when non-empty, even if an entry is `false` or `null`:
+  - `components.modelregistry` conflicts with any of
+    `components.aiHub.dsc.managementState`,
+    `components.aiHub.dsc.instancesNamespace`, or
+    `components.aiHub.dependencies`.
+  - `components.feastoperator` conflicts with any of
+    `components.data.dsc.featureStore.managementState`,
+    `components.data.dsc.dataRegistry.managementState`,
+    `components.data.dependencies`, or `components.data.defaults`.
+  - The legacy `components.dashboard.dsc.managementState` conflicts only with
+    `components.dashboard.dsc.standard.managementState` or
+    `components.dashboard.dsc.maasPortal.managementState`, not dashboard
+    dependencies or defaults.
+  - `components.modelregistry.defaults.<operator-type>.registriesNamespace`
+    conflicts with
+    `components.aiHub.defaults.<operator-type>.instancesNamespace` when both
+    namespaces are non-empty for the same operator type and the aiHub value
+    differs from the chart default. If aiHub has the chart default, a
+    non-empty old namespace is carried over; without one, the aiHub value
+    remains unchanged.
 - An old key set only to `null` is pruned silently.
 - Translated stanzas render with a deprecation comment, and `helm install` prints
   a **Deprecation Notices** section — remove the old keys at your convenience.
