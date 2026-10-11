@@ -325,7 +325,13 @@ Rules:
     differs from the chart default. If aiHub has the chart default, a
     non-empty old namespace is carried over; without one, the aiHub value
     remains unchanged.
-- An old key set only to `null` is pruned silently.
+- Conflict and removed-key failures are validated when the chart renders
+  the DSC, which requires the v3 CRD — on a first install before the
+  operator serves it, invalid values surface on the next upgrade.
+- `null` never counts as set: a legacy block whose values are all `null`
+  or empty is pruned silently (no deprecation notice), `null` leaves in a
+  set block carry nothing, and a whole key set to `null` is rejected by
+  the values schema — remove the key instead.
 - Translated stanzas render with a deprecation comment, and `helm install` prints
   a **Deprecation Notices** section — remove the old keys at your convenience.
 - Deprecated keys are removed in the next chart major; translate manually before
