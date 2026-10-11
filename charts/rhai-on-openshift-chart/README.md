@@ -375,9 +375,9 @@ follows the [Quick Start](#quick-start) convention (`${OPERATOR_TYPE}` in
 the release `odh` in `opendatahub-gitops`.
 
 Expected result: `modelregistry.dsc.registriesNamespace: odh-model-registry`
-renders as `aiHub.dsc.instancesNamespace: odh-model-registry` — unchanged from
-what the operator already owns, so the CEL immutability check passes and the
-upgrade applies cleanly.
+renders as `spec.components.aiHub.instancesNamespace: odh-model-registry` —
+unchanged from what the operator already owns, so the CEL immutability check
+passes and the upgrade applies cleanly.
 
 The repo also provides a repeatable install-and-verify target (requires a live
 cluster): `make helm-install-verify`.
