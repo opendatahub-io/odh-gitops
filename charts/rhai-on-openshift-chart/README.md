@@ -330,11 +330,15 @@ a 3.6 operator:
 kubectl get crd datascienceclusters.datasciencecluster.opendatahub.io \
   -o jsonpath='{.spec.versions[*].name}'   # must list v3
 
-# 2. Upgrade the chart with your existing values file (unchanged), repeating
-#    any --set overrides from your original install. operator.type matters
-#    most: a --set override lives only in the release, and the chart default
-#    is odh — a rhoai release upgraded without repeating it silently switches
-#    to the opendatahub operator (and its namespace defaults):
+# 2. If your values file sets components.trainingoperator or
+#    components.kserve.dsc.wva, remove those keys first — they fail the
+#    render even when set to Removed (the migration table's Fails rows).
+#    Upgrade with the rest of your values file unchanged, repeating any
+#    --set overrides from your original install. operator.type matters
+#    most: a --set override lives only in the release, and the chart
+#    default is odh — a rhoai release upgraded without repeating it
+#    silently switches to the opendatahub operator (and its namespace
+#    defaults):
 helm upgrade --install ${OPERATOR_TYPE} ./charts/rhai-on-openshift-chart \
   -n ${OPERATOR_TYPE}-gitops --set operator.type=${OPERATOR_TYPE} \
   -f my-values.yaml
