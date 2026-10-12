@@ -358,7 +358,8 @@ a 3.6 operator:
 ```bash
 # Set OPERATOR_TYPE to the operator type of the release you are upgrading
 # (odh | rhoai); it must match the existing install. The guard below fails
-# loudly when the variable is unset and keeps an already-set value:
+# loudly when the variable is unset and keeps an already-set value, and the
+# validation in step 2 rejects any value other than odh or rhoai:
 : "${OPERATOR_TYPE:?set OPERATOR_TYPE to odh or rhoai, matching the existing install}"
 
 # 1. Upgrade the operator subscription to a 3.6+ channel/build first, and wait
@@ -376,12 +377,13 @@ kubectl get crd datascienceclusters.datasciencecluster.opendatahub.io \
 #    default is odh — a rhoai release upgraded without repeating it
 #    silently switches to the opendatahub operator (and its namespace
 #    defaults):
-helm upgrade --install ${OPERATOR_TYPE} ./charts/rhai-on-openshift-chart \
-  -n ${OPERATOR_TYPE}-gitops --set operator.type=${OPERATOR_TYPE} \
+case "${OPERATOR_TYPE}" in odh|rhoai) ;; *) echo "invalid OPERATOR_TYPE" >&2; exit 1;; esac
+helm upgrade --install "${OPERATOR_TYPE}" ./charts/rhai-on-openshift-chart \
+  -n "${OPERATOR_TYPE}-gitops" --set "operator.type=${OPERATOR_TYPE}" \
   -f my-values.yaml
 
 # 3. Verify: the rendered DSC keeps your value (no CEL immutability conflict):
-helm get manifest ${OPERATOR_TYPE} -n ${OPERATOR_TYPE}-gitops | \
+helm get manifest "${OPERATOR_TYPE}" -n "${OPERATOR_TYPE}-gitops" | \
   grep -A2 'aiHub:'   # instancesNamespace must equal your previous value
 ```
 
