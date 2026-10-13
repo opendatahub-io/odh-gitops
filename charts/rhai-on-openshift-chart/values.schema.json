@@ -106,7 +106,7 @@
           "$ref": "#/definitions/aipipelinesComponent"
         },
         "dashboard": {
-          "$ref": "#/definitions/component"
+          "$ref": "#/definitions/dashboardComponent"
         },
         "feastoperator": {
           "$ref": "#/definitions/component"
@@ -440,6 +440,39 @@
             "argoWorkflowsControllers": {
               "type": "object",
               "description": "Argo Workflows Controllers configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "dashboardComponent": {
+      "type": "object",
+      "description": "Dashboard component configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Dashboard",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "maasConsumerPortal": {
+              "type": "object",
+              "description": "MaaS Consumer Portal sub-component",
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"

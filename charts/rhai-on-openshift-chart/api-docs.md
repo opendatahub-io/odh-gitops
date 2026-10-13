@@ -23,8 +23,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.aipipelines | object | `{"dependencies":{},"dsc":{"managementState":null}}` | AI Pipelines component |
 | components.aipipelines.dependencies | object | `{}` | Dependencies required by AI Pipelines |
 | components.aipipelines.dsc.managementState | string | `nil` | Management state for AI Pipelines. Null uses profile default. |
-| components.dashboard | object | `{"dependencies":{},"dsc":{"managementState":null}}` | Dashboard component |
+| components.dashboard | object | `{"dependencies":{},"dsc":{"maasConsumerPortal":{"managementState":null},"managementState":null}}` | Dashboard component |
 | components.dashboard.dependencies | object | `{}` | Dependencies required by Dashboard |
+| components.dashboard.dsc.maasConsumerPortal | object | `{"managementState":null}` | MaaS Consumer Portal sub-component |
+| components.dashboard.dsc.maasConsumerPortal.managementState | string | `nil` | Management state for MaaS Consumer Portal. Null uses profile default. |
 | components.dashboard.dsc.managementState | string | `nil` | Management state for Dashboard. Null uses profile default. |
 | components.feastoperator | object | `{"dependencies":{},"dsc":{"managementState":null}}` | Feast Operator component |
 | components.feastoperator.dependencies | object | `{}` | Dependencies required by Feast Operator |
@@ -152,4 +154,3 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | trustedCABundle | object | `{"customCABundle":"","managementState":"Managed"}` | Trusted CA bundle configuration |
 | trustedCABundle.customCABundle | string | `""` | A custom CA bundle that will be available for all components in the Data Science Cluster (DSC). |
 | trustedCABundle.managementState | string | `"Managed"` | Management state for trusted CA bundle (Managed or Removed) |
-
