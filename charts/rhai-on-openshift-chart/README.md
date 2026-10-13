@@ -400,6 +400,18 @@ passes and the upgrade applies cleanly.
 The repo also provides a repeatable install-and-verify target (requires a live
 cluster): `make helm-install-verify`.
 
+This target layers `test/values-e2e.yaml` over the component values on every Helm
+install/upgrade. It pins ODH/RHOAI related images through the operator's Subscription
+`config.env`. Override the file with `HELM_E2E_VALUES_FILE=/path/to/values.yaml`.
+
+The `Update OCP E2E Images` workflow refreshes these pins from
+`opendatahub-io/opendatahub-operator`'s `main/manifests-config.yaml` through an
+automated PR, daily or on an `operator-manifest-update` dispatch. To refresh locally:
+
+```bash
+bash charts/rhai-on-openshift-chart/scripts/update-e2e-images.sh /path/to/manifests-config.yaml
+```
+
 ### Dependencies
 
 Operators that can be installed. Use tri-state `enabled` field:
