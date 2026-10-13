@@ -1,6 +1,43 @@
+# Related image pins are refreshed from manifests-config.yaml (ODH) by update-bundle.sh.
 components:
   kserve:
     gateway:
       allowedRoutes:
         namespaces:
           from: Same
+rhaiOperator:
+  relatedImages:
+    - name: RELATED_IMAGE_ODH_KSERVE_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/kserve-controller@sha256:ed99b45402a1cf91d171ee30e001dc7eeb1c9ccc0ecded7a2caa0117bc35c64b"
+    - name: RELATED_IMAGE_ODH_KSERVE_LLMISVC_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/odh-kserve-llmisvc-controller@sha256:419f4f7ace9c40d770eca50ca336d4272782b5796ad0b2c481f39e77043e038b"
+    - name: RELATED_IMAGE_ODH_KSERVE_LOCALMODEL_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/odh-kserve-localmodel-controller@sha256:5bfa4e1b142d3109ecd8155d4f04bdfb184b0b31a558ed1fe1a1d580381e1873"
+    - name: RELATED_IMAGE_ODH_KSERVE_MODULE_OPERATOR_IMAGE
+      value: "quay.io/opendatahub/odh-kserve-module-operator@sha256:826a9927cdccbfd3e44fb9caf7751e8f46fc2a6127d2c1b362275dbe806d18dc"
+    - name: RELATED_IMAGE_ODH_AI_GATEWAY_OPERATOR_IMAGE
+      value: "quay.io/opendatahub/odh-ai-gateway-operator@sha256:69e7e2e32b7852b5dc8e74528472b8b466503f9c9b23768151075af850157aa1"
+    - name: RELATED_IMAGE_ODH_MODEL_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/odh-model-controller@sha256:94f7f4383ef91d10d60d82c0858a60158a02915fdd3000d507210139faaac775"
+    - name: RELATED_IMAGE_ODH_WORKLOAD_VARIANT_AUTOSCALER_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/workload-variant-autoscaler@sha256:4ad63eb0f436c7c8a719fd8d55f5fb09fcbe9ab5279998c29c58333d42667f57"
+    - name: RELATED_IMAGE_ODH_AI_GATEWAY_PAYLOAD_PROCESSING_IMAGE
+      value: "quay.io/opendatahub/odh-ai-gateway-payload-processing@sha256:ed1cc3d071b484c137a702d2c9cce69d665c8818e8bcfdec30e69cc430c0b520"
+    - name: RELATED_IMAGE_ODH_LLM_D_BATCH_GATEWAY_APISERVER_IMAGE
+      value: "quay.io/opendatahub/odh-llm-d-batch-gateway-apiserver@sha256:fc2514a428ab878f19285ecf6008035bb4fe72e86efc18028a3008defaeaf619"
+    - name: RELATED_IMAGE_ODH_LLM_D_BATCH_GATEWAY_GC_IMAGE
+      value: "quay.io/opendatahub/odh-llm-d-batch-gateway-gc@sha256:a062e0e95d548bb9e3be96ea6e26ed10f4de348b9a3db6c8ceb91309fe1bbdf4"
+    - name: RELATED_IMAGE_ODH_LLM_D_BATCH_GATEWAY_OPERATOR_IMAGE
+      value: "quay.io/opendatahub/odh-batch-gateway-operator@sha256:b4cc26edad21d57242c486990a12ccb6df2a1c1220f5765d2f664f765ab0f840"
+    - name: RELATED_IMAGE_ODH_LLM_D_BATCH_GATEWAY_PROCESSOR_IMAGE
+      value: "quay.io/opendatahub/odh-llm-d-batch-gateway-processor@sha256:032c364805ef06679a8a58d9360d5eabcb33eef5150cdd7a30f009c51df2c98b"
+    - name: RELATED_IMAGE_ODH_MAAS_API_IMAGE
+      value: "quay.io/opendatahub/maas-api@sha256:d2699e032bc699f36fc82ba293821568a78e21950046f89696c4c4129d1681a3"
+    - name: RELATED_IMAGE_ODH_MAAS_DISCOVERY_IMAGE
+      value: "quay.io/opendatahub/odh-maas-discovery@sha256:678af94dfbdbb92c0f4f29ea5719603d55eddc485136ad723f85d2261d0075ec"
+    - name: RELATED_IMAGE_ODH_MAAS_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/maas-controller@sha256:21710d45046d25409ff5dabcdb5feea549207da61e6e5dab022bbf7b2799bae2"
+    - name: RELATED_IMAGE_ODH_MODEL_SERVING_API_IMAGE
+      value: "quay.io/opendatahub/odh-model-serving-api@sha256:dc6ced7ac752d3770e31e3e83f4f9a6c793de5b9b04dde0d194d021020cef8e8"
+    - name: RELATED_IMAGE_ODH_AI_GATEWAY_CONTROLLER_IMAGE
+      value: "quay.io/opendatahub/odh-ai-gateway-controller@sha256:c7a636a427a919de05f1369d70416070f9fea40751744f8052e8457b26064f51"

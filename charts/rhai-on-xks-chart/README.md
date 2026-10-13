@@ -49,13 +49,17 @@ podman login registry.redhat.io --authfile /path/to/auth.json
 
 The `imagePullSecret.dockerConfigJson` parameter:
 
-1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in all chart-managed namespaces (operator, applications, release, cloud manager and all dependency namespaces)
+1. Creates a `kubernetes.io/dockerconfigjson` Secret named `rhai-pull-secret` in the operator, applications, release, cloud manager and managed dependency namespaces
 2. Adds `imagePullSecrets` to all chart-managed ServiceAccounts (RHAI operator, cloud manager, llmisvc-controller-manager, and the post-install hook)
+
+When MaaS is managed and pull credentials are provided, a pre-install/pre-upgrade Job creates `redhat-ai-gateway-infra` before the chart creates its pull Secret and ServiceAccounts. An earlier hook creates a separate `rhai-maas-ns-pull-secret` in the release namespace for the Job using the same credentials. Hook cleanup removes only this bootstrap Secret, leaving the release-managed `rhai-pull-secret` untouched. The bootstrap Secret also runs as a pre-delete hook to clean up leftovers on uninstall.
 
 The secret name defaults to `rhai-pull-secret` and **should not** be changed.
 
 > [!NOTE]
-> Pull secrets for dependency namespaces (`cert-manager-operator`, `cert-manager`, `istio-system`, `openshift-lws-operator`) are managed by this chart by default. To customize which dependency namespaces receive pull secrets, set `imagePullSecret.dependencyNamespaces`.
+> Pull secrets for managed dependency namespaces are created automatically when set as `Managed`. The chart uses the configured namespaces. Use `imagePullSecret.dependencyNamespaces` for additional namespaces.
+
+The chart renders Namespace resources for managed dependency namespaces. If a dependency namespace already exists and should be managed by this Helm release, rerun the installation or upgrade with Helm's `--take-ownership` flag. The chart keeps dependency namespaces on uninstall.
 
 ## Installation
 
@@ -208,6 +212,27 @@ For the configuration reference, please refer to the [API reference](api-docs.md
 ## Testing with kind
 
 You can test the chart locally using [kind](https://kind.sigs.k8s.io/).
+
+On a disposable test cluster, verify MaaS namespace creation and hook credentials without deploying MaaS operands:
+
+**Warning:** Test 6 first uninstalls the configured Helm release and deletes `redhat-ai-gateway-infra`, including its contents.
+It waits for cleanup and stops on failure. Do not run it against a shared or production cluster.
+
+```bash
+RELEASE_NAME=rhaii NAMESPACE=rhai-gitops PULL_SECRET=/path/to/auth.json \
+  bash ./charts/rhai-on-xks-chart/scripts/verify.sh 6
+```
+
+This test covers installation, hook cleanup, preservation of the release pull Secret through successful upgrades, failed hooks, and retries, and removal of leftover bootstrap Secrets on uninstall. It runs after the operator lifecycle tests in xKS E2E CI.
+
+Cleanup ensures that the Helm release, MaaS infrastructure namespace, and both release-namespace pull Secrets are absent before installation.
+Other retained namespaces and CRDs may remain, so this is not an installation test on an empty cluster.
+
+The e2e suite uses `test/values-e2e.yaml`, including ODH image digests for KServe and
+AIGateway controllers and services. `scripts/update-bundle.sh` refreshes these pins
+from `manifests-config.yaml` in the same rhods-operator checkout used for the chart
+templates. To refresh only the e2e images, run
+`bash charts/rhai-on-xks-chart/scripts/sync-e2e-images.sh /path/to/operator/manifests-config.yaml`.
 
 ```bash
 # Create a local cluster

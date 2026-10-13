@@ -1,0 +1,52 @@
+name: Update OCP E2E Images
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  repository_dispatch:
+    types: [operator-manifest-update]
+  workflow_dispatch:
+
+jobs:
+  update-images:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: update-ocp-e2e-images
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+
+      - name: Sync Image Pins
+        run: |
+          make yq
+          config=$(mktemp)
+          trap 'rm -f "$config"' EXIT
+          curl -fsSL https://raw.githubusercontent.com/opendatahub-io/opendatahub-operator/main/manifests-config.yaml -o "$config"
+          bash charts/rhai-on-openshift-chart/scripts/update-e2e-images.sh "$config"
+
+      - name: Verify Chart
+        run: make chart-test CHART_NAME=rhai-on-openshift-chart
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "chore: update OCP e2e image pins from opendatahub-operator"
+          body: |
+            Refresh ODH and RHOAI related-image digests from
+            opendatahub-io/opendatahub-operator's main/manifests-config.yaml.
+
+            The OpenShift chart e2e installs use these pins through Subscription config.env.
+            Validated chart snapshots.
+          branch: automated-ocp-e2e-image-update
+          commit-message: "chore: update OCP e2e image pins from opendatahub-operator"
+          author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"

@@ -115,6 +115,18 @@ rules:
       - patch
       - update
   - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - operator.openshift.io
     resources:
       - certmanagers
@@ -148,6 +160,32 @@ rules:
       - create
       - get
       - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - authorino-authconfig-editor-role
+      - authorino-authconfig-viewer-role
+      - authorino-manager-k8s-auth-role
+      - authorino-manager-role
+      - authorino-operator-clusterrole
+      - dns-operator-controller-manager-clusterrole
+      - dns-operator-metrics-reader
+      - dns-operator-remote-cluster-role
+      - kuadrant-operator-controller-manager-clusterrole
+      - kuadrant-operator-controller-manager-clusterrole-1
+      - limitador-operator-controller-manager-clusterrole
+      - limitador-operator-metrics-reader
+    resources:
+      - clusterroles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -202,6 +240,25 @@ rules:
     verbs:
       - create
       - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resourceNames:
+      - authorino-operator-role
+      - dns-operator-controller-manager-role
+      - kuadrant-operator-controller-manager-role
+      - kuadrant-operator-controller-manager-role-1
+      - limitador-operator-controller-manager-role
+    resources:
+      - roles
+    verbs:
+      - bind
+      - delete
+      - escalate
+      - get
+      - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - rbac.authorization.k8s.io

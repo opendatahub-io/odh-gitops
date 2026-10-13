@@ -66,7 +66,7 @@ spec:
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
-apiVersion: datasciencecluster.opendatahub.io/v2
+apiVersion: datasciencecluster.opendatahub.io/v3
 kind: DataScienceCluster
 metadata:
   name: default-dsc
@@ -75,6 +75,9 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   components:
+    aiHub:
+      instancesNamespace: rhoai-model-registries
+      managementState: Removed
     aigateway:
       batchGateway:
         managementState: Removed
@@ -84,9 +87,15 @@ spec:
     aipipelines:
       managementState: Removed
     dashboard:
-      managementState: Removed
-    feastoperator:
-      managementState: Removed
+      maasPortal:
+        managementState: Removed
+      standard:
+        managementState: Removed
+    data:
+      dataRegistry:
+        managementState: Removed
+      featureStore:
+        managementState: Removed
     kserve:
       managementState: Managed
       nim:
@@ -96,11 +105,10 @@ spec:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
       managementState: Removed
+    mcplifecycleoperator:
+      managementState: Removed
     mlflowoperator:
       managementState: Removed
-    modelregistry:
-      managementState: Removed
-      registriesNamespace: rhoai-model-registries
     ogx:
       managementState: Removed
     ray:
@@ -108,8 +116,6 @@ spec:
     sparkoperator:
       managementState: Removed
     trainer:
-      managementState: Removed
-    trainingoperator:
       managementState: Removed
     trustyai:
       eval:
@@ -120,6 +126,8 @@ spec:
     workbenches:
       managementState: Removed
       workbenchNamespace: rhods-notebooks
+      workbenchesV2:
+        managementState: Removed
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml

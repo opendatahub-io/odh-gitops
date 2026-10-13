@@ -223,8 +223,8 @@ test_1_upgrade() {
   # KServe CR UID
   assert_uid_unchanged "KServe CR (default-kserve)" "kserves.components.platform.opendatahub.io/default-kserve" "$kserve_uid"
 
-  # KServe not degraded
-  assert_cr_not_degraded "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
+  # KServe ready
+  wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"
 
   # The Helm-managed cert-manager operator and its operands must be healthy.
   verify_certmanager_migration

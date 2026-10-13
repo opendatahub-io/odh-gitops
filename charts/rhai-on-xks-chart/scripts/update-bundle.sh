@@ -109,6 +109,9 @@ else
     echo ""
 fi
 
+# Refresh e2e component image pins from the same checkout as the templates.
+bash "${SCRIPT_DIR}/sync-e2e-images.sh" "${ODH_OPERATOR_DIR}/manifests-config.yaml"
+
 # ==============================================================================
 # Step 1: Generate operator templates
 # ==============================================================================

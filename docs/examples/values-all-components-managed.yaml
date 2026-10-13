@@ -29,9 +29,19 @@ components:
 
   dashboard:
     dsc:
-      managementState: Managed
+      standard:
+        managementState: Managed
+      maasPortal:
+        managementState: Managed
 
-  feastoperator:
+  data:
+    dsc:
+      featureStore:
+        managementState: Managed
+      dataRegistry:
+        managementState: Managed
+
+  aiHub:
     dsc:
       managementState: Managed
 
@@ -79,10 +89,6 @@ components:
     dsc:
       managementState: Unmanaged
 
-  modelregistry:
-    dsc:
-      managementState: Managed
-
   ray:
     dsc:
       managementState: Managed
@@ -102,8 +108,14 @@ components:
   workbenches:
     dsc:
       managementState: Managed
+      workbenchesV2:
+        managementState: Managed
 
   mlflowoperator:
+    dsc:
+      managementState: Managed
+
+  mcplifecycleoperator:
     dsc:
       managementState: Managed
 
