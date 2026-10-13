@@ -63,7 +63,7 @@ test_1_install_check() {
   # KServe component CR
   if ! wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "Kserve 'default-kserve'"; then
     debug_namespace "redhat-ods-operator"
-    debug_namespace "redhat-ods-applications" "app.kubernetes.io/part-of=kserve"
+    debug_namespace "redhat-ods-applications"
     return 1
   fi
 

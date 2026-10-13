@@ -134,6 +134,7 @@ jobs:
 
             ### Changes
             - Updated Helm templates from rhods-operator `${{ env.BRANCH }}` branch
+            - Synced e2e related image digests for chart-managed components
             - Regenerated chart snapshots for testing
 
             ### Update Strategy

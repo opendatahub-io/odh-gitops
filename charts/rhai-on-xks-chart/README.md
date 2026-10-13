@@ -209,6 +209,12 @@ For the configuration reference, please refer to the [API reference](api-docs.md
 
 You can test the chart locally using [kind](https://kind.sigs.k8s.io/).
 
+The e2e suite uses `test/values-e2e.yaml`, including ODH image digests for KServe and
+AIGateway controllers and services. `scripts/update-bundle.sh` refreshes these pins
+from `manifests-config.yaml` in the same rhods-operator checkout used for the chart
+templates. To refresh only the e2e images, run
+`bash charts/rhai-on-xks-chart/scripts/sync-e2e-images.sh /path/to/operator/manifests-config.yaml`.
+
 ```bash
 # Create a local cluster
 kind create cluster --name rhoai
