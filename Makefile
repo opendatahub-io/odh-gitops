@@ -262,7 +262,9 @@ HELM_EXTRA_ARGS ?=
 HELM_INSTALL_VALUES_FILE ?= docs/examples/values-all-components-managed.yaml
 # Remove ogx to avoid nfd and nvidiaGPUOperator dependencies installation on tests.
 # Keep modelsAsAService Removed in CI — it depends on PostgreSQL (not installed by the chart yet).
-HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed
+# Keep trainer Removed in CI — catalog:latest trainer SA cannot grant ClusterRole
+# kubeflow-trainer-controller-manager (priorityclasses + optimizationjobs).
+HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed --set components.trainer.dsc.managementState=Removed
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation
