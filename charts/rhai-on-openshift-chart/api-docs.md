@@ -95,12 +95,16 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.workbenches.dsc.workbenchNamespace | string | `nil` | Workbench namespace for Workbenches (overrides defaults) |
 | components.workbenches.dsc.workbenchesV2 | object | `{"managementState":null}` | Workbenches V2 (new in DSC v3) |
 | components.workbenches.dsc.workbenchesV2.managementState | string | `nil` | Management state for Workbenches V2 (Managed or Removed). Null uses profile default. |
+| dependencies.agentSandbox | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"preview-0.9","name":"agent-sandbox-operator","namespace":"agent-sandbox-system"}}` | Agent Sandbox operator (Red Hat build of Agent Sandbox) |
+| dependencies.agentSandbox.dependencies | object | `{}` | Dependencies required by agent-sandbox |
+| dependencies.agentSandbox.enabled | string | `"auto"` | Enable agent-sandbox: auto (if needed), true (always), false (never) |
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
-| dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
+| dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator","operatorGroupName":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
 | dependencies.clusterObservability.dependencies | object | `{"opentelemetry":true}` | Dependencies required by cluster-observability |
 | dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) |
+| dependencies.clusterObservability.olm.operatorGroupName | string | `"openshift-cluster-observability-operator"` | OperatorGroup name, matching the RHACM observability addon in the shared namespace. |
 | dependencies.customMetricsAutoscaler | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.dependencies | object | `{}` | Dependencies required by custom-metrics-autoscaler |
 | dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |

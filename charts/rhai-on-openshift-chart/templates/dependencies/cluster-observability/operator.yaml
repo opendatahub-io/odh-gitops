@@ -8,6 +8,7 @@
 {{- if eq (include "rhoai-dependencies.isOlmMode" $) "true" }}
 {{ include "rhoai-dependencies.operator.olm" (dict
   "name" $dep.olm.name
+  "operatorGroupName" $dep.olm.operatorGroupName
   "namespace" $dep.olm.namespace
   "channel" $dep.olm.channel
   "version" $dep.olm.version
