@@ -1,0 +1,7 @@
+{{- if include "rhoai-dependencies.aiGridManaged" . -}}
+{{- range $name := list "grid-enrollment" "praxis-gateway" -}}
+{{- with index $.Subcharts $name -}}
+{{ include (printf "%s.rhoai.resources" $name) . }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

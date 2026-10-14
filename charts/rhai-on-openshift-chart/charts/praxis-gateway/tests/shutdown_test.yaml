@@ -1,0 +1,51 @@
+suite: graceful shutdown
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: keeps a terminating pod serving while Service endpoints drop it
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].lifecycle.preStop.exec.command
+          value: ["sleep", "5"]
+
+  - it: drops the preStop hook when shutdownDelaySeconds is 0
+    set:
+      shutdownDelaySeconds: 0
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].lifecycle
+
+  - it: leaves Praxis its default 30 second drain after the delay
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 35
+
+  - it: grows the grace period with a longer delay
+    set:
+      shutdownDelaySeconds: 10
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 40
+
+  - it: takes an explicit terminationGracePeriodSeconds
+    set:
+      terminationGracePeriodSeconds: 90
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 90
+
+  - it: rejects a grace period that ends before the delay does
+    set:
+      terminationGracePeriodSeconds: 5
+    asserts:
+      - failedTemplate:
+          errorPattern: terminationGracePeriodSeconds must be longer than shutdownDelaySeconds
+
+  - it: rejects a delay longer than the termination grace period allows
+    set:
+      shutdownDelaySeconds: 40
+    asserts:
+      - failedTemplate: {}

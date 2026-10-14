@@ -1,0 +1,29 @@
+{{- define "praxis-gateway.rhoai.service-metrics.yaml" -}}
+{{- include "praxis-gateway.normalize" . }}
+{{- if .Values.metricsListener.enabled }}
+{{- /* ClusterIP of its own, so a LoadBalancer gateway Service never exposes metrics. */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}-metrics
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway-metrics
+  {{- with .Values.metricsListener.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: {{ .Values.metricsListener.port }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "praxis-gateway.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "praxis-gateway.rhoai.service-metrics.yaml" . }}
+{{- end }}

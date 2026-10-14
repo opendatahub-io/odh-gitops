@@ -704,7 +704,7 @@ Arguments (passed as dict):
 {{- define "rhoai-dependencies.resolveNestedManagementState" -}}
 {{- $merged := .merged -}}
 {{- $profileDsc := .profileDsc -}}
-{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "nim" "standard" "maasPortal" "featureStore" "dataRegistry" "workbenchesV2" -}}
+{{- $subComponentKeys := list "modelsAsAService" "batchGateway" "aiGrid" "nim" "standard" "maasPortal" "featureStore" "dataRegistry" "workbenchesV2" -}}
 {{- range $key, $val := $merged -}}
   {{- if and (kindIs "map" $val) (has $key $subComponentKeys) -}}
     {{- if not (index $val "managementState") -}}
@@ -760,6 +760,14 @@ Returns "true" if tags.install-with-helm-dependencies is false (default), empty 
 */}}
 {{- define "rhoai-dependencies.isOlmMode" -}}
 {{- if not (index .Values.tags "install-with-helm-dependencies") -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/* Resolve runtime ownership from exactly the same configuration as the DSC. */}}
+{{- define "rhoai-dependencies.aiGridManaged" -}}
+{{- $dsc := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "aigateway" "component" .Values.components.aigateway "root" .) | fromYaml -}}
+{{- if and (eq $dsc.managementState "Managed") (eq (dig "aiGrid" "managementState" "Removed" $dsc) "Managed") -}}
 true
 {{- end -}}
 {{- end }}

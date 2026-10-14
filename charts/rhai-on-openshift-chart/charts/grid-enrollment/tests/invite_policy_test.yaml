@@ -1,0 +1,129 @@
+suite: invite delivery policy
+templates:
+  - templates/enrollment/invite-policy.yaml
+tests:
+  - it: renders nothing until the policy is asked for
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invites.site-a.network: grid
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when no site is invited
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: binds the set under the name the set requires
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invitePolicy.clusterSet: grid-sites
+      invites.site-a.network: grid
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ManagedClusterSetBinding
+      - equal:
+          path: metadata.name
+          value: grid-sites
+      - equal:
+          path: spec.clusterSet
+          value: grid-sites
+
+  - it: targets the site's own name when no cluster is given
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invites.site-a.network: grid
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: Placement
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[0].values[0]
+          value: site-a
+
+  - it: targets the named cluster when the ManagedCluster differs from the site
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invites.site-a.network: grid
+      invites.site-a.cluster: prod-01
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[0].values[0]
+          value: prod-01
+
+  - it: never places the policy on the hub itself
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invites.site-a.network: grid
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[1].key
+          value: local-cluster
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[1].operator
+          value: DoesNotExist
+
+  - it: delivers the token, the CA bundle and the gossip key to the operator namespace
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
+      invites.site-a.network: grid
+    documentIndex: 3
+    asserts:
+      - isKind:
+          of: Policy
+      - equal:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates[1].objectDefinition.metadata.name
+          value: grid-invite-site-a
+      - equal:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates[3].objectDefinition.metadata.name
+          value: grid-swim-key
+      - equal:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates[1].objectDefinition.metadata.namespace
+          value: grid-system
+
+  - it: reads the configured CA bundle Secret rather than the default name
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invites.site-a.network: grid
+      ca.bundleSecretName: custom-ca
+    documentIndex: 3
+    asserts:
+      - equal:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates[2].objectDefinition.metadata.name
+          value: custom-ca
+      - matchRegex:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates[2].objectDefinition.data["ca.crt"]
+          pattern: 'fromSecret "[^"]+" "custom-ca" "ca\.crt"'
+
+  - it: invites each site named, and only those
+    set:
+      host: e.example.com
+      hubSite.name: hub
+      invitePolicy.enabled: true
+      invites.site-a.network: grid
+      invites.site-b.network: grid
+    asserts:
+      - hasDocuments:
+          count: 7

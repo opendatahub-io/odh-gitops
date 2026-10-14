@@ -1,0 +1,135 @@
+suite: enrollment record as CertificateSigningRequest
+templates:
+  - templates/enrollment/csr-record-rbac.yaml
+  - templates/enrollment/csr-record-policy.yaml
+  - templates/enrollment/deployment.yaml
+tests:
+  - it: splits filing from approving, each scoped to the signer name
+    template: templates/enrollment/csr-record-rbac.yaml
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: RELEASE-NAME-grid-enrollment-NAMESPACE-csr-file
+      - documentIndex: 0
+        equal:
+          path: rules
+          value:
+            - apiGroups: ["certificates.k8s.io"]
+              resources: ["certificatesigningrequests"]
+              verbs: ["create"]
+            - apiGroups: ["certificates.k8s.io"]
+              resources: ["certificatesigningrequests/status"]
+              verbs: ["patch"]
+            - apiGroups: ["certificates.k8s.io"]
+              resources: ["signers"]
+              resourceNames: ["grid.praxis.fast/site"]
+              verbs: ["sign"]
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: RELEASE-NAME-grid-enrollment-NAMESPACE-csr-approve
+      - documentIndex: 1
+        equal:
+          path: rules
+          value:
+            - apiGroups: ["certificates.k8s.io"]
+              resources: ["certificatesigningrequests/approval"]
+              verbs: ["patch"]
+            - apiGroups: ["certificates.k8s.io"]
+              resources: ["signers"]
+              resourceNames: ["grid.praxis.fast/site"]
+              verbs: ["approve"]
+
+  - it: binds both roles to the service account
+    template: templates/enrollment/csr-record-rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRoleBinding
+      matchMany: true
+    asserts:
+      - equal:
+          path: subjects[0].name
+          value: RELEASE-NAME-grid-enrollment
+      - equal:
+          path: subjects[0].namespace
+          value: NAMESPACE
+
+  - it: scopes the signer verbs to a configured signer name
+    set:
+      enrollment.csrRecord.signerName: example.com/west
+    template: templates/enrollment/csr-record-rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+      matchMany: true
+    asserts:
+      - equal:
+          path: rules[-1].resourceNames
+          value: ["example.com/west"]
+
+  - it: lets only the service file under the signer name, and confines the service to it
+    template: templates/enrollment/csr-record-policy.yaml
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 0
+        equal:
+          path: spec.matchConditions[0].expression
+          value: "object.spec.signerName == \"grid.praxis.fast/site\""
+      - documentIndex: 0
+        equal:
+          path: spec.validations[0].expression
+          value: "request.userInfo.username == \"system:serviceaccount:NAMESPACE:RELEASE-NAME-grid-enrollment\""
+      - documentIndex: 0
+        equal:
+          path: spec.failurePolicy
+          value: Fail
+      - documentIndex: 2
+        equal:
+          path: spec.matchConditions[0].expression
+          value: "request.userInfo.username == \"system:serviceaccount:NAMESPACE:RELEASE-NAME-grid-enrollment\""
+      - documentIndex: 2
+        equal:
+          path: spec.validations[0].expression
+          value: "object.spec.signerName == \"grid.praxis.fast/site\""
+      - documentIndex: 2
+        equal:
+          path: spec.matchConstraints.resourceRules[0].operations
+          value: ["CREATE", "UPDATE"]
+
+  - it: turns the record on in the service with its signer name
+    template: templates/enrollment/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_CSR_RECORD")].value
+          value: "true"
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_CSR_SIGNER_NAME")].value
+          value: grid.praxis.fast/site
+
+  - it: renders nothing under local authz
+    set:
+      enrollment.authz: local
+    template: templates/enrollment/csr-record-rbac.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when the record is off
+    set:
+      enrollment.csrRecord.enabled: false
+    template: templates/enrollment/csr-record-rbac.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: refuses the record without the policy
+    set:
+      enrollment.csrRecord.policy.enabled: false
+    template: templates/enrollment/csr-record-policy.yaml
+    asserts:
+      - failedTemplate:
+          errorPattern: needs enrollment.csrRecord.policy

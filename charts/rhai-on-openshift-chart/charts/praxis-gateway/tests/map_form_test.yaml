@@ -1,0 +1,96 @@
+suite: backends keyed by site
+templates:
+  - templates/gateway-config.yaml
+  - templates/deployment.yaml
+release:
+  name: praxis-gateway
+  namespace: grid
+tests:
+  - it: a hub consumer needs only localSite, model, auth, and one site endpoint
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: my-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '\{ kind: inference_model, name: "my-model", site: "site-a", cluster: "site-a" \}'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)- name: "site-a"\s+tls:.*sni: "site-a.grid.internal"\s+verify: true\s+endpoints:\s+- "203.0.113.20:8080"'
+
+  - it: a site consumer mounts the grid identity and the Grid CA
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: my-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="tls")].projected.sources[1].secret.name
+          value: grid-ca
+
+  - it: renders keyed backends in sorted order
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: my-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends.site-b.endpoint: 203.0.113.21:8080
+      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)cluster: "site-a" \}.*cluster: "site-b" \}'
+
+  - it: a provider needs only role, localSite, a digest, and its local endpoint
+    template: templates/gateway-config.yaml
+    set:
+      image.repository: ghcr.io/praxis-proxy/grid-gateway
+      gatewayConfig.role: provider
+      gatewayConfig.localSite: site-a
+      gatewayConfig.peerTrust.digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      gatewayConfig.peerTrust.nextDigest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      gatewayConfig.backends.local.endpoint: 10.96.0.20:8000
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'cert_digest: "a{64}"\s+- cert_digest: "b{64}"'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)- name: "local"\s+endpoints:\s+- "10.96.0.20:8000"'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'name: "local"\s+tls:'
+
+  - it: a spiffeId scalar renders the allowlist
+    template: templates/gateway-config.yaml
+    set:
+      image.repository: ghcr.io/praxis-proxy/grid-gateway
+      gatewayConfig.role: provider
+      gatewayConfig.localSite: site-a
+      gatewayConfig.peerTrust.mode: spiffe
+      gatewayConfig.peerTrust.spiffeId: spiffe://grid.internal/site/hub
+      gatewayConfig.backends.local.endpoint: 10.96.0.20:8000
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'trusted_spiffe_ids:\s+- "spiffe://grid.internal/site/hub"'
+
+  - it: the older backend list still renders
+    template: templates/gateway-config.yaml
+    set:
+      gatewayConfig.localSite: hub
+      gatewayConfig.model: my-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        - cluster: local-model
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'site: "hub", cluster: "local-model"'

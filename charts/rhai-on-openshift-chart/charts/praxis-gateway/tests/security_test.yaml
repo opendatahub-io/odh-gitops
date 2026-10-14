@@ -1,0 +1,152 @@
+suite: security context
+templates:
+  - templates/deployment.yaml
+  - templates/tests/gateway-ready.yaml
+release:
+  name: praxis-gateway
+  namespace: praxis
+tests:
+  - it: runs the Praxis container as the image's numeric user by default
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+          value: 100
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsGroup
+          value: 101
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.capabilities.drop
+          value: [ALL]
+
+  - it: lets OpenShift assign the UID
+    template: templates/deployment.yaml
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsGroup
+
+  - it: forces the image user on OpenShift when imageUser.enabled is true
+    template: templates/deployment.yaml
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    set:
+      imageUser.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+          value: 100
+
+  - it: skips the image user when imageUser.enabled is "false"
+    template: templates/deployment.yaml
+    set:
+      imageUser.enabled: "false"
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+
+  - it: keeps a custom image's own user
+    template: templates/deployment.yaml
+    set:
+      image.repository: registry.example.com/team/gateway
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsGroup
+
+  - it: applies the image user to a mirror of an official image
+    template: templates/deployment.yaml
+    set:
+      image.repository: registry.example.com/mirror/praxis-proxy/praxis
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+          value: 100
+
+  - it: keeps the numeric user of a -fips image
+    template: templates/deployment.yaml
+    set:
+      image.tag: 0.4.0-fips
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+
+  - it: forces the image user on a custom image when imageUser.enabled is true
+    template: templates/deployment.yaml
+    set:
+      image.repository: registry.example.com/team/gateway
+      imageUser.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+          value: 100
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsGroup
+          value: 101
+
+  - it: defers to podSecurityContext IDs
+    template: templates/deployment.yaml
+    set:
+      podSecurityContext.runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsGroup
+
+  - it: keeps the image's numeric user when podSecurityContext sets only runAsGroup
+    template: templates/deployment.yaml
+    set:
+      podSecurityContext.runAsGroup: 2000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsGroup
+          value: 2000
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
+          value: 100
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsGroup
+
+  - it: runs the helm test pod under the restricted pod security standard
+    template: templates/tests/gateway-ready.yaml
+    asserts:
+      - equal:
+          path: spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.securityContext.runAsUser
+          value: 65534
+      - equal:
+          path: spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.containers[0].securityContext.capabilities.drop
+          value: [ALL]
+
+  - it: lets OpenShift assign the helm test pod UID
+    template: templates/tests/gateway-ready.yaml
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    asserts:
+      - notExists:
+          path: spec.securityContext.runAsUser

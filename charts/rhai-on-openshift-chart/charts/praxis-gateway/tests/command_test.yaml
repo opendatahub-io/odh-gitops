@@ -1,0 +1,22 @@
+suite: container command
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: keeps the image entrypoint and passes the config path by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].command
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].args
+          value: ["--config", "/etc/praxis/praxis.yaml"]
+
+  - it: replaces the entrypoint when command is set
+    set:
+      command: [praxis]
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].command
+          value: [praxis]
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].args
+          value: ["--config", "/etc/praxis/praxis.yaml"]

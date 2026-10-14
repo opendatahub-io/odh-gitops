@@ -1,0 +1,154 @@
+suite: downstream security defaults
+templates:
+  - templates/db/db-builtin.yaml
+  - templates/networkpolicy.yaml
+  - templates/enrollment/grid-admin-rbac.yaml
+  - templates/enrollment/invite-admission.yaml
+tests:
+  - it: hardens both postgres containers and supplies writable runtime directories
+    template: templates/db/db-builtin.yaml
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext
+          value: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content: {name: db-home, mountPath: /var/lib/pgsql}
+      - exists:
+          path: spec.template.spec.initContainers[0].resources.limits.memory
+  - it: rejects kubelet identities as grid admins
+    template: templates/enrollment/grid-admin-rbac.yaml
+    set:
+      enrollment.authz: kube
+      enrollment.gridAdmins.subjects: [{kind: Group, name: system:nodes}]
+    asserts:
+      - failedTemplate: {errorPattern: cluster-wide group}
+  - it: rejects kubelet identities as enrollment admins
+    template: templates/enrollment/grid-admin-rbac.yaml
+    set:
+      enrollment.authz: kube
+      enrollment.enrollmentAdmins.subjects: [{kind: Group, name: system:nodes}]
+    asserts:
+      - failedTemplate: {errorPattern: cluster-wide group}
+  - it: confines database access to this release enrollment pods
+    template: templates/networkpolicy.yaml
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels
+          value:
+            app.kubernetes.io/name: grid-enrollment
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/component: enrollment
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 5432
+  - it: omits the database policy for an external database
+    template: templates/networkpolicy.yaml
+    set:
+      db.type: external
+      db.external.connectionUrlSecretRef: enrollment-db
+    asserts:
+      - hasDocuments: {count: 1}
+  - it: allows router ingress only with a route and preserves invite access
+    template: templates/networkpolicy.yaml
+    documentIndex: 0
+    set:
+      route.enabled: true
+      host: enrollment.apps.example.com
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: invite
+      - equal:
+          path: spec.ingress[0].from[1].namespaceSelector.matchLabels["network.openshift.io/policy-group"]
+          value: ingress
+  - it: requires an admission policy independently of ACM delivery
+    template: templates/enrollment/invite-admission.yaml
+    set:
+      fullnameOverride: grid-enrollment
+      enrollment.authz: kube
+      invites: {site-a: {network: grid}}
+      invitePolicy.enabled: false
+    asserts:
+      - hasDocuments: {count: 2}
+      - equal:
+          path: spec.failurePolicy
+          value: Fail
+        documentIndex: 0
+      - equal:
+          path: spec.validations[0].expression
+          value: 'object.metadata.namespace == "NAMESPACE" && object.metadata.name in ["grid-invite-site-a"]'
+        documentIndex: 0
+      - equal:
+          path: spec.validations[1].expression
+          value: "!has(object.type) || object.type == '' || object.type == 'Opaque'"
+        documentIndex: 0
+      - equal:
+          path: spec.validationActions
+          value: [Deny]
+        documentIndex: 1
+  - it: rejects system:anonymous in gridAdmins
+    template: templates/enrollment/grid-admin-rbac.yaml
+    set:
+      enrollment.authz: kube
+      enrollment.gridAdmins.subjects: [{kind: User, name: "system:anonymous"}]
+    asserts:
+      - failedTemplate: {errorPattern: cluster-wide group}
+  - it: rejects system:bootstrappers:example in gridAdmins
+    template: templates/enrollment/grid-admin-rbac.yaml
+    set:
+      enrollment.authz: kube
+      enrollment.gridAdmins.subjects: [{kind: Group, name: "system:bootstrappers:example"}]
+    asserts:
+      - failedTemplate: {errorPattern: cluster-wide group}
+  - it: rejects system:anonymous in enrollmentAdmins
+    template: templates/enrollment/grid-admin-rbac.yaml
+    set:
+      enrollment.authz: kube
+      enrollment.enrollmentAdmins.subjects: [{kind: User, name: "system:anonymous"}]
+    asserts:
+      - failedTemplate: {errorPattern: cluster-wide group}
+  - it: rejects system:bootstrappers:example in enrollmentAdmins
+    template: templates/enrollment/grid-admin-rbac.yaml
+    set:
+      enrollment.authz: kube
+      enrollment.enrollmentAdmins.subjects: [{kind: Group, name: "system:bootstrappers:example"}]
+    asserts:
+      - failedTemplate: {errorPattern: cluster-wide group}
+  - it: requires explicit ingress clients for LoadBalancer
+    template: templates/networkpolicy.yaml
+    set:
+      route.enabled: false
+      enrollment.service.type: LoadBalancer
+    asserts:
+      - failedTemplate: {errorPattern: networkPolicy.from requires explicit enrollment clients}
+  - it: requires explicit ingress clients for NodePort
+    template: templates/networkpolicy.yaml
+    set:
+      route.enabled: false
+      enrollment.service.type: NodePort
+    asserts:
+      - failedTemplate: {errorPattern: networkPolicy.from requires explicit enrollment clients}
+  - it: requires explicit ingress clients for inferred LoadBalancer
+    template: templates/networkpolicy.yaml
+    set:
+      route.enabled: false
+      host: enrollment.example.com
+    asserts:
+      - failedTemplate: {errorPattern: networkPolicy.from requires explicit enrollment clients}
+  - it: permits an external service with explicit client CIDRs
+    template: templates/networkpolicy.yaml
+    documentIndex: 0
+    set:
+      host: enrollment.example.com
+      route.enabled: false
+      networkPolicy.from: [{ipBlock: {cidr: 192.0.2.0/24}}]
+    asserts:
+      - contains:
+          path: spec.ingress[0].from
+          content: {ipBlock: {cidr: 192.0.2.0/24}}

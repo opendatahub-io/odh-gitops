@@ -1,0 +1,138 @@
+suite: mount reconciliation RBAC
+templates:
+  - templates/role-mount-reconciliation.yaml
+  - templates/deployment.yaml
+release:
+  name: gw
+  namespace: grid
+set:
+  config.existingConfigMap: praxis-consumer-config
+tests:
+  - it: grants the operator nothing without delegation
+    template: templates/role-mount-reconciliation.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: lets the operator get and patch this chart's Deployment and no other
+    template: templates/role-mount-reconciliation.yaml
+    set:
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: Role
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: gw-praxis-gateway-mount-reconciliation
+        documentIndex: 0
+      - equal:
+          path: rules
+          value:
+            - apiGroups: ["apps"]
+              resources: ["deployments"]
+              resourceNames: ["gw-praxis-gateway"]
+              verbs: ["get", "patch"]
+        documentIndex: 0
+      - isKind:
+          of: RoleBinding
+        documentIndex: 1
+      - equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: gw-praxis-gateway-mount-reconciliation
+        documentIndex: 1
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: grid-operator
+              namespace: grid-system
+        documentIndex: 1
+
+  - it: names the Deployment the chart renders, so the two cannot drift
+    set:
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+    asserts:
+      - equal:
+          path: metadata.name
+          value: gw-praxis-gateway
+        template: templates/deployment.yaml
+      - equal:
+          path: rules[0].resourceNames
+          value: ["gw-praxis-gateway"]
+        template: templates/role-mount-reconciliation.yaml
+        documentIndex: 0
+
+  - it: follows fullnameOverride on the Deployment and the Role together
+    set:
+      fullnameOverride: edge-gw
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+    asserts:
+      - equal:
+          path: metadata.name
+          value: edge-gw
+        template: templates/deployment.yaml
+      - equal:
+          path: rules[0].resourceNames
+          value: ["edge-gw"]
+        template: templates/role-mount-reconciliation.yaml
+        documentIndex: 0
+      - equal:
+          path: roleRef.name
+          value: edge-gw-mount-reconciliation
+        template: templates/role-mount-reconciliation.yaml
+        documentIndex: 1
+
+  - it: binds the operator ServiceAccount the values name
+    template: templates/role-mount-reconciliation.yaml
+    set:
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+      mountReconciliation.operator.serviceAccount: agn-operator
+      mountReconciliation.operator.namespace: agn-system
+    asserts:
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: agn-operator
+              namespace: agn-system
+        documentIndex: 1
+
+  - it: renders neither object when rbac.create is false
+    template: templates/role-mount-reconciliation.yaml
+    set:
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+      mountReconciliation.rbac.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: refuses a blank operator ServiceAccount
+    template: templates/role-mount-reconciliation.yaml
+    set:
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+      mountReconciliation.operator.serviceAccount: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: mountReconciliation.operator.serviceAccount is required
+
+  - it: refuses a blank operator namespace
+    template: templates/role-mount-reconciliation.yaml
+    set:
+      mountReconciliation.enabled: true
+      mountReconciliation.network: production
+      mountReconciliation.operator.namespace: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: mountReconciliation.operator.namespace is required

@@ -1,0 +1,55 @@
+{{- define "grid-enrollment.rhoai.enrollment/invite-admission.yaml" -}}
+{{- include "grid-enrollment.normalize" . }}
+{{- if .Values.invites }}
+{{- $fullname := include "grid-enrollment.fullname" . }}
+{{- $sa := printf "%s-invite" ($fullname | trunc 56 | trimSuffix "-") }}
+{{- $name := printf "%s-%s-invite-secrets" $fullname .Release.Namespace }}
+{{- $names := list }}
+{{- range .Values.invites }}
+{{- $names = append $names (printf "grid-invite-%s" .siteName) }}
+{{- end }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["secrets"]
+  matchConditions:
+    - name: invite-service-account
+      expression: {{ printf "request.userInfo.username == %q" (printf "system:serviceaccount:%s:%s" .Release.Namespace $sa) | quote }}
+  validations:
+    - expression: {{ printf "object.metadata.namespace == %q && object.metadata.name in %s" .Release.Namespace (toJson $names) | quote }}
+      message: "the invite Job may only write its configured invite Secrets"
+      reason: Forbidden
+    - expression: "!has(object.type) || object.type == '' || object.type == 'Opaque'"
+      message: "invite Secrets must be Opaque; ServiceAccount tokens are forbidden"
+      reason: Forbidden
+    - expression: >-
+        !has(object.metadata.annotations) ||
+        (!('kubernetes.io/service-account.name' in object.metadata.annotations) &&
+         !('kubernetes.io/service-account.uid' in object.metadata.annotations))
+      message: "invite Secrets cannot request ServiceAccount tokens"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  policyName: {{ $name }}
+  validationActions: [Deny]
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/invite-admission.yaml" . }}
+{{- end }}

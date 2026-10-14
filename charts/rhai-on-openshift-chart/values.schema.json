@@ -21,11 +21,31 @@
       "default": false,
       "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
     },
+    "grid-enrollment": {
+      "type": "object",
+      "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/grid-enrollment for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "praxis-gateway": {
+      "type": "object",
+      "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/praxis-gateway for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
     "profile": {
       "type": "string",
-      "enum": ["default", "maas", "rhaii"],
+      "enum": ["default", "maas", "ai-grid", "rhaii"],
       "default": "default",
-      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
+      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid' enables AIGateway with only the aiGrid sub-component. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
     },
     "olm": {
       "type": "object",
@@ -224,6 +244,33 @@
         }
       },
       "additionalProperties": false
+    },
+    "global": {
+      "type": "object",
+      "properties": {
+        "relatedImages": {
+          "type": "array",
+          "description": "Full image overrides shared by AI Grid subcharts (name/value entries).",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "value"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -591,6 +638,16 @@
             "batchGateway": {
               "type": "object",
               "description": "Batch Gateway sub-component",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              },
+              "additionalProperties": false
+            },
+            "aiGrid": {
+              "type": "object",
+              "description": "AI Grid sub-component",
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"

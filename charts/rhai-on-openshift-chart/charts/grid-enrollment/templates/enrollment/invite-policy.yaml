@@ -1,0 +1,111 @@
+{{- define "grid-enrollment.rhoai.enrollment/invite-policy.yaml" -}}
+{{- /* Delivers each invited site its token, the CA bundle and the gossip key. The sites
+       are already named in `invites`, so nothing is restated. */}}
+{{- include "grid-enrollment.normalize" . }}
+{{- if and .Values.invites .Values.invitePolicy.enabled }}
+{{- $ns := .Release.Namespace }}
+{{- $target := .Values.invitePolicy.namespace }}
+{{- $set := .Values.invitePolicy.clusterSet }}
+{{- $caBundle := .Values.ca.bundleSecretName | default "grid-ca-bundle" }}
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: {{ $set | quote }}  {{/* must match the set it binds */}}
+  namespace: {{ $ns | quote }}
+spec:
+  clusterSet: {{ $set | quote }}
+{{- range $entry := .Values.invites }}
+{{- $site := $entry.siteName }}
+{{- $cluster := $entry.cluster | default $site }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: grid-invite-{{ $site }}
+  namespace: {{ $ns | quote }}
+spec:
+  clusterSets: [{{ $set | quote }}]
+  predicates:
+  - requiredClusterSelector:
+      labelSelector:
+        matchExpressions:
+        - {key: name, operator: In, values: [{{ $cluster | quote }}]}
+        - {key: local-cluster, operator: DoesNotExist}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: grid-invite-{{ $site }}
+  namespace: {{ $ns | quote }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: grid-invite-{{ $site }}
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: grid-invite-{{ $site }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: grid-invite-{{ $site }}
+  namespace: {{ $ns | quote }}
+  annotations:
+    policy.open-cluster-management.io/standards: AI Grid
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: grid-invite-{{ $site }}
+      spec:
+        remediationAction: enforce
+        severity: medium
+        object-templates:
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: {{ $target | quote }}
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: Opaque
+            metadata:
+              name: grid-invite-{{ $site }}
+              namespace: {{ $target | quote }}
+            data:
+              {{/* hub fromSecret output is encrypted already; `protect` would double it. */}}
+              token: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $ns (printf "grid-invite-%s" $site) }}'
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: Opaque
+            metadata:
+              name: {{ $caBundle | quote }}
+              namespace: {{ $target | quote }}
+            data:
+              ca.crt: '{{ printf "{{hub fromSecret %q %q \"ca.crt\" hub}}" $ns $caBundle }}'
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: Opaque
+            metadata:
+              name: {{ $.Values.hubSite.swimKeySecretName | default "grid-swim-key" | quote }}
+              namespace: {{ $target | quote }}
+            data:
+              key: '{{ printf "{{hub fromSecret %q %q \"key\" hub}}" $ns ($.Values.hubSite.swimKeySecretName | default "grid-swim-key") }}'
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/invite-policy.yaml" . }}
+{{- end }}

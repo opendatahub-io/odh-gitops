@@ -1,0 +1,113 @@
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/_helpers.tpl
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/_helpers.tpl
+@@ -180,21 +180,31 @@
+ Enrollment image: repository@digest when image.digest is set, else repository:tag.
+ */}}
+ {{- define "grid-enrollment.image" -}}
++{{- $image := include "grid-enrollment.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE") -}}
++{{- if $image -}}
++{{- $image -}}
++{{- else -}}
+ {{- if .Values.image.digest }}
+ {{- printf "%s@%s" .Values.image.repository .Values.image.digest }}
+ {{- else }}
+ {{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
+ {{- end }}
+ {{- end }}
++{{- end }}
+ 
+ {{/*
+ Builtin Postgres image, pinned by imageDigest when set.
+ */}}
+ {{- define "grid-enrollment.dbImage" -}}
++{{- $image := include "grid-enrollment.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE") -}}
++{{- if $image -}}
++{{- $image -}}
++{{- else -}}
+ {{- if .Values.db.builtin.imageDigest }}
+ {{- printf "%s@%s" .Values.db.builtin.image .Values.db.builtin.imageDigest }}
+ {{- else }}
+ {{- .Values.db.builtin.image }}
++{{- end }}
+ {{- end }}
+ {{- end }}
+ 
+@@ -279,3 +289,12 @@
+ {{- $log := .Values.log | default dict -}}
+ {{- $log.filter | default $log.level | default "info" -}}
+ {{- end }}
++
++{{/* Full image references injected by downstream payloads; shared with sibling charts. */}}
++{{- define "grid-enrollment.relatedImage" -}}
++{{- range (.root.Values.global | default dict).relatedImages -}}
++{{- if eq .name $.name -}}
++{{- required (printf "%s requires a nonempty value" $.name) .value -}}
++{{- end -}}
++{{- end -}}
++{{- end -}}
+--- a/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/_helpers.tpl
++++ b/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/_helpers.tpl
+@@ -104,19 +104,29 @@
+ Defaults the tag to the chart appVersion when no digest or tag is set.
+ */}}
+ {{- define "praxis-gateway.image" -}}
++{{- $image := include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE") -}}
++{{- if $image -}}
++{{- $image -}}
++{{- else -}}
+ {{- if .Values.image.digest }}
+ {{- printf "%s@%s" .Values.image.repository .Values.image.digest }}
+ {{- else }}
+ {{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
+ {{- end }}
+ {{- end }}
++{{- end }}
+ 
+ {{/*
+ Overlay-sync image reference.
+ Defaults the tag to the chart appVersion when empty.
+ */}}
+ {{- define "praxis-gateway.overlaySyncImage" -}}
++{{- $image := include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE") -}}
++{{- if $image -}}
++{{- $image -}}
++{{- else -}}
+ {{- printf "%s:%s" .Values.overlay.sidecar.image.repository (default .Chart.AppVersion .Values.overlay.sidecar.image.tag) }}
++{{- end }}
+ {{- end }}
+ 
+ {{/*
+@@ -301,7 +311,8 @@
+ {{- define "praxis-gateway.applyImageUser" -}}
+ {{- $psc := .Values.podSecurityContext | default dict -}}
+ {{- $e := toString (.Values.imageUser | default dict).enabled -}}
+-{{- $auto := and (eq $e "auto") (include "praxis-gateway.officialImageUser" .) (not (include "praxis-gateway.openshift" .)) -}}
++{{- $override := include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE") -}}
++{{- $auto := and (eq $e "auto") (not $override) (include "praxis-gateway.officialImageUser" .) (not (include "praxis-gateway.openshift" .)) -}}
+ {{- if and (not (hasKey $psc "runAsUser")) (or (eq $e "true") $auto) -}}
+ true
+ {{- end -}}
+@@ -664,3 +675,12 @@
+ {{- fail "metricsListener.serviceMonitor.caConfigMap.name is required to verify the metrics cert" }}
+ {{- end }}
+ {{- end }}
++
++{{/* Full image references injected by downstream payloads; shared with sibling charts. */}}
++{{- define "praxis-gateway.relatedImage" -}}
++{{- range (.root.Values.global | default dict).relatedImages -}}
++{{- if eq .name $.name -}}
++{{- required (printf "%s requires a nonempty value" $.name) .value -}}
++{{- end -}}
++{{- end -}}
++{{- end -}}
+--- a/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/tests/gateway-ready.yaml
++++ b/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/tests/gateway-ready.yaml
+@@ -21,7 +21,7 @@
+       type: RuntimeDefault
+   containers:
+     - name: connectivity-check
+-      image: busybox:1.37
++      image: {{ include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_TEST_IMAGE") | default "busybox:1.37" | quote }}
+       securityContext:
+         allowPrivilegeEscalation: false
+         capabilities:

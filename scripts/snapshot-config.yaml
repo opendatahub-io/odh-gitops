@@ -159,6 +159,110 @@ charts:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
 
+      - name: ai-grid-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=odh
+          - profile=ai-grid
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+
+      - name: ai-grid-removed
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - components.aigateway.dsc.aiGrid.managementState=Removed
+
+      - name: ai-grid-parent-removed
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - components.aigateway.dsc.managementState=Removed
+
+      - name: ai-grid-manual
+        setFlags:
+          - skipCrdCheck=true
+          - components.aigateway.dsc.managementState=Managed
+          - components.aigateway.dsc.aiGrid.managementState=Managed
+
+      - name: ai-grid-external-runtimes
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - grid-enrollment.enabled=false
+          - praxis-gateway.enabled=false
+
+      - name: ai-grid-external-gateway
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - praxis-gateway.enabled=false
+
+      - name: ai-grid-external-enrollment
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - grid-enrollment.enabled=false
+
+      - name: ai-grid-invites
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - grid-enrollment.enrollment.authz=kube
+          - grid-enrollment.invites.site-a.network=grid
+
+      - name: ai-grid-reject-udp
+        expectFail: true
+        expectMessage: "protocol"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - praxis-gateway.port.protocol=UDP
+
+      - name: ai-grid-reject-plaintext-route
+        expectFail: true
+        expectMessage: "inline/external config requires route.externalTls"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - praxis-gateway.route.enabled=true
+          - praxis-gateway.route.host=gateway.apps.example.com
+
+      - name: ai-grid-reject-http-telemetry
+        expectFail: true
+        expectMessage: "HTTP telemetry requires"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - praxis-gateway.gatewayConfig.telemetry.otlpEndpoint=http://collector:4317
+
+      - name: ai-grid-reject-blocked-loadbalancer
+        expectFail: true
+        expectMessage: "networkPolicy.from requires explicit enrollment clients"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid
+          - grid-enrollment.route.enabled=false
+          - grid-enrollment.host=enrollment.example.com
+
+      - name: ai-grid-related-images
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-ai-grid-images.yaml
+        setFlags:
+          - skipCrdCheck=true
+
+      - name: ai-grid-hub
+        setFlags:
+          - profile=ai-grid
+          - grid-enrollment.route.enabled=false
+          - skipCrdCheck=true
+          - praxis-gateway.config.existingConfigMap=grid-gateway-config
+          - grid-enrollment.enrollment.authz=kube
+          - grid-enrollment.enrollment.serviceAccount.create=true
+          - grid-enrollment.db.type=external
+          - grid-enrollment.db.external.connectionUrlSecretRef=maas-db-config
+
       - name: maas-profile-with-clusterip-route
         setFlags:
           - skipCrdCheck=true

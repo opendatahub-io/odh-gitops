@@ -1,0 +1,65 @@
+{{- define "grid-enrollment.rhoai.networkpolicy.yaml" -}}
+{{- include "grid-enrollment.normalize" . }}
+{{- $v := .Values }}
+{{- if and $v.networkPolicy.enabled (has $v.enrollment.service.type (list "LoadBalancer" "NodePort")) (not (include "grid-enrollment.routeEnabled" .)) (not $v.networkPolicy.from) }}
+{{- fail "networkPolicy.from requires explicit enrollment clients for LoadBalancer or NodePort without a Route" }}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        # The release's invite Job calls enrollment over HTTPS.
+        - podSelector:
+            matchLabels:
+              {{- include "grid-enrollment.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: invite
+        {{- if include "grid-enrollment.routeEnabled" . }}
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.routerNamespaceSelector | nindent 12 }}
+        {{- end }}
+        {{- with .Values.networkPolicy.from }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        - port: {{ include "grid-enrollment.listenPort" . }}
+          protocol: TCP
+{{- if eq .Values.db.type "builtin" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "grid-enrollment.dbHost" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "grid-enrollment.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: db
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 14 }}
+      ports:
+        - port: 5432
+          protocol: TCP
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.networkpolicy.yaml" . }}
+{{- end }}

@@ -1,0 +1,156 @@
+suite: gateway telemetry
+templates:
+  - templates/gateway-config.yaml
+  - templates/deployment.yaml
+tests:
+  - it: emits telemetry and W3C propagation from explicit settings
+    template: templates/gateway-config.yaml
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: edge
+      gatewayConfig.model: test-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        site-a:
+          endpoint: 203.0.113.20:8080
+          transport:
+            mode: plaintext
+      gatewayConfig.telemetry.enabled: true
+      gatewayConfig.telemetry.otlpEndpoint: https://otel-collector.observability:4317
+      gatewayConfig.telemetry.samplingRate: 0.25
+      gatewayConfig.telemetry.serviceName: grid-edge
+      gatewayConfig.telemetry.batchIntervalSecs: 3
+      gatewayConfig.telemetry.batchSize: 32
+      env:
+        - name: OTEL_EXPORTER_OTLP_HEADERS
+          valueFrom:
+            secretKeyRef:
+              name: collector-credentials
+              key: headers
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "(?s)telemetry:\\n\\s+otlp_endpoint: \\\"https://otel-collector\\.observability:4317\\\".*sampling_rate: 0.25.*service_name: \\\"grid-edge\\\".*batch_interval_secs: 3.*batch_size: 32"
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "(?s)filters:\\n\\s+- filter: trace_context"
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "OTEL_EXPORTER_OTLP_HEADERS")].valueFrom.secretKeyRef.name
+          value: collector-credentials
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "OTEL_EXPORTER_OTLP_HEADERS")].valueFrom.secretKeyRef.key
+          value: headers
+        template: templates/deployment.yaml
+      - exists:
+          path: spec.template.metadata.annotations["checksum/telemetry"]
+        template: templates/deployment.yaml
+
+  - it: accepts the lower sampling boundary
+    template: templates/gateway-config.yaml
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: edge
+      gatewayConfig.model: test-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        site-a:
+          endpoint: 203.0.113.20:8080
+          transport:
+            mode: plaintext
+      gatewayConfig.telemetry.enabled: true
+      gatewayConfig.telemetry.samplingRate: 0.0
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "sampling_rate: 0"
+
+  - it: accepts the upper sampling boundary
+    template: templates/gateway-config.yaml
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: edge
+      gatewayConfig.model: test-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        site-a:
+          endpoint: 203.0.113.20:8080
+          transport:
+            mode: plaintext
+      gatewayConfig.telemetry.enabled: true
+      gatewayConfig.telemetry.samplingRate: 1.0
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "sampling_rate: 1"
+
+  - it: renders an empty telemetry mapping for environment-only settings
+    template: templates/gateway-config.yaml
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: edge
+      gatewayConfig.model: test-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        site-a:
+          endpoint: 203.0.113.20:8080
+          transport:
+            mode: plaintext
+      gatewayConfig.telemetry.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "(?s)telemetry:\\n\\s+\\{\\}"
+
+  - it: treats an empty endpoint as environment fallback
+    template: templates/gateway-config.yaml
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: edge
+      gatewayConfig.model: test-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        site-a:
+          endpoint: 203.0.113.20:8080
+          transport:
+            mode: plaintext
+      gatewayConfig.telemetry.enabled: true
+      gatewayConfig.telemetry.otlpEndpoint: ""
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: "(?s)telemetry:\\n\\s+\\{\\}"
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: "otlp_endpoint:"
+
+  - it: requires a Grid gateway image when telemetry is enabled
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.render: true
+      gatewayConfig.localSite: edge
+      gatewayConfig.model: test-model
+      gatewayConfig.auth.mode: none
+      gatewayConfig.backends:
+        site-a:
+          endpoint: 203.0.113.20:8080
+          transport:
+            mode: plaintext
+      gatewayConfig.telemetry.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "gatewayConfig.telemetry.enabled needs image.flavor grid-gateway"
+
+  - it: requires generated Praxis config before enabling telemetry
+    template: templates/deployment.yaml
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.telemetry.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "gatewayConfig.telemetry.enabled needs gatewayConfig.render true"

@@ -1,0 +1,91 @@
+{{- define "grid-enrollment.rhoai.enrollment/csr-record-policy.yaml" -}}
+{{- include "grid-enrollment.normalize" . }}
+{{- if and (eq .Values.enrollment.authz "kube") .Values.enrollment.csrRecord.enabled }}
+{{- if not .Values.enrollment.csrRecord.policy.enabled }}
+{{- fail "enrollment.csrRecord needs enrollment.csrRecord.policy: without it the record roles grant cluster-wide create on CertificateSigningRequests. On a cluster without admissionregistration.k8s.io/v1 set enrollment.csrRecord.enabled=false" }}
+{{- end }}
+{{- $signer := .Values.enrollment.csrRecord.signerName }}
+{{- $sa := printf "system:serviceaccount:%s:%s" .Release.Namespace (include "grid-enrollment.serviceAccountName" .) }}
+{{- $name := printf "%s-%s-csr-record" (include "grid-enrollment.fullname" .) .Release.Namespace }}
+{{/*
+Two policies, cluster-scoped so their names carry the namespace.
+
+The first lets only this release's service file a request under its signer
+name. Without it any principal with create on CertificateSigningRequests could
+put a request in the record under the grid's name. It stops ordinary CSR
+creators and accidents; a principal that can act as the service account, by
+impersonation, a minted token or exec into the pod, is the service.
+
+The second confines the service account to its own signer name on every write
+it can make, so a compromised service cannot file, approve or complete
+requests under any other signer. spec is immutable, so on an update
+object.spec is the stored value.
+*/}}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["certificates.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["certificatesigningrequests"]
+  matchConditions:
+    - name: grid-signer
+      expression: {{ printf "object.spec.signerName == %q" $signer | quote }}
+  validations:
+    - expression: {{ printf "request.userInfo.username == %q" $sa | quote }}
+      message: "only the grid enrollment service may file a request under a grid signer name"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  policyName: {{ $name }}
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ $name }}-confine
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["certificates.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status"]
+  matchConditions:
+    - name: grid-enrollment-service
+      expression: {{ printf "request.userInfo.username == %q" $sa | quote }}
+  validations:
+    - expression: {{ printf "object.spec.signerName == %q" $signer | quote }}
+      message: "the grid enrollment service may only touch requests under its own signer name"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ $name }}-confine
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  policyName: {{ $name }}-confine
+  validationActions: [Deny]
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/csr-record-policy.yaml" . }}
+{{- end }}

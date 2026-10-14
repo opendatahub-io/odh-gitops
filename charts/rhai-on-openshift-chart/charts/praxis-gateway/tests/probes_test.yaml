@@ -1,0 +1,271 @@
+suite: health probes
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: probes the admin listener's ready and healthy endpoints when the default config enables it
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[4]
+          value: http://127.0.0.1:9901/ready
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.exec.command[4]
+          value: http://127.0.0.1:9901/healthy
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[0]
+          value: /bin/sh
+      - matchRegex:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[2]
+          pattern: "command -v curl .*exec curl -fsS .*else exec wget -q "
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.tcpSocket
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.tcpSocket
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.timeoutSeconds
+          value: 3
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.periodSeconds
+          value: 5
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.periodSeconds
+          value: 10
+
+  - it: probes the admin listener when the chart renders the config
+    set:
+      gatewayConfig:
+        model: m
+        auth: {mode: none}
+        backends:
+          - cluster: a
+            endpoints: ["a.svc.cluster.local.:80"]
+            transport: {mode: plaintext}
+            allowPlaintextTrust: true
+            trustPrivate: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[4]
+          value: http://127.0.0.1:9901/healthy
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.exec.command[4]
+          value: http://127.0.0.1:9901/healthy
+
+  - it: follows the admin port that config.inline sets
+    set:
+      config:
+        inline: |
+          admin:
+            address: "127.0.0.1:9911"
+          listeners:
+            - name: default
+              address: "0.0.0.0:8080"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[4]
+          value: http://127.0.0.1:9911/ready
+
+  - it: keeps the TCP probe on the listener when config.inline has no admin listener
+    set:
+      config:
+        inline: |
+          listeners:
+            - name: default
+              address: "0.0.0.0:8080"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.tcpSocket.port
+          value: http
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.timeoutSeconds
+
+  - it: keeps the TCP probe when the admin listener is not on loopback or the wildcard
+    set:
+      config:
+        inline: |
+          admin:
+            address: "10.0.0.5:9901"
+          listeners:
+            - name: default
+              address: "0.0.0.0:8080"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.tcpSocket.port
+          value: http
+
+  - it: keeps the TCP probe with an existingConfigMap, whose admin listener the chart cannot see
+    set:
+      config:
+        existingConfigMap: mine
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.tcpSocket.port
+          value: http
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.tcpSocket.port
+          value: http
+
+  - it: refuses a TCP probe on a TLS listener when config.inline has no admin listener
+    set:
+      config:
+        inline: |
+          listeners:
+            - name: default
+              address: "0.0.0.0:8080"
+              tls:
+                certificates:
+                  - cert_path: /etc/praxis/tls/tls.crt
+                    key_path: /etc/praxis/tls/tls.key
+    asserts:
+      - failedTemplate:
+          errorPattern: "a TCP probe would fail a TLS handshake every period"
+
+  - it: probes the admin listener, never the TLS port, when the TLS Secret is mounted
+    set:
+      tls: {enabled: true}
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.tcpSocket
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.tcpSocket
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec
+
+  - it: keeps a user probe as given
+    set:
+      health:
+        readiness:
+          httpGet: {path: /x, port: 8080}
+          timeoutSeconds: 9
+        liveness:
+          tcpSocket: {port: 8080}
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.httpGet.path
+          value: /x
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.timeoutSeconds
+          value: 9
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.tcpSocket.port
+          value: 8080
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.exec
+
+  - it: keeps a user timeout on the admin probe
+    set:
+      health:
+        readiness:
+          tcpSocket: {}
+          timeoutSeconds: 5
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.timeoutSeconds
+          value: 5
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec
+
+  - it: drops a probe set to null
+    set:
+      health:
+        readiness: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe
+
+  - it: runs the configured admin probe command for an image without curl or wget
+    set:
+      health:
+        adminProbeCommand: ["/usr/local/bin/healthcheck", "--timeout", "2"]
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command
+          value: ["/usr/local/bin/healthcheck", "--timeout", "2", "http://127.0.0.1:9901/ready"]
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].livenessProbe.exec.command
+          value: ["/usr/local/bin/healthcheck", "--timeout", "2", "http://127.0.0.1:9901/healthy"]
+
+  - it: probes /healthy for readiness when config.inline defines clusters
+    set:
+      config:
+        inline: |
+          admin:
+            address: "127.0.0.1:9901"
+          listeners:
+            - name: default
+              address: "0.0.0.0:8080"
+          clusters:
+            - name: a
+              endpoints: ["10.0.0.1:80"]
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[4]
+          value: http://127.0.0.1:9901/healthy
+
+  - it: probes /healthy for readiness when gridServing is on
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: hub
+      gatewayConfig.auth.mode: none
+      tls.enabled: true
+      tls.existingSecret: grid-site-identity
+      tls.caSecret: grid-ca
+      gridServing.enabled: true
+      gridServing.network: grid
+      gatewayConfig.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[0]
+          value: /bin/sh
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].readinessProbe.exec.command[4]
+          value: http://127.0.0.1:9901/healthy
+
+  - it: refuses a /ready probe when config.inline defines clusters
+    set:
+      config:
+        inline: |
+          admin:
+            address: "127.0.0.1:9901"
+          listeners:
+            - name: default
+              address: "0.0.0.0:8080"
+          clusters:
+            - name: a
+              endpoints: ["10.0.0.1:80"]
+      health:
+        readiness:
+          httpGet: {path: /ready, port: 9901}
+    asserts:
+      - failedTemplate:
+          errorPattern: "health.readiness must not probe Praxis /ready while the gateway forwards to backends"
+
+  - it: refuses a /ready probe when gridServing is on
+    set:
+      image.flavor: grid-gateway
+      gatewayConfig.render: true
+      gatewayConfig.localSite: hub
+      gatewayConfig.auth.mode: none
+      tls.enabled: true
+      tls.existingSecret: grid-site-identity
+      tls.caSecret: grid-ca
+      gridServing.enabled: true
+      gridServing.network: grid
+      gatewayConfig.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+      health:
+        readiness:
+          httpGet: {path: /ready, port: 9901}
+    asserts:
+      - failedTemplate:
+          errorPattern: "health.readiness must not probe Praxis /ready while the gateway forwards to backends"

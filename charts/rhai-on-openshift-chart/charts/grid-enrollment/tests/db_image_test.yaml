@@ -1,0 +1,42 @@
+suite: builtin Postgres image
+templates:
+  - templates/db/db-builtin.yaml
+  - templates/enrollment/deployment.yaml
+tests:
+  - it: pins the builtin Postgres image to a tag by default
+    template: templates/db/db-builtin.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/sclorg/postgresql-16-c9s:20260923
+
+  - it: pins the builtin Postgres image by digest when imageDigest is set
+    template: templates/db/db-builtin.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      db.builtin.imageDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/sclorg/postgresql-16-c9s:20260923@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  - it: runs the wait-for-db initContainer on the same pinned image
+    template: templates/enrollment/deployment.yaml
+    set:
+      db.builtin.imageDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: quay.io/sclorg/postgresql-16-c9s:20260923@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  - it: rejects a malformed imageDigest
+    template: templates/db/db-builtin.yaml
+    set:
+      db.builtin.imageDigest: latest
+    asserts:
+      - failedTemplate: {}

@@ -11,9 +11,14 @@ tags:
 skipCrdCheck: false
 
 # -- Deploy profile: sets default managementState for components and services.
-# Options: default (all Removed), rhaii (KServe for inference/model serving)
+# Options: default (all Removed), rhaii (inference), maas, ai-grid (Grid operator and CRDs)
 # Explicit managementState values override the profile.
 profile: default
+
+# -- Values shared by the optional AI Grid subcharts.
+global:
+  # -- Full image references using the XKS name/value convention. See README.md for supported names.
+  relatedImages: []
 
 # =============================================================================
 # OLM - Settings for OLM operator subscriptions
@@ -104,7 +109,7 @@ services:
 #   defaults: (optional) Operator-type-specific defaults for dsc fields
 # =============================================================================
 components:
-  # -- AI Gateway component (manages MaaS and BatchGateway sub-components)
+  # -- AI Gateway component (manages MaaS, BatchGateway, and AI Grid sub-components)
   aigateway:
     dependencies:
       certManager:
@@ -120,6 +125,10 @@ components:
         managementState:
       batchGateway:
         managementState:
+      # AI Grid sub-component (Grid operator and CRDs). Omitted from the DSC unless set,
+      # since operators without the field reject it.
+      # aiGrid:
+      #   managementState: Removed
     # -- Gateway and GatewayClass resources for MaaS (created independently of DSC)
     modelsAsAService:
       # -- GatewayClass configuration for the LLMInferenceService.
@@ -683,3 +692,32 @@ dependencies:
     #       enabled: true
     #     nodeStatusExporter:
     #       enabled: true
+
+# =============================================================================
+# AI GRID - Managed runtime subcharts vendored from github.com/praxis-proxy/grid.
+# Values under each key pass through to the subchart; see charts/<name> in this chart.
+# =============================================================================
+# -- AI Grid enrollment service
+grid-enrollment:
+  # -- Include enrollment when AIGateway and aiGrid are Managed. False uses an externally managed service.
+  enabled: true
+  # -- Stable resource names, independent of the release name
+  fullnameOverride: grid-enrollment
+  image:
+    digest: sha256:9d73ea9dee05a5e5d09437f05b42a903c867341a28c22f6e053e142693118170
+  db:
+    builtin:
+      imageDigest: sha256:b508e74304788fb4a5a2af76d8d013f20a18ee38bff3d24a705d7b730b8c0a30
+
+# -- AI Grid gateway (Praxis)
+praxis-gateway:
+  # -- Include the gateway when AIGateway and aiGrid are Managed. False uses an externally managed gateway.
+  enabled: true
+  # -- Stable resource names, independent of the release name
+  fullnameOverride: grid-gateway
+  image:
+    # -- Use the Grid gateway build, which includes Grid routing filters.
+    repository: ghcr.io/praxis-proxy/grid-gateway
+    tag: v0.2.0
+    digest: sha256:3b6679e885fb9a4ef9fa8b8fb7214de36648e649cbb80722a296b87ea1ce9f42
+    flavor: grid-gateway

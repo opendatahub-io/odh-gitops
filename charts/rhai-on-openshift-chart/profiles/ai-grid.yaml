@@ -1,0 +1,12 @@
+# AI Grid profile - AI Grid multi-cluster routing only
+# Enables AIGateway with only aiGrid and its gateway/enrollment runtimes.
+components:
+  aigateway:
+    dependencies:
+      certManager: false
+      leaderWorkerSet: false
+      rhcl: false
+    dsc:
+      managementState: Managed
+      aiGrid:
+        managementState: Managed

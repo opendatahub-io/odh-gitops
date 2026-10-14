@@ -1,0 +1,30 @@
+profile: ai-grid
+praxis-gateway:
+  overlay:
+    enabled: true
+    existingConfigMap: grid-routing
+    sidecar:
+      enabled: true
+      expectedNetwork: grid-network
+      expectedLocalSite: hub
+  config:
+    existingConfigMap: grid-gateway-config
+grid-enrollment:
+  route:
+    enabled: false
+  enrollment:
+    authz: kube
+    serviceAccount:
+      create: true
+global:
+  relatedImages:
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE
+      value: registry.example.com/rhai/grid-gateway@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE
+      value: registry.example.com/rhai/grid-enrollment@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE
+      value: registry.example.com/rhai/postgresql@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE
+      value: registry.example.com/rhai/grid-overlay-sync@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_TEST_IMAGE
+      value: registry.example.com/rhai/test-tools@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee

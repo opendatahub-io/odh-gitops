@@ -1,0 +1,56 @@
+suite: builtin Postgres TLS and DB guards
+templates:
+  - templates/db/db-builtin.yaml
+tests:
+  - it: enables Postgres TLS via an included ssl.conf
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["ssl.conf"]
+          pattern: ssl = on
+      - matchRegex:
+          path: data["ssl.conf"]
+          pattern: ssl_key_file = '/tls/server.key'
+
+  - it: copies the server key at 0600 via an initContainer (Postgres refuses lax key perms)
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: db-tls-perms
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: install -m 0600 /tls-src/tls.key /tls/server.key
+      - equal:
+          path: spec.template.spec.volumes[?(@.name=="db-tls-src")].secret.secretName
+          value: grid-db-serving-tls
+
+  - it: with a BYO db secret, the Postgres Deployment still renders and reads the BYO secret
+    set:
+      db.builtin.auth.existingSecretRef: my-db-secret
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRESQL_PASSWORD")].valueFrom.secretKeyRef.name
+          value: my-db-secret
+
+  - it: renders no DB Secret, which the bootstrap Job creates (only ConfigMap+PVC+Service+Deployment)
+    asserts:
+      - hasDocuments:
+          count: 4
+      - notFailedTemplate: {}
+
+  - it: fails fast on the unsupported provided-CA plus builtin-DB combination
+    set:
+      ca.method: provided
+      ca.provided.keySecretRef: my-ca
+      db.type: builtin
+    asserts:
+      - failedTemplate:
+          errorMessage: "ca.method=provided (or ca.provided.keySecretRef) requires db.type=external: the builtin Postgres TLS cert is issued by the bootstrap Job, which a provided CA skips, so the builtin DB would serve plaintext and the service refuses it"

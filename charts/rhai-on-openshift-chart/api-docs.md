@@ -4,6 +4,13 @@
 
 A Helm chart for installing ODH/RHOAI dependencies and component configurations
 
+## Requirements
+
+| Repository | Name | Version |
+|------------|------|---------|
+|  | grid-enrollment | 0.2.0 |
+|  | praxis-gateway | 0.2.0 |
+
 ## Values
 
 | Key | Type | Default | Description |
@@ -14,7 +21,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.aiHub.dsc | object | `{"instancesNamespace":null,"managementState":null}` | DSC configuration for AI Hub |
 | components.aiHub.dsc.instancesNamespace | string | `nil` | Namespace for model registry instances (overrides defaults). Immutable in the operator while managementState is Managed. |
 | components.aiHub.dsc.managementState | string | `nil` | Management state for AI Hub. Null uses profile default. |
-| components.aigateway | object | `{"dependencies":{"certManager":null,"leaderWorkerSet":null,"rhcl":null},"dsc":{"batchGateway":{"managementState":null},"managementState":null,"modelsAsAService":{"managementState":null}},"modelsAsAService":{"gateway":{"annotations":{"opendatahub.io/managed":"false","security.opendatahub.io/authorino-tls-bootstrap":"true"},"create":"auto","name":"maas-default-gateway","namespace":"openshift-ingress","openshiftRoute":{"enabled":false,"gatewayParametersName":"maas-gateway-options","host":"","name":"maas-gateway-route","servingCertSecretName":"maas-gw-service-tls"},"spec":{"gatewayClassName":"maas-gateway-class","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"maas-gateway-class","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}}` | AI Gateway component (manages MaaS and BatchGateway sub-components) |
+| components.aigateway | object | `{"dependencies":{"certManager":null,"leaderWorkerSet":null,"rhcl":null},"dsc":{"batchGateway":{"managementState":null},"managementState":null,"modelsAsAService":{"managementState":null}},"modelsAsAService":{"gateway":{"annotations":{"opendatahub.io/managed":"false","security.opendatahub.io/authorino-tls-bootstrap":"true"},"create":"auto","name":"maas-default-gateway","namespace":"openshift-ingress","openshiftRoute":{"enabled":false,"gatewayParametersName":"maas-gateway-options","host":"","name":"maas-gateway-route","servingCertSecretName":"maas-gw-service-tls"},"spec":{"gatewayClassName":"maas-gateway-class","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"maas-gateway-class","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}}` | AI Gateway component (manages MaaS, BatchGateway, and AI Grid sub-components) |
 | components.aigateway.dsc | object | `{"batchGateway":{"managementState":null},"managementState":null,"modelsAsAService":{"managementState":null}}` | DSC configuration for AI Gateway |
 | components.aigateway.dsc.managementState | string | `nil` | Management state for AI Gateway. Null uses profile default. |
 | components.aigateway.dsc.modelsAsAService | object | `{"managementState":null}` | Models as a Service sub-component (moved from kserve.modelsAsService in 3.5) |
@@ -143,6 +150,11 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.tempo | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"tempo-product","namespace":"openshift-tempo-operator"}}` | Tempo operator |
 | dependencies.tempo.dependencies | object | `{"opentelemetry":true}` | Dependencies required by tempo |
 | dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
+| global | object | `{"relatedImages":[]}` | Values shared by the optional AI Grid subcharts. |
+| global.relatedImages | list | `[]` | Full image references using the XKS name/value convention. See README.md for supported names. |
+| grid-enrollment | object | `{"db":{"builtin":{"imageDigest":"sha256:b508e74304788fb4a5a2af76d8d013f20a18ee38bff3d24a705d7b730b8c0a30"}},"enabled":true,"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:9d73ea9dee05a5e5d09437f05b42a903c867341a28c22f6e053e142693118170"}}` | AI Grid enrollment service |
+| grid-enrollment.enabled | bool | `true` | Include enrollment when AIGateway and aiGrid are Managed. False uses an externally managed service. |
+| grid-enrollment.fullnameOverride | string | `"grid-enrollment"` | Stable resource names, independent of the release name |
 | labels | object | `{}` | Common labels applied to all resources |
 | olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
 | olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
@@ -151,7 +163,11 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
-| profile | string | `"default"` | Deploy profile: sets default managementState for components and services. Options: default (all Removed), rhaii (KServe for inference/model serving) Explicit managementState values override the profile. |
+| praxis-gateway | object | `{"enabled":true,"fullnameOverride":"grid-gateway","image":{"digest":"sha256:3b6679e885fb9a4ef9fa8b8fb7214de36648e649cbb80722a296b87ea1ce9f42","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.2.0"}}` | AI Grid gateway (Praxis) |
+| praxis-gateway.enabled | bool | `true` | Include the gateway when AIGateway and aiGrid are Managed. False uses an externally managed gateway. |
+| praxis-gateway.fullnameOverride | string | `"grid-gateway"` | Stable resource names, independent of the release name |
+| praxis-gateway.image.repository | string | `"ghcr.io/praxis-proxy/grid-gateway"` | Use the Grid gateway build, which includes Grid routing filters. |
+| profile | string | `"default"` | Deploy profile: sets default managementState for components and services. Options: default (all Removed), rhaii (inference), maas, ai-grid (Grid operator and CRDs) Explicit managementState values override the profile. |
 | services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":null,"metrics":{},"traces":{}}}` | Monitoring service configuration |
 | services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default or Removed. |
 | skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD. |

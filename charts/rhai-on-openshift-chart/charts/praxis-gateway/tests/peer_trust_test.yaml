@@ -1,0 +1,24 @@
+suite: provider peer trust
+templates:
+  - templates/deployment.yaml
+set:
+  image.flavor: grid-gateway
+  gatewayConfig:
+    render: true
+    role: provider
+    localSite: site-a
+    backends:
+      - cluster: local
+        endpoints: ["10.0.0.1:8000"]
+        transport: {mode: plaintext}
+  tls:
+    enabled: true
+    existingSecret: grid-site-identity
+    caSecret: grid-ca
+tests:
+  - it: admits every Grid-CA site only when allowAnyGridSite is explicit
+    set:
+      gatewayConfig.peerTrust.mode: spiffe
+      gatewayConfig.peerTrust.allowAnyGridSite: true
+    asserts:
+      - notFailedTemplate: {}

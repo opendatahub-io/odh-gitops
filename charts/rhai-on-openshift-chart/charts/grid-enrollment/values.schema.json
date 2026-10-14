@@ -1,0 +1,747 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "route": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "enum": [
+            true,
+            false,
+            "true",
+            "false",
+            "auto"
+          ],
+          "description": "auto renders the Route when route.openshift.io/v1 is served."
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*$",
+          "description": "DNS-1123 subdomain, no wildcard: it becomes a serving cert SAN."
+        },
+        "rateLimit": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "concurrentTcp": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "rateTcp": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "termination": {
+              "enum": [
+                "passthrough",
+                "reencrypt"
+              ]
+            },
+            "insecureEdgeTerminationPolicy": {
+              "enum": [
+                "None",
+                "Redirect",
+                "Allow",
+                ""
+              ]
+            },
+            "destinationCACertificate": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "annotations": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^(sha256:[0-9a-f]{64})?$"
+        },
+        "pullPolicy": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ca": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "builtin",
+            "provided"
+          ]
+        },
+        "commonName": {
+          "type": "string"
+        },
+        "keySecretName": {
+          "type": "string"
+        },
+        "bundleSecretName": {
+          "type": "string"
+        },
+        "forceRegenerate": {
+          "type": "boolean"
+        },
+        "provided": {
+          "type": "object",
+          "properties": {
+            "keySecretRef": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "bootstrap": {
+          "type": "object",
+          "properties": {
+            "ttlSecondsAfterFinished": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "resources": {
+              "$ref": "#/definitions/resourceBudget"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "resources"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "commonName",
+        "keySecretName",
+        "bundleSecretName"
+      ],
+      "additionalProperties": false
+    },
+    "serving": {
+      "type": "object",
+      "properties": {
+        "secretName": {
+          "type": "string"
+        },
+        "existingSecretRef": {
+          "type": "string"
+        },
+        "extraDnsNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "enrollment": {
+      "type": "object",
+      "properties": {
+        "authz": {
+          "type": "string",
+          "enum": [
+            "local",
+            "kube"
+          ]
+        },
+        "gridAdmins": {
+          "type": "object",
+          "properties": {
+            "subjects": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "User",
+                      "Group",
+                      "ServiceAccount"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "not": {
+                      "pattern": "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$"
+                    }
+                  },
+                  "namespace": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "serviceAccount": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean"
+                },
+                "name": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "enrollmentAdmins": {
+          "type": "object",
+          "properties": {
+            "subjects": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "User",
+                      "Group",
+                      "ServiceAccount"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "not": {
+                      "pattern": "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$"
+                    }
+                  },
+                  "namespace": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "tokenAudience": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "not": {
+            "enum": [
+              "kubernetes",
+              "https://kubernetes.default.svc",
+              "https://kubernetes.default.svc/",
+              "https://kubernetes.default.svc.cluster.local",
+              "https://kubernetes.default.svc.cluster.local/"
+            ]
+          }
+        },
+        "listenAddr": {
+          "type": "string"
+        },
+        "replicaCount": {
+          "type": "integer"
+        },
+        "rotation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "certLifetimeSecs": {
+          "type": [
+            "string",
+            "integer"
+          ],
+          "description": "Leaf lifetime in seconds. Empty keeps the service default, 180 days."
+        },
+        "gridAdminTokens": {
+          "type": "object",
+          "properties": {
+            "generate": {
+              "type": "boolean"
+            },
+            "existingSecretRef": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "",
+                "ClusterIP",
+                "LoadBalancer",
+                "NodePort"
+              ],
+              "description": "Empty: LoadBalancer when host is set and no Route renders, else ClusterIP."
+            },
+            "loadBalancerIP": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "$ref": "#/definitions/resourceBudget"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "csrRecord": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "policy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "signerName": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9.-]+/[A-Za-z0-9._-]+$"
+            }
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "resources"
+      ]
+    },
+    "db": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "builtin",
+            "external"
+          ]
+        },
+        "builtin": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "imageDigest": {
+              "type": "string",
+              "pattern": "^(sha256:[0-9a-f]{64})?$"
+            },
+            "pullPolicy": {
+              "type": "string"
+            },
+            "storage": {
+              "type": "string"
+            },
+            "pvcAnnotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "resources": {
+              "$ref": "#/definitions/resourceBudget"
+            },
+            "auth": {
+              "type": "object",
+              "properties": {
+                "database": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                },
+                "existingSecretRef": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "servingSecretName": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "resources"
+          ]
+        },
+        "external": {
+          "type": "object",
+          "properties": {
+            "connectionUrlSecretRef": {
+              "type": "string"
+            },
+            "connectionUrlSecretKey": {
+              "type": "string"
+            },
+            "caConfigMapName": {
+              "type": "string"
+            },
+            "caConfigMapKey": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "if": {
+        "properties": {
+          "type": {
+            "const": "external"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "external": {
+            "properties": {
+              "connectionUrlSecretRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "connectionUrlSecretRef"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "invites": {
+      "description": "Sites to invite, keyed by site name, or the older list of {siteName, gridNetworkRef, expiresInSecs}.",
+      "type": [
+        "object",
+        "array"
+      ],
+      "oneOf": [
+        {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]([-a-z0-9]{0,49}[a-z0-9])?$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "network": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expiresInSecs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 604800
+              },
+              "cluster": {
+                "type": "string",
+                "description": "ManagedCluster name to target when it differs from the site name.",
+                "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+              }
+            }
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "siteName",
+              "gridNetworkRef"
+            ],
+            "properties": {
+              "siteName": {
+                "type": "string",
+                "description": "Site name the token pins, a DNS label short enough for the Secret name.",
+                "pattern": "^[a-z0-9]([-a-z0-9]{0,49}[a-z0-9])?$"
+              },
+              "gridNetworkRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expiresInSecs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 604800
+              },
+              "cluster": {
+                "type": "string",
+                "description": "ManagedCluster name to target when it differs from the site name.",
+                "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "hubSite": {
+      "description": "Issue the hub's own site identity straight from the grid CA, so the hub never enrolls.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Site name of the hub. Empty disables it.",
+          "type": "string",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,49}[a-z0-9])?$"
+        },
+        "namespace": {
+          "description": "Namespace of the hub's grid operator, where the identity Secrets go. Must exist before install.",
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+        },
+        "identitySecretName": {
+          "description": "Secret for the site identity.",
+          "type": "string",
+          "minLength": 1
+        },
+        "caSecretName": {
+          "description": "Secret for the grid CA beside the identity.",
+          "type": "string",
+          "minLength": 1
+        },
+        "swimKeySecretName": {
+          "description": "Secret for the grid's SWIM key, created once in the release and hub namespaces. Empty skips it.",
+          "type": "string"
+        },
+        "seedSecretName": {
+          "description": "Secret for the CA-signed seed that registers the hub's key so it can rotate.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
+    },
+    "commonLabels": {
+      "type": "object"
+    },
+    "imagePullSecrets": {
+      "type": "array"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Subchart toggle set by a parent chart's dependency condition."
+    },
+    "global": {
+      "type": "object",
+      "description": "Global values Helm passes to every subchart."
+    },
+    "host": {
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*$",
+      "description": "The enrollment name sites connect to: a serving cert name and the default route.host."
+    },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "pattern": "^([oO][fF][fF]|[eE][rR][rR][oO][rR]|[wW][aA][rR][nN]|[iI][nN][fF][oO]|[dD][eE][bB][uU][gG]|[tT][rR][aA][cC][eE])$",
+          "description": "Level for every module: off, error, warn, info, debug, or trace, in any case."
+        },
+        "filter": {
+          "type": "string",
+          "description": "Full RUST_LOG directive, such as info,enrollment=debug. When set, it replaces level."
+        }
+      }
+    },
+    "invitePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clusterSet": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "initResources": {
+      "$ref": "#/definitions/resourceBudget"
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "from": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "routerNamespaceSelector": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "required": [
+    "image",
+    "ca",
+    "serving",
+    "enrollment",
+    "db",
+    "initResources"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "resourceBudget": {
+      "type": "object",
+      "required": [
+        "requests",
+        "limits"
+      ],
+      "properties": {
+        "requests": {
+          "type": "object",
+          "required": [
+            "cpu",
+            "memory"
+          ],
+          "properties": {
+            "cpu": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "memory": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "required": [
+            "cpu",
+            "memory"
+          ],
+          "properties": {
+            "cpu": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "memory": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

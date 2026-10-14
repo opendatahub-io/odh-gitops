@@ -1,0 +1,30 @@
+suite: builtin Postgres volume
+templates:
+  - templates/db/db-builtin.yaml
+tests:
+  - it: carries no annotations by default
+    documentSelector:
+      path: kind
+      value: PersistentVolumeClaim
+    asserts:
+      - notExists:
+          path: metadata.annotations
+
+  - it: carries the given annotations, so a GitOps install can keep the site records
+    documentSelector:
+      path: kind
+      value: PersistentVolumeClaim
+    set:
+      db.builtin.pvcAnnotations:
+        argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: Prune=false,Delete=false
+
+  - it: refuses a non-string annotation value
+    set:
+      db.builtin.pvcAnnotations:
+        keep: true
+    asserts:
+      - failedTemplate: {}

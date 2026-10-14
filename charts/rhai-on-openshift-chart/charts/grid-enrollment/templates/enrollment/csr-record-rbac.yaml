@@ -1,0 +1,80 @@
+{{- define "grid-enrollment.rhoai.enrollment/csr-record-rbac.yaml" -}}
+{{- include "grid-enrollment.normalize" . }}
+{{- if and (eq .Values.enrollment.authz "kube") .Values.enrollment.csrRecord.enabled }}
+{{- $signer := .Values.enrollment.csrRecord.signerName }}
+{{/*
+The service records each enrollment as a CertificateSigningRequest. Two roles:
+filing needs create plus the status subresource and the sign verb on the
+signer; approving needs the approval subresource and the approve verb. They are
+separate so a later release can move approval to people without rewriting the
+filing role. Cluster-scoped, so the names carry the namespace. The installing
+principal must itself hold approve and sign on the signer, or RBAC escalation
+prevention refuses these roles.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-csr-file
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests"]
+    verbs: ["create"]
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests/status"]
+    verbs: ["patch"]
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["signers"]
+    resourceNames: [{{ $signer | quote }}]
+    verbs: ["sign"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-csr-approve
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests/approval"]
+    verbs: ["patch"]
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["signers"]
+    resourceNames: [{{ $signer | quote }}]
+    verbs: ["approve"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-csr-file
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-csr-file
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-csr-approve
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-csr-approve
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/csr-record-rbac.yaml" . }}
+{{- end }}

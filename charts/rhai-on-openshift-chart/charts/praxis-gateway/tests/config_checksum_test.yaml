@@ -1,0 +1,76 @@
+suite: config checksum
+templates:
+  - templates/deployment.yaml
+release:
+  name: gw
+  namespace: grid
+set:
+  image.flavor: grid-gateway
+  tls.enabled: true
+  tls.existingSecret: grid-site-identity
+  tls.caSecret: grid-ca
+tests:
+  - it: hashes the rendered config, so a gatewayConfig change rolls the pods
+    set:
+      gatewayConfig.render: true
+      gatewayConfig.localSite: east
+      gatewayConfig.role: provider
+      gatewayConfig.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      gatewayConfig.backends:
+        - cluster: local
+          endpoints: ["10.96.0.20:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: ^[0-9a-f]{64}$
+      # Pinned so the changed-endpoint test below compares against a real hash.
+      - equal:
+          path: spec.template.metadata.annotations["checksum/config"]
+          value: 0a7543d2d56503b318ce2fda109d1bd1875cab9267d9ae77406d68eac7d528e2
+
+  - it: hashes the config when render turns on by itself
+    set:
+      gatewayConfig.localSite: east
+      gatewayConfig.role: provider
+      gatewayConfig.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      gatewayConfig.backends:
+        - cluster: local
+          endpoints: ["10.96.0.20:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - exists:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  - it: a changed backend endpoint changes the checksum
+    set:
+      gatewayConfig.render: true
+      gatewayConfig.localSite: east
+      gatewayConfig.role: provider
+      gatewayConfig.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      gatewayConfig.backends:
+        - cluster: local
+          endpoints: ["10.96.0.21:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      # The 10.96.0.20 config's hash, from the first test.
+      - notEqual:
+          path: spec.template.metadata.annotations["checksum/config"]
+          value: 0a7543d2d56503b318ce2fda109d1bd1875cab9267d9ae77406d68eac7d528e2
+
+  - it: inline config is hashed as given
+    set:
+      tls.enabled: false
+      config.inline: 'listeners: [{name: default, address: "0.0.0.0:8080"}]'
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum/config"]
+          value: a57d7f9e283ac1782f59ef0fdd09f136e368b10093eef3bb5be3ab463a1fb779
+
+  - it: an existing ConfigMap the chart does not own gets no checksum
+    set:
+      tls.enabled: false
+      config.existingConfigMap: my-praxis
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations["checksum/config"]

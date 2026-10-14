@@ -292,7 +292,11 @@ process_snapshot() {
         mkdir -p "${snapshot_dir}"
 
         # Generate snapshot
-        helm "${helm_args[@]}" "${chart_path}" > "${snapshot_file}"
+        if ! helm "${helm_args[@]}" "${chart_path}" > "${snapshot_file}"; then
+            echo "      FAIL: helm template failed while generating snapshot"
+            rm -f "${snapshot_file}"
+            return 1
+        fi
 
         # Redact version
         redact_version "${snapshot_file}"

@@ -1,0 +1,50 @@
+suite: downstream listener safety
+templates:
+  - templates/route.yaml
+  - templates/deployment.yaml
+  - templates/networkpolicy.yaml
+tests:
+  - it: rejects passthrough to the default plaintext inline listener
+    template: templates/route.yaml
+    set:
+      route.enabled: true
+      route.host: gateway.apps.example.com
+    asserts:
+      - failedTemplate: {errorPattern: inline/external config requires route.externalTls}
+  - it: requires a TLS attestation for an external ConfigMap
+    template: templates/route.yaml
+    set:
+      route.enabled: true
+      route.host: gateway.apps.example.com
+      config.existingConfigMap: external-gateway
+    asserts:
+      - failedTemplate: {errorPattern: inline/external config requires route.externalTls}
+  - it: permits explicitly attested external TLS
+    template: templates/route.yaml
+    set:
+      route.enabled: true
+      route.host: gateway.apps.example.com
+      route.externalTls: true
+      config.existingConfigMap: external-gateway
+    asserts:
+      - isKind: {of: Route}
+  - it: refuses plaintext telemetry without an explicit opt-in
+    template: templates/route.yaml
+    set:
+      gatewayConfig.telemetry.otlpEndpoint: http://collector:4317
+    asserts:
+      - failedTemplate: {errorPattern: HTTP telemetry requires}
+  - it: permits explicit plaintext for a local collector
+    template: templates/deployment.yaml
+    set:
+      gatewayConfig.telemetry.otlpEndpoint: http://collector:4317
+      gatewayConfig.telemetry.allowInsecure: true
+    asserts:
+      - isKind: {of: Deployment}
+  - it: restricts listener ingress by default
+    template: templates/networkpolicy.yaml
+    asserts:
+      - isKind: {of: NetworkPolicy}
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["grid.opendatahub.io/gateway-client"]
+          value: "true"

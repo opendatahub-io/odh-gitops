@@ -1,0 +1,483 @@
+{{- define "praxis-gateway.rhoai.deployment.yaml" -}}
+{{- include "praxis-gateway.normalize" . }}
+{{- include "praxis-gateway.validateDigest" . }}
+{{- include "praxis-gateway.validateConfig" . }}
+{{- include "praxis-gateway.validateMounts" . }}
+{{- include "praxis-gateway.validateProbes" . }}
+{{- include "praxis-gateway.validateMetricsListener" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+  {{- if or (.Values.gridServing).enabled .Values.mountReconciliation.enabled }}
+  annotations:
+    {{- if (.Values.gridServing).enabled }}
+    {{- /* The operator writes the serving ConfigMap only after the grid CRs (wave 1) exist. */}}
+    argocd.argoproj.io/sync-wave: "2"
+    {{- end }}
+    {{- if .Values.mountReconciliation.enabled }}
+    grid.praxis-proxy.io/mount-reconciliation: "enabled"
+    grid.praxis-proxy.io/network: {{ .Values.mountReconciliation.network | quote }}
+    grid.praxis-proxy.io/gateway: {{ (.Values.mountReconciliation.gatewayRef | default (include "praxis-gateway.fullname" .)) | quote }}
+    {{- if .Values.gridServing.enabled }}
+    grid.praxis-proxy.io/grid-serving-tls: "chart-managed"
+    {{- end }}
+    {{- end }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "praxis-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- $selectorLabels := include "praxis-gateway.selectorLabels" . | fromYaml }}
+        {{- $podLabels := mustMergeOverwrite (dict "app.kubernetes.io/component" "gateway") (.Values.podLabels | default dict) $selectorLabels }}
+        {{- toYaml $podLabels | nindent 8 }}
+      {{- $configSource := include "praxis-gateway.configSource" . }}
+      {{- $podAnnotations := deepCopy (.Values.podAnnotations | default dict) }}
+      {{- /* A changed chart-rendered config must reach new pods: the hash rolls the Deployment. */}}
+      {{- if eq $configSource "inline" }}
+      {{- $_ := set $podAnnotations "checksum/config" (toString .Values.config.inline | sha256sum) }}
+      {{- else if eq $configSource "render" }}
+      {{- $_ := set $podAnnotations "checksum/config" (include "praxis-gateway.gatewayConfigData" . | sha256sum) }}
+      {{- end }}
+      {{- if (.Values.gatewayConfig.telemetry).enabled }}
+      {{- /* Exporter initialization is process-scoped, so changed settings need a restart. */}}
+      {{- $_ := set $podAnnotations "checksum/telemetry" (toJson .Values.gatewayConfig.telemetry | sha256sum) }}
+      {{- end }}
+      {{- with $podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      {{- /* The preStop delay comes out of the grace period, so add it on top of Praxis's drain time. */}}
+      {{- $delay := int (.Values.shutdownDelaySeconds | default 0) }}
+      {{- $grace := .Values.terminationGracePeriodSeconds }}
+      {{- if kindIs "invalid" $grace }}
+      {{- $grace = add 30 $delay }}
+      {{- else if le (int $grace) $delay }}
+      {{- fail "terminationGracePeriodSeconds must be longer than shutdownDelaySeconds, or the pod is killed before Praxis can drain" }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $grace }}
+      {{- if and .Values.overlay.enabled .Values.overlay.sidecar.enabled }}
+      serviceAccountName: {{ include "praxis-gateway.fullname" . }}-overlay-sync
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        {{- with .Values.podSecurityContext.runAsUser }}
+        runAsUser: {{ . }}
+        {{- end }}
+        {{- with .Values.podSecurityContext.runAsGroup }}
+        runAsGroup: {{ . }}
+        {{- end }}
+        {{- with .Values.podSecurityContext.fsGroup }}
+        fsGroup: {{ . }}
+        {{- end }}
+        {{- with .Values.podSecurityContext.supplementalGroups }}
+        supplementalGroups:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      {{- if and .Values.overlay.enabled .Values.overlay.sidecar.enabled }}
+      initContainers:
+        - name: overlay-sync-init
+          image: {{ include "praxis-gateway.overlaySyncImage" . }}
+          imagePullPolicy: {{ .Values.overlay.sidecar.image.pullPolicy | quote }}
+          {{- with include "praxis-gateway.rustLog" . }}
+          env:
+            - name: RUST_LOG
+              value: {{ . | quote }}
+          {{- end }}
+          args:
+            - "--namespace"
+            - {{ .Release.Namespace | quote }}
+            - "--config-map"
+            - {{ .Values.overlay.existingConfigMap | quote }}
+            - "--data-key"
+            - {{ .Values.overlay.sidecar.dataKey | quote }}
+            - "--output"
+            - {{ printf "%s/%s" .Values.overlay.mountPath .Values.overlay.sidecar.dataKey | quote }}
+            - "--expected-network"
+            - {{ .Values.overlay.sidecar.expectedNetwork | quote }}
+            - "--expected-gateway"
+            - {{ include "praxis-gateway.fullname" . | quote }}
+            - "--expected-local-site"
+            - {{ .Values.overlay.sidecar.expectedLocalSite | quote }}
+            - "--once"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          {{- with .Values.overlay.sidecar.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: overlay
+              mountPath: {{ .Values.overlay.mountPath | quote }}
+              readOnly: false
+            - name: sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+      {{- end }}
+      containers:
+        {{- if and .Values.overlay.enabled .Values.overlay.sidecar.enabled }}
+        - name: overlay-sync
+          image: {{ include "praxis-gateway.overlaySyncImage" . }}
+          imagePullPolicy: {{ .Values.overlay.sidecar.image.pullPolicy | quote }}
+          {{- with include "praxis-gateway.rustLog" . }}
+          env:
+            - name: RUST_LOG
+              value: {{ . | quote }}
+          {{- end }}
+          args:
+            - "--namespace"
+            - {{ .Release.Namespace | quote }}
+            - "--config-map"
+            - {{ .Values.overlay.existingConfigMap | quote }}
+            - "--data-key"
+            - {{ .Values.overlay.sidecar.dataKey | quote }}
+            - "--output"
+            - {{ printf "%s/%s" .Values.overlay.mountPath .Values.overlay.sidecar.dataKey | quote }}
+            - "--expected-network"
+            - {{ .Values.overlay.sidecar.expectedNetwork | quote }}
+            - "--expected-gateway"
+            - {{ include "praxis-gateway.fullname" . | quote }}
+            - "--expected-local-site"
+            - {{ .Values.overlay.sidecar.expectedLocalSite | quote }}
+            - "--health-addr"
+            - "0.0.0.0:9091"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9091
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 9091
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          {{- with .Values.overlay.sidecar.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: overlay
+              mountPath: {{ .Values.overlay.mountPath | quote }}
+              readOnly: false
+            - name: sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+        {{- end }}
+        - name: praxis
+          image: {{ include "praxis-gateway.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- $validateCA := .Values.gatewayConfig.auth.validateCA }}
+          {{- $withCA := and .Values.gatewayConfig.render (eq .Values.gatewayConfig.auth.mode "api-key") (or $validateCA.configMap $validateCA.secret) }}
+          {{- /* A user RUST_LOG in env wins: a duplicate name fails server-side apply. */ -}}
+          {{- $userLog := false }}
+          {{- range .Values.env }}{{- if eq .name "RUST_LOG" }}{{- $userLog = true }}{{- end }}{{- end }}
+          {{- $rustLog := and (not $userLog) (include "praxis-gateway.rustLog" .) }}
+          {{- if or $rustLog .Values.env (.Values.gridServing).enabled $withCA (.Values.metricsListener).enabled }}
+          env:
+            {{- if $rustLog }}
+            - name: RUST_LOG
+              value: {{ include "praxis-gateway.rustLog" . | quote }}
+            {{- end }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if (.Values.gridServing).enabled }}
+            - name: GRID_SERVING_CONFIG
+              value: {{ printf "%s/serving-config.json" .Values.gridServing.mountPath | quote }}
+            {{- end }}
+            {{- if $withCA }}
+            - name: SSL_CERT_FILE
+              value: {{ printf "%s/%s" $validateCA.mountPath $validateCA.key | quote }}
+            {{- end }}
+            {{- with .Values.metricsListener }}
+            {{- if .enabled }}
+            - name: GRID_METRICS_ADDR
+              value: {{ printf "0.0.0.0:%d" (int .port) | quote }}
+            - name: GRID_METRICS_TLS_CERT
+              value: {{ printf "%s/tls.crt" .mountPath | quote }}
+            - name: GRID_METRICS_TLS_KEY
+              value: {{ printf "%s/tls.key" .mountPath | quote }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if include "praxis-gateway.applyImageUser" . }}
+            runAsUser: {{ .Values.imageUser.uid }}
+            {{- if not (hasKey (.Values.podSecurityContext | default dict) "runAsGroup") }}
+            runAsGroup: {{ .Values.imageUser.gid }}
+            {{- end }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: {{ include "praxis-gateway.portName" . }}
+              containerPort: {{ .Values.port.containerPort }}
+              protocol: {{ .Values.port.protocol | quote }}
+            {{- if .Values.metricsListener.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.metricsListener.port }}
+              protocol: TCP
+            {{- end }}
+          {{- with .Values.health.readiness }}
+          readinessProbe:
+            {{- /* /ready fails while any backend cluster is down. */}}
+            {{- $readyPath := "/ready" }}
+            {{- if include "praxis-gateway.servesBackends" $ }}{{ $readyPath = "/healthy" }}{{ end }}
+            {{- include "praxis-gateway.probe" (list . $ $readyPath) | nindent 12 }}
+          {{- end }}
+          {{- with .Values.health.liveness }}
+          livenessProbe:
+            {{- include "praxis-gateway.probe" (list . $ "/healthy") | nindent 12 }}
+          {{- end }}
+          {{- with .Values.shutdownDelaySeconds }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", {{ . | quote }}]
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/praxis
+              readOnly: true
+            {{- if .Values.overlay.enabled }}
+            - name: overlay
+              mountPath: {{ .Values.overlay.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- if and .Values.tls.enabled (or (not .Values.mountReconciliation.enabled) (not .Values.mountReconciliation.releaseHelmMounts) .Values.gridServing.enabled) }}
+            - name: tls
+              mountPath: {{ .Values.tls.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- if (.Values.gridServing).enabled }}
+            - name: grid-serving
+              mountPath: {{ .Values.gridServing.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.gatewayConfig.upstreamCA.secretName }}
+            - name: upstream-ca
+              mountPath: {{ .Values.gatewayConfig.upstreamCA.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.gatewayConfig.render }}
+            {{- range $i, $backend := .Values.gatewayConfig.backends | default list }}
+            {{- if (.transport).ca }}
+            - name: backend-ca-{{ $i }}
+              mountPath: /etc/praxis/backend-ca/{{ $i }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.gatewayConfig.listenerTls.enabled }}
+            - name: listener-tls
+              mountPath: {{ .Values.gatewayConfig.listenerTls.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.metricsListener.enabled }}
+            - name: metrics-tls
+              mountPath: {{ .Values.metricsListener.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- if $withCA }}
+            - name: validate-ca
+              mountPath: {{ $validateCA.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- range .Values.credentials }}
+            {{- if or (not $.Values.mountReconciliation.enabled) (not $.Values.mountReconciliation.releaseHelmMounts) (not (has .name $.Values.mountReconciliation.managedCredentialNames)) }}
+            - name: credential-{{ .name }}
+              mountPath: {{ .mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            {{- if .Values.gatewayConfig.render }}
+            name: {{ include "praxis-gateway.fullname" . }}-config
+            items:
+              - key: "praxis.yaml"
+                path: "praxis.yaml"
+              {{- if eq (.Values.gatewayConfig.auth.mode | default "none") "api-key" }}
+              - key: "policy.yaml"
+                path: "policy.yaml"
+              {{- end }}
+            {{- else if eq $configSource "existing" }}
+            name: {{ .Values.config.existingConfigMap | quote }}
+            items:
+              - key: {{ .Values.config.key | quote }}
+                path: "praxis.yaml"
+            {{- else }}
+            name: {{ include "praxis-gateway.fullname" . }}-config
+            items:
+              - key: "praxis.yaml"
+                path: "praxis.yaml"
+            {{- end }}
+        {{- if .Values.overlay.enabled }}
+        {{- if .Values.overlay.sidecar.enabled }}
+        - name: overlay
+          emptyDir:
+            sizeLimit: "10Mi"
+        - name: sa-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
+        {{- else }}
+        - name: overlay
+          configMap:
+            name: {{ .Values.overlay.existingConfigMap | quote }}
+            {{- with .Values.overlay.items }}
+            items:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- if and .Values.tls.enabled (or (not .Values.mountReconciliation.enabled) (not .Values.mountReconciliation.releaseHelmMounts) .Values.gridServing.enabled) }}
+        - name: tls
+          {{- if include "praxis-gateway.caSecret" . }}
+          projected:
+            sources:
+              - secret:
+                  name: {{ .Values.tls.existingSecret | quote }}
+                  items: [{ key: tls.crt, path: tls.crt }, { key: tls.key, path: tls.key }]
+              - secret:
+                  name: {{ include "praxis-gateway.caSecret" . | quote }}
+                  items: [{ key: ca.crt, path: ca.crt }]
+          {{- else }}
+          secret:
+            secretName: {{ .Values.tls.existingSecret | quote }}
+          {{- end }}
+        {{- end }}
+        {{- if (.Values.gridServing).enabled }}
+        - name: grid-serving
+          configMap:
+            name: {{ include "praxis-gateway.servingConfigMap" . | quote }}
+            optional: false
+        {{- end }}
+        {{- if .Values.gatewayConfig.upstreamCA.secretName }}
+        - name: upstream-ca
+          secret:
+            secretName: {{ .Values.gatewayConfig.upstreamCA.secretName | quote }}
+        {{- end }}
+        {{- if .Values.gatewayConfig.render }}
+        {{- range $i, $backend := .Values.gatewayConfig.backends | default list }}
+        {{- with (.transport).ca }}
+        - name: backend-ca-{{ $i }}
+          {{- if .configMap }}
+          configMap:
+            name: {{ .configMap | quote }}
+          {{- else }}
+          secret:
+            secretName: {{ .secret | quote }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- $validateCA := .Values.gatewayConfig.auth.validateCA }}
+        {{- $apiKeyRender := and .Values.gatewayConfig.render (eq .Values.gatewayConfig.auth.mode "api-key") }}
+        {{- if and $apiKeyRender $validateCA.configMap }}
+        - name: validate-ca
+          configMap:
+            name: {{ $validateCA.configMap | quote }}
+        {{- else if and $apiKeyRender $validateCA.secret }}
+        - name: validate-ca
+          secret:
+            secretName: {{ $validateCA.secret | quote }}
+        {{- end }}
+        {{- if .Values.gatewayConfig.listenerTls.enabled }}
+        - name: listener-tls
+          secret:
+            secretName: {{ .Values.gatewayConfig.listenerTls.existingSecret | quote }}
+        {{- end }}
+        {{- if .Values.metricsListener.enabled }}
+        - name: metrics-tls
+          secret:
+            secretName: {{ .Values.metricsListener.existingSecret | quote }}
+        {{- end }}
+        {{- range .Values.credentials }}
+        {{- if or (not $.Values.mountReconciliation.enabled) (not $.Values.mountReconciliation.releaseHelmMounts) (not (has .name $.Values.mountReconciliation.managedCredentialNames)) }}
+        - name: credential-{{ .name }}
+          secret:
+            secretName: {{ .name | quote }}
+            optional: {{ .optional | default false }}
+        {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "praxis-gateway.rhoai.deployment.yaml" . }}
+{{- end }}

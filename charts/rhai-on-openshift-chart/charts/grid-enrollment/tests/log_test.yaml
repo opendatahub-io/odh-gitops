@@ -1,0 +1,74 @@
+suite: log level
+templates:
+  - templates/enrollment/deployment.yaml
+  - templates/enrollment/invite-job.yaml
+  - templates/certs/ca-bootstrap-job.yaml
+set:
+  host: enroll.example.com
+  invites:
+    site-a: {network: grid}
+tests:
+  - it: renders the default level as RUST_LOG on the service and both Jobs
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: info}
+        template: templates/enrollment/deployment.yaml
+        documentSelector: {path: kind, value: Deployment}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: info}
+        template: templates/enrollment/invite-job.yaml
+        documentSelector: {path: kind, value: Job}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: info}
+        template: templates/certs/ca-bootstrap-job.yaml
+        documentSelector: {path: kind, value: Job}
+
+  - it: renders a chosen level on the service and both Jobs
+    set:
+      log.level: debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: debug}
+        template: templates/enrollment/deployment.yaml
+        documentSelector: {path: kind, value: Deployment}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: debug}
+        template: templates/enrollment/invite-job.yaml
+        documentSelector: {path: kind, value: Job}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: debug}
+        template: templates/certs/ca-bootstrap-job.yaml
+        documentSelector: {path: kind, value: Job}
+
+  - it: lets filter replace the level
+    set:
+      log.filter: info,enrollment=trace
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: "info,enrollment=trace"}
+        template: templates/enrollment/deployment.yaml
+        documentSelector: {path: kind, value: Deployment}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: "info,enrollment=trace"}
+        template: templates/enrollment/invite-job.yaml
+        documentSelector: {path: kind, value: Job}
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: RUST_LOG, value: "info,enrollment=trace"}
+        template: templates/certs/ca-bootstrap-job.yaml
+        documentSelector: {path: kind, value: Job}
+
+  - it: rejects an unknown level
+    set:
+      log.level: verbose
+    asserts:
+      - failedTemplate: {}
+        template: templates/enrollment/deployment.yaml

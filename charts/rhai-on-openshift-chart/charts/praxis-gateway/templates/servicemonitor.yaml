@@ -1,0 +1,43 @@
+{{- define "praxis-gateway.rhoai.servicemonitor.yaml" -}}
+{{- include "praxis-gateway.normalize" . }}
+{{- with .Values.metricsListener }}
+{{- if and .enabled .serviceMonitor.enabled }}
+{{- $name := printf "%s-metrics" (include "praxis-gateway.fullname" $) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "praxis-gateway.labels" $ | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "praxis-gateway.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: gateway-metrics
+  endpoints:
+    - port: metrics
+      scheme: https
+      path: /metrics
+      interval: {{ .serviceMonitor.interval }}
+      {{- with .serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . | quote }}
+      {{- end }}
+      tlsConfig:
+        serverName: {{ printf "%s.%s.svc" $name $.Release.Namespace }}
+        ca:
+          configMap:
+            name: {{ .serviceMonitor.caConfigMap.name | quote }}
+            key: {{ .serviceMonitor.caConfigMap.key | quote }}
+      metricRelabelings:
+        # Praxis names the upstream cluster "cluster", which ACM sets to the managed cluster.
+        - sourceLabels: [cluster]
+          regex: "(.+)"
+          targetLabel: backend
+        - action: labeldrop
+          regex: cluster
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "praxis-gateway.rhoai.servicemonitor.yaml" . }}
+{{- end }}

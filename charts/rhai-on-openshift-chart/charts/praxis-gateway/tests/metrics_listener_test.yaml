@@ -1,0 +1,183 @@
+suite: metrics listener
+templates:
+  - templates/deployment.yaml
+  - templates/service-metrics.yaml
+  - templates/servicemonitor.yaml
+  - templates/networkpolicy.yaml
+  - templates/service.yaml
+release:
+  name: gw
+  namespace: grid
+set:
+  image.flavor: grid-gateway
+  image.repository: quay.io/sbatsche/grid-gateway
+  image.tag: t
+  networkPolicy.enabled: true
+  networkPolicy.from:
+    - podSelector: {}
+  metricsListener.enabled: true
+  metricsListener.existingSecret: grid-gateway-metrics-tls
+  metricsListener.fromNamespaces: [openshift-user-workload-monitoring, openshift-monitoring]
+tests:
+  - it: renders nothing for metrics by default
+    set:
+      metricsListener.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/service-metrics.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/servicemonitor.yaml
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "GRID_METRICS_ADDR")]
+        template: templates/deployment.yaml
+
+  - it: points the gateway at the listener address and the mounted cert
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "GRID_METRICS_ADDR")].value
+          value: "0.0.0.0:9443"
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "GRID_METRICS_TLS_KEY")].value
+          value: /etc/praxis/metrics-tls/tls.key
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].ports[?(@.name == "metrics")].containerPort
+          value: 9443
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "metrics-tls")].secret.secretName
+          value: grid-gateway-metrics-tls
+
+  - it: serves metrics on a ClusterIP Service of its own, never the gateway Service
+    set:
+      service.type: LoadBalancer
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+        template: templates/service-metrics.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: gateway-metrics
+        template: templates/service-metrics.yaml
+      - notContains:
+          path: spec.ports
+          content: {name: metrics, port: 9443, targetPort: metrics, protocol: TCP}
+        template: templates/service.yaml
+
+  - it: admits only the named namespaces to the metrics port
+    template: templates/networkpolicy.yaml
+    asserts:
+      - equal:
+          path: spec.ingress[1]
+          value:
+            from:
+              - namespaceSelector:
+                  matchExpressions:
+                    - key: kubernetes.io/metadata.name
+                      operator: In
+                      values: [openshift-user-workload-monitoring, openshift-monitoring]
+            ports:
+              - port: 9443
+                protocol: TCP
+      - lengthEqual:
+          path: spec.ingress
+          count: 2
+
+  - it: scrapes over verified TLS and renames the praxis cluster label to backend
+    template: templates/servicemonitor.yaml
+    set:
+      metricsListener.serviceMonitor.enabled: true
+      metricsListener.serviceMonitor.caConfigMap: {name: openshift-service-ca.crt, key: service-ca.crt}
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: gateway-metrics
+      - equal:
+          path: spec.endpoints[0].tlsConfig.serverName
+          value: gw-praxis-gateway-metrics.grid.svc
+      - equal:
+          path: spec.endpoints[0].tlsConfig.ca.configMap.name
+          value: openshift-service-ca.crt
+      - equal:
+          path: spec.endpoints[0].metricRelabelings
+          value:
+            - sourceLabels: [cluster]
+              regex: "(.+)"
+              targetLabel: backend
+            - action: labeldrop
+              regex: cluster
+
+  - it: leaves the scrape timeout to Prometheus unless it is set
+    template: templates/servicemonitor.yaml
+    set:
+      metricsListener.serviceMonitor.enabled: true
+      metricsListener.serviceMonitor.caConfigMap: {name: openshift-service-ca.crt, key: service-ca.crt}
+    asserts:
+      - notExists:
+          path: spec.endpoints[0].scrapeTimeout
+
+  - it: scrapes with the timeout it is given, for an interval under Prometheus's default
+    template: templates/servicemonitor.yaml
+    set:
+      metricsListener.serviceMonitor.enabled: true
+      metricsListener.serviceMonitor.caConfigMap: {name: openshift-service-ca.crt, key: service-ca.crt}
+      metricsListener.serviceMonitor.interval: 5s
+      metricsListener.serviceMonitor.scrapeTimeout: 5s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 5s
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: "5s"
+
+  - it: refuses the listener without the NetworkPolicy
+    template: templates/deployment.yaml
+    set:
+      networkPolicy.enabled: false
+    asserts:
+      - failedTemplate:
+          errorPattern: "metricsListener needs networkPolicy.enabled"
+
+  - it: refuses the listener without a cert
+    template: templates/deployment.yaml
+    set:
+      metricsListener.existingSecret: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: "metricsListener.existingSecret is required"
+
+  - it: refuses the listener without namespaces
+    template: templates/deployment.yaml
+    set:
+      metricsListener.fromNamespaces: []
+    asserts:
+      - failedTemplate:
+          errorPattern: "metricsListener.fromNamespaces needs at least one namespace"
+
+  - it: refuses the listener on the ai image
+    template: templates/deployment.yaml
+    set:
+      image.flavor: ai
+      image.repository: ghcr.io/praxis-proxy/ai
+    asserts:
+      - failedTemplate:
+          errorPattern: "metricsListener needs image.flavor grid-gateway"
+
+  - it: refuses a metrics port the gateway already uses
+    template: templates/deployment.yaml
+    set:
+      metricsListener.port: 8080
+    asserts:
+      - failedTemplate:
+          errorPattern: "metricsListener.port 8080 collides"
+
+  - it: refuses a ServiceMonitor without a CA
+    template: templates/deployment.yaml
+    set:
+      metricsListener.serviceMonitor.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "caConfigMap.name is required"

@@ -1,0 +1,65 @@
+suite: log level
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: leaves RUST_LOG unset by default so the pod template does not change on upgrade
+    set:
+      overlay: {enabled: true, existingConfigMap: ov, sidecar: {enabled: true, expectedNetwork: grid, expectedLocalSite: a}}
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "overlay-sync")].env
+      - notExists:
+          path: spec.template.spec.initContainers[?(@.name == "overlay-sync-init")].env
+
+  - it: accepts a level in any case and off
+    set:
+      log.level: OFF
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env
+          content: {name: RUST_LOG, value: "OFF"}
+
+  - it: renders a chosen level on the gateway and overlay-sync
+    set:
+      log.level: debug
+      overlay: {enabled: true, existingConfigMap: ov, sidecar: {enabled: true, expectedNetwork: grid, expectedLocalSite: a}}
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env
+          content: {name: RUST_LOG, value: debug}
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "overlay-sync")].env
+          content: {name: RUST_LOG, value: debug}
+      - contains:
+          path: spec.template.spec.initContainers[?(@.name == "overlay-sync-init")].env
+          content: {name: RUST_LOG, value: debug}
+
+  - it: lets filter replace the level
+    set:
+      log.level: debug
+      log.filter: info,praxis_filter=debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env
+          content: {name: RUST_LOG, value: "info,praxis_filter=debug"}
+
+  - it: leaves RUST_LOG to a user env entry, without a duplicate
+    set:
+      log.level: debug
+      env:
+        - {name: RUST_LOG, value: trace}
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env
+          content: {name: RUST_LOG, value: trace}
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env
+          content: {name: RUST_LOG, value: debug}
+
+  - it: rejects an unknown level
+    set:
+      log.level: verbose
+    asserts:
+      - failedTemplate: {}

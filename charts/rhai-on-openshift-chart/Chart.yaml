@@ -11,3 +11,10 @@ keywords:
   - ai
   - rhaii
   - rhai
+dependencies:
+  - name: grid-enrollment
+    version: "0.2.0"
+    condition: grid-enrollment.enabled
+  - name: praxis-gateway
+    version: "0.2.0"
+    condition: praxis-gateway.enabled
