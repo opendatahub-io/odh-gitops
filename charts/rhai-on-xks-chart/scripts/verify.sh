@@ -7,6 +7,7 @@
 #   ./verify.sh 2 3          # run tests 2 and 3
 #   ./verify.sh 4            # standalone cert-manager; removes the test installation
 #   ./verify.sh 6            # MaaS namespace bootstrap; cleans up the release first
+#   ./verify.sh 7            # XKS gateway enable/disable lifecycle
 #
 # Test 6 uninstalls RELEASE_NAME and deletes redhat-ai-gateway-infra, including
 # its contents. Run this script only against a disposable test cluster.
@@ -180,6 +181,9 @@ test_1_install_check() {
   wait_ke_ready || return 1
   wait_for_cr_ready "kserves.components.platform.opendatahub.io" "default-kserve" "KServe restored" || return 1
   wait_for_deployment "inference-gateway-istio" "redhat-ods-applications"
+
+  # xks-gateway subchart is opt-in: no CRD, resources, or controller by default
+  assert_gateway_disabled
 }
 
 # ─── Tests 2 and 3: isolated dependency Managed→Unmanaged→Managed ────────────
@@ -295,6 +299,34 @@ test_4_external_certmanager() {
   kubectl delete namespace cert-manager-operator cert-manager --ignore-not-found --timeout="${TIMEOUT}s"
 }
 
+# ─── Test 7: xks-gateway enable/disable lifecycle ──────────────────────────
+
+test_7_xks_gateway_lifecycle() {
+  local gateway_values="${SCRIPT_DIR}/../test/values-e2e-gateway.yaml"
+  if [[ ! -f "$gateway_values" ]]; then
+    fail "Gateway values file not found: $gateway_values"
+    return 1
+  fi
+
+  log "Deploying with configured xks-gateway (domain + OIDC secret)"
+  helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values" || return 1
+  wait_ke_ready || return 1
+
+  assert_gateway_configured_resources "e2e.example.com"
+  assert_operator_gateway_service_enabled
+  if [[ "$ASSERT_FAILED" -ne 0 ]]; then
+    return 1
+  fi
+
+  log "Disabling xks-gateway subchart (controller off)"
+  helm_deploy --set "xks-gateway.enabled=false" || return 1
+  wait_ke_ready || return 1
+  wait_for_deployment "rhai-operator" "redhat-ods-operator" || return 1
+
+  assert_gateway_disabled_after_upgrade
+  assert_not_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
+}
+
 # ─── Test 5: Uninstall lifecycle ────────────────────────────────────────────
 
 test_5_uninstall_lifecycle() {
@@ -357,6 +389,7 @@ ALL_TESTS=(
   "4:Standalone cert-manager (subchart disabled):test_4_external_certmanager"
   "5:Uninstall lifecycle (cleanup + cleanupNamespaces):test_5_uninstall_lifecycle"
   "6:MaaS namespace bootstrap:test_6_maas_bootstrap"
+  "7:XKS gateway enable/disable lifecycle:test_7_xks_gateway_lifecycle"
 )
 
 check_prerequisites
@@ -398,6 +431,10 @@ echo ""
 for entry in "${TESTS_TO_RUN[@]}"; do
   IFS=: read -r num name fn <<< "$entry"
   run_test "$num" "$name" "$fn"
+  if [[ "$ASSERT_FAILED" -ne 0 ]]; then
+    log "Stopping after failed test to prevent cascading failures"
+    break
+  fi
 done
 
 print_summary

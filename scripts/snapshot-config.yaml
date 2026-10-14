@@ -341,6 +341,17 @@ charts:
           - gateway.hostname=*.redhat.com
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
+      - name: azure-with-gateway-service-enabled
+        setFlags:
+          - azure.enabled=true
+          - xks-gateway.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - xks-gateway.gateway.domain=example.com
+          - xks-gateway.gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - xks-gateway.gateway.oidc.clientID=rhai-client
+          - xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
       - name: azure-with-tls-disabled
         setFlags:
           - azure.enabled=true
