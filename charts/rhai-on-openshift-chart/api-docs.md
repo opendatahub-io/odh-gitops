@@ -31,11 +31,6 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.aipipelines.dsc.managementState | string | `nil` | Management state for AI Pipelines. Null uses profile default. |
 | components.dashboard | object | `{"dependencies":{},"dsc":{"maasPortal":{"managementState":null},"standard":{"managementState":null}}}` | Dashboard component (structural in DSC v3: no component-level managementState; the core Dashboard and the MaaS Consumer Portal are managed independently) |
 | components.dashboard.dependencies | object | `{}` | Dependencies required by Dashboard |
-| components.dashboard.dsc.managementState | string | `nil` | Management state for Dashboard. Null uses profile default. |
-| components.feastoperator | object | `{"dependencies":{},"dsc":{"managementState":null}}` | Feast Operator component |
-| components.feastoperator.dependencies | object | `{}` | Dependencies required by Feast Operator |
-| components.feastoperator.dsc | object | `{"managementState":null}` | DSC configuration for Feast Operator |
-| components.feastoperator.dsc.managementState | string | `nil` | Management state for Feast Operator. Null uses profile default. |
 | components.dashboard.dsc | object | `{"maasPortal":{"managementState":null},"standard":{"managementState":null}}` | DSC configuration for Dashboard |
 | components.dashboard.dsc.maasPortal.managementState | string | `nil` | Management state for the MaaS Consumer Portal. Null uses profile default. |
 | components.dashboard.dsc.standard.managementState | string | `nil` | Management state for the core Dashboard. Null uses profile default. |

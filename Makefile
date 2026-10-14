@@ -265,8 +265,7 @@ HELM_E2E_VALUES_FILE ?= $(CHART_PATH)/test/values-e2e.yaml
 # Keep modelsAsAService Removed in CI — it depends on PostgreSQL (not installed by the chart yet).
 # Keep trainer Removed in CI — catalog:latest trainer SA cannot grant ClusterRole
 # kubeflow-trainer-controller-manager (priorityclasses + optimizationjobs).
-HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed --set components.trainer.dsc.managementState=Removed
-HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) $(if $(HELM_E2E_VALUES_FILE),-f $(HELM_E2E_VALUES_FILE)) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed
+HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) $(if $(HELM_E2E_VALUES_FILE),-f $(HELM_E2E_VALUES_FILE)) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed --set components.trainer.dsc.managementState=Removed
 
 .PHONY: helm-install-verify
 helm-install-verify: ## Install helm chart and verify installation

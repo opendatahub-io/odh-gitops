@@ -5,7 +5,7 @@
 # the full RHOAI/ODH platform with all features enabled.
 #
 # Since all components default to Removed, this override explicitly sets every
-# component to Managed (Unmanaged for Kueue; Removed for trainingoperator).
+# component to Managed (or Unmanaged for Kueue).
 #
 # Usage:
 #   helm upgrade --install rhaii ./charts/rhai-on-openshift-chart \
@@ -96,10 +96,6 @@ components:
   trainer:
     dsc:
       managementState: Managed
-
-  trainingoperator:
-    dsc:
-      managementState: Removed
 
   trustyai:
     dsc:
