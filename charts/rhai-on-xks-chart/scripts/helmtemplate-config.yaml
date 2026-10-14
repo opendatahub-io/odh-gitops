@@ -115,7 +115,7 @@ rules:
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_VERSION].value
         value: '{{ .Chart.AppVersion | quote }}'
       - path: .spec.template.spec.containers[name=rhods-operator].env[name=RHAI_DISABLE_GATEWAY_SERVICE].value
-        value: 'true'
+        value: '{{ ternary "false" "true" (index .Values "xks-gateway" "enabled") | quote }}'
       # Remove hardcoded kuberay operator image
       - action: delete
         path: .spec.template.spec.containers[name=rhods-operator].env[name=RELATED_IMAGE_*]
