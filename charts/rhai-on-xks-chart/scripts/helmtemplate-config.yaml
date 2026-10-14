@@ -7,10 +7,6 @@ filter:
         - CustomResourceDefinition
       names:
         - gatewayconfigs.services.platform.opendatahub.io
-    - kinds:
-        - ValidatingWebhookConfiguration
-      names:
-        - rhai-operator-validating-webhook-configuration
 
 rules:
   # Replace namespace references with Helm template
@@ -257,6 +253,16 @@ rules:
         - MutatingWebhookConfiguration
       names:
         - "rhai-operator-mutating-webhook-configuration"
+    changes:
+      - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
+        value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
+
+  # Update ValidatingWebhookConfiguration cert annotation
+  - match:
+      kinds:
+        - ValidatingWebhookConfiguration
+      names:
+        - "rhai-operator-validating-webhook-configuration"
     changes:
       - path: .metadata.annotations["cert-manager.io/inject-ca-from"]
         value: '{{ .Values.rhaiOperator.namespace }}/rhai-operator-webhook-cert'
