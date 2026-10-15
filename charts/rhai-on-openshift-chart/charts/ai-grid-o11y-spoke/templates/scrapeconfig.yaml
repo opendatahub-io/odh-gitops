@@ -12,6 +12,10 @@ spec:
     match[]:
       - '{__name__=~".*"}' # PromQL matchers
   scheme: HTTP
+  # Add a label to make debugging easier, so we can validate these came from the RHAI stack
+  relabelings:
+    - targetLabel: scrape_source
+      replacement: rhai-metrics
   staticConfigs:
     - targets:
         - data-science-collector-collector.redhat-ods-monitoring.svc:8890
