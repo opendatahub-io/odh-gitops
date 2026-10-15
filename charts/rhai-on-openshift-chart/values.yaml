@@ -721,3 +721,15 @@ praxis-gateway:
     repository: ghcr.io/praxis-proxy/grid-gateway
     tag: v0.2.2
     flavor: grid-gateway
+
+# =============================================================================
+# Subcharts
+# =============================================================================
+
+# -- AI Grid observability hub subchart
+ai-grid-o11y-hub:
+  enabled: false
+
+# -- AI Grid observability spoke subchart
+ai-grid-o11y-spoke:
+  enabled: false

@@ -270,7 +270,18 @@
             "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
+    },
+    "ai-grid-o11y-hub": {
+      "type": "object",
+      "description": "Values for the ai-grid-o11y-hub subchart. Schema is intentionally permissive; see the subchart's own values for available options.",
+      "additionalProperties": true
+    },
+    "ai-grid-o11y-spoke": {
+      "type": "object",
+      "description": "Values for the ai-grid-o11y-spoke subchart. Schema is intentionally permissive; see the subchart's own values for available options.",
+      "additionalProperties": true
     }
   },
   "definitions": {
