@@ -1,0 +1,39 @@
+# =============================================================================
+# Monitoring with built-in logs (DSCI spec.monitoring.logs)
+#
+# Requires operator that projects DSCI logs onto the Monitoring CR, Loki Operator,
+# and an S3 credentials secret in the monitoring namespace.
+#
+# Usage:
+#   helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+#     -f docs/examples/values-monitoring-with-logs.yaml \
+#     --set operator.type=rhoai \
+#     -n rhoai-gitops --create-namespace
+# =============================================================================
+
+services:
+  monitoring:
+    dependencies:
+      clusterObservability: true
+      opentelemetry: true
+      tempo: true
+      loki: true
+    dsci:
+      managementState: Managed
+      metrics:
+        storage:
+          size: 5Gi
+          retention: 90d
+      traces:
+        sampleRatio: "0.1"
+        storage:
+          backend: pv
+          size: 5Gi
+          retention: 2160h
+      logs:
+        storage:
+          type: s3
+          secretName: rhoai-logs-s3
+          credentialMode: static
+          storageClassName: gp3-csi
+        inferenceNamespaces: []

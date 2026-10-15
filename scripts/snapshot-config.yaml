@@ -191,6 +191,32 @@ charts:
           - dependencies.loki.olm.createNamespace=false
           - dependencies.loki.olm.createOperatorGroup=false
 
+      - name: monitoring-with-custom-coo-operatorgroup
+        setFlags:
+          - skipCrdCheck=true
+          - services.monitoring.dsci.managementState=Managed
+          - dependencies.clusterObservability.olm.operatorGroupName=custom-coo-group
+
+      - name: monitoring-with-external-coo
+        setFlags:
+          - skipCrdCheck=true
+          - services.monitoring.dsci.managementState=Managed
+          - dependencies.clusterObservability.enabled=false
+
+      - name: monitoring-with-logs
+        valuesFiles:
+          - docs/examples/values-monitoring-with-logs.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+
+      - name: monitoring-with-usage-logs
+        valuesFiles:
+          - docs/examples/values-monitoring-with-usage-logs.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+
       - name: agent-sandbox-enabled
         setFlags:
           - skipCrdCheck=true

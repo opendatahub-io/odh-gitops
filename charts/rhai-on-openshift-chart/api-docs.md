@@ -103,9 +103,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.certManager | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable-v1","name":"openshift-cert-manager-operator","namespace":"cert-manager-operator"}}` | Cert Manager operator |
 | dependencies.certManager.dependencies | object | `{}` | Dependencies required by cert-manager |
 | dependencies.certManager.enabled | string | `"auto"` | Enable cert-manager: auto (if needed), true (always), false (never) |
-| dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
+| dependencies.clusterObservability | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"cluster-observability-operator","namespace":"openshift-cluster-observability-operator","operatorGroupName":"openshift-cluster-observability-operator"}}` | Cluster Observability operator |
 | dependencies.clusterObservability.dependencies | object | `{"opentelemetry":true}` | Dependencies required by cluster-observability |
 | dependencies.clusterObservability.enabled | string | `"auto"` | Enable cluster-observability: auto (if needed), true (always), false (never) |
+| dependencies.clusterObservability.olm.operatorGroupName | string | `"openshift-cluster-observability-operator"` | OperatorGroup name, matching the RHACM observability addon in the shared namespace. |
 | dependencies.customMetricsAutoscaler | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"openshift-custom-metrics-autoscaler-operator","namespace":"openshift-keda"}}` | Custom Metrics Autoscaler (KEDA) operator |
 | dependencies.customMetricsAutoscaler.dependencies | object | `{}` | Dependencies required by custom-metrics-autoscaler |
 | dependencies.customMetricsAutoscaler.enabled | string | `"auto"` | Enable custom-metrics-autoscaler: auto (if needed), true (always), false (never) |
@@ -153,7 +154,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
 | profile | string | `"default"` | Deploy profile: sets default managementState for components and services. Options: default (all Removed), rhaii (KServe for inference/model serving) Explicit managementState values override the profile. |
-| services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":null,"metrics":{},"traces":{}}}` | Monitoring service configuration |
+| services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"logs":{},"managementState":null,"metrics":{},"traces":{},"usageLogs":{}}}` | Monitoring service configuration |
 | services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default or Removed. |
 | skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD. |
 | tags.install-with-helm-dependencies | bool | `false` | Install operators using Helm chart dependencies instead of OLM. Set to true when OLM is not available in the cluster. Default is false (use OLM Subscriptions when available). |

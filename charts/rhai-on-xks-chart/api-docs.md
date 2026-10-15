@@ -93,7 +93,7 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | gateway.tls.enabled | bool | `true` |  |
 | gateway.tls.issuerRef.kind | string | `"ClusterIssuer"` |  |
 | gateway.tls.issuerRef.name | string | `"rhai-ca-issuer"` |  |
-| hooks.cliImage | string | `"registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"` |  |
+| hooks.cliImage | string | `"registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"` |  |
 | hooks.postInstallCrs.enabled | bool | `true` |  |
 | hooks.resources.limits.cpu | string | `"200m"` |  |
 | hooks.resources.limits.memory | string | `"512Mi"` |  |

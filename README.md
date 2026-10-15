@@ -281,6 +281,7 @@ kubectl apply -k configurations/
 ## Guides
 
 - [Inference Only Stack Installation Guide](docs/inference-only-stack.md) - Deploy only the inference/model-serving subset (KServe + distributed inference) without the full platform
+- [Migration guide from 3.5 to 3.6](docs/migrations/3.5-3.6-migration.md) - Coordinate COO ownership with RHACM and migrate the OperatorGroup name
 
 ## Release Strategy
 
