@@ -18,7 +18,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | ai-grid-o11y-hub | object | `{"enabled":false}` | AI Grid observability hub subchart |
-| ai-grid-o11y-spoke | object | `{"enabled":false}` | AI Grid observability spoke subchart |
+| ai-grid-o11y-spoke | object | `{"enabled":false}` | AI Grid observability spoke subchart When enabled, automatically adds a prometheus/rhacm exporter (endpoint 0.0.0.0:8890) to services.monitoring.dsci.metrics.exporters so ACM can federate metrics from the data-science-collector. User-supplied exporter values take precedence. |
 | components.aiHub | object | `{"defaults":{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"instancesNamespace":null,"managementState":null}}` | AI Hub component (Model Registry; replaces modelregistry from DSC v2) |
 | components.aiHub.defaults | object | `{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.aiHub.dependencies | object | `{}` | Dependencies required by AI Hub |
