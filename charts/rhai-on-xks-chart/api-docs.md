@@ -122,7 +122,8 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | rhaiOperator.resources.requests.cpu | string | `"300m"` |  |
 | rhaiOperator.resources.requests.memory | string | `"256Mi"` |  |
 | uninstall.cleanupNamespaces | bool | `false` |  |
-| xks-gateway.enabled | bool | `false` | Enable the platform auth gateway. Helm retains an installed GatewayConfig CRD when disabled. |
+| xks-gateway.cleanupOnDisable | bool | `true` | Clean up the release-owned GatewayConfig when disabled or unconfigured on upgrade. |
+| xks-gateway.enabled | bool | `false` | Enable platform auth gateway resources. Helm retains an installed GatewayConfig CRD when disabled. |
 | xks-gateway.gateway.certificate.secretName | string | `""` |  |
 | xks-gateway.gateway.certificate.type | string | `"SelfSigned"` |  |
 | xks-gateway.gateway.cookie.expire | string | `"24h"` |  |

@@ -14,6 +14,7 @@ XKS Gateway onboarding chart - installs the GatewayConfig CRD, gateway namespace
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| cleanupOnDisable | bool | `true` | Delete the release-owned GatewayConfig on upgrade when the gateway is disabled or unconfigured. |
 | enabled | bool | `true` | Enable or disable the xks-gateway subchart. When used as a dependency of rhai-on-xks-chart, this controls whether the GatewayConfig CRD is installed or updated, and whether the gateway namespace, GatewayConfig CR, and OIDC resources are created. Helm retains an installed CRD as a cluster resource when this chart is disabled or uninstalled. |
 | gateway.certificate.secretName | string | `""` | Name of TLS Secret (required when type is Provided) |
 | gateway.certificate.type | string | `"SelfSigned"` | TLS strategy: SelfSigned (auto-generated) or Provided (BYO secret in gateway namespace) |

@@ -5,5 +5,5 @@ dependencies:
 - name: xks-gateway
   repository: file://../dependencies/xks-gateway
   version: 0.1.0
-digest: sha256:daf960694a5233e9ac71eac0180a2e35588d35d1a610e76add1cb715153f0afe
-generated: "2026-08-31T21:35:54.595227+05:30"
+digest: sha256:9ec70e093a959909e26416b3d9da219ca7d7f5afbc2b922440a94fdb4b5b463c
+generated: "2026-10-15T12:53:21.026354+01:00"
