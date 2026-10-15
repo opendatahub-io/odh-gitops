@@ -161,9 +161,10 @@ helm upgrade rhai-on-xks ./charts/rhai-on-xks-chart \
   --set xks-gateway.gateway.cookie.expire=8h
 ```
 
-Without the saved gateway values, the chart defaults to `xks-gateway.enabled=false`: the parent
-cleanup hook deletes the release-owned `GatewayConfig`, Helm retains any CRD previously installed
-by this release as a cluster resource, and the gateway controller is disabled. Setting only
+Without the saved gateway values, the chart defaults to `xks-gateway.enabled=false`: the
+subchart cleanup hook deletes the release-owned `GatewayConfig` by default, Helm retains any CRD
+previously installed by this release as a cluster resource, and the gateway controller is disabled.
+Set `xks-gateway.cleanupOnDisable=false` to skip that cleanup. Setting only
 `xks-gateway.enabled=true` is also insufficient; an empty `xks-gateway.gateway.domain` makes the
 pre-upgrade hook delete `default-gateway`. When configured, Helm creates or updates the bundled CRD,
 and the subchart post-hook applies `GatewayConfig` after the CRD, gateway namespace, and managed

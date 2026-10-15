@@ -12,4 +12,3 @@ dependencies:
   - name: xks-gateway
     version: "0.1.0"
     repository: "file://../dependencies/xks-gateway"
-    condition: xks-gateway.enabled

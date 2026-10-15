@@ -1,6 +1,6 @@
 {{- $gatewayEnabled := .Values.enabled }}
 {{- $gatewayConfigured := and $gatewayEnabled .Values.gateway.domain }}
-{{- $cleanupOnUpgrade := and .Release.IsUpgrade (not $gatewayConfigured) }}
+{{- $cleanupOnUpgrade := and .Release.IsUpgrade .Values.cleanupOnDisable (not $gatewayConfigured) }}
 {{- if or $gatewayEnabled $cleanupOnUpgrade }}
 {{- $hookEvents := ternary "pre-upgrade,post-install,post-upgrade,pre-delete" "pre-upgrade" $gatewayEnabled }}
 apiVersion: v1
@@ -110,7 +110,7 @@ spec:
             - -c
             - |
               set -euo pipefail
-{{ include "xks-gateway.deleteOwnedConfigScript" . | indent 14 }}
+{{ tpl (.Files.Get "files/delete-owned-gateway-config.sh") . | trim | indent 14 }}
 {{- end }}
 {{- end }}
 {{- if $gatewayConfigured }}
@@ -213,5 +213,5 @@ spec:
             - -c
             - |
               set -euo pipefail
-{{ include "xks-gateway.deleteOwnedConfigScript" . | indent 14 }}
+{{ tpl (.Files.Get "files/delete-owned-gateway-config.sh") . | trim | indent 14 }}
 {{- end -}}

@@ -12,6 +12,11 @@
       "description": "Enable or disable the xks-gateway chart. When enabled, Helm installs or updates the GatewayConfig CRD and manages the gateway namespace, GatewayConfig CR, and OIDC resources. Helm retains an installed CRD as a cluster resource when this chart is disabled or uninstalled.",
       "default": true
     },
+    "cleanupOnDisable": {
+      "type": "boolean",
+      "description": "Delete the release-owned GatewayConfig on upgrade when the gateway is disabled or unconfigured.",
+      "default": true
+    },
     "hooks": {
       "type": "object",
       "description": "GatewayConfig lifecycle hook configuration",

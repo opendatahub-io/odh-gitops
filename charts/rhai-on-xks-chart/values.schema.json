@@ -505,8 +505,13 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable xks-gateway subchart. Disabled by default. When true, Helm installs or updates the GatewayConfig CRD and enables the operator gateway controller. Gateway resources require gateway.domain to be set. Helm retains an installed CRD as a cluster resource when the subchart is disabled or uninstalled.",
+          "description": "Enable xks-gateway subchart resources. Disabled by default. When true, Helm installs or updates the GatewayConfig CRD and enables the operator gateway controller. Gateway resources require gateway.domain to be set. Helm retains an installed CRD as a cluster resource when the subchart is disabled or uninstalled.",
           "default": false
+        },
+        "cleanupOnDisable": {
+          "type": "boolean",
+          "description": "Delete the release-owned GatewayConfig on upgrade when the gateway is disabled or unconfigured.",
+          "default": true
         },
         "hooks": {
           "type": "object",

@@ -361,8 +361,7 @@ assert_operator_gateway_service_disabled() {
 }
 
 assert_gateway_disabled() {
-  # The CRD may be retained from an earlier enabled installation.
-  assert_not_exists "Gateway namespace (unconfigured)" "namespace/${GATEWAY_NS}"
+  # The CRD and namespace may be retained from an earlier enabled installation.
   assert_not_exists "GatewayConfig CR (unconfigured)" "gatewayconfig/${GATEWAY_CONFIG_NAME}"
   assert_operator_gateway_service_disabled
 }
@@ -391,6 +390,7 @@ assert_gateway_configured_resources() {
   fi
 
   assert_exists "OIDC client secret" "secret/${GATEWAY_OIDC_SECRET_NAME}" -n "${GATEWAY_NS}"
+  wait_for_cr_ready "${GATEWAY_CONFIG_CRD}" "${GATEWAY_CONFIG_NAME}" "GatewayConfig '${GATEWAY_CONFIG_NAME}'"
 }
 
 # ─── Helm helpers ───────────────────────────────────────────────────────────

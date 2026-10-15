@@ -23,7 +23,7 @@ An existing `GatewayConfig` does not supply Helm values during an upgrade. Helm 
 values if no new values are supplied. For a partial upgrade, pass `--reuse-values` with the new
 values, or supply a complete values file with the gateway settings. Setting only
 `xks-gateway.enabled=true` in a parent-chart upgrade leaves `gateway.domain` empty and deletes
-`default-gateway` in the pre-upgrade hook.
+`default-gateway` in the pre-upgrade hook when `cleanupOnDisable` is enabled (the default).
 
 Set `gateway.domain` to the base DNS domain, such as `example.com`. The operator prefixes
 `gateway.subdomain` (default `rh-ai`), producing `rh-ai.example.com` by default. Do not include
@@ -39,9 +39,9 @@ or uninstalled. Helm no longer manages it while it is outside the release.
 A post-install/post-upgrade hook waits for the CRD to become Established, then creates or updates
 `default-gateway` after Helm has created the gateway namespace and chart-managed OIDC Secret.
 
-- A pre-upgrade or pre-delete hook deletes the chart-managed `default-gateway`. The parent chart
-  provides the pre-upgrade cleanup hook when the dependency is disabled, because a disabled
-  subchart cannot render its own hook.
+- The subchart's pre-upgrade hook deletes the release-owned `default-gateway` when the gateway is
+  disabled or unconfigured and `cleanupOnDisable` is true (default). Set
+  `xks-gateway.cleanupOnDisable=false` to retain it. The pre-delete hook deletes it on uninstall.
 - The retained CRD and any other GatewayConfig objects remain available cluster-wide. If the API is
   no longer needed, first confirm no GatewayConfig objects should be kept, then explicitly delete
   the CRD with `kubectl delete crd gatewayconfigs.services.platform.opendatahub.io`. Deleting the

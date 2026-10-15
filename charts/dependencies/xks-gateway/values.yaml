@@ -11,6 +11,9 @@
 # installed CRD as a cluster resource when this chart is disabled or uninstalled.
 enabled: true
 
+# -- Delete the release-owned GatewayConfig on upgrade when the gateway is disabled or unconfigured.
+cleanupOnDisable: true
+
 # Hook configuration for the GatewayConfig lifecycle. The hook is owned by this
 # chart so standalone and parent-chart installs use the same bootstrap path.
 hooks:
