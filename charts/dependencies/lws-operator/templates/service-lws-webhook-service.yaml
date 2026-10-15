@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: webhook-service
+    helm.sh/chart: lws-operator-1.1.0
+    app.kubernetes.io/name: lws
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+  name: lws-webhook-service
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    app.kubernetes.io/name: lws
+    app.kubernetes.io/instance: lws
+    control-plane: controller-manager
