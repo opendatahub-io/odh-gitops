@@ -473,7 +473,6 @@ spec:
                 # Name is enforced by CRD CEL validation: must be "default-gateway"
                 name: default-gateway
                 annotations:
-                  helm.sh/resource-policy: keep
                   platform.opendatahub.io/gateway-config-owner: "default/release-test"
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED

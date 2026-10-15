@@ -99,7 +99,6 @@ metadata:
   # Name is enforced by CRD CEL validation: must be "default-gateway"
   name: default-gateway
   annotations:
-    helm.sh/resource-policy: keep
     platform.opendatahub.io/gateway-config-owner: {{ printf "%s/%s" .Release.Namespace .Release.Name | quote }}
   labels:
     {{- include "xks-gateway.labels" . | nindent 4 }}
