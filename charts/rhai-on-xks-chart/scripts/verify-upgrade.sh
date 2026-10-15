@@ -250,7 +250,7 @@ test_1_upgrade() {
     fi
   fi
 
-  # xks-gateway is opt-in. When disabled, the parent cleanup hook removes the
+  # xks-gateway is opt-in. When disabled, its subchart cleanup hook removes the
   # owned GatewayConfig and Helm retains any previously installed CRD.
   assert_gateway_disabled_after_upgrade
 }

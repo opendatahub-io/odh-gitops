@@ -4665,7 +4665,6 @@ spec:
                 # Name is enforced by CRD CEL validation: must be "default-gateway"
                 name: default-gateway
                 annotations:
-                  helm.sh/resource-policy: keep
                   platform.opendatahub.io/gateway-config-owner: "default/release-test"
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -4789,7 +4788,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: create-crs
-          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
           resources:
             limits:
               cpu: 200m
@@ -4939,7 +4938,7 @@ spec:
           emptyDir: {}
       containers:
         - name: create-gateway
-          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
           resources:
             limits:
               cpu: 200m
@@ -5133,7 +5132,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: delete-crs
-          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
           resources:
             limits:
               cpu: 200m
@@ -5195,7 +5194,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: delete-crs
-          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
           resources:
             limits:
               cpu: 200m
@@ -5260,7 +5259,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate-certmanager
-          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1"
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
           resources:
             limits:
               cpu: 200m
