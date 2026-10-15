@@ -685,3 +685,15 @@ dependencies:
     #       enabled: true
     #     nodeStatusExporter:
     #       enabled: true
+
+# =============================================================================
+# Subcharts
+# =============================================================================
+
+# -- AI Grid observability hub subchart
+ai-grid-o11y-hub:
+  enabled: false
+
+# -- AI Grid observability spoke subchart
+ai-grid-o11y-spoke:
+  enabled: false
