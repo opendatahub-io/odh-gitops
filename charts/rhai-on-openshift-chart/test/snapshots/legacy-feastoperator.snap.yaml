@@ -64,6 +64,8 @@ spec:
         managementState: Managed
     kserve:
       managementState: Removed
+      modelExpress:
+        managementState: Removed
       nim:
         managementState: Removed
       rawDeploymentServiceConfig: Headless

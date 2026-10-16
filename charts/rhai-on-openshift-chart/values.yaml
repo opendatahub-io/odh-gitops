@@ -228,6 +228,10 @@ components:
         managementState:
       # -- Raw deployment service config for KServe (Headless or Headed)
       rawDeploymentServiceConfig: Headless
+      # -- Enables ModelExpress, a model cache and GPU-to-GPU weight transfer service for distributed model serving (Tech Preview)
+      modelExpress:
+        # -- Management state for ModelExpress. Null uses profile default.
+        managementState:
     # -- GatewayClass configuration for KServe inference
     gatewayClass:
       # -- Create the GatewayClass: auto (if KServe is Managed), true (always), false (never)
