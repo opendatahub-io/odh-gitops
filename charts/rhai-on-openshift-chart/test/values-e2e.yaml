@@ -40,7 +40,7 @@ operator:
           - name: RELATED_IMAGE_ODH_DASHBOARD_IMAGE
             value: quay.io/opendatahub/odh-dashboard@sha256:4af5b51a8eee18a0186e16c72daa72f86a2f918c85b458e841dabc6d1cec3c97
           - name: RELATED_IMAGE_ODH_WORKBENCHES_OPERATOR_IMAGE
-            value: quay.io/opendatahub/odh-workbenches-operator@sha256:cfd72c3980d9692bbd8efbe33734cbbc866e24dd914e92107c250b84502706bf
+            value: quay.io/opendatahub/odh-workbenches-operator@sha256:8e636e90e51d2d1361429985b8b4e5f6cfd78b1588618def13c82bc52f02d30f
           - name: RELATED_IMAGE_ODH_FEAST_MODULE_OPERATOR_IMAGE
             value: quay.io/opendatahub/odh-feast-module-operator@sha256:7ccaf62e11a9ca6a6d95a2afc5073d9e9104eb9d6175f0a0666eebe103cca2d0
           - name: RELATED_IMAGE_ODH_MCP_LIFECYCLE_OPERATOR_IMAGE
@@ -94,7 +94,7 @@ operator:
           - name: RELATED_IMAGE_ODH_KSERVE_STORAGE_INITIALIZER_IMAGE
             value: quay.io/opendatahub/kserve-storage-initializer@sha256:109a321a715a2b31336e383e905c699dd1c65a3e62f2263e266b2b0feb1bf351
           - name: RELATED_IMAGE_ODH_KUBE_AUTH_PROXY_IMAGE
-            value: quay.io/opendatahub/odh-kube-auth-proxy@sha256:e0c749a29554d7c53d9a01afa4dbcc204dc141ce8466b5977ab4cd2ed30242a9
+            value: quay.io/opendatahub/odh-kube-auth-proxy@sha256:1a5f6e220362aa2077026bb7e3091c38f80aac861fa060b08045e58e783d5bc5
           - name: RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE
             value: quay.io/opendatahub/odh-kube-rbac-proxy@sha256:2d1a5fed203fd31a25c0fea64cc3e9f49388d54d9b9b3072699c87f5e9c64c29
           - name: RELATED_IMAGE_ODH_LLM_D_ASYNC_IMAGE
@@ -164,7 +164,7 @@ operator:
           - name: RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE
             value: quay.io/opendatahub/odh-mod-arch-modular-architecture@sha256:9bf300d7f269eb253c5623ca0fcb3dcae7485f7af4a9707c59ab8183f417ff1a
           - name: RELATED_IMAGE_ODH_NOTEBOOK_CONTROLLER_IMAGE
-            value: quay.io/opendatahub/odh-notebook-controller@sha256:ed1be99e914043400e7516fd44109bfbda9447e9d2cd9f6bf98fbbcfe02f9743
+            value: quay.io/opendatahub/odh-notebook-controller@sha256:d4b063277229ae904954664e283738f0829517ee983edab041b55ff19985bc4e
           - name: RELATED_IMAGE_ODH_OBSERVABILITY_IMAGE
             value: quay.io/opendatahub/odh-observability@sha256:d09875632242ee893d84462a119216cfb23a8a9e5bc200e9090bf923dd600660
           - name: RELATED_IMAGE_ODH_OGX_CORE_IMAGE
@@ -268,7 +268,7 @@ operator:
           - name: RELATED_IMAGE_ODH_WORKBENCH_JUPYTER_TRUSTYAI_CPU_PY312_IMAGE
             value: quay.io/opendatahub/odh-workbench-jupyter-trustyai-cpu-py312-ubi9@sha256:12a1137193b7d7040ac75e757084a04665e9c0f39c8063b18004ec8c10c9c734
           - name: RELATED_IMAGE_OSE_KUBE_RBAC_PROXY_IMAGE
-            value: quay.io/opendatahub/odh-kube-auth-proxy@sha256:e0c749a29554d7c53d9a01afa4dbcc204dc141ce8466b5977ab4cd2ed30242a9
+            value: quay.io/opendatahub/odh-kube-auth-proxy@sha256:1a5f6e220362aa2077026bb7e3091c38f80aac861fa060b08045e58e783d5bc5
           - name: RELATED_IMAGE_ODH_DATA_CONNECT_HUB_CONTROLLER_IMAGE
             value: quay.io/opendatahub/odh-data-connect-hub-controller@sha256:49fbeecc62a816d18d69b563b9519ca0023085558f36f195d6aab8f5f146e1a7
           - name: RELATED_IMAGE_ODH_OPENSHELL_CLI_IMAGE
@@ -344,7 +344,7 @@ operator:
           - name: RELATED_IMAGE_ODH_DASHBOARD_IMAGE
             value: quay.io/rhoai/odh-dashboard-rhel9@sha256:6b39814156756ab1bb23322588983109b0ebc96239c4a629340caabcb512cdc0
           - name: RELATED_IMAGE_ODH_WORKBENCHES_OPERATOR_IMAGE
-            value: quay.io/rhoai/odh-workbenches-operator-rhel9@sha256:213ca3326fd6d07d27899be68b2f93248c729681d5a2acbb86858b6c16d09300
+            value: quay.io/rhoai/odh-workbenches-operator-rhel9@sha256:5c93c8c5b8983442a2716bcfb572cff2ecb98b9367f1dd917501bdee3c32d117
           - name: RELATED_IMAGE_ODH_FEAST_MODULE_OPERATOR_IMAGE
             value: quay.io/rhoai/odh-feast-module-operator-rhel9@sha256:27e3451cef327638a9f2a57c3712a2260b76195a981da01751850958f19e155f
           - name: RELATED_IMAGE_ODH_MCP_LIFECYCLE_OPERATOR_IMAGE
@@ -460,7 +460,7 @@ operator:
           - name: RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE
             value: quay.io/rhoai/odh-mod-arch-model-registry-rhel9@sha256:689bd5ab18574e8a1e05344fc83968b4b35c79bbff22cbd4ecd165312d1b425a
           - name: RELATED_IMAGE_ODH_NOTEBOOK_CONTROLLER_IMAGE
-            value: quay.io/rhoai/odh-notebook-controller-rhel9@sha256:4b796f19bcb112eda8da3db1a181f296ac46f9a8bdb575360788becd55c76533
+            value: quay.io/rhoai/odh-notebook-controller-rhel9@sha256:00629770656dea7e87e6351cd2d87a29481632e6658fd57be2c8910b822cf306
           - name: RELATED_IMAGE_ODH_OBSERVABILITY_IMAGE
             value: quay.io/rhoai/odh-observability-rhel9@sha256:d4bd36379fb7bca29a4e1175623d5e795bbbad0424e8109ed709529d61b8e604
           - name: RELATED_IMAGE_ODH_OGX_CORE_IMAGE
