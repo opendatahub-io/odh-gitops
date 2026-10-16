@@ -1,0 +1,32 @@
+# Allows the ACM observability metrics-collector agents (running in
+# open-cluster-management-agent-addon on managed clusters, including
+# local-cluster) to reach the RHOAI data-science-collector OpenTelemetry
+# collector's metrics port.
+#
+# The ScrapeConfig rhai-metrics (open-cluster-management-observability)
+# federates from data-science-collector-collector.redhat-ods-monitoring.svc:8890
+#
+# NetworkPolicies are additive, so this complements rather than overrides
+# the operator-managed policy and will not be reconciled away.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acm-rhai-metrics
+  namespace: redhat-ods-monitoring
+  labels:
+    app.kubernetes.io/component: user-workload-metrics-collector
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: redhat-ods-monitoring.data-science-collector
+      app.kubernetes.io/component: opentelemetry-collector
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: open-cluster-management-agent-addon
+      ports:
+        - port: 8890
+          protocol: TCP
