@@ -437,8 +437,8 @@ helm_deploy() {
       rhai-post-create-gateway
       rhai-post-create-maas-gateway
       rhai-pre-delete-crs
-      rhai-pre-upgrade-gateway-config
       xks-gateway-config
+      xks-gateway-config-apply
       xks-gateway-config-delete
     )
     for job in "${hook_jobs[@]}"; do
