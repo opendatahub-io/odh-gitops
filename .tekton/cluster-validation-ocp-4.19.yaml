@@ -40,7 +40,7 @@ spec:
     - name: revision
       value: "{{revision}}"
     - name: ocp-version
-      value: "4.19.0"
+      value: "4.19"
     - name: validation-type
       value: "kustomize"
   taskRunTemplate:
