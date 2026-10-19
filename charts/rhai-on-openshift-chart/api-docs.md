@@ -168,7 +168,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | praxis-gateway.fullnameOverride | string | `"grid-gateway"` | Stable resource names, independent of the release name |
 | praxis-gateway.image.repository | string | `"ghcr.io/praxis-proxy/grid-gateway"` | Use the Grid gateway build, which includes Grid routing filters. |
 | profile | string | `"default"` | Deploy profile: sets default managementState for components and services. Options: default (all Removed), rhaii (inference), maas, ai-grid (Grid operator and CRDs) Explicit managementState values override the profile. |
-| services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"managementState":null,"metrics":{},"traces":{}}}` | Monitoring service configuration |
+| services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"logs":{},"managementState":null,"metrics":{},"traces":{},"usageLogs":{}}}` | Monitoring service configuration |
 | services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default or Removed. |
 | skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD. |
 | tags.install-with-helm-dependencies | bool | `false` | Install operators using Helm chart dependencies instead of OLM. Set to true when OLM is not available in the cluster. Default is false (use OLM Subscriptions when available). |
