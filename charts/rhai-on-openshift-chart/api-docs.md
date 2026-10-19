@@ -152,7 +152,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
 | global | object | `{"relatedImages":[]}` | Values shared by the optional AI Grid subcharts. |
 | global.relatedImages | list | `[]` | Full image references using the XKS name/value convention. See README.md for supported names. |
-| grid-enrollment | object | `{"db":{"builtin":{"imageDigest":"sha256:b508e74304788fb4a5a2af76d8d013f20a18ee38bff3d24a705d7b730b8c0a30"}},"enabled":true,"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:9d73ea9dee05a5e5d09437f05b42a903c867341a28c22f6e053e142693118170"}}` | AI Grid enrollment service |
+| grid-enrollment | object | `{"db":{"builtin":{"imageDigest":"sha256:b508e74304788fb4a5a2af76d8d013f20a18ee38bff3d24a705d7b730b8c0a30"}},"enabled":true,"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:7a2088244733c6220abf5f07d47b979615695fe40ab729e1c578c2ae948af782"}}` | AI Grid enrollment service |
 | grid-enrollment.enabled | bool | `true` | Include enrollment when AIGateway and aiGrid are Managed. False uses an externally managed service. |
 | grid-enrollment.fullnameOverride | string | `"grid-enrollment"` | Stable resource names, independent of the release name |
 | labels | object | `{}` | Common labels applied to all resources |
@@ -163,7 +163,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
-| praxis-gateway | object | `{"enabled":true,"fullnameOverride":"grid-gateway","image":{"digest":"sha256:3b6679e885fb9a4ef9fa8b8fb7214de36648e649cbb80722a296b87ea1ce9f42","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.2.0"}}` | AI Grid gateway (Praxis) |
+| praxis-gateway | object | `{"enabled":true,"fullnameOverride":"grid-gateway","image":{"digest":"sha256:a4f8a5e858e08b56359ff12ff507abec0b6e26a2a0bf41e0c7f0943126dde35c","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.2.1"}}` | AI Grid gateway (Praxis) |
 | praxis-gateway.enabled | bool | `true` | Include the gateway when AIGateway and aiGrid are Managed. False uses an externally managed gateway. |
 | praxis-gateway.fullnameOverride | string | `"grid-gateway"` | Stable resource names, independent of the release name |
 | praxis-gateway.image.repository | string | `"ghcr.io/praxis-proxy/grid-gateway"` | Use the Grid gateway build, which includes Grid routing filters. |
