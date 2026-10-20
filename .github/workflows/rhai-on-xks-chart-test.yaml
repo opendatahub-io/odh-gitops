@@ -24,7 +24,6 @@ jobs:
           AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
           EVENT_ACTION: ${{ github.event.action }}
           LABEL_NAME: ${{ github.event.label.name }}
-          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'run-xks-e2e') }}
         run: |
           TRUSTED_BOTS=("github-actions[bot]" "red-hat-konflux[bot]" "jira-autofix[bot]")
 
@@ -42,15 +41,11 @@ jobs:
               exit 0
             fi
           done
-          if [[ "$EVENT_ACTION" == "labeled" && ( "$LABEL_NAME" == "lgtm" || "$LABEL_NAME" == "approved" ) ]]; then
-            echo "Reviewer approval ($LABEL_NAME) — running automatically"
+          if [[ "$EVENT_ACTION" == "labeled" && ( "$LABEL_NAME" == "lgtm" || "$LABEL_NAME" == "run-xks-e2e" ) ]]; then
+            echo "External contributor — tests authorized via '$LABEL_NAME' label for this commit"
             exit 0
           fi
-          if [[ "$HAS_LABEL" == "true" ]]; then
-            echo "External contributor — approved via 'run-xks-e2e' label"
-            exit 0
-          fi
-          echo "::error::xKS e2e tests required. A maintainer must add the 'run-xks-e2e' label after reviewing the code."
+          echo "::error::xKS e2e tests required. A trusted reviewer must add the 'lgtm' or 'run-xks-e2e' label after reviewing this commit."
           exit 1
 
   e2e-test:
@@ -66,6 +61,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+          # Accepted risk: this job runs reviewed fork PR code with RHAI_PULL_SECRET.
+          # Authorization requires a fresh maintainer label event for the current commit.
+          allow-unsafe-pr-checkout: true
 
       - name: Setup Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
@@ -120,6 +118,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+          # Accepted risk: this job runs reviewed fork PR code with RHAI_PULL_SECRET.
+          # Authorization requires a fresh maintainer label event for the current commit.
+          allow-unsafe-pr-checkout: true
 
       - name: Setup Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
