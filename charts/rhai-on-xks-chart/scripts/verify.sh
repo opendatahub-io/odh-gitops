@@ -308,6 +308,19 @@ test_7_xks_gateway_lifecycle() {
     return 1
   fi
 
+  local gateway_discovery_binding="rhai-xks-e2e-service-account-issuer-discovery"
+
+  log "Allowing anonymous reads of the Kubernetes service-account issuer discovery endpoints"
+  kubectl create clusterrolebinding "$gateway_discovery_binding" \
+    --clusterrole=system:service-account-issuer-discovery \
+    --group=system:unauthenticated \
+    --dry-run=client -o yaml | kubectl apply -f - || return 1
+  cleanup_gateway_discovery_binding() {
+    kubectl delete clusterrolebinding "$gateway_discovery_binding" --ignore-not-found >/dev/null 2>&1 || true
+    trap - RETURN EXIT
+  }
+  trap cleanup_gateway_discovery_binding RETURN EXIT
+
   log "Deploying with configured xks-gateway (domain + OIDC secret)"
   helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values" || return 1
   wait_ke_ready || return 1

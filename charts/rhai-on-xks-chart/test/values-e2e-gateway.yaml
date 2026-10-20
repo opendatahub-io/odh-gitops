@@ -1,10 +1,11 @@
 # E2E values for configured xks-gateway subchart (Kind / CI).
-# Uses chart-managed OIDC secret; issuer URL is a placeholder (no live OIDC required).
+# Use the in-cluster Kubernetes OIDC discovery endpoint so kube-auth-proxy can start without an external IdP.
 xks-gateway:
   enabled: true
   gateway:
     domain: e2e.example.com
+    verifyProviderCertificate: false
     oidc:
-      issuerURL: https://keycloak.example.com/realms/rhai
+      issuerURL: https://kubernetes.default.svc.cluster.local
       clientID: e2e-gateway
       oidcClientSecret: test-client-secret-value
