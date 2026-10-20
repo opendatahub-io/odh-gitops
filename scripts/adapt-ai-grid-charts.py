@@ -33,7 +33,9 @@ for name in ("grid-enrollment", "praxis-gateway"):
             path.write_text(marker + "\n" + source.rstrip() + "\n{{- end }}\n"
                             '{{- if .Chart.IsRoot }}\n{{ include "' + exported
                             + '" . }}\n{{- end }}\n')
-        if path.suffix == ".yaml":
+        # A chart test stays wrapped, so it never renders as a dependency, and stays out of
+        # the parent's resources. Standalone installs keep it through the .Chart.IsRoot include.
+        if path.suffix == ".yaml" and "tests" not in path.relative_to(templates).parts:
             includes.append('{{- $resource := include "' + exported + '" . | trim -}}\n'
                             '{{- if $resource }}\n---\n{{ $resource }}\n{{ end }}\n')
     (templates / "_rhoai-runtime.tpl").write_text(

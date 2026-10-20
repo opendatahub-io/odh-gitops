@@ -1112,50 +1112,6 @@ subjects:
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: grid-gateway-test
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
-    app.kubernetes.io/managed-by: Helm
-    grid.opendatahub.io/gateway-client: "true"
-  annotations:
-    helm.sh/hook: test
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-spec:
-  restartPolicy: Never
-  automountServiceAccountToken: false
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
-    runAsGroup: 65534
-    seccompProfile:
-      type: RuntimeDefault
-  containers:
-    - name: connectivity-check
-      image: "busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
-      resources:
-        requests: {cpu: 10m, memory: 16Mi}
-        limits: {cpu: 100m, memory: 64Mi}
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-        readOnlyRootFilesystem: true
-      command:
-        - sh
-        - -c
-        - |
-          # TCP connectivity only: application routes and TLS identities are site-specific.
-          nc -z -w5 grid-gateway 8080
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:

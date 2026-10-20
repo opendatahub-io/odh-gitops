@@ -60,9 +60,4 @@
 ---
 {{ $resource }}
 {{ end }}
-{{- $resource := include "praxis-gateway.rhoai.tests/gateway-ready.yaml" . | trim -}}
-{{- if $resource }}
----
-{{ $resource }}
-{{ end }}
 {{- end }}
