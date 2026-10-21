@@ -4127,7 +4127,9 @@ spec:
                 labels:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
-              spec: {}
+              spec:
+                modelExpress:
+                  managementState: Removed
               EOF
               echo "Done."
 

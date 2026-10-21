@@ -224,7 +224,25 @@
             },
             "spec": {
               "type": "object",
-              "description": "Kserve CR spec"
+              "description": "Kserve CR spec",
+              "properties": {
+                "modelExpress": {
+                  "type": "object",
+                  "description": "ModelExpress configuration for KServe",
+                  "properties": {
+                    "managementState": {
+                      "type": "string",
+                      "enum": [
+                        "Managed",
+                        "Removed"
+                      ],
+                      "default": "Removed",
+                      "description": "Management state for ModelExpress"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
             },
             "gateway": {
               "type": "object",

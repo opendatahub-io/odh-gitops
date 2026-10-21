@@ -196,6 +196,8 @@ spec:
         managementState: Managed
     kserve:
       managementState: Managed
+      modelExpress:
+        managementState: Managed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless

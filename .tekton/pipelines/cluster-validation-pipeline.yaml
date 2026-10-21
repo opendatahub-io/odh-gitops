@@ -11,9 +11,19 @@ spec:
       type: string
     - name: ocp-version
       type: string
+      description: "OpenShift minor version for the ephemeral HyperShift cluster"
     - name: instance-type
       type: string
       default: "m5.xlarge"
+      description: "AWS instance type for ephemeral HyperShift worker nodes"
+    - name: hypershift-node-count
+      type: string
+      default: "3"
+      description: "Number of worker nodes for the ephemeral HyperShift cluster"
+    - name: hosted-management-cluster
+      type: string
+      default: "hosted-mgmt2"
+      description: "Hosted management cluster used to provision the ephemeral cluster"
     - name: validation-type
       type: string
       default: "kustomize"
@@ -31,25 +41,39 @@ spec:
       default: "odh"
       description: "Operator type to install: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI)"
   tasks:
-    - name: provision-eaas-space
+    - name: provision-cluster
       taskRef:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/build-definitions.git
+            value: https://github.com/openshift/konflux-tasks
           - name: revision
-            value: main
+            value: "9751a2028f2b3b88e4204d5c42de8eda4ebb466f"
           - name: pathInRepo
-            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+            value: tasks/provision-ephemeral-cluster/0.1/provision-ephemeral-cluster.yaml
       params:
         - name: ownerName
           value: $(context.pipelineRun.name)
         - name: ownerUid
           value: $(context.pipelineRun.uid)
+        - name: workflow
+          value: hypershift-hostedcluster-workflow
+        - name: clusterProfile
+          value: aws-konflux-prod
+        - name: timeout
+          value: 1h
+        - name: releases
+          value: >-
+            {"latest":{"release":{"channel":"stable","version":"$(params.ocp-version)","architecture":"multi"}}}
+        - name: env
+          value: >-
+            {"COMPUTE_NODE_TYPE":"$(params.instance-type)",
+            "HYPERSHIFT_NODE_COUNT":"$(params.hypershift-node-count)",
+            "HOSTED_MANAGEMENT_CLUSTER":"$(params.hosted-management-cluster)"}
 
     - name: provision-and-validate
       runAfter:
-        - provision-eaas-space
+        - provision-cluster
       taskSpec:
         params:
           - name: git-url
@@ -58,9 +82,7 @@ spec:
             type: string
           - name: ocp-version
             type: string
-          - name: instance-type
-            type: string
-          - name: eaas-space-secret-ref
+          - name: cluster-credentials-secret-ref
             type: string
           - name: validation-type
             type: string
@@ -71,58 +93,21 @@ spec:
           - name: operator-type
             type: string
         results:
-          - name: clusterName
-            description: Name of the provisioned cluster
           - name: status
             description: Overall validation status
         volumes:
           - name: credentials
-            emptyDir: {}
+            secret:
+              secretName: $(params.cluster-credentials-secret-ref)
           - name: workspace
             emptyDir: {}
         steps:
-          - name: create-cluster
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-create-ephemeral-cluster-hypershift-aws/0.1/eaas-create-ephemeral-cluster-hypershift-aws.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(params.eaas-space-secret-ref)
-              - name: version
-                value: $(params.ocp-version)
-              - name: instanceType
-                value: $(params.instance-type)
-
-          - name: get-kubeconfig
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(params.eaas-space-secret-ref)
-              - name: clusterName
-                value: $(steps.create-cluster.results.clusterName)
-              - name: credentials
-                value: credentials
-
           - name: verify-cluster-and-clone
             image: quay.io/konflux-ci/appstudio-utils:latest
             workingDir: /workspace
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
               - name: OCP_VERSION
                 value: $(params.ocp-version)
             volumeMounts:
@@ -151,11 +136,9 @@ spec:
             workingDir: /workspace/repo
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
               - name: OCP_VERSION
                 value: $(params.ocp-version)
-              - name: CLUSTER_NAME
-                value: $(steps.create-cluster.results.clusterName)
               - name: VALIDATION_TYPE
                 value: $(params.validation-type)
               - name: OLM_CATALOG_IMAGE
@@ -267,7 +250,6 @@ spec:
               echo "✅ ${VALIDATION_TYPE} validation completed successfully on OCP ${OCP_VERSION}!"
 
               # Set results
-              echo -n "${CLUSTER_NAME}" | tee $(results.clusterName.path)
               echo -n "success" | tee $(results.status.path)
       params:
         - name: git-url
@@ -276,10 +258,8 @@ spec:
           value: $(params.revision)
         - name: ocp-version
           value: $(params.ocp-version)
-        - name: instance-type
-          value: $(params.instance-type)
-        - name: eaas-space-secret-ref
-          value: $(tasks.provision-eaas-space.results.secretRef)
+        - name: cluster-credentials-secret-ref
+          value: $(tasks.provision-cluster.results.secretRef)
         - name: validation-type
           value: $(params.validation-type)
         - name: olm-catalog-image
