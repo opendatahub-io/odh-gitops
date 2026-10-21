@@ -327,7 +327,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: enrollment
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:7a2088244733c6220abf5f07d47b979615695fe40ab729e1c578c2ae948af782"
+          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.2.0"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -445,7 +445,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:a4f8a5e858e08b56359ff12ff507abec0b6e26a2a0bf41e0c7f0943126dde35c
+          image: ghcr.io/praxis-proxy/grid-gateway:v0.2.1
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -818,7 +818,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:7a2088244733c6220abf5f07d47b979615695fe40ab729e1c578c2ae948af782"
+          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.2.0"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
