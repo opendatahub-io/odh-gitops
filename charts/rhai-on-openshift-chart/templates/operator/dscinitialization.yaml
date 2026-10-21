@@ -4,6 +4,22 @@ DSCInitialization configuration
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "dscinitializations.dscinitialization.opendatahub.io" "root" $) }}
 {{- $operatorType := .Values.operator.type -}}
 {{- $operatorConfig := index .Values.operator $operatorType -}}
+{{- /* When the ai-grid-o11y-spoke subchart is enabled, ensure the DSCInitialization
+     monitoring spec exposes a prometheus/rhacm exporter on 8890 so the ACM
+     ScrapeConfig can federate from the data-science-collector. User-supplied
+     values win over the injected defaults (sprig merge semantics). */ -}}
+{{- $dsci := deepCopy (.Values.services.monitoring.dsci | default dict) -}}
+{{- if (index .Values "ai-grid-o11y-spoke" "enabled") }}
+{{-   $metrics := deepCopy (index $dsci "metrics" | default dict) -}}
+{{-   $exporters := deepCopy (index $metrics "exporters" | default dict) -}}
+{{-   $rhacm := deepCopy (index $exporters "prometheus/rhacm" | default dict) -}}
+{{-   if not $rhacm.endpoint }}
+{{-     $_ := set $rhacm "endpoint" "0.0.0.0:8890" }}
+{{-   end }}
+{{-   $_ := set $exporters "prometheus/rhacm" $rhacm -}}
+{{-   $_ := set $metrics "exporters" $exporters -}}
+{{-   $_ := set $dsci "metrics" $metrics -}}
+{{- end }}
 apiVersion: dscinitialization.opendatahub.io/v2
 kind: DSCInitialization
 metadata:
@@ -14,7 +30,7 @@ spec:
   monitoring:
     managementState: {{ include "rhoai-dependencies.effectiveServiceManagementState" (dict "state" .Values.services.monitoring.dsci.managementState "root" $ "name" "monitoring") }}
     namespace: {{ $operatorConfig.monitoringNamespace }}
-    {{- range $key, $value := .Values.services.monitoring.dsci }}
+    {{- range $key, $value := $dsci }}
     {{- if and (ne $key "managementState") (not (empty $value)) }}
     {{ $key }}:
       {{- $value | toYaml | nindent 6 }}

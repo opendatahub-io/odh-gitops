@@ -1,0 +1,9 @@
+dependencies:
+- name: ai-grid-o11y-hub
+  repository: ""
+  version: 0.1.0
+- name: ai-grid-o11y-spoke
+  repository: ""
+  version: 0.1.0
+digest: sha256:a8fd20faae5f195bc021ef697f68e704095318b3c48ad04059b08f45b2bee82f
+generated: "2026-10-15T14:41:36.402126709-04:00"
