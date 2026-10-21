@@ -315,11 +315,7 @@ test_7_xks_gateway_lifecycle() {
     --clusterrole=system:service-account-issuer-discovery \
     --group=system:unauthenticated \
     --dry-run=client -o yaml | kubectl apply -f - || return 1
-  cleanup_gateway_discovery_binding() {
-    kubectl delete clusterrolebinding "$gateway_discovery_binding" --ignore-not-found >/dev/null 2>&1 || true
-    trap - RETURN EXIT
-  }
-  trap cleanup_gateway_discovery_binding RETURN EXIT
+  trap "kubectl delete clusterrolebinding '$gateway_discovery_binding' --ignore-not-found >/dev/null 2>&1 || true; trap - RETURN EXIT" RETURN EXIT
 
   log "Deploying with configured xks-gateway (domain + OIDC secret)"
   helm_deploy --set "xks-gateway.enabled=true" -f "$gateway_values" || return 1
