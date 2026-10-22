@@ -200,7 +200,7 @@ enrollment:
 db:
   type: builtin                      # builtin = in-chart Postgres; external = bring your own
   builtin:
-    image: quay.io/sclorg/postgresql-16-c9s:20260923
+    image: quay.io/sclorg/postgresql-16-c9s:20261021
     imageDigest: ""                  # sha256:<64 hex>; appended as image@digest when set
     # Registry image, decoupled from image.pullPolicy so a locally-loaded app
     # image (image.pullPolicy=Never, kind/airgap) does not force Postgres to Never.
