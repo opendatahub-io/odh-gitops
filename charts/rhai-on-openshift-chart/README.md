@@ -250,7 +250,6 @@ image repository/tag/digest settings and apply to both containers and bootstrap/
 | `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE` | Enrollment service and Jobs |
 | `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE` | Optional built-in PostgreSQL and database initialization |
 | `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE` | Optional gateway overlay-sync containers |
-| `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_TEST_IMAGE` | Gateway Helm connectivity test (requires `sh`, `wget`, and `nc`) |
 
 ```yaml
 global:

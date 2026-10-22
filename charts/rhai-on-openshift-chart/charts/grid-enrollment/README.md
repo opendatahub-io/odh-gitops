@@ -189,8 +189,7 @@ bootstrap's namespace-wide `create` on Secrets does not belong in one.
 pre-install hooks, because each has to admit the writes of a hook that runs after it, so
 Helm neither updates nor deletes them: setting the value false stops rendering a policy
 but leaves one already on the cluster in place, and `helm uninstall` leaves both behind.
-The invite namespace is a pre-install hook too, so it also survives an uninstall, along
-with the invite tokens in it. An orphaned policy matches nothing, since its condition pins a ServiceAccount username that
+An orphaned policy matches nothing, since its condition pins a ServiceAccount username that
 no longer resolves, but a stale one denies a renamed Secret on the next upgrade. On
 a cluster without `admissionregistration.k8s.io/v1`, or when changing a Secret name with
 the policies off, delete them by hand:

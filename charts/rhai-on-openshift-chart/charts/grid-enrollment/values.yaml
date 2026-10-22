@@ -178,8 +178,8 @@ enrollment:
       enabled: true
   # Namespace that holds only SiteInvite token Secrets. Empty means
   # <release-namespace>-invites, beside this release rather than inside it. The chart
-  # creates it, since nothing else owns it, as a pre-install hook that outlives an
-  # uninstall like the rest of the hook resources.
+  # creates it as a regular resource annotated helm.sh/resource-policy: keep, so it
+  # outlives an uninstall.
   #
   # It is a namespace of its own because it has to be. The service's Role needs create
   # and delete on Secrets unscoped by name, since invite names are per site, and get so

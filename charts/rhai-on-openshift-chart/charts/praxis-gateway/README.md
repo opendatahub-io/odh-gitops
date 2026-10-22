@@ -34,8 +34,6 @@ curl http://127.0.0.1:8080/
 # {"status": "ok", "server": "praxis"}
 ```
 
-`helm test praxis-gateway -n praxis` runs the chart's connectivity check.
-
 ## Configuring Praxis
 
 The chart mounts one Praxis configuration at `/etc/praxis/praxis.yaml`.
