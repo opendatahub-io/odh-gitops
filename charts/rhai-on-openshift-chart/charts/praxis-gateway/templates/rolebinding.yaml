@@ -1,6 +1,6 @@
 {{- define "praxis-gateway.rhoai.rolebinding.yaml" -}}
 {{- include "praxis-gateway.normalize" . }}
-{{- if and .Values.overlay.enabled .Values.overlay.sidecar.enabled }}
+{{- if and .Values.overlay.configMapName .Values.overlay.sidecar.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:

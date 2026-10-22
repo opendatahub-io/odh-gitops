@@ -4,7 +4,8 @@ templates:
 tests:
   - it: leaves RUST_LOG unset by default so the pod template does not change on upgrade
     set:
-      overlay: {enabled: true, existingConfigMap: ov, sidecar: {enabled: true, expectedNetwork: grid, expectedLocalSite: a}}
+      grid: {networkName: grid, siteName: a}
+      overlay: {configMapName: ov, sidecar: {enabled: true}}
     asserts:
       - notExists:
           path: spec.template.spec.containers[?(@.name == "praxis")].env
@@ -24,7 +25,8 @@ tests:
   - it: renders a chosen level on the gateway and overlay-sync
     set:
       log.level: debug
-      overlay: {enabled: true, existingConfigMap: ov, sidecar: {enabled: true, expectedNetwork: grid, expectedLocalSite: a}}
+      grid: {networkName: grid, siteName: a}
+      overlay: {configMapName: ov, sidecar: {enabled: true}}
     asserts:
       - contains:
           path: spec.template.spec.containers[?(@.name == "praxis")].env

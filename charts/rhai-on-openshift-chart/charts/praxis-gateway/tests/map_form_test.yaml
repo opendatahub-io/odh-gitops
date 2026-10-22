@@ -6,13 +6,16 @@ release:
   name: praxis-gateway
   namespace: grid
 tests:
-  - it: a hub consumer needs only localSite, model, auth, and one site endpoint
+  - it: a hub consumer renders a site endpoint with its identity and Grid CA
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: my-model
-      gatewayConfig.auth.mode: none
-      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: my-model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends.site-a.endpoint: 203.0.113.20:8080
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
     asserts:
       - matchRegex:
           path: data["praxis.yaml"]
@@ -24,10 +27,13 @@ tests:
   - it: a site consumer mounts the grid identity and the Grid CA
     template: templates/deployment.yaml
     set:
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: my-model
-      gatewayConfig.auth.mode: none
-      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: my-model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends.site-a.endpoint: 203.0.113.20:8080
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
     asserts:
       - equal:
           path: spec.template.spec.volumes[?(@.name=="tls")].projected.sources[1].secret.name
@@ -36,25 +42,58 @@ tests:
   - it: renders keyed backends in sorted order
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: my-model
-      gatewayConfig.auth.mode: none
-      gatewayConfig.backends.site-b.endpoint: 203.0.113.21:8080
-      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: my-model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends.site-b.endpoint: 203.0.113.21:8080
+      praxisConfig.render.backends.site-a.endpoint: 203.0.113.20:8080
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
     asserts:
       - matchRegex:
           path: data["praxis.yaml"]
           pattern: '(?s)cluster: "site-a" \}.*cluster: "site-b" \}'
 
-  - it: a provider needs only role, localSite, a digest, and its local endpoint
+  - it: rejects a site backend that would silently use plaintext
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: my-model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends.site-a.endpoint: 203.0.113.20:8080
+    asserts:
+      - failedTemplate:
+          errorPattern: serves the remote site "site-a" but gridIdentity.tlsSecretName is empty
+
+  - it: accepts a site backend that sets plaintext on purpose
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: my-model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends.site-a.endpoint: 203.0.113.20:8080
+      praxisConfig.render.backends.site-a.site: site-a
+      praxisConfig.render.backends.site-a.transport.mode: plaintext
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'site: "site-a", cluster: "site-a"'
+
+  - it: a provider renders its local endpoint with its identity and Grid CA
     template: templates/gateway-config.yaml
     set:
       image.repository: ghcr.io/praxis-proxy/grid-gateway
-      gatewayConfig.role: provider
-      gatewayConfig.localSite: site-a
-      gatewayConfig.peerTrust.digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-      gatewayConfig.peerTrust.nextDigest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-      gatewayConfig.backends.local.endpoint: 10.96.0.20:8000
+      praxisConfig.source: render
+      praxisConfig.render.role: provider
+      grid.siteName: site-a
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
+      praxisConfig.render.peerTrust.digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      praxisConfig.render.peerTrust.nextDigest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      praxisConfig.render.backends.local.endpoint: 10.96.0.20:8000
     asserts:
       - matchRegex:
           path: data["praxis.yaml"]
@@ -70,11 +109,14 @@ tests:
     template: templates/gateway-config.yaml
     set:
       image.repository: ghcr.io/praxis-proxy/grid-gateway
-      gatewayConfig.role: provider
-      gatewayConfig.localSite: site-a
-      gatewayConfig.peerTrust.mode: spiffe
-      gatewayConfig.peerTrust.spiffeId: spiffe://grid.internal/site/hub
-      gatewayConfig.backends.local.endpoint: 10.96.0.20:8000
+      praxisConfig.source: render
+      praxisConfig.render.role: provider
+      grid.siteName: site-a
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
+      praxisConfig.render.peerTrust.mode: spiffe
+      praxisConfig.render.peerTrust.spiffeId: spiffe://grid.internal/site/hub
+      praxisConfig.render.backends.local.endpoint: 10.96.0.20:8000
     asserts:
       - matchRegex:
           path: data["praxis.yaml"]
@@ -83,10 +125,11 @@ tests:
   - it: the older backend list still renders
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: my-model
-      gatewayConfig.auth.mode: none
-      gatewayConfig.backends:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: my-model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends:
         - cluster: local-model
           endpoints: ["10.0.0.1:8000"]
           transport: { mode: plaintext }

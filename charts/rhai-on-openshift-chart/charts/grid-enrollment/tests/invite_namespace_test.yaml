@@ -1,0 +1,151 @@
+suite: invite Secret namespace
+templates:
+  - templates/enrollment/site-invite-rbac.yaml
+  - templates/enrollment/deployment.yaml
+  - templates/enrollment/invite-namespace.yaml
+tests:
+  - it: puts the invite Secrets beside the release, not inside it
+    template: templates/enrollment/site-invite-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE-invites
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "create", "delete"]
+
+  - it: binds the service there, not in the release namespace
+    template: templates/enrollment/site-invite-rbac.yaml
+    documentSelector:
+      path: kind
+      value: RoleBinding
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE-invites
+      - equal:
+          path: subjects[0].namespace
+          value: NAMESPACE
+
+  - it: follows an explicit invite namespace
+    template: templates/enrollment/site-invite-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: grid-invites
+
+  - it: refuses sharing the namespace that holds the CA signing key
+    template: templates/enrollment/site-invite-rbac.yaml
+    release:
+      namespace: grid-enroll
+    set:
+      enrollment.inviteSecrets.namespace: grid-enroll
+    asserts:
+      - failedTemplate:
+          errorPattern: must not be the release namespace
+
+  - it: keeps the cluster-scoped SiteInvite rules out of that namespace
+    template: templates/enrollment/site-invite-rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - equal:
+          path: rules[0].resources
+          value: ["siteinvites"]
+      - notExists:
+          path: metadata.namespace
+
+  - it: tells the service the same namespace the Role grants
+    template: templates/enrollment/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENROLLMENT_INVITE_SECRET_NAMESPACE
+            value: NAMESPACE-invites
+
+  - it: tells the service an explicit invite namespace too
+    template: templates/enrollment/deployment.yaml
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENROLLMENT_INVITE_SECRET_NAMESPACE
+            value: grid-invites
+
+  - it: creates the invite namespace, since nothing else owns it
+    template: templates/enrollment/invite-namespace.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: NAMESPACE-invites
+
+  - it: leaves an explicitly named invite namespace alone
+    template: templates/enrollment/invite-namespace.yaml
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    asserts:
+      # Its author owns it and may have filled it, so this release does not take it over.
+      - hasDocuments:
+          count: 0
+
+  - it: refuses sharing the hub operator's namespace
+    template: templates/enrollment/site-invite-rbac.yaml
+    set:
+      hubSite.name: hub
+      hubSite.namespace: grid-system
+      enrollment.inviteSecrets.namespace: grid-system
+    asserts:
+      - failedTemplate:
+          errorPattern: must not be hubSite.namespace
+
+  - it: allows the hub namespace when the invites live elsewhere
+    template: templates/enrollment/site-invite-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    set:
+      hubSite.name: hub
+      hubSite.namespace: grid-system
+      enrollment.inviteSecrets.namespace: grid-invites
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: grid-invites
+
+  # before-hook-creation cannot be disabled, so any hook phase would delete this
+  # namespace and the unredeemed tokens in it on a reinstall or an Argo CD sync.
+  - it: is not a hook, so nothing ever deletes it to recreate it
+    template: templates/enrollment/invite-namespace.yaml
+    asserts:
+      - notExists:
+          path: metadata.annotations["helm.sh/hook"]
+      - notExists:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+      - equal:
+          path: metadata.annotations["helm.sh/resource-policy"]
+          value: keep
+
+  # Helm's install order places a Namespace before a Role, so the invite RBAC must stay
+  # a regular resource: a hook would run before the namespace exists.
+  - it: keeps the invite RBAC a regular resource, which install order puts after it
+    template: templates/enrollment/site-invite-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - notExists:
+          path: metadata.annotations["helm.sh/hook"]

@@ -30,3 +30,16 @@ tests:
     asserts:
       - matchRegexRaw:
           pattern: In-cluster only
+
+  - it: warns that an external database URL must be verify-full
+    set:
+      db.type: external
+      db.external.connectionUrlSecretRef: maas-db-config
+    asserts:
+      - matchRegexRaw:
+          pattern: "Secret/maas-db-config must set sslmode=verify-full"
+
+  - it: says nothing about the URL for the builtin database
+    asserts:
+      - notMatchRegexRaw:
+          pattern: sslmode=verify-full

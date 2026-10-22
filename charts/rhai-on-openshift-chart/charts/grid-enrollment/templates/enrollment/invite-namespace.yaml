@@ -1,0 +1,40 @@
+{{- define "grid-enrollment.rhoai.enrollment/invite-namespace.yaml" -}}
+{{- include "grid-enrollment.normalize" . }}
+{{- $ns := include "grid-enrollment.inviteSecretsNamespace" . }}
+{{- /* Only the derived namespace. An explicit value names a namespace its author owns and
+       may already have filled, so this release does not take it over. */}}
+{{- if not .Values.enrollment.inviteSecrets.namespace }}
+{{/*
+The invite tokens need a namespace apart from the one holding the Grid CA signing key,
+because the service's get on Secrets there cannot be scoped by name and admission never
+sees a read. Nothing else owns that namespace, so this release creates it rather than
+leaving a security property to a remembered kubectl command.
+
+A regular resource rather than a hook. Helm cannot disable before-hook-creation, which
+deletes a hook resource it finds before creating it, and this namespace's Secrets are
+unredeemed invite tokens: a reinstall after an uninstall, or an Argo CD sync that maps
+pre-install to PreSync, would destroy them. Nothing in the pre-install phase writes here,
+so nothing needs it to be a hook: the invite Role and RoleBinding are regular resources
+that Helm's install order already places after a Namespace, the invite Job is
+post-install and runs in the release namespace, and the admission policy only names this
+namespace in a match condition.
+
+resource-policy keep makes it outlive an uninstall, so the tokens survive one. A
+reinstall under the same release name and namespace adopts it through Helm's ownership
+metadata; under a different release name Helm refuses the install rather than deleting
+it. Changing inviteSecrets.namespace on an existing release needs the new namespace
+created by hand; the Role apply fails loudly if it is missing.
+*/}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $ns | quote }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/invite-namespace.yaml" . }}
+{{- end }}

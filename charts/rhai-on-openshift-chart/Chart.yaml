@@ -13,8 +13,8 @@ keywords:
   - rhai
 dependencies:
   - name: grid-enrollment
-    version: "0.2.0"
+    version: "0.2.2"
     condition: grid-enrollment.enabled
   - name: praxis-gateway
-    version: "0.2.0"
+    version: "0.2.2"
     condition: praxis-gateway.enabled

@@ -100,13 +100,21 @@
           "type": "string"
         },
         "keySecretName": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "bundleSecretName": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "forceRegenerate": {
           "type": "boolean"
+        },
+        "confirmRotation": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{64})?$"
         },
         "provided": {
           "type": "object",
@@ -129,6 +137,16 @@
             },
             "resources": {
               "$ref": "#/definitions/resourceBudget"
+            },
+            "policy": {
+              "description": "ValidatingAdmissionPolicy confining the bootstrap to the Secret names this chart renders.",
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false,
@@ -149,10 +167,14 @@
       "type": "object",
       "properties": {
         "secretName": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "existingSecretRef": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "extraDnsNames": {
           "type": "array",
@@ -337,6 +359,19 @@
             },
             "loadBalancerIP": {
               "type": "string"
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "loadBalancerSourceRanges": {
+              "description": "CIDRs allowed to reach a LoadBalancer enrollment endpoint.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "additionalProperties": false
@@ -378,6 +413,16 @@
             "signerName": {
               "type": "string",
               "pattern": "^[A-Za-z0-9.-]+/[A-Za-z0-9._-]+$"
+            }
+          }
+        },
+        "inviteSecrets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
             }
           }
         }
@@ -442,7 +487,9 @@
               "type": "object",
               "properties": {
                 "servingSecretName": {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+                  "maxLength": 253
                 }
               },
               "additionalProperties": false
@@ -524,6 +571,10 @@
                 "minimum": 1,
                 "maximum": 604800
               },
+              "allowDeletedName": {
+                "type": "boolean",
+                "description": "Mint a token that may enroll a name whose enrollment was deleted."
+              },
               "cluster": {
                 "type": "string",
                 "description": "ManagedCluster name to target when it differs from the site name.",
@@ -556,6 +607,10 @@
                 "minimum": 1,
                 "maximum": 604800
               },
+              "allowDeletedName": {
+                "type": "boolean",
+                "description": "Mint a token that may enroll a name whose enrollment was deleted."
+              },
               "cluster": {
                 "type": "string",
                 "description": "ManagedCluster name to target when it differs from the site name.",
@@ -579,26 +634,34 @@
         "namespace": {
           "description": "Namespace of the hub's grid operator, where the identity Secrets go. Must exist before install.",
           "type": "string",
-          "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
         },
         "identitySecretName": {
           "description": "Secret for the site identity.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "caSecretName": {
           "description": "Secret for the grid CA beside the identity.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "swimKeySecretName": {
           "description": "Secret for the grid's SWIM key, created once in the release and hub namespaces. Empty skips it.",
-          "type": "string"
+          "type": "string",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         },
         "seedSecretName": {
           "description": "Secret for the CA-signed seed that registers the hub's key so it can rotate.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+          "maxLength": 253
         }
       }
     },
@@ -628,13 +691,32 @@
       "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*$",
       "description": "The enrollment name sites connect to: a serving cert name and the default route.host."
     },
+    "platform": {
+      "description": "Cloud whose load balancer settings LoadBalancer Services get: aws, azure, gcp, or any for all three, since each cloud reads only its own keys.",
+      "type": "string",
+      "enum": [
+        "",
+        "aws",
+        "azure",
+        "gcp",
+        "any"
+      ]
+    },
+    "loadBalancerScope": {
+      "description": "Reach of the enrollment load balancer on a cloud platform: internal (private network) or external (internet-facing).",
+      "type": "string",
+      "enum": [
+        "internal",
+        "external"
+      ]
+    },
     "log": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "level": {
           "type": "string",
-          "pattern": "^([oO][fF][fF]|[eE][rR][rR][oO][rR]|[wW][aA][rR][nN]|[iI][nN][fF][oO]|[dD][eE][bB][uU][gG]|[tT][rR][aA][cC][eE])$",
+          "pattern": "^(?i)(off|error|warn|info|debug|trace)$",
           "description": "Level for every module: off, error, warn, info, debug, or trace, in any case."
         },
         "filter": {
@@ -652,7 +734,7 @@
         },
         "namespace": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
         },
         "clusterSet": {
           "type": "string",

@@ -1,0 +1,63 @@
+{{- define "grid-enrollment.rhoai.enrollment/site-invite-rbac.yaml" -}}
+{{- include "grid-enrollment.normalize" . }}
+{{- $secretNamespace := include "grid-enrollment.inviteSecretsNamespace" . }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-site-invite
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["grid.praxis.fast"]
+    resources: ["siteinvites"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["grid.praxis.fast"]
+    resources: ["siteinvites/status"]
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-site-invite
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "grid-enrollment.fullname" . }}-{{ .Release.Namespace }}-site-invite
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-site-invite-secrets
+  namespace: {{ $secretNamespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "grid-enrollment.fullname" . }}-site-invite-secrets
+  namespace: {{ $secretNamespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "grid-enrollment.fullname" . }}-site-invite-secrets
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/site-invite-rbac.yaml" . }}
+{{- end }}

@@ -28,6 +28,25 @@ tests:
           path: data["praxis.yaml"]
           pattern: '"server": "praxis"'
 
+  - it: binds Praxis 0.7.4 health endpoints to metrics_address
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: model
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends:
+        - cluster: local
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'admin:\s+metrics_address: "127\.0\.0\.1:9901"'
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'admin:\s+address:'
+
   - it: leaves mount delegation disabled by default
     template: templates/deployment.yaml
     asserts:
@@ -39,7 +58,7 @@ tests:
   - it: mounts the chart-managed config and rolls pods when it changes
     template: templates/deployment.yaml
     set:
-      config.inline: 'listeners: [{name: default, address: "0.0.0.0:8080"}]'
+      praxisConfig.byo.inline: 'listeners: [{name: default, address: "0.0.0.0:8080"}]'
     asserts:
       - equal:
           path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
@@ -51,20 +70,18 @@ tests:
   - it: stages delegated Grid mounts while retaining Helm mounts for a safe handoff
     template: templates/deployment.yaml
     set:
-      config.existingConfigMap: praxis-consumer-config
+      praxisConfig.byo.configMapName: praxis-consumer-config
       mountReconciliation.enabled: true
       mountReconciliation.network: production
       mountReconciliation.gatewayRef: inference-gw
       mountReconciliation.managedCredentialNames: [backend-token]
-      tls.enabled: true
-      tls.existingSecret: grid-site-identity
-      tls.caSecret: grid-ca
-      gatewayConfig.listenerTls.enabled: true
-      gatewayConfig.listenerTls.existingSecret: listener-tls
-      credentials:
-        - name: backend-token
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
+      listenerTls.secretName: listener-tls
+      providerCredentials:
+        - secretName: backend-token
           mountPath: /run/secrets/backend-token
-        - name: monitoring-token
+        - secretName: monitoring-token
           mountPath: /run/secrets/monitoring-token
     asserts:
       - equal:
@@ -79,72 +96,59 @@ tests:
       - exists:
           path: spec.template.spec.volumes[?(@.name == "tls")]
       - equal:
-          path: spec.template.spec.volumes[?(@.name == "credential-backend-token")].secret.secretName
+          path: spec.template.spec.volumes[?(@.name == "credential-0")].secret.secretName
           value: backend-token
       - equal:
-          path: spec.template.spec.volumes[?(@.name == "credential-monitoring-token")].secret.secretName
+          path: spec.template.spec.volumes[?(@.name == "credential-1")].secret.secretName
           value: monitoring-token
       - equal:
           path: spec.template.spec.volumes[?(@.name == "listener-tls")].secret.secretName
           value: listener-tls
       - exists:
-          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "credential-backend-token")]
+          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "credential-0")]
       - equal:
-          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "credential-monitoring-token")].mountPath
+          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "credential-1")].mountPath
           value: /run/secrets/monitoring-token
 
   - it: releases selected Helm mounts only in the explicit handoff phase
     template: templates/deployment.yaml
     set:
-      config.existingConfigMap: praxis-consumer-config
+      praxisConfig.byo.configMapName: praxis-consumer-config
       mountReconciliation.enabled: true
       mountReconciliation.network: production
       mountReconciliation.gatewayRef: inference-gw
       mountReconciliation.releaseHelmMounts: true
       mountReconciliation.managedCredentialNames: [backend-token]
-      tls.enabled: true
-      tls.existingSecret: grid-site-identity
-      tls.caSecret: grid-ca
-      credentials:
-        - name: backend-token
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
+      providerCredentials:
+        - secretName: backend-token
           mountPath: /run/secrets/backend-token
-        - name: monitoring-token
+        - secretName: monitoring-token
           mountPath: /run/secrets/monitoring-token
     asserts:
       - notExists:
           path: spec.template.spec.volumes[?(@.name == "tls")]
       - notExists:
-          path: spec.template.spec.volumes[?(@.name == "credential-backend-token")]
+          path: spec.template.spec.volumes[?(@.name == "credential-0")]
       - equal:
-          path: spec.template.spec.volumes[?(@.name == "credential-monitoring-token")].secret.secretName
+          path: spec.template.spec.volumes[?(@.name == "credential-1")].secret.secretName
           value: monitoring-token
       - notExists:
-          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "credential-backend-token")]
+          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "credential-0")]
 
-  - it: keeps chart TLS available to Grid serving after delegated handoff
+  - it: accepts operator source for delegated mounts
     template: templates/deployment.yaml
     set:
-      config.existingConfigMap: praxis-consumer-config
+      praxisConfig.source: operator
+      praxisConfig.operator.configMapName: praxis-consumer-config
       mountReconciliation.enabled: true
       mountReconciliation.network: production
       mountReconciliation.gatewayRef: inference-gw
-      mountReconciliation.releaseHelmMounts: true
-      gridServing.enabled: true
-      gridServing.network: production
-      gridServing.gatewayRef: inference-gw
-      image.flavor: grid-gateway
-      tls.enabled: true
-      tls.existingSecret: grid-site-identity
-      tls.caSecret: grid-ca
     asserts:
       - equal:
-          path: metadata.annotations["grid.praxis-proxy.io/grid-serving-tls"]
-          value: chart-managed
-      - exists:
-          path: spec.template.spec.volumes[?(@.name == "tls")]
-      - equal:
-          path: spec.template.spec.containers[?(@.name == "praxis")].volumeMounts[?(@.name == "tls")].mountPath
-          value: /etc/praxis/tls
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
+          value: praxis-consumer-config
 
   - it: keeps user pod annotations next to the config checksum
     template: templates/deployment.yaml
@@ -186,10 +190,10 @@ tests:
           path: spec.template.spec.serviceAccountName
         template: templates/deployment.yaml
 
-  - it: prefers an existing ConfigMap over config.inline
+  - it: prefers an existing ConfigMap over praxisConfig.byo.inline
     set:
-      config.existingConfigMap: my-praxis
-      config.key: gateway.yaml
+      praxisConfig.byo.configMapName: my-praxis
+      praxisConfig.byo.key: gateway.yaml
     asserts:
       - hasDocuments:
           count: 0
@@ -221,16 +225,16 @@ tests:
       mountReconciliation.network: production
     asserts:
       - failedTemplate:
-          errorPattern: config.existingConfigMap must name consumerConfig.configMapName
+          errorPattern: praxisConfig.byo.configMapName must name consumerConfig.configMapName
 
-  - it: leaves config to gatewayConfig when render is on
+  - it: leaves the config to praxisConfig.render when source is render
     template: templates/configmap.yaml
     set:
-      gatewayConfig.render: true
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: m
-      gatewayConfig.auth.mode: none
-      gatewayConfig.backends:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: m
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends:
         - cluster: a
           endpoints: ["10.0.0.1:8000"]
           transport: { mode: plaintext }
@@ -238,75 +242,77 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: still renders the Grid config when backends are set without render
-    set:
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: m
-      gatewayConfig.auth.mode: none
-      gatewayConfig.backends.site-a.endpoint: 203.0.113.20:8080
-    asserts:
-      - hasDocuments:
-          count: 0
-        template: templates/configmap.yaml
-      - matchRegex:
-          path: data["praxis.yaml"]
-          pattern: "filter: intelligent_route"
-        template: templates/gateway-config.yaml
-
-  - it: fails a blank config.inline
+  - it: fails backends set while the source is not render
     template: templates/deployment.yaml
     set:
-      config.inline: "  "
+      praxisConfig.source: byo
+      praxisConfig.render.backends.site-a.endpoint: 203.0.113.20:8080
     asserts:
       - failedTemplate:
-          errorPattern: config.inline is empty
+          errorPattern: praxisConfig.render settings are set but praxisConfig.source is byo
 
-  - it: fails a config.inline that is not a YAML mapping
+  - it: fails provider role while the source is not render
     template: templates/deployment.yaml
     set:
-      config.inline: not-a-mapping
+      praxisConfig.source: byo
+      praxisConfig.render.role: provider
+      praxisConfig.render.peerTrust.certDigests: [aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa]
     asserts:
       - failedTemplate:
-          errorPattern: config.inline is not a valid YAML mapping
+          errorPattern: praxisConfig.render settings are set but praxisConfig.source is byo
 
-  - it: fails a config.inline with no listener on port.containerPort
+  - it: fails a blank praxisConfig.byo.inline
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.byo.inline: "  "
+    asserts:
+      - failedTemplate:
+          errorPattern: praxisConfig.byo.inline is empty
+
+  - it: fails a praxisConfig.byo.inline that is not a YAML mapping
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.byo.inline: not-a-mapping
+    asserts:
+      - failedTemplate:
+          errorPattern: praxisConfig.byo.inline is not a valid YAML mapping
+
+  - it: fails a praxisConfig.byo.inline with no listener on port.containerPort
     template: templates/deployment.yaml
     set:
       port.containerPort: 9090
     asserts:
       - failedTemplate:
-          errorPattern: config.inline has no listener on port.containerPort 9090
+          errorPattern: praxisConfig.byo.inline has no listener on port.containerPort 9090
 
-  - it: accepts a config.inline listener on a custom port.containerPort
+  - it: accepts a praxisConfig.byo.inline listener on a custom port.containerPort
     template: templates/deployment.yaml
     set:
       port.containerPort: 9090
-      config.inline: 'listeners: [{name: default, address: "[::]:9090"}]'
+      praxisConfig.byo.inline: 'listeners: [{name: default, address: "[::]:9090"}]'
     asserts:
       - notFailedTemplate: {}
 
-  - it: fails grid settings that config.inline would ignore
+  - it: accepts grid.siteName in BYO mode for overlay scope
     template: templates/deployment.yaml
     set:
-      gatewayConfig.localSite: hub
-      gatewayConfig.model: qwen3
+      grid.siteName: hub
     asserts:
-      - failedTemplate:
-          errorPattern: gatewayConfig.localSite is set but config.inline is serving
+      - notFailedTemplate: {}
 
-  - it: fails a model without any grid routing to render it
+  - it: fails a model while the source is not render
     template: templates/deployment.yaml
     set:
-      gatewayConfig.model: qwen3
+      praxisConfig.render.model: qwen3
     asserts:
       - failedTemplate:
-          errorPattern: gatewayConfig.model is set but config.inline is serving
+          errorPattern: praxisConfig.render.model is set but praxisConfig.source is byo
 
   - it: writes install notes that stand on their own without Grid
     template: templates/NOTES.txt
     asserts:
       - matchRegexRaw:
-          pattern: "Config:    config.inline \\(ConfigMap praxis-gateway-config\\)"
+          pattern: "Config:    praxisConfig.byo.inline \\(ConfigMap praxis-gateway-config\\)"
       - matchRegexRaw:
           pattern: port-forward service/praxis-gateway 8080:8080
       - notMatchRegexRaw:
@@ -315,7 +321,7 @@ tests:
   - it: tells existing ConfigMap users how to load an edited config
     template: templates/NOTES.txt
     set:
-      config.existingConfigMap: my-praxis
+      praxisConfig.byo.configMapName: my-praxis
     asserts:
       - matchRegexRaw:
           pattern: rollout restart deployment/praxis-gateway

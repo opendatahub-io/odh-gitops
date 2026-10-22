@@ -1,0 +1,174 @@
+suite: Secret create confinement
+templates:
+  - templates/certs/ca-bootstrap-policy.yaml
+tests:
+  - it: confines the bootstrap to the Secrets it creates in the release namespace
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    asserts:
+      - equal:
+          path: spec.failurePolicy
+          value: Fail
+      - equal:
+          path: spec.matchConstraints.resourceRules[0].operations
+          value: ["CREATE"]
+      - equal:
+          path: spec.matchConstraints.resourceRules[0].resources
+          value: ["secrets"]
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: 'request.userInfo.username == "system:serviceaccount:NAMESPACE:RELEASE-NAME-grid-enrollment-ca-bootstrap"'
+      - equal:
+          path: spec.validations[0].expression
+          value: '(request.namespace == "NAMESPACE" && object.metadata.name in ["RELEASE-NAME-grid-enrollment-db","enrollment-serving-tls","grid-ca-bundle","grid-ca-key","grid-db-serving-tls"])'
+      - equal:
+          path: spec.validations[0].reason
+          value: Forbidden
+
+  - it: refuses a Secret type the bootstrap never writes
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    asserts:
+      - equal:
+          path: spec.validations[1].expression
+          value: '!has(object.type) || object.type in ["Opaque","kubernetes.io/tls"]'
+      - equal:
+          path: spec.validations[1].reason
+          value: Forbidden
+      - matchRegex:
+          path: spec.validations[1].message
+          pattern: cannot mint a token for another ServiceAccount
+
+  - it: admits the hub identity Secrets only in the hub operator namespace
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    set:
+      hubSite.name: hub
+      hubSite.namespace: odh-ai-grid
+    asserts:
+      - equal:
+          path: spec.validations[0].expression
+          value: '(request.namespace == "NAMESPACE" && object.metadata.name in ["RELEASE-NAME-grid-enrollment-db","enrollment-serving-tls","grid-ca-bundle","grid-ca-key","grid-db-serving-tls","grid-reserved-seeds","grid-swim-key"]) || (request.namespace == "odh-ai-grid" && object.metadata.name in ["grid-ca","grid-site-identity","grid-swim-key"])'
+
+  - it: drops the SWIM key from the allowlist when it is disabled
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    set:
+      hubSite.name: hub
+      hubSite.namespace: odh-ai-grid
+      hubSite.swimKeySecretName: ""
+    asserts:
+      - equal:
+          path: spec.validations[0].expression
+          value: '(request.namespace == "NAMESPACE" && object.metadata.name in ["RELEASE-NAME-grid-enrollment-db","enrollment-serving-tls","grid-ca-bundle","grid-ca-key","grid-db-serving-tls","grid-reserved-seeds"]) || (request.namespace == "odh-ai-grid" && object.metadata.name in ["grid-ca","grid-site-identity"])'
+
+  - it: adds the admin token Secret under local authz
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    set:
+      enrollment.authz: local
+    asserts:
+      - matchRegex:
+          path: spec.validations[0].expression
+          pattern: RELEASE-NAME-grid-enrollment-grid-admin-tokens
+
+  - it: drops the serving cert from the allowlist when one is provided
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    set:
+      serving.existingSecretRef: byo-serving
+    asserts:
+      - notMatchRegex:
+          path: spec.validations[0].expression
+          pattern: enrollment-serving-tls
+
+  - it: drops the database Secrets from the allowlist when the database is external
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-bootstrap
+    set:
+      db.type: external
+      db.external.connectionUrlSecretRef: byo-db
+    asserts:
+      - notMatchRegex:
+          path: spec.validations[0].expression
+          pattern: grid-db-serving-tls
+      - notMatchRegex:
+          path: spec.validations[0].expression
+          pattern: RELEASE-NAME-grid-enrollment-db
+
+  - it: confines the enrollment service to invite Secrets in its invite namespace
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-service
+    asserts:
+      - equal:
+          path: spec.matchConstraints.resourceRules[0].operations
+          value: ["CREATE", "DELETE"]
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: 'request.userInfo.username == "system:serviceaccount:NAMESPACE:RELEASE-NAME-grid-enrollment"'
+      - equal:
+          path: spec.validations[0].expression
+          value: 'request.namespace == "NAMESPACE-invites" && (request.operation == "DELETE" ? oldObject.metadata.name.startsWith("grid-invite-") : object.metadata.name.startsWith("grid-invite-"))'
+      - equal:
+          path: spec.validations[1].expression
+          value: 'request.operation == "DELETE" || !has(object.type) || object.type == "Opaque"'
+
+  - it: follows inviteSecrets.namespace when the invite Secrets live apart
+    documentSelector:
+      path: spec.matchConditions[0].name
+      value: grid-enrollment-service
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    asserts:
+      - matchRegex:
+          path: spec.validations[0].expression
+          pattern: 'request.namespace == "grid-invites"'
+
+  - it: confines the service even when no bootstrap Job runs
+    set:
+      ca.method: provided
+      ca.provided.keySecretRef: byo-ca
+    asserts:
+      - hasDocuments:
+          count: 2
+      - exists:
+          path: spec.matchConditions
+        documentSelector:
+          path: spec.matchConditions[0].name
+          value: grid-enrollment-service
+
+  - it: denies on each binding and exists before the bootstrap RBAC
+    documentSelector:
+      path: spec.policyName
+      value: RELEASE-NAME-grid-enrollment-NAMESPACE-bootstrap-secrets
+    asserts:
+      - equal:
+          path: spec.validationActions
+          value: ["Deny"]
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-20"
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: pre-install,pre-upgrade
+
+  - it: renders both policy pairs by default
+    asserts:
+      - hasDocuments:
+          count: 4
+
+  - it: renders neither policy when the toggle is off
+    set:
+      ca.bootstrap.policy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+

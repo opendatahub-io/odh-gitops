@@ -7,19 +7,18 @@ release:
   namespace: grid-system
 set:
   image.flavor: grid-gateway
-  gatewayConfig.role: provider
-  gatewayConfig.localSite: east
-  gatewayConfig.model: demo/model
-  gatewayConfig.backends.local.endpoint: 10.0.0.1:8000
-  tls.enabled: true
-  tls.existingSecret: grid-site-identity
-  tls.caSecret: grid-ca-bundle
+  praxisConfig.source: render
+  grid.siteName: east
+  praxisConfig.render.role: provider
+  praxisConfig.render.backends.local.endpoint: 10.0.0.1:8000
+  gridIdentity.tlsSecretName: grid-site-identity
+  gridIdentity.caSecretName: grid-ca-bundle
 tests:
   - it: names every admitted site in a filter the chain cannot skip
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.peerTrust.mode: spiffe
-      gatewayConfig.peerTrust.spiffeIds:
+      praxisConfig.render.peerTrust.mode: spiffe
+      praxisConfig.render.peerTrust.spiffeIds:
         - spiffe://grid.internal/site/west
         - spiffe://grid.internal/site/central
     asserts:
@@ -33,8 +32,8 @@ tests:
   - it: admits at the filter exactly what the handshake admits
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.peerTrust.mode: spiffe
-      gatewayConfig.peerTrust.spiffeIds:
+      praxisConfig.render.peerTrust.mode: spiffe
+      praxisConfig.render.peerTrust.spiffeIds:
         - spiffe://grid.internal/site/west
     asserts:
       - matchRegex:
@@ -47,8 +46,8 @@ tests:
   - it: keeps the handshake named so the organization it reads was validated
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.peerTrust.mode: spiffe
-      gatewayConfig.peerTrust.spiffeIds:
+      praxisConfig.render.peerTrust.mode: spiffe
+      praxisConfig.render.peerTrust.spiffeIds:
         - spiffe://grid.internal/site/west
     asserts:
       - matchRegex:
@@ -58,8 +57,8 @@ tests:
   - it: pin mode keeps pinning digests and names no site
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.peerTrust.mode: pin
-      gatewayConfig.peerTrust.certDigests:
+      praxisConfig.render.peerTrust.mode: pin
+      praxisConfig.render.peerTrust.certDigests:
         - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     asserts:
       - matchRegex:
@@ -75,8 +74,8 @@ tests:
   - it: admitting every Grid-CA site names none, so no floor is claimed
     template: templates/gateway-config.yaml
     set:
-      gatewayConfig.peerTrust.mode: spiffe
-      gatewayConfig.peerTrust.allowAnyGridSite: true
+      praxisConfig.render.peerTrust.mode: spiffe
+      praxisConfig.render.peerTrust.allowAnyGridSite: true
     asserts:
       - notMatchRegex:
           path: data["praxis.yaml"]
@@ -85,10 +84,10 @@ tests:
   - it: refuses a floor the handshake does not restrict
     template: templates/deployment.yaml
     set:
-      gatewayConfig.peerTrust.mode: spiffe
-      gatewayConfig.peerTrust.allowAnyGridSite: true
-      gatewayConfig.peerTrust.spiffeIds:
+      praxisConfig.render.peerTrust.mode: spiffe
+      praxisConfig.render.peerTrust.allowAnyGridSite: true
+      praxisConfig.render.peerTrust.spiffeIds:
         - spiffe://grid.internal/site/west
     asserts:
       - failedTemplate:
-          errorMessage: "gatewayConfig.peerTrust.allowAnyGridSite admits every Grid-CA site, so it cannot be set beside spiffeIds: the filter would name sites the handshake does not restrict"
+          errorMessage: "praxisConfig.render.peerTrust.allowAnyGridSite admits every Grid-CA site, so it cannot be set beside spiffeIds"

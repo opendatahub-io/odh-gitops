@@ -1,6 +1,6 @@
 {{- define "praxis-gateway.rhoai.configmap.yaml" -}}
 {{- include "praxis-gateway.normalize" . }}
-{{- if eq (include "praxis-gateway.configSource" .) "inline" }}
+{{- if eq (include "praxis-gateway.configSource" .) "byoInline" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,7 +8,7 @@ metadata:
   labels:
     {{- include "praxis-gateway.labels" . | nindent 4 }}
 data:
-  {{- dict "praxis.yaml" (toString .Values.config.inline) | toYaml | nindent 2 }}
+  {{- dict "praxis.yaml" (toString .Values.praxisConfig.byo.inline) | toYaml | nindent 2 }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

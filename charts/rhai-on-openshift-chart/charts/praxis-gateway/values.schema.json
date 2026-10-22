@@ -3,7 +3,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "config",
+    "praxisConfig",
     "resources"
   ],
   "properties": {
@@ -15,319 +15,565 @@
       "type": "object",
       "description": "Global values Helm passes to every subchart."
     },
-    "gatewayConfig": {
+    "praxisConfig": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Secure-by-default rendered gateway config (praxis.yaml + policy.yaml). Never emits insecure_options.",
-      "allOf": [
-        {
-          "if": {
-            "required": [
-              "render"
-            ],
-            "properties": {
-              "render": {
-                "const": true
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "localSite"
-            ],
-            "properties": {
-              "localSite": {
-                "minLength": 1,
-                "pattern": "\\S"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "required": [
-              "role"
-            ],
-            "properties": {
-              "role": {
-                "const": "provider"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "peerTrust"
-            ],
-            "properties": {
-              "peerTrust": {
-                "anyOf": [
-                  {
-                    "properties": {
-                      "mode": {
-                        "const": "pin"
-                      },
-                      "certDigests": {
-                        "minItems": 1
-                      }
-                    },
-                    "required": [
-                      "certDigests"
-                    ]
-                  },
-                  {
-                    "properties": {
-                      "mode": {
-                        "const": "pin"
-                      },
-                      "digest": {
-                        "minLength": 64
-                      }
-                    },
-                    "required": [
-                      "digest"
-                    ]
-                  },
-                  {
-                    "properties": {
-                      "mode": {
-                        "const": "spiffe"
-                      },
-                      "spiffeIds": {
-                        "minItems": 1
-                      }
-                    },
-                    "required": [
-                      "mode",
-                      "spiffeIds"
-                    ]
-                  },
-                  {
-                    "properties": {
-                      "mode": {
-                        "const": "spiffe"
-                      },
-                      "spiffeId": {
-                        "minLength": 1
-                      }
-                    },
-                    "required": [
-                      "mode",
-                      "spiffeId"
-                    ]
-                  },
-                  {
-                    "properties": {
-                      "mode": {
-                        "const": "spiffe"
-                      },
-                      "allowAnyGridSite": {
-                        "const": true
-                      }
-                    },
-                    "required": [
-                      "mode",
-                      "allowAnyGridSite"
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        }
+      "description": "Where praxis.yaml comes from: byo (you), operator (the Grid operator), or render (the chart).",
+      "required": [
+        "source"
       ],
       "properties": {
-        "render": {
-          "type": "boolean",
-          "description": "Render praxis.yaml + policy.yaml from these values instead of a BYO ConfigMap."
-        },
-        "role": {
+        "source": {
           "type": "string",
           "enum": [
-            "consumer",
-            "provider"
+            "byo",
+            "operator",
+            "render"
           ],
-          "description": "consumer routes callers. provider serves grid peers with the grid identity."
+          "description": "Who writes praxis.yaml: byo (you), operator (the Grid operator), or render (the chart)."
         },
-        "peerTrust": {
+        "byo": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Bring your own Praxis configuration, by ConfigMap or inline YAML.",
           "properties": {
-            "mode": {
+            "configMapName": {
               "type": "string",
-              "enum": [
-                "pin",
-                "spiffe"
-              ],
-              "description": "pin allows listed certificate digests. spiffe allows listed SPIFFE IDs."
+              "description": "ConfigMap holding praxis.yaml; empty serves inline."
             },
-            "certDigests": {
-              "type": "array",
-              "maxItems": 256,
-              "items": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              },
-              "description": "pin mode: lowercase hex SHA-256 of allowed peer leaf certificates."
-            },
-            "spiffeIds": {
-              "type": "array",
-              "maxItems": 256,
-              "items": {
-                "type": "string",
-                "pattern": "^spiffe://grid\\.internal/site/[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-              },
-              "description": "spiffe mode: allowed peer SPIFFE IDs."
-            },
-            "digest": {
+            "key": {
               "type": "string",
-              "pattern": "^([0-9a-f]{64})?$",
-              "description": "pin mode: the allowed peer's leaf digest, added to certDigests."
+              "minLength": 1,
+              "description": "Key within configMapName that holds praxis.yaml."
             },
-            "nextDigest": {
+            "inline": {
               "type": "string",
-              "pattern": "^([0-9a-f]{64})?$",
-              "description": "pin mode: a second leaf digest during rotation."
-            },
-            "spiffeId": {
-              "type": "string",
-              "pattern": "^(spiffe://grid\\.internal/site/[a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-              "description": "spiffe mode: an allowed peer SPIFFE ID, added to spiffeIds."
-            },
-            "allowAnyGridSite": {
-              "type": "boolean",
-              "description": "spiffe mode with no spiffeIds: accept any Grid-CA site."
-            },
-            "rateLimit": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "rate": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "burst": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              },
-              "dependencies": {
-                "rate": [
-                  "burst"
-                ],
-                "burst": [
-                  "rate"
-                ]
-              }
+              "description": "Praxis configuration stored in a chart-managed ConfigMap when configMapName is empty."
             }
           }
         },
-        "provider": {
+        "operator": {
           "type": "object",
           "additionalProperties": false,
+          "description": "Settings for the Grid operator's consumer ConfigMap.",
           "properties": {
-            "allowedPaths": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "type": "string",
-                "pattern": "^(/[A-Za-z0-9_-]+)+$"
-              },
-              "description": "Exact paths forwarded to the local backend."
-            }
-          }
-        },
-        "localSite": {
-          "type": "string",
-          "maxLength": 256,
-          "description": "This gateway's site name, required when render is true."
-        },
-        "model": {
-          "type": "string"
-        },
-        "auth": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "mode": {
+            "configMapName": {
               "type": "string",
-              "enum": [
-                "",
-                "none",
-                "api-key"
-              ],
-              "description": "Caller authentication, required when render is true. api-key needs an image that registers identity/api-key."
+              "description": "Operator-created ConfigMap; empty uses praxis-consumer-config."
             },
             "allowUnauthenticatedExposure": {
               "type": "boolean",
-              "description": "With mode none, allow a LoadBalancer or NodePort Service."
-            },
-            "stripAuthorization": {
-              "type": "boolean",
-              "description": "Remove the caller's Authorization header before routing."
-            },
-            "validateCA": {
+              "description": "Allow a LoadBalancer or NodePort Service although the operator's praxis.yaml has no caller authentication."
+            }
+          }
+        },
+        "render": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Settings for praxisConfig.source render: secure-by-default rendered gateway config (praxis.yaml + policy.yaml). Never emits insecure_options.",
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "provider"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "peerTrust"
+                ],
+                "properties": {
+                  "peerTrust": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "mode": {
+                            "const": "pin"
+                          },
+                          "certDigests": {
+                            "minItems": 1
+                          }
+                        },
+                        "required": [
+                          "certDigests"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "mode": {
+                            "const": "pin"
+                          },
+                          "digest": {
+                            "minLength": 64
+                          }
+                        },
+                        "required": [
+                          "digest"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "mode": {
+                            "const": "spiffe"
+                          },
+                          "spiffeIds": {
+                            "minItems": 1
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "spiffeIds"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "mode": {
+                            "const": "spiffe"
+                          },
+                          "spiffeId": {
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "spiffeId"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "mode": {
+                            "const": "spiffe"
+                          },
+                          "allowAnyGridSite": {
+                            "const": true
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "allowAnyGridSite"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "telemetry": {
               "type": "object",
               "additionalProperties": false,
-              "description": "CA for the validate call, set as SSL_CERT_FILE (replaces the platform trust store).",
+              "description": "Optional exporter settings for generated praxis.yaml. Collector credentials must come from deployment-managed Secret environment references.",
               "properties": {
-                "configMap": {
-                  "type": "string"
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable OTLP export and the trace_context propagation filter."
                 },
-                "secret": {
-                  "type": "string"
+                "otlpEndpoint": {
+                  "type": "string",
+                  "pattern": "^(|https?://[^/?#@\\s]+(:[0-9]+)?(/[^\\s?#]*)?)$",
+                  "description": "OTLP/gRPC endpoint without userinfo, query, or fragment credentials. Empty uses OTEL_EXPORTER_OTLP_ENDPOINT."
                 },
-                "key": {
-                  "type": "string"
+                "samplingRate": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Root trace sampling probability from 0.0 through 1.0."
                 },
-                "mountPath": {
-                  "type": "string"
+                "serviceName": {
+                  "type": "string",
+                  "pattern": "^(|.*\\S.*)$",
+                  "description": "OpenTelemetry service.name resource attribute."
+                },
+                "serviceVersion": {
+                  "type": "string",
+                  "pattern": "^(|.*\\S.*)$",
+                  "description": "OpenTelemetry service.version resource attribute."
+                },
+                "environment": {
+                  "type": "string",
+                  "pattern": "^(|.*\\S.*)$",
+                  "description": "deployment.environment resource attribute."
+                },
+                "batchIntervalSecs": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 300,
+                  "description": "Positive batch exporter interval in seconds."
+                },
+                "batchSize": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 65536,
+                  "description": "Positive maximum spans per export batch."
                 }
               }
             },
-            "validateUrl": {
+            "role": {
               "type": "string",
-              "pattern": "^(https://[^/?#\\s]+.*)?$"
+              "enum": [
+                "consumer",
+                "provider"
+              ],
+              "description": "consumer routes callers. provider serves grid peers with the grid identity."
             },
-            "allowPrivateEndpoint": {
-              "type": "boolean",
-              "description": "Sets allow_private_idp: every policy callout may reach private, loopback, and link-local addresses."
-            },
-            "prefix": {
-              "type": "string"
-            },
-            "timeoutSecs": {
-              "type": "integer"
-            }
-          }
-        },
-        "upstreamCA": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "CA bundle for backend TLS without a per-cluster CA. Sets praxis upstream_ca_file; the api-key validate call uses the platform trust store.",
-          "properties": {
-            "secretName": {
-              "type": "string"
-            },
-            "key": {
-              "type": "string"
-            },
-            "mountPath": {
-              "type": "string"
-            }
-          }
-        },
-        "backends": {
-          "description": "Backends keyed by site, local for a provider's backend, or the older list of {cluster, endpoints}.",
-          "oneOf": [
-            {
+            "peerTrust": {
               "type": "object",
-              "propertyNames": {
-                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-              },
-              "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "pin",
+                    "spiffe"
+                  ],
+                  "description": "pin allows listed certificate digests. spiffe allows listed SPIFFE IDs."
+                },
+                "certDigests": {
+                  "type": "array",
+                  "maxItems": 256,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "description": "pin mode: lowercase hex SHA-256 of allowed peer leaf certificates."
+                },
+                "spiffeIds": {
+                  "type": "array",
+                  "maxItems": 256,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^spiffe://grid\\.internal/site/[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  },
+                  "description": "spiffe mode: allowed peer SPIFFE IDs."
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^([0-9a-f]{64})?$",
+                  "description": "pin mode: the allowed peer's leaf digest, added to certDigests."
+                },
+                "nextDigest": {
+                  "type": "string",
+                  "pattern": "^([0-9a-f]{64})?$",
+                  "description": "pin mode: a second leaf digest during rotation."
+                },
+                "spiffeId": {
+                  "type": "string",
+                  "pattern": "^(spiffe://grid\\.internal/site/[a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+                  "description": "spiffe mode: an allowed peer SPIFFE ID, added to spiffeIds."
+                },
+                "allowAnyGridSite": {
+                  "type": "boolean",
+                  "description": "spiffe mode with no spiffeIds: accept any Grid-CA site."
+                },
+                "rateLimit": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "rate": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "burst": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "dependencies": {
+                    "rate": [
+                      "burst"
+                    ],
+                    "burst": [
+                      "rate"
+                    ]
+                  }
+                }
+              }
+            },
+            "provider": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "allowedPaths": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(/[A-Za-z0-9_-]+)+$"
+                  },
+                  "description": "Exact paths forwarded to the local backend."
+                }
+              }
+            },
+            "model": {
+              "type": "string"
+            },
+            "auth": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "",
+                    "none",
+                    "api-key"
+                  ],
+                  "description": "Caller authentication, required for a render consumer. api-key needs an image that registers identity/api-key; provider role rejects it because providers authenticate peers by Grid identity."
+                },
+                "allowUnauthenticatedExposure": {
+                  "type": "boolean",
+                  "description": "With mode none, allow a LoadBalancer or NodePort Service."
+                },
+                "stripAuthorization": {
+                  "type": "boolean",
+                  "description": "Remove the caller's Authorization header before routing."
+                },
+                "validateCA": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "CA for the validate call, set as SSL_CERT_FILE (replaces the platform trust store).",
+                  "properties": {
+                    "configMapName": {
+                      "type": "string"
+                    },
+                    "secretName": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "mountPath": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "validateUrl": {
+                  "type": "string",
+                  "pattern": "^(https://[^/?#\\s]+.*)?$"
+                },
+                "allowPrivateEndpoint": {
+                  "type": "boolean",
+                  "description": "Sets allow_private_idp: every policy callout may reach private, loopback, and link-local addresses."
+                },
+                "prefix": {
+                  "type": "string"
+                },
+                "timeoutSecs": {
+                  "type": "integer"
+                }
+              }
+            },
+            "backends": {
+              "description": "Backends keyed by site, local for a provider's backend, or the older list of {cluster, endpoints}.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {
+                      "cluster": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "site": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                        "description": "Grid site this backend serves. Required for a consumer's remote mutual_tls backend. Defaults to grid.siteName."
+                      },
+                      "endpoints": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\S+:[0-9]+$"
+                        }
+                      },
+                      "trustPrivate": {
+                        "type": "boolean"
+                      },
+                      "allowPlaintextTrust": {
+                        "type": "boolean"
+                      },
+                      "connectTimeoutMs": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "totalConnectTimeoutMs": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "healthCheck": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "enum": [
+                              "http",
+                              "tcp"
+                            ]
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "intervalMs": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "timeoutMs": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "healthyThreshold": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "unhealthyThreshold": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "passiveUnhealthyThreshold": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "passiveHealthyThreshold": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "transport": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "description": "Upstream transport. Remote-site backends default to mutual_tls with a Grid identity and CA. Without an identity, remote-site backends need an explicit transport mode. A provider local backend defaults to plaintext.",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "mutual_tls",
+                              "tls",
+                              "plaintext"
+                            ]
+                          },
+                          "sni": {
+                            "type": "string"
+                          },
+                          "ca": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "tls only: CA bundle that verifies this backend.",
+                            "properties": {
+                              "configMapName": {
+                                "type": "string"
+                              },
+                              "secretName": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "configMapName"
+                                ],
+                                "properties": {
+                                  "configMapName": {
+                                    "minLength": 1
+                                  },
+                                  "secretName": {
+                                    "maxLength": 0
+                                  }
+                                }
+                              },
+                              {
+                                "required": [
+                                  "secretName"
+                                ],
+                                "properties": {
+                                  "secretName": {
+                                    "minLength": 1
+                                  },
+                                  "configMapName": {
+                                    "maxLength": 0
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "if": {
+                          "required": [
+                            "ca"
+                          ]
+                        },
+                        "then": {
+                          "required": [
+                            "mode"
+                          ],
+                          "properties": {
+                            "mode": {
+                              "const": "tls"
+                            }
+                          }
+                        }
+                      },
+                      "endpoint": {
+                        "type": "string",
+                        "pattern": "^\\S+:[0-9]+$",
+                        "description": "Backend endpoint host:port."
+                      }
+                    },
+                    "anyOf": [
+                      {
+                        "required": [
+                          "endpoint"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "endpoints"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "array"
+                }
+              ],
+              "type": [
+                "array",
+                "object"
+              ],
+              "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [],
+                "required": [
+                  "cluster",
+                  "endpoints"
+                ],
                 "properties": {
                   "cluster": {
                     "type": "string",
@@ -337,7 +583,7 @@
                   "site": {
                     "type": "string",
                     "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-                    "description": "Grid site this backend serves. Required for a consumer's remote mutual_tls backend. Defaults to localSite."
+                    "description": "Grid site this backend serves. Required for a consumer's remote mutual_tls backend. Defaults to grid.siteName."
                   },
                   "endpoints": {
                     "type": "array",
@@ -389,13 +635,21 @@
                       "unhealthyThreshold": {
                         "type": "integer",
                         "minimum": 1
+                      },
+                      "passiveUnhealthyThreshold": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "passiveHealthyThreshold": {
+                        "type": "integer",
+                        "minimum": 1
                       }
                     }
                   },
                   "transport": {
                     "type": "object",
                     "additionalProperties": false,
-                    "description": "Upstream transport. Defaults to mutual_tls when tls.enabled, else plaintext.",
+                    "description": "Upstream transport. Remote-site backends default to mutual_tls with a Grid identity and CA. Without an identity, remote-site backends need an explicit transport mode. A provider local backend defaults to plaintext.",
                     "properties": {
                       "mode": {
                         "type": "string",
@@ -413,10 +667,10 @@
                         "additionalProperties": false,
                         "description": "tls only: CA bundle that verifies this backend.",
                         "properties": {
-                          "configMap": {
+                          "configMapName": {
                             "type": "string"
                           },
-                          "secret": {
+                          "secretName": {
                             "type": "string"
                           },
                           "key": {
@@ -426,26 +680,26 @@
                         "oneOf": [
                           {
                             "required": [
-                              "configMap"
+                              "configMapName"
                             ],
                             "properties": {
-                              "configMap": {
+                              "configMapName": {
                                 "minLength": 1
                               },
-                              "secret": {
+                              "secretName": {
                                 "maxLength": 0
                               }
                             }
                           },
                           {
                             "required": [
-                              "secret"
+                              "secretName"
                             ],
                             "properties": {
-                              "secret": {
+                              "secretName": {
                                 "minLength": 1
                               },
-                              "configMap": {
+                              "configMapName": {
                                 "maxLength": 0
                               }
                             }
@@ -468,262 +722,164 @@
                         }
                       }
                     }
-                  },
-                  "endpoint": {
-                    "type": "string",
-                    "pattern": "^\\S+:[0-9]+$",
-                    "description": "Backend endpoint host:port."
                   }
-                },
-                "anyOf": [
-                  {
-                    "required": [
-                      "endpoint"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "endpoints"
-                    ]
-                  }
-                ]
+                }
               }
             },
-            {
-              "type": "array"
-            }
-          ],
-          "type": [
-            "array",
-            "object"
-          ],
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "cluster",
-              "endpoints"
-            ],
-            "properties": {
-              "cluster": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
-              },
-              "site": {
-                "type": "string",
-                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-                "description": "Grid site this backend serves. Required for a consumer's remote mutual_tls backend. Defaults to localSite."
-              },
-              "endpoints": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
+            "gridServing": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Operator serving data used only with praxisConfig.source render.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Mount the operator's serving config, set GRID_SERVING_CONFIG, and route with grid_site_route."
+                },
+                "networkName": {
                   "type": "string",
-                  "pattern": "^\\S+:[0-9]+$"
-                }
-              },
-              "trustPrivate": {
-                "type": "boolean"
-              },
-              "allowPlaintextTrust": {
-                "type": "boolean"
-              },
-              "connectTimeoutMs": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "totalConnectTimeoutMs": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "healthCheck": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "http",
-                      "tcp"
-                    ]
-                  },
-                  "path": {
-                    "type": "string"
-                  },
-                  "intervalMs": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
-                  "timeoutMs": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
-                  "healthyThreshold": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
-                  "unhealthyThreshold": {
-                    "type": "integer",
-                    "minimum": 1
-                  }
-                }
-              },
-              "transport": {
-                "type": "object",
-                "additionalProperties": false,
-                "description": "Upstream transport. Defaults to mutual_tls when tls.enabled, else plaintext.",
-                "properties": {
-                  "mode": {
-                    "type": "string",
-                    "enum": [
-                      "mutual_tls",
-                      "tls",
-                      "plaintext"
-                    ]
-                  },
-                  "sni": {
-                    "type": "string"
-                  },
-                  "ca": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "description": "tls only: CA bundle that verifies this backend.",
-                    "properties": {
-                      "configMap": {
-                        "type": "string"
-                      },
-                      "secret": {
-                        "type": "string"
-                      },
-                      "key": {
-                        "type": "string"
+                  "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+                  "description": "GridNetwork name."
+                },
+                "gatewayRefName": {
+                  "type": "string",
+                  "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+                  "description": "This gateway's name in GridNetwork gatewayRefs. Defaults to the release fullname."
+                },
+                "configMapName": {
+                  "type": "string",
+                  "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
+                  "description": "Overrides grid-serving-<networkName>-<gatewayRefName>."
+                },
+                "mountPath": {
+                  "type": "string",
+                  "pattern": "^/",
+                  "description": "Directory the ConfigMap is mounted at."
+                },
+                "siteRoute": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "grid_site_route tuning, rendered into its filter block with the keys the filter reads.",
+                  "properties": {
+                    "availability": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "smoothing": {
+                          "type": "number"
+                        },
+                        "ceiling_half_life_ms": {
+                          "type": "integer"
+                        },
+                        "ceiling_floor": {
+                          "type": "number"
+                        },
+                        "explore_floor": {
+                          "type": "number"
+                        },
+                        "queue_full": {
+                          "type": "number"
+                        },
+                        "shedding": {
+                          "type": "boolean"
+                        },
+                        "full_after_ms": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "room_after_ms": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
                       }
                     },
-                    "oneOf": [
-                      {
-                        "required": [
-                          "configMap"
-                        ],
-                        "properties": {
-                          "configMap": {
-                            "minLength": 1
-                          },
-                          "secret": {
-                            "maxLength": 0
-                          }
-                        }
-                      },
-                      {
-                        "required": [
-                          "secret"
-                        ],
-                        "properties": {
-                          "secret": {
-                            "minLength": 1
-                          },
-                          "configMap": {
-                            "maxLength": 0
-                          }
+                    "prefixAffinity": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Rendered as the filter's prefix_affinity.",
+                      "properties": {
+                        "capacity": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Maximum prefix entries per backend cluster in each gateway replica; defaults to 16384."
+                        },
+                        "ttl_secs": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Prefix lifetime after a successful response, in seconds; defaults to 600."
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "threshold": {
+                          "type": "number"
+                        },
+                        "exploration": {
+                          "type": "number"
+                        },
+                        "prefill_tokens_per_second": {
+                          "type": "number"
+                        },
+                        "queued_request_seconds": {
+                          "type": "number"
+                        },
+                        "tag_key_path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         }
                       }
-                    ]
-                  }
-                },
-                "if": {
-                  "required": [
-                    "ca"
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "mode"
-                  ],
-                  "properties": {
-                    "mode": {
-                      "const": "tls"
                     }
                   }
                 }
               }
             }
           }
+        }
+      }
+    },
+    "listenerTls": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional inbound TLS on the gateway listener. A non-empty secretName turns it on.",
+      "properties": {
+        "secretName": {
+          "type": "string"
         },
-        "listenerTls": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Optional inbound TLS on the gateway listener. Default posture assumes an inbound TLS front terminates TLS.",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "existingSecret": {
-              "type": "string"
-            },
-            "mountPath": {
-              "type": "string"
-            }
-          }
+        "mountPath": {
+          "type": "string"
+        }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "networkName": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+          "description": "GridNetwork name used by the overlay sidecar."
         },
-        "telemetry": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Optional exporter settings for generated praxis.yaml. Collector credentials must come from deployment-managed Secret environment references.",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Enable OTLP export and the trace_context propagation filter."
-            },
-            "otlpEndpoint": {
-              "type": "string",
-              "pattern": "^(|https?://[^/?#@\\s]+(:[0-9]+)?(/[^\\s?#]*)?)$",
-              "description": "OTLP/gRPC endpoint without userinfo, query, or fragment credentials. Empty uses OTEL_EXPORTER_OTLP_ENDPOINT."
-            },
-            "samplingRate": {
-              "type": [
-                "number",
-                "null"
-              ],
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Root trace sampling probability from 0.0 through 1.0."
-            },
-            "serviceName": {
-              "type": "string",
-              "pattern": "^(|.*\\S.*)$",
-              "description": "OpenTelemetry service.name resource attribute."
-            },
-            "serviceVersion": {
-              "type": "string",
-              "pattern": "^(|.*\\S.*)$",
-              "description": "OpenTelemetry service.version resource attribute."
-            },
-            "environment": {
-              "type": "string",
-              "pattern": "^(|.*\\S.*)$",
-              "description": "deployment.environment resource attribute."
-            },
-            "batchIntervalSecs": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 1,
-              "maximum": 300,
-              "description": "Positive batch exporter interval in seconds."
-            },
-            "batchSize": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 1,
-              "maximum": 65536,
-              "description": "Positive maximum spans per export batch."
-            },
-            "allowInsecure": {
-              "type": "boolean"
-            }
-          }
+        "siteName": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+          "description": "This gateway's Grid site name."
+        }
+      }
+    },
+    "upstreamCA": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "CA bundle for backend TLS without a per-cluster CA. Not used with operator source.",
+      "properties": {
+        "secretName": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "mountPath": {
+          "type": "string"
         }
       }
     },
@@ -749,7 +905,8 @@
       "description": "TLS listener serving only GET /metrics.",
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "enum": [true, false, "true", "false", "auto"],
+          "description": "auto serves the listener for the grid-gateway image on OpenShift with networkPolicy.enabled and fills unset values from the platform. true needs each value set."
         },
         "port": {
           "type": "integer",
@@ -783,7 +940,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "type": "boolean"
+              "enum": [true, false, "true", "false", "auto"],
+              "description": "auto renders the ServiceMonitor when the listener is on, monitoring.coreos.com/v1 is served, and a CA is set."
             },
             "interval": {
               "type": "string"
@@ -845,7 +1003,7 @@
             "ai",
             "grid-gateway"
           ],
-          "description": "ai is praxis-proxy/ai. grid-gateway is the grid build with the provider and gridServing filters."
+          "description": "ai is praxis-proxy/ai. grid-gateway is the grid build with the provider and praxisConfig.render.gridServing filters."
         }
       }
     },
@@ -975,7 +1133,7 @@
       "properties": {
         "level": {
           "type": "string",
-          "pattern": "^([oO][fF][fF]|[eE][rR][rR][oO][rR]|[wW][aA][rR][nN]|[iI][nN][fF][oO]|[dD][eE][bB][uU][gG]|[tT][rR][aA][cC][eE])?$",
+          "pattern": "^((?i)(off|error|warn|info|debug|trace))?$",
           "description": "Level for every module: off, error, warn, info, debug, or trace, in any case. Empty leaves RUST_LOG unset, so the binary uses its own default (info)."
         },
         "filter": {
@@ -1046,25 +1204,6 @@
       },
       "description": "Environment variables passed to the Praxis container."
     },
-    "config": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "existingConfigMap": {
-          "type": "string",
-          "description": "Name of an existing ConfigMap containing the Praxis configuration. Takes precedence over inline."
-        },
-        "key": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Key within the ConfigMap that holds praxis.yaml."
-        },
-        "inline": {
-          "type": "string",
-          "description": "Praxis configuration stored in a chart-managed ConfigMap when neither existingConfigMap nor gatewayConfig.render is set."
-        }
-      }
-    },
     "port": {
       "type": "object",
       "additionalProperties": false,
@@ -1077,7 +1216,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Port name. Empty: https when gatewayConfig.listenerTls.enabled, else http."
+          "description": "Port name. Empty: https when listenerTls.secretName is set, else http."
         },
         "protocol": {
           "type": "string",
@@ -1125,6 +1264,25 @@
         }
       }
     },
+    "platform": {
+      "description": "Cloud whose load balancer settings LoadBalancer Services get: aws, azure, gcp, or any for all three, since each cloud reads only its own keys.",
+      "type": "string",
+      "enum": [
+        "",
+        "aws",
+        "azure",
+        "gcp",
+        "any"
+      ]
+    },
+    "loadBalancerScope": {
+      "description": "Reach of the provider load balancer on a cloud platform: internal (private network) or external (internet-facing).",
+      "type": "string",
+      "enum": [
+        "internal",
+        "external"
+      ]
+    },
     "route": {
       "type": "object",
       "additionalProperties": false,
@@ -1144,6 +1302,10 @@
           },
           "description": "Route annotations."
         },
+        "externalTls": {
+          "type": "boolean",
+          "description": "Attest that a BYO praxis.yaml serves TLS on the Service port with a certificate valid for route.host."
+        },
         "tls": {
           "type": "object",
           "additionalProperties": false,
@@ -1161,9 +1323,6 @@
               "description": "PEM CA that signed the gateway certificate, for reencrypt."
             }
           }
-        },
-        "externalTls": {
-          "type": "boolean"
         }
       }
     },
@@ -1171,37 +1330,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable overlay ConfigMap mount."
-        },
-        "existingConfigMap": {
+        "configMapName": {
           "type": "string",
-          "description": "Name of the existing overlay ConfigMap."
+          "description": "Name of the operator-produced overlay ConfigMap. A non-empty name enables overlay delivery; only for BYO source."
         },
         "mountPath": {
           "type": "string",
-          "description": "Mount path for overlay files."
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "key",
-              "path"
-            ],
-            "properties": {
-              "key": {
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              }
-            }
-          },
-          "description": "Items to project from the ConfigMap."
+          "description": "Directory where praxis reads routing-overlay.json."
         },
         "sidecar": {
           "type": "object",
@@ -1239,111 +1374,9 @@
               "type": "string",
               "description": "ConfigMap data key containing the overlay envelope."
             },
-            "expectedNetwork": {
-              "type": "string",
-              "description": "Expected GridNetwork name for scope validation."
-            },
-            "expectedLocalSite": {
-              "type": "string",
-              "description": "Expected local site name for scope validation."
-            },
             "resources": {
               "type": "object",
               "description": "Sidecar resource requests and limits."
-            }
-          }
-        }
-      }
-    },
-    "gridServing": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Mount the operator's serving config, set GRID_SERVING_CONFIG, and route with grid_site_route."
-        },
-        "network": {
-          "type": "string",
-          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-          "description": "GridNetwork name."
-        },
-        "gatewayRef": {
-          "type": "string",
-          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-          "description": "This gateway's gatewayRef name. Defaults to the release fullname."
-        },
-        "configMap": {
-          "type": "string",
-          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
-          "description": "Overrides grid-serving-<network>-<gatewayRef>."
-        },
-        "mountPath": {
-          "type": "string",
-          "pattern": "^/",
-          "description": "Directory the ConfigMap is mounted at."
-        },
-        "siteRoute": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "grid_site_route tuning, rendered into its filter block with the keys the filter reads.",
-          "properties": {
-            "availability": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "smoothing": {
-                  "type": "number"
-                },
-                "ceiling_floor": {
-                  "type": "number"
-                },
-                "explore_floor": {
-                  "type": "number"
-                },
-                "queue_full": {
-                  "type": "number"
-                },
-                "shedding": {
-                  "type": "boolean"
-                },
-                "full_after_ms": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "room_after_ms": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "prefixAffinity": {
-              "type": "object",
-              "additionalProperties": false,
-              "description": "Rendered as the filter's prefix_affinity.",
-              "properties": {
-                "enabled": {
-                  "type": "boolean"
-                },
-                "threshold": {
-                  "type": "number"
-                },
-                "exploration": {
-                  "type": "number"
-                },
-                "prefill_tokens_per_second": {
-                  "type": "number"
-                },
-                "queued_request_seconds": {
-                  "type": "number"
-                },
-                "tag_key_path": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              }
             }
           }
         }
@@ -1353,77 +1386,40 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Annotate and delegate generated Secret mounts to the Grid operator."
-        },
-        "network": {
-          "type": "string",
-          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-          "description": "GridNetwork name that opted into mount reconciliation."
-        },
-        "gatewayRef": {
-          "type": "string",
-          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-          "description": "GridNetwork gatewayRefs name. Defaults to the Deployment name."
-        },
-        "releaseHelmMounts": {
-          "type": "boolean",
-          "description": "Release selected Helm-managed credentials and non-serving TLS mounts after the operator-owned configuration is ready."
-        },
-        "managedCredentialNames": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": "Credential Secret names whose mounts are owned by Grid; other credentials remain Helm-managed."
-        },
+        "enabled": { "type": "boolean", "description": "Annotate and delegate generated Secret mounts to the Grid operator." },
+        "network": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "GridNetwork name that opted into mount reconciliation." },
+        "gatewayRef": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "GridNetwork gatewayRefs name. Defaults to the Deployment name." },
+        "releaseHelmMounts": { "type": "boolean", "description": "Release selected Helm-managed credentials and non-serving TLS mounts after the operator-owned configuration is ready." },
+        "managedCredentialNames": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 }, "description": "Credential Secret names whose mounts are owned by Grid; other credentials remain Helm-managed." },
         "rbac": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "create": {
-              "type": "boolean",
-              "description": "Create a Role and RoleBinding in the release namespace that let the operator ServiceAccount get and patch this chart's Deployment and no other."
-            }
+            "create": { "type": "boolean", "description": "Create a Role and RoleBinding in the release namespace that let the operator ServiceAccount get and patch this chart's Deployment and no other." }
           }
         },
         "operator": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "serviceAccount": {
-              "type": "string",
-              "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
-              "description": "Operator ServiceAccount the Role binds. Empty fails the render while rbac.create is true."
-            },
-            "namespace": {
-              "type": "string",
-              "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-              "description": "Namespace of the operator ServiceAccount. Empty fails the render while rbac.create is true."
-            }
+            "serviceAccount": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$", "description": "Operator ServiceAccount the Role binds. Empty fails the render while rbac.create is true." },
+            "namespace": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "Namespace of the operator ServiceAccount. Empty fails the render while rbac.create is true." }
           }
         }
       }
     },
-    "tls": {
+    "gridIdentity": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Grid identity Secret with tls.crt and tls.key. The CA may be in a separate Secret.",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable TLS Secret mount."
-        },
-        "existingSecret": {
+        "tlsSecretName": {
           "type": "string",
-          "description": "Name of the existing TLS Secret."
+          "description": "Secret holding the client certificate and key."
         },
-        "caSecret": {
+        "caSecretName": {
           "type": "string",
-          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
-          "description": "Secret holding ca.crt (the Grid CA), projected beside existingSecret."
+          "description": "Secret holding ca.crt. Empty uses tlsSecretName."
         },
         "mountPath": {
           "type": "string",
@@ -1431,17 +1427,16 @@
         }
       }
     },
-    "credentials": {
+    "providerCredentials": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "name",
-          "mountPath"
+          "secretName"
         ],
         "properties": {
-          "name": {
+          "secretName": {
             "type": "string",
             "minLength": 1,
             "description": "Secret name."
@@ -1449,7 +1444,7 @@
           "mountPath": {
             "type": "string",
             "minLength": 1,
-            "description": "Mount path for the credential Secret."
+            "description": "Mount path for the credential Secret. Defaults to /run/secrets/grid-credentials/<sanitized-secretName>."
           },
           "optional": {
             "type": "boolean",
@@ -1494,7 +1489,8 @@
       "description": "Seconds Kubernetes gives a terminating pod before killing it. Null: 30 plus shutdownDelaySeconds."
     },
     "resources": {
-      "$ref": "#/definitions/resourceBudget"
+      "$ref": "#/definitions/resourceBudget",
+      "description": "Container resource requests and limits."
     },
     "nodeSelector": {
       "type": "object",

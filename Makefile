@@ -232,7 +232,8 @@ CHART_NAME ?=
 CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),rhai-on-openshift-chart)
 
 # Snapshot configuration (in scripts directory)
-HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
+# v1.14.2
+HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
 chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all

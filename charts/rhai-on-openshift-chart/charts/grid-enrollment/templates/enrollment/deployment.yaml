@@ -76,6 +76,10 @@ spec:
               value: /etc/grid-ca/tls.key
             - name: ENROLLMENT_CA_COMMON_NAME
               value: {{ .Values.ca.commonName | quote }}
+            {{- with .Values.ca.confirmRotation }}
+            - name: ENROLLMENT_CONFIRM_CA_ROTATION
+              value: {{ . | quote }}
+            {{- end }}
             # In-process TLS serving cert (file paths).
             - name: ENROLLMENT_TLS_CERT
               value: /etc/grid-tls/tls.crt
@@ -85,11 +89,13 @@ spec:
               value: {{ .Values.enrollment.listenAddr | quote }}
             - name: ENROLLMENT_AUTHZ
               value: {{ .Values.enrollment.authz | quote }}
-            {{- if eq .Values.enrollment.authz "kube" }}
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: ENROLLMENT_INVITE_SECRET_NAMESPACE
+              value: {{ include "grid-enrollment.inviteSecretsNamespace" . | quote }}
+            {{- if eq .Values.enrollment.authz "kube" }}
             - name: ENROLLMENT_TOKEN_AUDIENCE
               value: {{ .Values.enrollment.tokenAudience | quote }}
             {{- if .Values.enrollment.csrRecord.enabled }}
@@ -118,6 +124,10 @@ spec:
             # env value: the binary treats this as a path (name:token lines).
             - name: ENROLLMENT_GRID_ADMIN_TOKENS
               value: /etc/grid-admin-tokens/tokens
+            # Roles come from their own key so a token's meaning never depends on
+            # the token's own characters. A Secret without it mounts no file.
+            - name: ENROLLMENT_GRID_ADMIN_ROLES
+              value: /etc/grid-admin-tokens/roles
             {{- end }}
             - name: DB_CONNECTION_URL
               valueFrom:

@@ -8,10 +8,22 @@ metadata:
   labels:
     {{- include "grid-enrollment.labels" . | nindent 4 }}
     app.kubernetes.io/component: enrollment
+  {{- $ann := include "grid-enrollment.serviceAnnotations" . }}
+  {{- if $ann }}
+  annotations:
+    {{- $ann | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.enrollment.service.type }}
   {{- if and (eq .Values.enrollment.service.type "LoadBalancer") .Values.enrollment.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.enrollment.service.loadBalancerIP | quote }}
+  {{- end }}
+  {{- if and (eq .Values.enrollment.service.type "LoadBalancer") .Values.enrollment.service.loadBalancerSourceRanges }}
+  {{- /* An internet-facing enrollment endpoint holds the Grid CA and mints site
+         identities, so the routes it accepts are worth narrowing to the sites that
+         enroll through it. Without this the Service accepts the whole internet. */}}
+  loadBalancerSourceRanges:
+    {{- toYaml .Values.enrollment.service.loadBalancerSourceRanges | nindent 4 }}
   {{- end }}
   selector:
     {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 4 }}

@@ -5,6 +5,11 @@
 ---
 {{ $resource }}
 {{ end }}
+{{- $resource := include "grid-enrollment.rhoai.certs/ca-bootstrap-policy.yaml" . | trim -}}
+{{- if $resource }}
+---
+{{ $resource }}
+{{ end }}
 {{- $resource := include "grid-enrollment.rhoai.certs/ca-bootstrap-rbac.yaml" . | trim -}}
 {{- if $resource }}
 ---
@@ -50,6 +55,11 @@
 ---
 {{ $resource }}
 {{ end }}
+{{- $resource := include "grid-enrollment.rhoai.enrollment/invite-namespace.yaml" . | trim -}}
+{{- if $resource }}
+---
+{{ $resource }}
+{{ end }}
 {{- $resource := include "grid-enrollment.rhoai.enrollment/invite-policy.yaml" . | trim -}}
 {{- if $resource }}
 ---
@@ -61,6 +71,11 @@
 {{ $resource }}
 {{ end }}
 {{- $resource := include "grid-enrollment.rhoai.enrollment/service.yaml" . | trim -}}
+{{- if $resource }}
+---
+{{ $resource }}
+{{ end }}
+{{- $resource := include "grid-enrollment.rhoai.enrollment/site-invite-rbac.yaml" . | trim -}}
 {{- if $resource }}
 ---
 {{ $resource }}

@@ -8,6 +8,17 @@
 # default route.host.
 host: ""
 
+# -- Cloud whose load balancer settings LoadBalancer Services get: `aws` (an NLB, since the
+# default carries no UDP), `azure`, `gcp`, or `any` for all three. Each cloud reads only its
+# own keys, so `any` suits a render that runs on every cloud.
+platform: ""
+
+# -- Reach of the enrollment load balancer on a cloud platform. `internal` keeps it on the
+# cluster's private network, so sites need private connectivity between them. `external`
+# makes it internet-facing. AWS sets the scope only when a load balancer is created:
+# changing it means recreating the Service.
+loadBalancerScope: internal
+
 nameOverride: ""
 fullnameOverride: ""
 commonLabels: {}
@@ -23,7 +34,7 @@ imagePullSecrets: []
 
 # -- Logging, rendered as RUST_LOG.
 log:
-  # -- Level for every module: off, error, warn, info, debug, or trace.
+  # -- Level for every module: error, warn, info, debug, or trace.
   level: info
   # -- Full RUST_LOG directive, such as "info,enrollment=debug". When set, it replaces level.
   filter: ""
@@ -43,8 +54,13 @@ ca:
   # Replace an existing CA in place. Off by default: regenerating the CA
   # invalidates every certificate it has issued. If the CA key Secret is lost while
   # the CA bundle still exists, bootstrap refuses to mint a new CA, since that would
-  # split the grid: restore the key from backup, or set this to start a new grid.
+  # split the grid: restore the key from backup, or set this and confirmRotation to
+  # start a new grid.
   forceRegenerate: false
+  # -- The service records the SHA-256 of the CA's public key in the database and
+  # refuses to start with a CA on any other key. To start a new grid on purpose, set this to the OLD
+  # fingerprint the refusal names, exactly as printed. Clear it once the new CA serves.
+  confirmRotation: ""
   provided:
     # Reference to a pre-created {tls.crt,tls.key} Secret. Never inline the key
     # in values: Helm persists release values (helm get values, GitOps, CI logs).
@@ -60,6 +76,18 @@ ca:
         memory: 256Mi
     # Seconds a finished bootstrap Job is kept for its logs. Null keeps it until the next hook.
     ttlSecondsAfterFinished: 86400
+    policy:
+      # Two ValidatingAdmissionPolicies confining what this chart's unscopable create on
+      # Secrets may produce: the bootstrap to the names and types the chart renders, and
+      # the enrollment service to grid-invite- Secrets in its invite namespace. Kubernetes
+      # cannot scope create by name on that path, and with hubSite.name the bootstrap's
+      # grant lands in a namespace this release does not own.
+      #
+      # They are pre-install hooks, because they must admit the hook writes that follow
+      # them, so Helm does not reconcile or remove them: setting this false stops
+      # rendering a policy but does NOT delete one already on the cluster, and
+      # helm uninstall leaves both behind. The README gives the delete commands.
+      enabled: true
 
 # ------------------------------------------------------------------------------
 # Enrollment endpoint serving cert (in-process TLS). Default: issued from the
@@ -122,8 +150,14 @@ enrollment:
     enabled: true
   # kube (default): SAR via TokenReview + SubjectAccessReview, the in-cluster path
   # (needs the sar-feature image and the auth-delegator RBAC this chart binds).
-  # local: the standalone grid-admin-token table, for non-kube deploys. The table has no
-  # roles, so every token in it may mint and revoke tokens and read and delete enrollments.
+  # local: the standalone grid-admin-token table, for non-kube deploys. Lines in the
+  # "tokens" key are name:token, where the token is everything after the first colon
+  # and may contain any character. Roles come from an optional "roles" key of
+  # name:role[,role] lines, from grid-admin and enrollment-admin, comma separated. A
+  # name with no roles line is grid-admin: mint and revoke tokens, and read
+  # enrollments. Deleting an enrollment, or minting with allowDeletedName, needs
+  # enrollment-admin. An unknown role, or a roles line naming nobody in the token
+  # table, fails startup.
   authz: kube                        # kube | local
   # Record each enrollment as a CertificateSigningRequest on this cluster, under
   # signer grid.praxis.fast/site: created, approved on the invite's authority and
@@ -142,6 +176,18 @@ enrollment:
       # while the record is on. Needs admissionregistration.k8s.io/v1 (Kubernetes
       # 1.30); on an older cluster turn the record off instead.
       enabled: true
+  # Namespace that holds only SiteInvite token Secrets. Empty means
+  # <release-namespace>-invites, beside this release rather than inside it. The chart
+  # creates it, since nothing else owns it, as a pre-install hook that outlives an
+  # uninstall like the rest of the hook resources.
+  #
+  # It is a namespace of its own because it has to be. The service's Role needs create
+  # and delete on Secrets unscoped by name, since invite names are per site, and get so
+  # it can read them back. Admission confines the writes but cannot touch get, because
+  # admission does not run on reads. Sharing a namespace with the Grid CA signing key
+  # would therefore let the service read that key, so the render refuses it.
+  inviteSecrets:
+    namespace: ""
   # Audience a grid-admin token must be bound to under authz=kube, e.g.
   # kubectl create token <sa> --audience grid-enrollment --duration 10m.
   # Never an API-server audience (kubernetes, https://kubernetes.default.svc,
@@ -164,7 +210,7 @@ enrollment:
     subjects: []
   gridAdminTokens:
     generate: true                   # the bootstrap Job creates a grid-admin-token Secret once
-    existingSecretRef: ""            # BYO Secret with key "tokens" (name:token lines)
+    existingSecretRef: ""            # BYO Secret with key "tokens" (name:token), optional "roles"
   serviceAccount:
     create: true
     name: ""
@@ -174,6 +220,22 @@ enrollment:
     type: ""
     # Static LoadBalancer address, so the enrollment URL is known before install.
     loadBalancerIP: ""
+    # -- CIDRs allowed to reach the endpoint, for a LoadBalancer. Empty accepts every
+    # address the load balancer is reachable from, which for an internet-facing one is the
+    # internet. The endpoint holds the Grid CA and mints identities, so narrowing this is
+    # worth the bookkeeping even though a token is still required.
+    #
+    # It has to cover every site for the life of the grid, not just while one joins: sites
+    # rotate their identity through this same endpoint while enrollment.rotation.enabled,
+    # and whoever mints or revokes tokens reaches it too. Sites arrive from the address
+    # they egress on, so on a cloud that is each site's NAT address, and a site whose NAT
+    # address changes drops off the list silently. Nothing fails at the time; the site
+    # stops rotating and its identity expires at enrollment.certLifetimeSecs, 180 days by
+    # default, so the mistake surfaces months later. Keep it in step with the grid's
+    # membership, or leave it empty and put the restriction in front of the endpoint.
+    loadBalancerSourceRanges: []
+    # Service annotations, merged over the platform's.
+    annotations: {}
   resources:
     requests:
       cpu: 100m
@@ -231,10 +293,10 @@ db:
       servingSecretName: grid-db-serving-tls
   external:
     # Secret carrying the full connection URL under connectionUrlSecretKey.
-    # Point this at MaaS's maas-db-config to share its database. The URL must
-    # require TLS (sslmode=require min, verify-full for fips); the binary refuses
-    # a plaintext DB. For verify-full, set caConfigMapName so the client trusts
-    # the DB's issuer and reference it as sslrootcert in the URL.
+    # The URL must set sslmode=verify-full with sslrootcert=/etc/grid-db-ca/<caConfigMapKey>;
+    # the binary refuses any lesser mode. Set caConfigMapName so that file is the DB's issuer.
+    # On a shared Postgres server, use a database and role dedicated to enrollment, with
+    # its URL in a separate Secret: whoever can write these tables can mint site identities.
     connectionUrlSecretRef: ""
     connectionUrlSecretKey: DB_CONNECTION_URL
     # Optional CA bundle for the external DB, mounted at /etc/grid-db-ca (mirrors
@@ -243,7 +305,8 @@ db:
     caConfigMapName: ""
     caConfigMapKey: ca.crt
 
-# -- Sites to invite, keyed by site name: network (default grid), expiresInSecs, and
+# -- Sites to invite, keyed by site name: network (default grid), expiresInSecs,
+# allowDeletedName to invite a site whose enrollment was deleted, and
 # cluster when the ManagedCluster is named something other than the site. Each run skips
 # sites whose invite Secret exists. The older list of {siteName, gridNetworkRef,
 # expiresInSecs} still renders.
@@ -257,8 +320,13 @@ db:
 invitePolicy:
   # -- Render the policy. Needs ACM on this cluster and the sites imported.
   enabled: false
-  # -- Namespace on each site that its operator reads the Secrets from.
-  namespace: grid
+  # -- Namespace on each site that its operator reads the Secrets from. Required when the
+  # policy is enabled, with no default: the grid operator's namespace is grid or
+  # grid-system under a Helm install and odh-ai-grid or redhat-ai-grid under a platform
+  # install, which derives it from the applications namespace, so any default would
+  # deliver every Secret where nothing reads it on some install path. A platform
+  # namespace is refused.
+  namespace: ""
   # -- ManagedClusterSet the sites belong to. The binding is named for it.
   clusterSet: default
 
@@ -268,8 +336,13 @@ invitePolicy:
 hubSite:
   # -- Hub site name. Empty disables it. Must not also be invited.
   name: ""
-  # -- Namespace of the hub's grid operator. Must exist before install: the chart does not create it.
-  namespace: grid
+  # -- Namespace of the hub's grid operator, where its identity Secrets go. Required when
+  # hubSite.name is set, with no default: it is grid or grid-system under a Helm install
+  # and odh-ai-grid or redhat-ai-grid under a platform install, which derives it from the
+  # applications namespace, so any default would deliver the hub's identity where nothing
+  # reads it on some install path. A platform namespace is refused. Must exist before
+  # install: the chart does not create it.
+  namespace: ""
   # -- Secret the site identity is written to.
   identitySecretName: grid-site-identity
   # -- Secret the grid CA is written to beside it.

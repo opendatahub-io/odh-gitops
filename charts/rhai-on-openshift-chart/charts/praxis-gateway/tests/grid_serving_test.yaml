@@ -7,15 +7,14 @@ release:
   namespace: grid
 set:
   image.flavor: grid-gateway
-  gatewayConfig.render: true
-  gatewayConfig.localSite: hub
-  gatewayConfig.auth.mode: none
-  tls.enabled: true
-  tls.existingSecret: grid-site-identity
-  tls.caSecret: grid-ca
-  gridServing.enabled: true
-  gridServing.network: grid
-  gatewayConfig.backends:
+  praxisConfig.source: render
+  grid.siteName: hub
+  praxisConfig.render.auth.mode: none
+  gridIdentity.tlsSecretName: grid-site-identity
+  gridIdentity.caSecretName: grid-ca
+  praxisConfig.render.gridServing.enabled: true
+  praxisConfig.render.gridServing.networkName: grid
+  praxisConfig.render.backends:
     - cluster: pool-b
       endpoints: ["203.0.113.7:8443"]
       transport: { mode: mutual_tls, sni: site-b.grid.internal }
@@ -33,12 +32,12 @@ tests:
   - it: renders siteRoute tuning into the filter block
     template: templates/gateway-config.yaml
     set:
-      gridServing.siteRoute.availability.shedding: true
-      gridServing.siteRoute.prefixAffinity.threshold: 0.5
+      praxisConfig.render.gridServing.siteRoute.availability.shedding: true
+      praxisConfig.render.gridServing.siteRoute.prefixAffinity.threshold: 0.5
     asserts:
       - matchRegex:
           path: data["praxis.yaml"]
-          pattern: 'filter: grid_site_route\n\s+model_header: X-Gateway-Model-Name\n\s+availability:\n\s+shedding: true\n\s+prefix_affinity:\n\s+threshold: 0.5'
+          pattern: 'filter: grid_site_route\n\s+model_header: X-Gateway-Model-Name\n\s+clusters:\n(\s+- .+\n)+\s+availability:\n\s+shedding: true\n\s+prefix_affinity:\n\s+threshold: 0.5'
 
   - it: renders no tuning block when siteRoute is empty
     template: templates/gateway-config.yaml
@@ -50,6 +49,16 @@ tests:
           path: data["praxis.yaml"]
           pattern: 'prefix_affinity:'
 
+  - it: passes cache limits into the grid_site_route plugin
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.render.gridServing.siteRoute.prefixAffinity.capacity: 2048
+      praxisConfig.render.gridServing.siteRoute.prefixAffinity.ttl_secs: 120
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'prefix_affinity:\n\s+capacity: 2048\n\s+ttl_secs: 120'
+
   - it: syncs after the grid CRs under Argo CD, since the operator writes the serving ConfigMap from them
     template: templates/deployment.yaml
     asserts:
@@ -60,9 +69,9 @@ tests:
   - it: carries no sync wave without gridServing
     template: templates/deployment.yaml
     set:
-      gridServing.enabled: false
-      gatewayConfig.model: m
-      gatewayConfig.backends:
+      praxisConfig.render.gridServing.enabled: false
+      praxisConfig.render.model: m
+      praxisConfig.render.backends:
         - cluster: pool-b
           site: site-b
           endpoints: ["203.0.113.7:8443"]
@@ -90,7 +99,7 @@ tests:
   - it: an explicit configMap overrides the derived name
     template: templates/deployment.yaml
     set:
-      gridServing.configMap: custom
+      praxisConfig.render.gridServing.configMapName: custom
     asserts:
       - contains:
           path: spec.template.spec.volumes
@@ -100,21 +109,35 @@ tests:
               name: custom
               optional: false
 
+  - it: derives the serving ConfigMap from gatewayRefName
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.render.gridServing.configMapName: ""
+      praxisConfig.render.gridServing.gatewayRefName: gateway-a
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grid-serving
+            configMap:
+              name: grid-serving-grid-gateway-a
+              optional: false
+
   - it: needs the grid-gateway flavor
     template: templates/deployment.yaml
     set:
       image.flavor: ai
     asserts:
       - failedTemplate:
-          errorPattern: "gridServing needs image.flavor grid-gateway"
+          errorPattern: "praxisConfig.render.gridServing needs image.flavor grid-gateway"
 
   - it: refuses a derived name the operator would hash
     template: templates/deployment.yaml
     set:
-      gridServing.network: a-network-name-long-enough-to-push-the-configmap-name-past-63
+      praxisConfig.render.gridServing.networkName: a-network-name-long-enough-to-push-the-configmap-name-past-63
     asserts:
       - failedTemplate:
-          errorPattern: "set gridServing.configMap"
+          errorPattern: "set configMapName"
 
   - it: refuses a readiness probe on Praxis /ready while backends are rendered
     template: templates/deployment.yaml
@@ -148,3 +171,109 @@ tests:
       - notContains:
           path: spec.template.spec.containers[0].readinessProbe.exec.command
           content: http://127.0.0.1:9901/ready
+
+  - it: declares each backend as a top-level cluster, where Praxis runs its health checks
+    template: templates/gateway-config.yaml
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?m)^clusters:\n  - name: "pool-b"\n(    .*\n)*    health_check:\n      type: "tcp"'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: '(?s)filter: load_balancer\s+clusters:\s+- name: "pool-b"'
+
+  - it: marks a backend down after two passive failures and up after two passes
+    template: templates/gateway-config.yaml
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'healthy_threshold: 2\s+unhealthy_threshold: 3\s+passive_unhealthy_threshold: 2\s+passive_healthy_threshold: 2'
+
+  - it: takes the passive thresholds from the backend's healthCheck
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.render.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+          healthCheck: { passiveUnhealthyThreshold: 3, passiveHealthyThreshold: 1 }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'passive_unhealthy_threshold: 3\s+passive_healthy_threshold: 1'
+
+  - it: bounds a remote site's connects and probes it every 3s
+    template: templates/gateway-config.yaml
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'connection_timeout_ms: 2000\s+total_connection_timeout_ms: 4000\s+health_check:\s+type: "tcp"\s+interval_ms: 3000\s+timeout_ms: 2000'
+
+  - it: derives a remote site's omitted bound from the one set beside it
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.render.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+          connectTimeoutMs: 6000
+          healthCheck: { timeoutMs: 4000 }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'connection_timeout_ms: 6000\s+total_connection_timeout_ms: 6000\s+health_check:\s+type: "tcp"\s+interval_ms: 5000\s+timeout_ms: 4000'
+
+  - it: refuses a probe timeout Praxis would refuse
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.render.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+          healthCheck: { intervalMs: 2000, timeoutMs: 2000 }
+    asserts:
+      - failedTemplate:
+          errorPattern: pool-b healthCheck.timeoutMs \(2000\) must be less than intervalMs \(2000\)
+
+  - it: refuses a connect timeout past the total
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.render.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+          connectTimeoutMs: 5000
+          totalConnectTimeoutMs: 4000
+    asserts:
+      - failedTemplate:
+          errorPattern: backend "pool-b" connectTimeoutMs must not exceed totalConnectTimeoutMs
+
+  - it: leaves a local backend's connects to praxis and probes it every 5s
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.render.backends:
+        - cluster: local
+          endpoints: ["10.96.0.20:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - notMatchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'connection_timeout_ms'
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'interval_ms: 5000\s+timeout_ms: 2000'
+
+  - it: takes a remote site's timeouts and probe interval from the backend
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.render.backends:
+        - cluster: pool-b
+          endpoints: ["203.0.113.7:8443"]
+          transport: { mode: mutual_tls, sni: site-b.grid.internal }
+          connectTimeoutMs: 500
+          totalConnectTimeoutMs: 1500
+          healthCheck: { intervalMs: 9000, timeoutMs: 3000 }
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'connection_timeout_ms: 500\s+total_connection_timeout_ms: 1500\s+health_check:\s+type: "tcp"\s+interval_ms: 9000\s+timeout_ms: 3000'

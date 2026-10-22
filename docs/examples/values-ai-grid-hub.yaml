@@ -1,11 +1,12 @@
 # Requires an operator payload containing opendatahub-operator PR 4186 and
-# ai-gateway-operator PR 148. Install the Grid operator/CRDs through the DSC;
+# ai-gateway-operator PR 195. Install the Grid operator/CRDs through the DSC;
 # Helm owns only the gateway and enrollment workloads below.
 profile: ai-grid
 praxis-gateway:
-  config:
-    # Create this ConfigMap in the Helm release namespace with your site config.
-    existingConfigMap: grid-gateway-config
+  praxisConfig:
+    byo:
+      # Create this ConfigMap in the Helm release namespace with your site config.
+      configMapName: grid-gateway-config
 grid-enrollment:
   # Replace with the externally reachable enrollment Route hostname.
   host: enrollment.apps.example.com

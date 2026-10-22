@@ -1,9 +1,9 @@
 dependencies:
 - name: grid-enrollment
   repository: ""
-  version: 0.2.0
+  version: 0.2.2
 - name: praxis-gateway
   repository: ""
-  version: 0.2.0
-digest: sha256:7cc3f5504d04e4745169b0d5d8916d5e439df5fc15945b15642a1dd537d628f0
-generated: "2026-10-14T12:50:21.207137925-04:00"
+  version: 0.2.2
+digest: sha256:2df13101fe73d5752f8b9962c1a9be34d3d31a6ed45b0b84955c4e539b5f2bc6
+generated: "2026-10-22T10:43:15.997550004+02:00"

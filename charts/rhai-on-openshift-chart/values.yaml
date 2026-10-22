@@ -719,5 +719,5 @@ praxis-gateway:
   image:
     # -- Use the Grid gateway build, which includes Grid routing filters.
     repository: ghcr.io/praxis-proxy/grid-gateway
-    tag: v0.2.1
+    tag: v0.2.2
     flavor: grid-gateway

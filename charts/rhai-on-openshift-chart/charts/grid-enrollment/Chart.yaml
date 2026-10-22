@@ -2,8 +2,14 @@ apiVersion: v2
 name: grid-enrollment
 description: Grid enrollment service with self-provisioned Grid CA and Postgres
 type: application
-version: 0.2.0
-appVersion: "v0.2.0"
+version: 0.2.2
+appVersion: "v0.2.2"
+# Not raised to 1.30 for the ValidatingAdmissionPolicy API the default render uses, since
+# that requirement is conditional: enrollment.csrRecord.enabled and
+# ca.bootstrap.policy.enabled turn the policies off and the chart then installs on 1.26.
+# kubeVersion cannot express a conditional floor, and raising it unconditionally also
+# fails `helm template` on Helm 3.12, whose default capabilities are Kubernetes 1.27.
+# README Prerequisites carries the condition.
 kubeVersion: ">=1.26.0-0"
 home: https://github.com/praxis-proxy/grid
 sources:

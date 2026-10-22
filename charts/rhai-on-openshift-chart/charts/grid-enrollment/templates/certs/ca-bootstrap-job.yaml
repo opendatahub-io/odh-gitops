@@ -37,6 +37,7 @@ spec:
       enableServiceLinks: false
       restartPolicy: Never
       serviceAccountName: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+      automountServiceAccountToken: true
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -53,6 +54,14 @@ spec:
           env:
             - name: RUST_LOG
               value: {{ include "grid-enrollment.rustLog" . | quote }}
+            {{- if dig "bootstrap" "policy" "enabled" true .Values.ca }}
+            {{- /* Only this chart knows it rendered the policy, so only it asks the
+                   bootstrap to wait for enforcement. An env var rather than an argument,
+                   so an image predating the gate ignores it instead of refusing to
+                   start. */}}
+            - name: ENROLLMENT_WAIT_FOR_CONFINEMENT
+              value: "true"
+            {{- end }}
             {{- if and .Values.hubSite.name .Values.enrollment.certLifetimeSecs }}
             - name: ENROLLMENT_CERT_LIFETIME_SECS
               value: {{ .Values.enrollment.certLifetimeSecs | quote }}
@@ -60,6 +69,7 @@ spec:
           args:
             - "--namespace"
             - "{{ .Release.Namespace }}"
+
             {{- if include "grid-enrollment.generatesDbCredentials" . }}
             - "--db-credentials-secret"
             - "{{ include "grid-enrollment.dbUrlSecret" . }}"
@@ -95,8 +105,10 @@ spec:
             - "--serving-dns"
             - "{{ . }}"
             {{- end }}
-            {{- if and (include "grid-enrollment.routeEnabled" .) .Values.route.host }}
-            {{- /* auto-add the Route host so passthrough validates against the serving cert SAN */}}
+            {{- if and (include "grid-enrollment.routeEnabled" .) .Values.route.host (not (has .Values.route.host .Values.serving.extraDnsNames)) }}
+            {{- /* auto-add the Route host so passthrough validates against the serving cert SAN,
+                   unless host already put it in extraDnsNames, which is the usual case since
+                   route.host defaults to host and a repeated SAN entry is just noise */}}
             - "--serving-dns"
             - "{{ .Values.route.host }}"
             {{- end }}

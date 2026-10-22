@@ -12,10 +12,11 @@ tests:
     set:
       invites.site-a.network: grid
       invites.hub.expiresInSecs: 3600
+      invites.site-a.allowDeletedName: true
     asserts:
       - equal:
           path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_INVITES")].value
-          value: '[{"expiresInSecs":3600,"gridNetworkRef":"grid","siteName":"hub"},{"gridNetworkRef":"grid","siteName":"site-a"}]'
+          value: '[{"expiresInSecs":3600,"gridNetworkRef":"grid","siteName":"hub"},{"allowDeletedName":true,"gridNetworkRef":"grid","siteName":"site-a"}]'
 
   - it: scopes the invite Job to the keyed invite Secrets
     template: templates/enrollment/invite-job.yaml

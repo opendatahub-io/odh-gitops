@@ -1,0 +1,126 @@
+suite: Secret delivery namespaces
+templates:
+  - templates/enrollment/deployment.yaml
+tests:
+  - it: refuses a hub operator namespace that belongs to the platform
+    set:
+      hubSite.name: hub
+      hubSite.namespace: openshift-ingress
+    asserts:
+      - failedTemplate:
+          errorPattern: hubSite.namespace="openshift-ingress" is a platform namespace
+
+  - it: refuses a kube namespace
+    set:
+      hubSite.name: hub
+      hubSite.namespace: kube-system
+    asserts:
+      - failedTemplate:
+          errorPattern: is a platform namespace
+
+  - it: refuses the default namespace
+    set:
+      hubSite.name: hub
+      hubSite.namespace: default
+    asserts:
+      - failedTemplate:
+          errorPattern: is a platform namespace
+
+  - it: names the operator namespaces an admin should use
+    set:
+      hubSite.name: hub
+      hubSite.namespace: openshift-monitoring
+    asserts:
+      - failedTemplate:
+          errorPattern: grid or grid-system under a Helm install, odh-ai-grid or redhat-ai-grid under a platform install
+
+  - it: refuses a platform namespace for the invite policy too
+    set:
+      invites.site-a.network: grid
+      invitePolicy.enabled: true
+      invitePolicy.namespace: openshift-ingress
+    asserts:
+      - failedTemplate:
+          errorPattern: invitePolicy.namespace="openshift-ingress" is a platform namespace
+
+  - it: accepts the namespace a platform install derives
+    set:
+      hubSite.name: hub
+      hubSite.namespace: odh-ai-grid
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: accepts the chart defaults
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: leaves the invite policy namespace unchecked while the policy is off
+    set:
+      invitePolicy.namespace: openshift-ingress
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: refuses a platform namespace for the invite Secrets
+    set:
+      enrollment.inviteSecrets.namespace: kube-system
+    asserts:
+      - failedTemplate:
+          errorPattern: enrollment.inviteSecrets.namespace="kube-system" is a platform namespace
+
+  - it: tells the invite Secrets to take a namespace of their own
+    set:
+      enrollment.inviteSecrets.namespace: openshift-config
+    asserts:
+      - failedTemplate:
+          errorPattern: Give the invite tokens a namespace of their own, holding nothing else
+
+  - it: refuses the applications namespaces a platform install derives from
+    set:
+      hubSite.name: hub
+      hubSite.namespace: redhat-ods-applications
+    asserts:
+      - failedTemplate:
+          errorPattern: derives it from the applications namespace rather than sharing it
+
+  - it: refuses openshift without a trailing dash
+    set:
+      hubSite.name: hub
+      hubSite.namespace: openshift
+    asserts:
+      - failedTemplate:
+          errorPattern: is a platform namespace
+
+  - it: refuses the ACM namespaces the invite policy travels through
+    set:
+      invites.site-a.network: grid
+      invitePolicy.enabled: true
+      invitePolicy.namespace: open-cluster-management
+    asserts:
+      - failedTemplate:
+          errorPattern: is a platform namespace
+
+  - it: accepts an invite namespace of its own
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    asserts:
+      - hasDocuments:
+          count: 1
+
+
+  - it: requires the hub operator namespace rather than guessing one
+    set:
+      hubSite.name: hub
+    asserts:
+      - failedTemplate:
+          errorPattern: hubSite.namespace is required when hubSite.name is set
+
+  - it: requires the invite policy namespace rather than guessing one
+    set:
+      invites.site-a.network: grid
+      invitePolicy.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: invitePolicy.namespace is required when invitePolicy.enabled is true

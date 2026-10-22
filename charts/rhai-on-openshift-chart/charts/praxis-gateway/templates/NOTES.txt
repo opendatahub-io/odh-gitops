@@ -2,13 +2,13 @@
 {{- include "praxis-gateway.normalize" . }}
 {{- $fullname := include "praxis-gateway.fullname" . }}
 {{- $configSource := include "praxis-gateway.configSource" . }}
-{{- $scheme := ternary "https" "http" .Values.gatewayConfig.listenerTls.enabled -}}
+{{- $scheme := ternary "https" "http" (not (empty .Values.listenerTls.secretName)) -}}
 Praxis gateway installed.
 
   Release:   {{ .Release.Name }}
   Namespace: {{ .Release.Namespace }}
   Image:     {{ include "praxis-gateway.image" . }}
-  Config:    {{ if eq $configSource "existing" }}ConfigMap {{ .Values.config.existingConfigMap }} (key {{ .Values.config.key }}){{ else if eq $configSource "render" }}rendered from gatewayConfig{{ else }}config.inline (ConfigMap {{ $fullname }}-config){{ end }}
+  Config:    {{ if eq $configSource "byoConfigMap" }}ConfigMap {{ .Values.praxisConfig.byo.configMapName }} (key {{ .Values.praxisConfig.byo.key }}){{ else if eq $configSource "render" }}rendered from praxisConfig.render{{ else if eq $configSource "operator" }}ConfigMap {{ include "praxis-gateway.configMapName" . }}, written by the Grid operator{{ else }}praxisConfig.byo.inline (ConfigMap {{ $fullname }}-config){{ end }}
 
 Wait for the rollout:
 
@@ -24,38 +24,71 @@ Run the chart's connectivity test:
 
   helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
 {{- end }}
-{{- if eq $configSource "inline" }}
+{{- if eq $configSource "operator" }}
 
-Change the configuration by setting config.inline (for example with
---set-file config.inline=praxis.yaml) and running helm upgrade. The pods
+The Grid operator writes ConfigMap {{ include "praxis-gateway.configMapName" . }} (GridNetwork
+gatewayRefs[].consumerConfig.enabled: true). The pod waits in ContainerCreating until
+that ConfigMap exists. If the GridNetwork sets another consumerConfig.configMapName, set the
+same name in praxisConfig.operator.configMapName.
+
+NOTE: the operator's praxis.yaml has no caller authentication. A ClusterIP Service still
+accepts traffic from any pod allowed by the cluster network, and anything that reaches the
+gateway can use inference and any provider credentials it injects.
+{{- if not .Values.networkPolicy.enabled }}
+Enable networkPolicy and limit networkPolicy.from to the authenticating front.
+{{- else }}
+Limit networkPolicy.from to the authenticating front.
+{{- end }}
+NetworkPolicy is effective only where the CNI enforces it.
+
+mTLS to backends: if the operator's praxis.yaml uses mutual_tls, it reads tls.crt, tls.key
+and ca.crt from the GridNetwork's consumerConfig.tlsCertMountPath (default /etc/praxis/tls).
+Set the identity Secret. If the Grid CA is separate, also set caSecretName:
+  gridIdentity.tlsSecretName: the site identity Secret containing tls.crt and tls.key
+  gridIdentity.caSecretName: the separate Grid CA Secret containing ca.crt
+  gridIdentity.mountPath: the same path as tlsCertMountPath
+If caSecretName is empty, the chart reads ca.crt from the identity Secret.
+{{- if not .Values.gridIdentity.tlsSecretName }}
+
+gridIdentity.tlsSecretName is empty, so no TLS files are mounted.
+{{- end }}
+{{- else if eq $configSource "byoInline" }}
+
+Change the configuration by setting praxisConfig.byo.inline (for example with
+--set-file praxisConfig.byo.inline=praxis.yaml) and running helm upgrade. The pods
 roll to pick it up.
-{{- else if eq $configSource "existing" }}
+{{- else if eq $configSource "byoConfigMap" }}
 
-The chart does not manage ConfigMap {{ .Values.config.existingConfigMap }}. After editing it,
+The chart does not manage ConfigMap {{ .Values.praxisConfig.byo.configMapName }}. After editing it,
 restart the pods to load it right away:
 
   kubectl -n {{ .Release.Namespace }} rollout restart deployment/{{ $fullname }}
 {{- end }}
-{{- if .Values.overlay.enabled }}
+{{- with .Values.metricsListener.skipped }}
 
-Overlay ConfigMap: {{ .Values.overlay.existingConfigMap }}
+The metrics listener is off: {{ . }}. Set networkPolicy.enabled and networkPolicy.from to
+serve it, since the NetworkPolicy is the only control on who can scrape the port.
+{{- end }}
+{{- if .Values.overlay.configMapName }}
+
+Overlay ConfigMap: {{ .Values.overlay.configMapName }}
   Mount path: {{ .Values.overlay.mountPath }}
 {{- end }}
-{{- if .Values.tls.enabled }}
+{{- if .Values.gridIdentity.tlsSecretName }}
 
-TLS Secret: {{ .Values.tls.existingSecret }}
-  Mount path: {{ .Values.tls.mountPath }}
+Grid identity Secret: {{ .Values.gridIdentity.tlsSecretName }}
+  Mount path: {{ .Values.gridIdentity.mountPath }}
 {{- end }}
-{{- if .Values.credentials }}
+{{- if .Values.providerCredentials }}
 
-Credential mounts:
-{{- range .Values.credentials }}
-  - {{ .name }} -> {{ .mountPath }}{{ if .optional }} (optional){{ end }}
+Provider credential mounts:
+{{- range .Values.providerCredentials }}
+  - {{ .secretName }} -> {{ include "praxis-gateway.providerCredentialPath" . }}{{ if .optional }} (optional){{ end }}
 {{- end }}
 {{- end }}
-{{- if and .Values.gatewayConfig.render (not .Values.gatewayConfig.auth.stripAuthorization) }}
+{{- if and (eq .Values.praxisConfig.source "render") (not .Values.praxisConfig.render.auth.stripAuthorization) }}
 
-WARNING: gatewayConfig.auth.stripAuthorization is false. The caller's Authorization
+WARNING: praxisConfig.render.auth.stripAuthorization is false. The caller's Authorization
 header reaches every backend and cross-site peer. Use this only when the backend
 validates that same credential.
 {{- end }}
@@ -65,9 +98,9 @@ validates that same credential.
 {{- $sameNsAll = true }}
 {{- end }}
 {{- end }}
-{{- if and .Values.gatewayConfig.render (eq .Values.gatewayConfig.auth.mode "none") (or (not .Values.networkPolicy.enabled) $sameNsAll) }}
+{{- if and (eq .Values.praxisConfig.source "render") (eq .Values.praxisConfig.render.auth.mode "none") (or (not .Values.networkPolicy.enabled) $sameNsAll) }}
 
-NOTE: gatewayConfig.auth.mode is none and
+NOTE: praxisConfig.render.auth.mode is none and
 {{- if .Values.networkPolicy.enabled }} networkPolicy.from admits every pod in this namespace
 ({podSelector: {}}).
 {{- else }} no NetworkPolicy limits ingress.

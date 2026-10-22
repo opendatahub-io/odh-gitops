@@ -4,6 +4,58 @@ templates:
   - templates/certs/ca-bootstrap-rbac.yaml
   - templates/enrollment/auth-rbac.yaml
 tests:
+  - it: keeps bootstrap RBAC until the next hook run
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: ServiceAccount
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+      - equal:
+          path: automountServiceAccountToken
+          value: false
+  - it: keeps the bootstrap Role until the next hook run
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+  - it: keeps the bootstrap RoleBinding until the next hook run
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    documentSelector:
+      path: kind
+      value: RoleBinding
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+
+  - it: keeps the hub-site Role until the next hook run
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    set:
+      hubSite.name: hub
+      hubSite.namespace: grid-system
+    documentIndex: 3
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+  - it: keeps the hub-site RoleBinding until the next hook run
+    template: templates/certs/ca-bootstrap-rbac.yaml
+    set:
+      hubSite.name: hub
+      hubSite.namespace: grid-system
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: before-hook-creation
+
   - it: names one Job across upgrades, so runs do not pile up
     template: templates/certs/ca-bootstrap-job.yaml
     release:
@@ -40,6 +92,9 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].command
           value: ["enrollment", "bootstrap"]
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: true
 
   - it: passes the CA, serving, and DB cert secrets but no gossip flag
     template: templates/certs/ca-bootstrap-job.yaml
@@ -262,6 +317,7 @@ tests:
           path: spec.template.spec.containers[0].env
           value:
             - {name: RUST_LOG, value: info}
+            - {name: ENROLLMENT_WAIT_FOR_CONFINEMENT, value: "true"}
 
   - it: grants the bootstrap only its Secrets in the hub namespace
     template: templates/certs/ca-bootstrap-rbac.yaml
@@ -308,6 +364,7 @@ tests:
     template: templates/certs/ca-bootstrap-rbac.yaml
     set:
       hubSite.name: hub
+      hubSite.namespace: grid-system
     asserts:
       - contains:
           path: rules
@@ -326,6 +383,7 @@ tests:
     template: templates/certs/ca-bootstrap-job.yaml
     set:
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invites:
         hub: {}
     asserts:
@@ -336,6 +394,7 @@ tests:
     template: templates/certs/ca-bootstrap-job.yaml
     set:
       hubSite.name: hub
+      hubSite.namespace: grid-system
       hubSite.swimKeySecretName: ""
     asserts:
       - notContains:
@@ -356,3 +415,58 @@ tests:
             resourceNames: ["grid-swim-key"]
             verbs: ["get"]
         documentIndex: 3
+
+  - it: does not request the Route host twice when it equals host
+    template: templates/certs/ca-bootstrap-job.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      host: e.apps.example.com
+      route.host: e.apps.example.com
+    asserts:
+      # Exactly once. Twice means host and route.host were both appended, which is what
+      # the usual configuration, route.host defaulting to host, produces.
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: e.apps.example.com
+          count: 1
+
+  - it: still requests a Route host that differs from host
+    template: templates/certs/ca-bootstrap-job.yaml
+    capabilities:
+      apiVersions: [route.openshift.io/v1]
+    set:
+      host: svc.internal
+      route.host: ext.apps.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: ext.apps.example.com
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: svc.internal
+
+  - it: asks the bootstrap to wait only when it renders the policy
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: {name: ENROLLMENT_WAIT_FOR_CONFINEMENT, value: "true"}
+
+  - it: asks for no wait when no policy renders
+    template: templates/certs/ca-bootstrap-job.yaml
+    set:
+      ca.bootstrap.policy.enabled: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content: {name: ENROLLMENT_WAIT_FOR_CONFINEMENT, value: "true"}
+
+  - it: never passes an argument the pinned image may not know
+    template: templates/certs/ca-bootstrap-job.yaml
+    asserts:
+      # An image predating the gate ignores an env var it does not read; an argument it
+      # does not know is fatal, which broke the chart's own default image.
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --wait-for-confinement

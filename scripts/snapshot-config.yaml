@@ -237,11 +237,12 @@ charts:
 
       - name: ai-grid-reject-http-telemetry
         expectFail: true
-        expectMessage: "HTTP telemetry requires"
+        expectMessage: "plaintext telemetry"
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid
-          - praxis-gateway.gatewayConfig.telemetry.otlpEndpoint=http://collector:4317
+          - praxis-gateway.praxisConfig.source=render
+          - praxis-gateway.praxisConfig.render.telemetry.otlpEndpoint=http://collector:4317
 
       - name: ai-grid-reject-blocked-loadbalancer
         expectFail: true
@@ -263,7 +264,7 @@ charts:
           - profile=ai-grid
           - grid-enrollment.route.enabled=false
           - skipCrdCheck=true
-          - praxis-gateway.config.existingConfigMap=grid-gateway-config
+          - praxis-gateway.praxisConfig.byo.configMapName=grid-gateway-config
           - grid-enrollment.enrollment.authz=kube
           - grid-enrollment.enrollment.serviceAccount.create=true
           - grid-enrollment.db.type=external

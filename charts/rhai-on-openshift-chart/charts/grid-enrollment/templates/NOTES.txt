@@ -20,6 +20,11 @@ Endpoint: {{ $url }}
 Serving cert: Secret/{{ .Values.serving.existingSecretRef }} (provided). It must carry
 {{ if $route }}{{ .Values.route.host }}{{ else }}the name clients connect to{{ end }} as a SAN. The chart cannot check this.
 {{- end }}
+{{- if eq .Values.db.type "external" }}
+
+Database: the URL in Secret/{{ .Values.db.external.connectionUrlSecretRef }} must set sslmode=verify-full
+with an sslrootcert, or the service exits at startup. The chart cannot check this.
+{{- end }}
 
 1. Save the grid CA bundle. Admins and sites pin it with --cacert:
 {{ if eq (include "grid-enrollment.caProvided" .) "true" }}
@@ -31,7 +36,7 @@ Serving cert: Secret/{{ .Values.serving.existingSecretRef }} (provided). It must
 2. Get an admin bearer token:
 {{ if eq .Values.enrollment.authz "local" }}
 {{- if .Values.enrollment.gridAdminTokens.existingSecretRef }}
-  TOKEN=<token half of a name:token line in Secret/{{ .Values.enrollment.gridAdminTokens.existingSecretRef }}, key "tokens">
+  TOKEN=<token field of a name:token line in Secret/{{ .Values.enrollment.gridAdminTokens.existingSecretRef }}, key "tokens">
 {{- else }}
   TOKEN=$(kubectl -n {{ $ns }} get secret {{ include "grid-enrollment.fullname" . }}-grid-admin-tokens -o jsonpath='{.data.tokens}' | base64 -d | head -1 | cut -d: -f2-)
 {{- end }}

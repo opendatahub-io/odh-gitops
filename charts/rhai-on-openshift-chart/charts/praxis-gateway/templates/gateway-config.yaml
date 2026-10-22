@@ -5,7 +5,7 @@ Secure-by-default: renders praxis.yaml (and policy.yaml with auth.mode api-key),
 emits insecure_options. Literal ClusterIP backends route through a per-cluster
 health_check. Endpoints are values, not defaults.
 */ -}}
-{{- if .Values.gatewayConfig.render }}
+{{- if eq .Values.praxisConfig.source "render" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

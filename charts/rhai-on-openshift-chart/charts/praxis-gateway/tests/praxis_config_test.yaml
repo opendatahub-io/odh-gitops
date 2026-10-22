@@ -1,0 +1,261 @@
+suite: praxisConfig source
+templates:
+  - templates/configmap.yaml
+  - templates/deployment.yaml
+  - templates/gateway-config.yaml
+  - templates/NOTES.txt
+  - templates/route.yaml
+release:
+  name: praxis-gateway
+  namespace: praxis
+tests:
+  - it: defaults to the BYO inline config
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
+          value: praxis-gateway-config
+
+  - it: rejects a source that is not byo, operator, or render
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: cluster
+    asserts:
+      - failedTemplate:
+          errorPattern: source
+
+  - it: rejects render-only authentication and peer settings for BYO
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.render.peerTrust.certDigests: [aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa]
+      praxisConfig.render.auth.validateUrl: https://identity.example/validate
+      praxisConfig.render.auth.validateCA.secretName: validate-ca
+    asserts:
+      - failedTemplate:
+          errorPattern: praxisConfig.render settings are set but praxisConfig.source is byo
+
+  - it: operator mounts the operator's default ConfigMap and the praxis.yaml key
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
+          value: praxis-consumer-config
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.items[0].key
+          value: praxis.yaml
+      - notExists:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  - it: operator uses praxisConfig.operator.configMapName and always mounts praxis.yaml
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+      praxisConfig.operator.configMapName: my-consumer-config
+      praxisConfig.byo.key: other.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.name
+          value: my-consumer-config
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config")].configMap.items[0].key
+          value: praxis.yaml
+
+  - it: operator creates no chart-managed ConfigMap
+    template: templates/configmap.yaml
+    set:
+      praxisConfig.source: operator
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: operator notes say the pod waits for the operator's ConfigMap
+    template: templates/NOTES.txt
+    set:
+      praxisConfig.source: operator
+    asserts:
+      - matchRegexRaw:
+          pattern: ContainerCreating until\s+that ConfigMap exists
+      - matchRegexRaw:
+          pattern: Grid operator writes ConfigMap praxis-consumer-config
+
+  - it: operator rejects listenerTls
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+      listenerTls.secretName: listener-tls
+    asserts:
+      - failedTemplate:
+          errorPattern: listenerTls.secretName is not supported with praxisConfig.source operator
+
+  - it: rejects a Grid CA Secret without an identity Secret
+    template: templates/deployment.yaml
+    set:
+      gridIdentity.caSecretName: grid-ca
+    asserts:
+      - failedTemplate:
+          errorPattern: gridIdentity.tlsSecretName is required when gridIdentity.caSecretName is set
+
+  - it: uses the identity Secret for the CA when no separate Secret is set
+    template: templates/deployment.yaml
+    set:
+      gridIdentity.tlsSecretName: grid-site-identity
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "tls")].projected.sources[0].secret.name
+          value: grid-site-identity
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "tls")].projected.sources[1].secret.name
+          value: grid-site-identity
+
+  - it: accepts one Secret named for both identity and CA
+    template: templates/deployment.yaml
+    set:
+      gridIdentity.tlsSecretName: combined
+      gridIdentity.caSecretName: combined
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: byo accepts listenerTls
+    template: templates/deployment.yaml
+    set:
+      listenerTls.secretName: listener-tls
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: render accepts the top-level listenerTls
+    template: templates/gateway-config.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: m
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.backends:
+        - cluster: a
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+      listenerTls.secretName: listener-tls
+    asserts:
+      - matchRegex:
+          path: data["praxis.yaml"]
+          pattern: 'cert_path: "/etc/praxis/listener-tls/tls.crt"'
+
+  - it: render consumers reject provider peer trust settings
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: m
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.peerTrust.certDigests: [aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa]
+      praxisConfig.render.backends:
+        - cluster: a
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - failedTemplate:
+          errorPattern: peerTrust.certDigests is only supported for role provider
+
+  - it: render authentication CA settings require api-key mode
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: m
+      praxisConfig.render.auth.mode: none
+      praxisConfig.render.auth.validateUrl: https://identity.example/validate
+      praxisConfig.render.backends:
+        - cluster: a
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - failedTemplate:
+          errorPattern: validateUrl and validateCA require auth.mode api-key
+
+  - it: upstreamCA mounts for BYO when named
+    template: templates/deployment.yaml
+    set:
+      upstreamCA.secretName: my-ca
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "upstream-ca")].secret.secretName
+          value: my-ca
+
+  - it: upstreamCA is mounted with source render
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: render
+      grid.siteName: hub
+      praxisConfig.render.model: m
+      praxisConfig.render.auth.mode: none
+      upstreamCA.secretName: my-ca
+      praxisConfig.render.backends:
+        - cluster: a
+          endpoints: ["10.0.0.1:8000"]
+          transport: { mode: plaintext }
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "upstream-ca")].secret.secretName
+          value: my-ca
+
+  - it: operator rejects upstreamCA because its praxis.yaml has no upstream_ca_file
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+      upstreamCA.secretName: my-ca
+    asserts:
+      - failedTemplate:
+          errorPattern: upstreamCA.secretName is not supported with praxisConfig.source operator
+
+  - it: operator rejects a LoadBalancer Service without the exposure opt-in
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+      service.type: LoadBalancer
+    asserts:
+      - failedTemplate:
+          errorPattern: exposes unauthenticated inference
+
+  - it: operator rejects a NodePort Service without the exposure opt-in
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+      service.type: NodePort
+    asserts:
+      - failedTemplate:
+          errorPattern: exposes unauthenticated inference
+
+  - it: operator accepts a LoadBalancer Service with the exposure opt-in
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+      service.type: LoadBalancer
+      praxisConfig.operator.allowUnauthenticatedExposure: true
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: operator accepts a ClusterIP Service
+    template: templates/deployment.yaml
+    set:
+      praxisConfig.source: operator
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: operator rejects a Route
+    template: templates/route.yaml
+    set:
+      praxisConfig.source: operator
+      route.enabled: true
+      route.host: gw.example.com
+    asserts:
+      - failedTemplate:
+          errorPattern: route is not supported with praxisConfig.source operator
+
+  - it: operator notes warn that the config has no caller authentication
+    template: templates/NOTES.txt
+    set:
+      praxisConfig.source: operator
+    asserts:
+      - matchRegexRaw:
+          pattern: no caller authentication

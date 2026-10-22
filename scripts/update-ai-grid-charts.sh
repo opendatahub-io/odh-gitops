@@ -23,7 +23,13 @@ TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 echo "Fetching $GRID_REPO at $REF"
-git clone --quiet --filter=blob:none --no-checkout "$GRID_REPO" "$TMP_DIR/grid"
+CLONE_FLAGS=(--quiet --filter=blob:none --no-checkout)
+if [[ -d "$GRID_REPO" ]]; then
+  # Local checkouts are commonly shallow; a normal local clone preserves their
+  # objects without triggering partial-clone fetches from a promisor remote.
+  CLONE_FLAGS=(--quiet)
+fi
+git clone "${CLONE_FLAGS[@]}" "$GRID_REPO" "$TMP_DIR/grid"
 SHA=$(git -C "$TMP_DIR/grid" rev-parse --verify "$REF^{commit}")
 if [[ "$REF" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "${REF,,}" != "$SHA" ]]; then
   echo "Resolved commit does not match requested SHA" >&2

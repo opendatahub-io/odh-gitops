@@ -23,3 +23,43 @@ tests:
     asserts:
       - notExists:
           path: spec.loadBalancerIP
+
+  - it: narrows the endpoint to the sites that enroll through it
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      host: enroll.example.com
+      route.enabled: false
+      enrollment.service.type: LoadBalancer
+      enrollment.service.loadBalancerSourceRanges:
+        - 32.188.78.92/32
+        - 44.242.20.128/32
+    asserts:
+      - equal:
+          path: spec.loadBalancerSourceRanges
+          value: ["32.188.78.92/32", "44.242.20.128/32"]
+
+  - it: omits source ranges on a ClusterIP, where they mean nothing
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      enrollment.service.type: ClusterIP
+      enrollment.service.loadBalancerSourceRanges:
+        - 32.188.78.92/32
+    asserts:
+      - notExists:
+          path: spec.loadBalancerSourceRanges
+
+  - it: leaves the endpoint open when no ranges are given
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      host: enroll.example.com
+      route.enabled: false
+      enrollment.service.type: LoadBalancer
+    asserts:
+      - notExists:
+          path: spec.loadBalancerSourceRanges

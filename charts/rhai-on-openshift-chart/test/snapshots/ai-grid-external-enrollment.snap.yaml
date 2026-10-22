@@ -20,7 +20,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   podSelector:
@@ -51,12 +51,12 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 data:
   praxis.yaml: |
     admin:
-      address: "127.0.0.1:9901"
+      metrics_address: "127.0.0.1:9901"
     listeners:
       - name: default
         address: "0.0.0.0:8080"
@@ -91,7 +91,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: "ClusterIP"
@@ -104,7 +104,6 @@ spec:
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
 
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: apps/v1
@@ -115,7 +114,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -130,7 +129,7 @@ spec:
         app.kubernetes.io/instance: release-test
         app.kubernetes.io/name: praxis-gateway
       annotations:
-        checksum/config: 2d4a8d62cbe66df0e8b84e9d6cd38de59b6edb501083c83e1fc8b0d4b7a2609a
+        checksum/config: 1ca3b980e4b804c577ea8fcbec780f215c0e51892fabf41b882df91b022fce9d
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -141,7 +140,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway:v0.2.1
+          image: ghcr.io/praxis-proxy/grid-gateway:v0.2.2
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -203,7 +202,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: grid-gateway-config
+            name: "grid-gateway-config"
             items:
               - key: "praxis.yaml"
                 path: "praxis.yaml"

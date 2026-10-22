@@ -5,8 +5,8 @@ description: >-
   from Helm values or an existing ConfigMap. Works on its own as a gateway or
   reverse proxy; no operator or CRDs required.
 type: application
-version: 0.2.0
-appVersion: "0.4.0"
+version: 0.2.2
+appVersion: "0.7.0"
 kubeVersion: ">=1.26.0-0"
 home: https://github.com/praxis-proxy/grid
 sources:

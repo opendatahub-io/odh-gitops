@@ -1,14 +1,15 @@
 profile: ai-grid
 praxis-gateway:
+  grid:
+    networkName: grid-network
+    siteName: hub
   overlay:
-    enabled: true
-    existingConfigMap: grid-routing
+    configMapName: grid-routing
     sidecar:
       enabled: true
-      expectedNetwork: grid-network
-      expectedLocalSite: hub
-  config:
-    existingConfigMap: grid-gateway-config
+  praxisConfig:
+    byo:
+      configMapName: grid-gateway-config
 grid-enrollment:
   route:
     enabled: false

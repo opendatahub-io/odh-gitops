@@ -132,6 +132,7 @@ tests:
   - it: reserves the hub's name so no token can claim it
     set:
       hubSite.name: hub
+      hubSite.namespace: grid-system
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -142,6 +143,7 @@ tests:
   - it: mounts the hub's CA-signed seed Secret, optional until bootstrap writes it
     set:
       hubSite.name: hub
+      hubSite.namespace: grid-system
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -185,3 +187,24 @@ tests:
           content:
             name: ENROLLMENT_ROTATION_ENABLED
             value: "false"
+  - it: passes a CA rotation confirmation through
+    set:
+      ca.confirmRotation: 0c0f32fa974708168b48f7406230ae43a87bd43b5cbaeb81e83e9ce20f55ed73
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ENROLLMENT_CONFIRM_CA_ROTATION
+            value: 0c0f32fa974708168b48f7406230ae43a87bd43b5cbaeb81e83e9ce20f55ed73
+  - it: confirms no CA rotation by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ENROLLMENT_CONFIRM_CA_ROTATION
+  - it: refuses a confirmation that is not a lowercase SHA-256
+    set:
+      ca.confirmRotation: 0C0F32FA974708168B48F7406230AE43A87BD43B5CBAEB81E83E9CE20F55ED73
+    asserts:
+      - failedTemplate: {}

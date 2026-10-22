@@ -3,18 +3,19 @@ templates:
   - templates/route.yaml
 set:
   fullnameOverride: grid-gateway
-  gatewayConfig:
-    render: true
-    model: m
-    localSite: hub
-    auth: {mode: none}
-    backends:
-      - cluster: c
-        endpoints: ["10.0.0.1:8000"]
-        transport: {mode: plaintext}
-    listenerTls:
-      enabled: true
-      existingSecret: listener-tls
+  praxisConfig:
+    source: render
+    render:
+      model: m
+      auth: {mode: none}
+      backends:
+        - cluster: c
+          endpoints: ["10.0.0.1:8000"]
+          transport: {mode: plaintext}
+  grid:
+    siteName: hub
+  listenerTls:
+    secretName: listener-tls
 tests:
   - it: renders nothing by default
     asserts:
@@ -25,7 +26,7 @@ tests:
     set:
       route.enabled: true
       route.host: gw.apps.example.com
-      gatewayConfig.auth.allowUnauthenticatedExposure: true
+      praxisConfig.render.auth.allowUnauthenticatedExposure: true
     asserts:
       - isKind:
           of: Route
@@ -64,7 +65,7 @@ tests:
     set:
       route.enabled: true
       route.host: gw.apps.example.com
-      gatewayConfig.listenerTls.enabled: false
+      listenerTls.secretName: ""
     asserts:
       - failedTemplate:
           errorPattern: route needs TLS at the gateway
@@ -82,7 +83,7 @@ tests:
       route.enabled: true
       route.host: gw.apps.example.com
       route.tls.termination: reencrypt
-      gatewayConfig.auth.allowUnauthenticatedExposure: true
+      praxisConfig.render.auth.allowUnauthenticatedExposure: true
     asserts:
       - failedTemplate:
           errorPattern: needs route.tls.destinationCACertificate
@@ -93,7 +94,7 @@ tests:
       route.host: gw.apps.example.com
       route.tls.termination: reencrypt
       route.tls.destinationCACertificate: PEM
-      gatewayConfig.auth.allowUnauthenticatedExposure: true
+      praxisConfig.render.auth.allowUnauthenticatedExposure: true
     asserts:
       - matchRegex:
           path: spec.tls.destinationCACertificate
@@ -106,13 +107,11 @@ tests:
       route.tls.termination: reencrypt
       route.tls.destinationCACertificate: PEM
       image.flavor: grid-gateway
-      gatewayConfig.role: provider
-      gatewayConfig.listenerTls.enabled: false
-      gatewayConfig.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
-      tls:
-        enabled: true
-        existingSecret: grid-site-identity
-        caSecret: grid-ca
+      praxisConfig.render.role: provider
+      listenerTls.secretName: ""
+      praxisConfig.render.peerTrust.certDigests: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      gridIdentity.tlsSecretName: grid-site-identity
+      gridIdentity.caSecretName: grid-ca
     asserts:
       - failedTemplate:
           errorPattern: reencrypt drops the peer client certificate
@@ -124,7 +123,8 @@ tests:
       route.tls.termination: reencrypt
       service.annotations:
         service.beta.openshift.io/serving-cert-secret-name: listener-tls
-      gatewayConfig.auth.allowUnauthenticatedExposure: true
+      listenerTls.secretName: listener-tls
+      praxisConfig.render.auth.allowUnauthenticatedExposure: true
     asserts:
       - equal:
           path: spec.tls.termination
@@ -139,7 +139,8 @@ tests:
       route.tls.termination: reencrypt
       service.annotations:
         service.beta.openshift.io/serving-cert-secret-name: other-tls
-      gatewayConfig.auth.allowUnauthenticatedExposure: true
+      listenerTls.secretName: listener-tls
+      praxisConfig.render.auth.allowUnauthenticatedExposure: true
     asserts:
       - failedTemplate:
           errorPattern: needs route.tls.destinationCACertificate

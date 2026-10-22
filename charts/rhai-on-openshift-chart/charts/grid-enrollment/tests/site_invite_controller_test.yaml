@@ -1,0 +1,64 @@
+suite: SiteInvite controller permissions
+templates:
+  - templates/enrollment/site-invite-rbac.yaml
+  - templates/enrollment/deployment.yaml
+tests:
+  - it: grants the service invite reconciliation and owned-secret permissions
+    template: templates/enrollment/site-invite-rbac.yaml
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 0
+        equal:
+          path: rules
+          value:
+            - apiGroups: ["grid.praxis.fast"]
+              resources: ["siteinvites"]
+              verbs: ["get", "list", "watch", "patch"]
+            - apiGroups: ["grid.praxis.fast"]
+              resources: ["siteinvites/status"]
+              verbs: ["patch"]
+      - documentIndex: 1
+        equal:
+          path: roleRef.kind
+          value: ClusterRole
+      - documentIndex: 2
+        equal:
+          path: rules[0].resources
+          value: ["secrets"]
+      - documentIndex: 3
+        equal:
+          path: roleRef.kind
+          value: Role
+
+  - it: supplies the pod namespace when local authz runs in Kubernetes
+    template: templates/enrollment/deployment.yaml
+    set:
+      enrollment.authz: local
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POD_NAMESPACE")].valueFrom.fieldRef.fieldPath
+          value: metadata.namespace
+
+  - it: places invite Secrets and their Role in a configured namespace
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    template: templates/enrollment/site-invite-rbac.yaml
+    asserts:
+      - documentIndex: 2
+        equal:
+          path: metadata.namespace
+          value: grid-invites
+      - documentIndex: 3
+        equal:
+          path: metadata.namespace
+          value: grid-invites
+
+  - it: points the controller at the configured Secret namespace
+    set:
+      enrollment.inviteSecrets.namespace: grid-invites
+    template: templates/enrollment/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="ENROLLMENT_INVITE_SECRET_NAMESPACE")].value
+          value: grid-invites

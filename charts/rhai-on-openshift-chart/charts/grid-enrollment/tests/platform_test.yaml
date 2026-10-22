@@ -1,0 +1,140 @@
+suite: platform load balancers
+templates:
+  - templates/enrollment/service.yaml
+# A host with no Route, where the enrollment Service defaults to LoadBalancer.
+set:
+  platform: aws
+  host: enroll.grid.example.com
+  route.enabled: false
+tests:
+  - it: exposes enrollment on an internal network load balancer that carries TCP
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: nlb
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+          value: "true"
+
+  - it: makes the load balancer internet-facing when the scope is external
+    documentIndex: 0
+    set:
+      loadBalancerScope: external
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+          value: "false"
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: nlb
+
+  - it: lets the Service's own annotation override the platform's
+    documentIndex: 0
+    set:
+      enrollment.service.annotations:
+        service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+          value: "false"
+
+  - it: adds no AWS annotations when a Route fronts enrollment
+    documentIndex: 0
+    set:
+      route.enabled: true
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - notExists:
+          path: metadata.annotations
+
+  - it: adds no AWS annotations without a host
+    documentIndex: 0
+    set:
+      host: ""
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - notExists:
+          path: metadata.annotations
+
+  - it: adds no AWS annotations without the aws platform
+    documentIndex: 0
+    set:
+      platform: ""
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - notExists:
+          path: metadata.annotations
+
+  - it: carries every cloud's internal keys with platform any
+    documentIndex: 0
+    set:
+      platform: any
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+          value: "true"
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-internal"]
+          value: "true"
+      - equal:
+          path: metadata.annotations["networking.gke.io/load-balancer-type"]
+          value: Internal
+      - equal:
+          path: metadata.annotations["networking.gke.io/internal-load-balancer-allow-global-access"]
+          value: "true"
+
+  - it: drops the Azure and GCP internal keys and sets AWS false with platform any and scope external
+    documentIndex: 0
+    set:
+      platform: any
+      loadBalancerScope: external
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+          value: "false"
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-internal"]
+      - notExists:
+          path: metadata.annotations["networking.gke.io/load-balancer-type"]
+
+  - it: carries only Azure's key with platform azure
+    documentIndex: 0
+    set:
+      platform: azure
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-internal"]
+          value: "true"
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+      - notExists:
+          path: metadata.annotations["networking.gke.io/load-balancer-type"]
+
+  - it: carries only GCP's keys with platform gcp
+    documentIndex: 0
+    set:
+      platform: gcp
+    asserts:
+      - equal:
+          path: metadata.annotations["networking.gke.io/load-balancer-type"]
+          value: Internal
+      - equal:
+          path: metadata.annotations["networking.gke.io/internal-load-balancer-allow-global-access"]
+          value: "true"
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-internal"]

@@ -6,7 +6,7 @@ release:
   name: gw
   namespace: grid
 set:
-  config.existingConfigMap: praxis-consumer-config
+  praxisConfig.byo.configMapName: praxis-consumer-config
 tests:
   - it: grants the operator nothing without delegation
     template: templates/role-mount-reconciliation.yaml
@@ -18,6 +18,7 @@ tests:
     template: templates/role-mount-reconciliation.yaml
     set:
       mountReconciliation.enabled: true
+      mountReconciliation.operator.namespace: grid-system
       mountReconciliation.network: production
     asserts:
       - hasDocuments:
@@ -58,6 +59,7 @@ tests:
   - it: names the Deployment the chart renders, so the two cannot drift
     set:
       mountReconciliation.enabled: true
+      mountReconciliation.operator.namespace: grid-system
       mountReconciliation.network: production
     asserts:
       - equal:
@@ -74,6 +76,7 @@ tests:
     set:
       fullnameOverride: edge-gw
       mountReconciliation.enabled: true
+      mountReconciliation.operator.namespace: grid-system
       mountReconciliation.network: production
     asserts:
       - equal:
@@ -111,6 +114,7 @@ tests:
     template: templates/role-mount-reconciliation.yaml
     set:
       mountReconciliation.enabled: true
+      mountReconciliation.operator.namespace: grid-system
       mountReconciliation.network: production
       mountReconciliation.rbac.create: false
     asserts:
@@ -121,6 +125,7 @@ tests:
     template: templates/role-mount-reconciliation.yaml
     set:
       mountReconciliation.enabled: true
+      mountReconciliation.operator.namespace: grid-system
       mountReconciliation.network: production
       mountReconciliation.operator.serviceAccount: ""
     asserts:
@@ -133,6 +138,17 @@ tests:
       mountReconciliation.enabled: true
       mountReconciliation.network: production
       mountReconciliation.operator.namespace: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: mountReconciliation.operator.namespace is required
+
+  - it: requires the operator namespace rather than assuming the Helm layout
+    template: templates/role-mount-reconciliation.yaml
+    set:
+      praxisConfig.source: operator
+      mountReconciliation.enabled: true
+      mountReconciliation.network: grid
+      mountReconciliation.gatewayRef: gw
     asserts:
       - failedTemplate:
           errorPattern: mountReconciliation.operator.namespace is required

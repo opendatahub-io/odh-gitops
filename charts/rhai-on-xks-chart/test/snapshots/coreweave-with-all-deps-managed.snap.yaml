@@ -6,6 +6,7 @@ metadata:
   name: cert-manager-operator
   annotations:
     helm.sh/resource-policy: keep
+
 ---
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/namespace.yaml
 apiVersion: v1
@@ -62,6 +63,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -73,6 +75,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -84,6 +87,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -95,6 +99,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
+
 ---
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/serviceaccount-cert-manager-operator-controller-manager.yaml
 apiVersion: v1
@@ -114,6 +119,7 @@ metadata:
   namespace: cert-manager
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/serviceaccount-cert-manager.yaml
 apiVersion: v1
@@ -123,6 +129,7 @@ metadata:
   namespace: cert-manager
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/serviceaccount-cert-manager.yaml
 apiVersion: v1
@@ -152,6 +159,7 @@ metadata:
   namespace: redhat-ods-applications
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -161,6 +169,7 @@ metadata:
   namespace: redhat-ods-applications
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -170,6 +179,7 @@ metadata:
   namespace: redhat-ods-applications
 imagePullSecrets:
   - name: rhai-pull-secret
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -203,6 +213,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -216,6 +227,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -229,6 +241,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -242,6 +255,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -255,6 +269,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -268,6 +283,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -281,6 +297,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -294,6 +311,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -307,6 +325,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/pull-secret.yaml
 apiVersion: v1
@@ -320,6 +339,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/cloudmanager/coreweave/crds/customresourcedefinition-coreweavekubernetesengines.infrastructure.opendatahub.io.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -3787,6 +3807,7 @@ metadata:
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: v1
@@ -3800,6 +3821,7 @@ metadata:
   annotations:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-delete-crs-job.yaml
 apiVersion: v1
@@ -3814,6 +3836,7 @@ metadata:
     helm.sh/hook: pre-upgrade
     helm.sh/hook-weight: "-3"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: v1
@@ -3828,6 +3851,7 @@ metadata:
     helm.sh/hook: pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: v1
@@ -3844,6 +3868,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: v1
@@ -3861,6 +3886,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: dGVzdGF1dGg=
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3947,6 +3973,7 @@ rules:
       - create
       - patch
       - update
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -3989,6 +4016,7 @@ rules:
       - list
       - watch
       - delete
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-delete-crs-job.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -4009,6 +4037,7 @@ rules:
   - apiGroups: [components.platform.opendatahub.io]
     resources: [aigateways]
     verbs: [get, list, watch, delete]
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -4068,6 +4097,7 @@ rules:
     verbs:
       - get
       - list
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -4088,6 +4118,7 @@ subjects:
   - kind: ServiceAccount
     name: rhai-post-install-hook
     namespace: default
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -4130,6 +4161,7 @@ roleRef:
   kind: ClusterRole
   name: rhai-pre-upgrade-delete-crs
   apiGroup: rbac.authorization.k8s.io
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -4151,6 +4183,7 @@ subjects:
   - kind: ServiceAccount
     name: rhai-pre-upgrade-migrate-certmanager
     namespace: default
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 # Certificate is namespaced to the applications namespace.
@@ -4175,6 +4208,7 @@ rules:
       - create
       - patch
       - update
+
 ---
 # Source: rhai-on-xks-chart/templates/hooks/post-install-crs-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -4406,10 +4440,10 @@ spec:
               set -euo pipefail
               TIMEOUT=300
               INTERVAL=5
-              
+
               # Quoted once here so untrusted values can never reach the shell unquoted.
               APP_NAMESPACE="redhat-ods-applications"
-              
+
               # general wait function for resource to be ready in the cluster
               wait_for() {
                 local desc="$1"; shift
@@ -4426,7 +4460,7 @@ spec:
                 done
                 echo "${desc} is available."
               }
-              
+
               # Readiness predicates for wait_for (only invoked when TLS is enabled).
               # ISSUER_ARGS is built in the TLS step below, before issuer_ready is called.
               issuer_ready() {
@@ -4436,18 +4470,18 @@ spec:
               cert_ready() {
                 [ "$(kubectl get certificate inference-gateway-cert -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
               }
-              
+
               echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
               wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
-              
+
               echo "Step 2: cert-manager CA secret required by Gateway CR 'inference-gateway'..."
               wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
-              
+
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
               kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
               kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
               echo "CA bundle ConfigMap created."
-              
+
               echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: v1
@@ -4494,12 +4528,12 @@ spec:
                   - "*.redhat-ods-applications.svc"
               EOF
               echo "Certificate 'inference-gateway-cert' created."
-              
+
               wait_for "Certificate 'inference-gateway-cert' to be Ready" cert_ready
-              
+
               echo "Step 6: GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
               wait_for "GatewayClass 'istio'" kubectl get gatewayclass istio
-              
+
               echo "Step 7: Creating Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: gateway.networking.k8s.io/v1
@@ -4537,7 +4571,7 @@ spec:
                     name: inference-gateway-config
               EOF
               echo "Gateway CR 'inference-gateway' created successfully."
-              
+
 
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-job.yaml
@@ -4595,7 +4629,7 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting Platform CR 'default'..."
               kubectl delete platform default --ignore-not-found --timeout=300s
-              
+
               echo "Deleting CoreWeaveKubernetesEngine CR 'default-coreweavekubernetesengine'..."
               kubectl delete coreweavekubernetesengine default-coreweavekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
@@ -4739,48 +4773,48 @@ spec:
               # Expected env vars:
               #   RELEASE_NAME      - Current Helm release name
               #   RELEASE_NAMESPACE - Current Helm release namespace
-              
+
               set -euo pipefail
-              
+
               WAIT_TIMEOUT="${WAIT_TIMEOUT:-300}"
-              
+
               # Check if cert-manager-operator namespace exists at all.
               if ! kubectl get namespace cert-manager-operator &>/dev/null; then
                 echo "cert-manager-operator namespace not found; nothing to migrate."
                 exit 0
               fi
-              
+
               # KE_RESOURCE and KE_NAME are injected by the Helm Job template (provider-specific).
               if [[ -z "${KE_RESOURCE:-}" ]] || [[ -z "${KE_NAME:-}" ]]; then
                 echo "KE_RESOURCE or KE_NAME not set; skipping migration."
                 exit 0
               fi
-              
+
               KE_FULL="${KE_RESOURCE}/${KE_NAME}"
-              
+
               if ! kubectl get "$KE_FULL" &>/dev/null 2>&1; then
                 echo "KubernetesEngine CR '${KE_FULL}' not found; skipping migration."
                 exit 0
               fi
-              
+
               echo "Found KubernetesEngine CR: ${KE_FULL}"
-              
+
               # Check current managementPolicy — only migrate if CCM is actively managing cert-manager.
               # If already Unmanaged, nothing to do.
               CURRENT_POLICY=$(kubectl get "$KE_FULL" \
                 -o jsonpath='{.spec.dependencies.certManager.managementPolicy}' 2>/dev/null || true)
-              
+
               if [[ "$CURRENT_POLICY" != "Managed" ]]; then
                 echo "certManager.managementPolicy is '${CURRENT_POLICY}'; nothing to migrate."
                 exit 0
               fi
-              
+
               # Patch KE CR to set certManager.managementPolicy=Unmanaged.
               # This tells CCM to stop managing cert-manager and clean up its resources.
               echo "Patching ${KE_FULL}: certManager.managementPolicy → Unmanaged..."
               kubectl patch "$KE_FULL" --type=merge \
                 -p '{"spec":{"dependencies":{"certManager":{"managementPolicy":"Unmanaged"}}}}' 2>&1
-              
+
               # Wait for CCM's foreground deletion of the cert-manager operator Deployment.
               # No wait is needed when CCM has already removed it before the hook starts.
               if ! deployment_names=$(kubectl get deployment -n cert-manager-operator \
@@ -4808,7 +4842,7 @@ spec:
               else
                 echo "cert-manager-operator deployment not found; continuing."
               fi
-              
+
               # CCM cleanup can remove the old operator's RBAC before it gracefully releases
               # this Lease. Foreground Deployment deletion waits for its blocking dependents.
               if kubectl get lease cert-manager-operator-lock -n cert-manager-operator &>/dev/null; then
@@ -4822,5 +4856,3 @@ spec:
                 echo "cert-manager-operator-lock Lease not found; nothing to shorten."
               fi
               echo "Migration complete. The replacement cert-manager operator will reconcile any remaining operands."
-              
-

@@ -79,12 +79,12 @@ tests:
           path: spec.template.spec.containers[0].args
           content: enroll.apps.example.com
 
-  - it: removes the bootstrap RBAC after the hook succeeds or fails
+  - it: keeps bootstrap RBAC until the next hook run
     template: templates/certs/ca-bootstrap-rbac.yaml
     asserts:
       - equal:
           path: metadata.annotations["helm.sh/hook-delete-policy"]
-          value: before-hook-creation,hook-succeeded,hook-failed
+          value: before-hook-creation
 
   - it: issues no serving cert when a BYO serving Secret serves
     template: templates/certs/ca-bootstrap-job.yaml

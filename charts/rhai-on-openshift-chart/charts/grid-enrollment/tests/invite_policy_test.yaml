@@ -6,6 +6,7 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invites.site-a.network: grid
     asserts:
       - hasDocuments:
@@ -15,7 +16,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
     asserts:
       - hasDocuments:
           count: 0
@@ -24,7 +27,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
       invitePolicy.clusterSet: grid-sites
       invites.site-a.network: grid
     documentIndex: 0
@@ -42,7 +47,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
       invites.site-a.network: grid
     documentIndex: 1
     asserts:
@@ -56,7 +63,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
       invites.site-a.network: grid
       invites.site-a.cluster: prod-01
     documentIndex: 1
@@ -69,7 +78,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
       invites.site-a.network: grid
     documentIndex: 1
     asserts:
@@ -84,6 +95,7 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
       invitePolicy.namespace: grid-system
       invites.site-a.network: grid
@@ -105,7 +117,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
       invites.site-a.network: grid
       ca.bundleSecretName: custom-ca
     documentIndex: 3
@@ -121,7 +135,9 @@ tests:
     set:
       host: e.example.com
       hubSite.name: hub
+      hubSite.namespace: grid-system
       invitePolicy.enabled: true
+      invitePolicy.namespace: grid-system
       invites.site-a.network: grid
       invites.site-b.network: grid
     asserts:

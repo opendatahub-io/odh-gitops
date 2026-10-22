@@ -7,9 +7,10 @@ metadata:
   name: {{ include "praxis-gateway.fullname" . }}
   labels:
     {{- include "praxis-gateway.labels" . | nindent 4 }}
-  {{- with .Values.service.annotations }}
+  {{- $ann := include "praxis-gateway.serviceAnnotations" . }}
+  {{- if $ann }}
   annotations:
-    {{- toYaml . | nindent 4 }}
+    {{- $ann | nindent 4 }}
   {{- end }}
 spec:
   type: {{ .Values.service.type | quote }}

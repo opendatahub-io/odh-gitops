@@ -1,0 +1,194 @@
+suite: metrics listener auto
+templates:
+  - templates/deployment.yaml
+  - templates/service-metrics.yaml
+  - templates/servicemonitor.yaml
+  - templates/networkpolicy.yaml
+  - templates/NOTES.txt
+release:
+  name: gw
+  namespace: grid
+set:
+  image.flavor: grid-gateway
+  image.repository: quay.io/sbatsche/grid-gateway
+  image.tag: t
+  networkPolicy.enabled: true
+  networkPolicy.from:
+    - podSelector: {matchLabels: {app: front}}
+tests:
+  - it: stays off away from OpenShift, where no cert source exists by default
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/service-metrics.yaml
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "GRID_METRICS_ADDR")]
+        template: templates/deployment.yaml
+
+  - it: serves the listener on OpenShift with the service serving cert
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "praxis")].env[?(@.name == "GRID_METRICS_ADDR")].value
+          value: "0.0.0.0:9443"
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "metrics-tls")].secret.secretName
+          value: gw-praxis-gateway-metrics-tls
+        template: templates/deployment.yaml
+      - equal:
+          path: metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+          value: gw-praxis-gateway-metrics-tls
+        template: templates/service-metrics.yaml
+
+  - it: admits only user workload monitoring to the port
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    template: templates/networkpolicy.yaml
+    asserts:
+      - contains:
+          path: spec.ingress
+          content:
+            from:
+              - namespaceSelector:
+                  matchExpressions:
+                    - key: kubernetes.io/metadata.name
+                      operator: In
+                      values: ["openshift-user-workload-monitoring"]
+            ports:
+              - port: 9443
+                protocol: TCP
+
+  - it: renders the ServiceMonitor with the service CA when monitoring.coreos.com/v1 is served
+    capabilities:
+      apiVersions: [security.openshift.io/v1, monitoring.coreos.com/v1]
+    template: templates/servicemonitor.yaml
+    asserts:
+      - equal:
+          path: spec.endpoints[0].tlsConfig.ca.configMap.name
+          value: openshift-service-ca.crt
+      - equal:
+          path: spec.endpoints[0].tlsConfig.ca.configMap.key
+          value: service-ca.crt
+      - equal:
+          path: spec.endpoints[0].tlsConfig.serverName
+          value: gw-praxis-gateway-metrics.grid.svc
+
+  - it: renders no ServiceMonitor when monitoring.coreos.com/v1 is not served
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    template: templates/servicemonitor.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: keeps values that are set, and adds no serving cert annotation for a supplied Secret
+    capabilities:
+      apiVersions: [security.openshift.io/v1, monitoring.coreos.com/v1]
+    set:
+      metricsListener.existingSecret: my-metrics-cert
+      metricsListener.fromNamespaces: [prometheus]
+      metricsListener.serviceMonitor.caConfigMap.name: my-ca
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "metrics-tls")].secret.secretName
+          value: my-metrics-cert
+        template: templates/deployment.yaml
+      - notExists:
+          path: metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+        template: templates/service-metrics.yaml
+      - equal:
+          path: spec.endpoints[0].tlsConfig.ca.configMap.name
+          value: my-ca
+        template: templates/servicemonitor.yaml
+      - equal:
+          path: spec.endpoints[0].tlsConfig.ca.configMap.key
+          value: ca.crt
+        template: templates/servicemonitor.yaml
+      - contains:
+          path: spec.ingress[1].from[0].namespaceSelector.matchExpressions
+          content:
+            key: kubernetes.io/metadata.name
+            operator: In
+            values: ["prometheus"]
+        template: templates/networkpolicy.yaml
+
+  - it: stays off for the ai image on OpenShift instead of failing
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    set:
+      image.flavor: ai
+      image.repository: quay.io/sbatsche/ai
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/service-metrics.yaml
+
+  - it: stays off without the NetworkPolicy and says why
+    capabilities:
+      apiVersions: [security.openshift.io/v1]
+    set:
+      networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/service-metrics.yaml
+      - matchRegexRaw:
+          pattern: "The metrics listener is off: networkPolicy.enabled is false"
+        template: templates/NOTES.txt
+
+  - it: stays off when set false
+    capabilities:
+      apiVersions: [security.openshift.io/v1, monitoring.coreos.com/v1]
+    set:
+      metricsListener.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/service-metrics.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/servicemonitor.yaml
+
+  - it: still refuses true without a cert, where nothing is filled in
+    set:
+      metricsListener.enabled: true
+      metricsListener.fromNamespaces: [prometheus]
+    template: templates/deployment.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: "metricsListener.existingSecret is required: the listener serves TLS only"
+
+  - it: still refuses a ServiceMonitor set true without a CA
+    set:
+      metricsListener.enabled: true
+      metricsListener.existingSecret: c
+      metricsListener.fromNamespaces: [prometheus]
+      metricsListener.serviceMonitor.enabled: true
+    template: templates/deployment.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: "metricsListener.serviceMonitor.caConfigMap.name is required to verify the metrics cert"
+
+  - it: a serving-cert annotation alone names the Secret the pod mounts
+    set:
+      image.flavor: grid-gateway
+      networkPolicy.enabled: true
+      metricsListener.service.annotations:
+        service.beta.openshift.io/serving-cert-secret-name: team-owned-metrics-tls
+    capabilities:
+      apiVersions:
+        - security.openshift.io/v1
+        - monitoring.coreos.com/v1
+    asserts:
+      # The platform creates the Secret the annotation names, so the mount must follow it
+      # rather than the generated default, or the pod cannot start.
+      - matchRegex:
+          path: spec.template.spec.volumes[?(@.name=='metrics-tls')].secret.secretName
+          pattern: '^team-owned-metrics-tls$'
+        template: templates/deployment.yaml
+      - equal:
+          path: metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+          value: team-owned-metrics-tls
+        template: templates/service-metrics.yaml

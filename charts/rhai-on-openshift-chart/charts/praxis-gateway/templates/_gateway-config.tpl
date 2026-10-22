@@ -2,7 +2,7 @@
 The data of the chart-rendered gateway ConfigMap, also hashed into checksum/config.
 */}}
 {{- define "praxis-gateway.gatewayConfigData" }}
-{{- $cfg := .Values.gatewayConfig }}
+{{- $cfg := .Values.praxisConfig.render }}
 {{- $provider := eq ($cfg.role | default "consumer") "provider" }}
 {{- $apiKey := and (not $provider) (eq ($cfg.auth.mode | default "none") "api-key") }}
 {{- $telemetry := $cfg.telemetry | default dict }}
@@ -11,9 +11,9 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
 {{- $hasBatchSize := and (hasKey $telemetry "batchSize") (ne $telemetry.batchSize nil) }}
 {{- $hasTelemetryValues := or $telemetry.otlpEndpoint $hasSamplingRate $telemetry.serviceName $telemetry.serviceVersion $telemetry.environment $hasBatchInterval $hasBatchSize }}
   praxis.yaml: |
-    {{- with $cfg.upstreamCA.secretName }}
+    {{- with $.Values.upstreamCA.secretName }}
     runtime:
-      upstream_ca_file: {{ printf "%s/%s" $cfg.upstreamCA.mountPath ($cfg.upstreamCA.key | default "ca.crt") | quote }}
+      upstream_ca_file: {{ printf "%s/%s" $.Values.upstreamCA.mountPath ($.Values.upstreamCA.key | default "ca.crt") | quote }}
     {{- end }}
     {{- if $telemetry.enabled }}
     telemetry:
@@ -44,17 +44,17 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
       {{- end }}
     {{- end }}
     admin:
-      address: {{ include "praxis-gateway.renderedAdminAddress" . | quote }}
+      metrics_address: {{ include "praxis-gateway.renderedAdminAddress" . | quote }}
     listeners:
       - name: gateway
         address: "0.0.0.0:{{ .Values.port.containerPort }}"
         {{- if $provider }}
         tls:
           certificates:
-            - cert_path: {{ printf "%s/tls.crt" .Values.tls.mountPath | quote }}
-              key_path: {{ printf "%s/tls.key" .Values.tls.mountPath | quote }}
+            - cert_path: {{ printf "%s/tls.crt" .Values.gridIdentity.mountPath | quote }}
+              key_path: {{ printf "%s/tls.key" .Values.gridIdentity.mountPath | quote }}
           client_ca:
-            ca_path: {{ printf "%s/ca.crt" .Values.tls.mountPath | quote }}
+            ca_path: {{ printf "%s/ca.crt" .Values.gridIdentity.mountPath | quote }}
           {{- if eq (($cfg.peerTrust).mode | default "pin") "spiffe" }}
           client_cert_mode: require_named
           {{- with ($cfg.peerTrust).spiffeIds }}
@@ -66,13 +66,20 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           {{- else }}
           client_cert_mode: require
           {{- end }}
-        {{- else if $cfg.listenerTls.enabled }}
+        {{- else if $.Values.listenerTls.secretName }}
         tls:
           certificates:
-            - cert_path: {{ printf "%s/tls.crt" $cfg.listenerTls.mountPath | quote }}
-              key_path: {{ printf "%s/tls.key" $cfg.listenerTls.mountPath | quote }}
+            - cert_path: {{ printf "%s/tls.crt" $.Values.listenerTls.mountPath | quote }}
+              key_path: {{ printf "%s/tls.key" $.Values.listenerTls.mountPath | quote }}
         {{- end }}
         filter_chains: [main]
+    {{- if $cfg.backends }}
+    # Praxis runs health checks only for top-level clusters; load_balancer repeats them inline.
+    clusters:
+      {{- range $i, $backend := $cfg.backends }}
+      {{- include "praxis-gateway.backendCluster" (dict "root" $ "i" $i "b" $backend) | trim | nindent 6 }}
+      {{- end }}
+    {{- end }}
     filter_chains:
       - name: main
         filters:
@@ -117,7 +124,7 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           - filter: headers
             response_set:
               - name: X-Grid-Provider-Site
-                value: {{ $cfg.localSite | quote }}
+                value: {{ $.Values.grid.siteName | quote }}
           {{- else }}
           {{- if $apiKey }}
           - filter: policy
@@ -134,10 +141,16 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           {{- end }}
           - filter: model_to_header
             header: X-Gateway-Model-Name
-          {{- if ($.Values.gridServing).enabled }}
+          {{- if ($.Values.praxisConfig.render.gridServing).enabled }}
           - filter: grid_site_route
             model_header: X-Gateway-Model-Name
-            {{- with ($.Values.gridServing).siteRoute }}
+            {{- with $cfg.backends }}
+            clusters:
+              {{- range . }}
+              - {{ .cluster | quote }}
+              {{- end }}
+            {{- end }}
+            {{- with ($.Values.praxisConfig.render.gridServing).siteRoute }}
             {{- with .availability }}
             availability:
               {{- toYaml . | nindent 14 }}
@@ -150,67 +163,17 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           {{- else }}
           - filter: intelligent_route
             model_header: X-Gateway-Model-Name
-            local_site: {{ $cfg.localSite | quote }}
+            local_site: {{ $.Values.grid.siteName | quote }}
             candidates:
               {{- range $cfg.backends }}
-              - { kind: inference_model, name: {{ $cfg.model | quote }}, site: {{ .site | default $cfg.localSite | quote }}, cluster: {{ .cluster | quote }} }
+              - { kind: inference_model, name: {{ $cfg.model | quote }}, site: {{ .site | default $.Values.grid.siteName | quote }}, cluster: {{ .cluster | quote }} }
               {{- end }}
           {{- end }}
           {{- end }}
           - filter: load_balancer
             clusters:
               {{- range $i, $backend := $cfg.backends }}
-              {{- $mode := (.transport).mode | default (ternary "mutual_tls" "plaintext" $.Values.tls.enabled) }}
-              {{- $hc := .healthCheck | default dict }}
-              - name: {{ .cluster | quote }}
-                {{- if eq $mode "mutual_tls" }}
-                tls:
-                  ca:
-                    ca_path: {{ printf "%s/ca.crt" $.Values.tls.mountPath | quote }}
-                  client_cert:
-                    cert_path: {{ printf "%s/tls.crt" $.Values.tls.mountPath | quote }}
-                    key_path: {{ printf "%s/tls.key" $.Values.tls.mountPath | quote }}
-                  sni: {{ include "praxis-gateway.backendSni" . | quote }}
-                  verify: true
-                {{- else if eq $mode "tls" }}
-                tls:
-                  {{- with (.transport).ca }}
-                  ca:
-                    ca_path: {{ printf "/etc/praxis/backend-ca/%d/%s" $i (.key | default "ca.crt") | quote }}
-                  {{- end }}
-                  sni: {{ include "praxis-gateway.backendSni" . | quote }}
-                  verify: true
-                {{- end }}
-                endpoints:
-                  {{- range .endpoints }}
-                  - {{ . | quote }}
-                  {{- end }}
-                {{- if .trustPrivate }}
-                trusted_private_endpoints:
-                  {{- range .endpoints }}
-                  {{- $host := include "praxis-gateway.endpointHost" . }}
-                  {{- if not (include "praxis-gateway.isIPHost" $host) }}
-                  - {{ $host | quote }}
-                  {{- end }}
-                  {{- end }}
-                {{- end }}
-                {{- with .connectTimeoutMs }}
-                connection_timeout_ms: {{ . }}
-                {{- end }}
-                {{- with .totalConnectTimeoutMs }}
-                total_connection_timeout_ms: {{ . }}
-                {{- end }}
-                health_check:
-                  {{- /* TLS backends default to a tcp probe. The active http probe is plaintext and cannot reach a TLS peer. A tcp connect works and still satisfies the present-health_check SSRF-skip guard. */}}
-                  {{- $hcType := $hc.type | default (ternary "http" "tcp" (eq $mode "plaintext")) }}
-                  type: {{ $hcType | quote }}
-                  {{- if eq $hcType "http" }}
-                  path: {{ $hc.path | default "/health" | quote }}
-                  {{- end }}
-                  interval_ms: {{ $hc.intervalMs | default 5000 }}
-                  timeout_ms: {{ $hc.timeoutMs | default 2000 }}
-                  healthy_threshold: {{ $hc.healthyThreshold | default 1 }}
-                  unhealthy_threshold: {{ $hc.unhealthyThreshold | default 3 }}
+              {{- include "praxis-gateway.backendCluster" (dict "root" $ "i" $i "b" $backend) | trim | nindent 14 }}
               {{- end }}
   {{- if $apiKey }}
   policy.yaml: |
@@ -247,4 +210,78 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
         status: 401
         body: "{\"error\":\"authentication required\"}"
   {{- end }}
+{{- end }}
+
+{{/*
+One backend cluster. Rendered top-level, where Praxis runs its health checks, and inline in
+load_balancer, which selects by the same name and endpoint order.
+*/}}
+{{- define "praxis-gateway.backendCluster" }}
+{{- $root := .root }}
+{{- $i := .i }}
+{{- $b := .b }}
+{{- $mode := ($b.transport).mode | default (ternary "mutual_tls" "plaintext" (not (empty $root.Values.gridIdentity.tlsSecretName))) }}
+{{- $hc := $b.healthCheck | default dict }}
+{{- /* A mutual_tls backend is another site's gateway: bounded connects and a faster probe, since little traffic reaches it to trip the passive check. */}}
+{{- $peer := eq $mode "mutual_tls" }}
+{{- /* An omitted value is derived from the one set beside it, so a default never renders a pair Praxis refuses. */}}
+{{- $connect := $b.connectTimeoutMs | default (ternary 2000 0 $peer) | int }}
+{{- $total := $b.totalConnectTimeoutMs | default (ternary (max 4000 $connect) 0 $peer) | int }}
+{{- $probeTimeout := $hc.timeoutMs | default 2000 | int }}
+{{- $probeInterval := $hc.intervalMs | default (max (ternary 3000 5000 $peer) (add $probeTimeout 1000)) | int }}
+{{- if ge $probeTimeout $probeInterval }}
+{{- fail (printf "praxisConfig.render.backends: %s healthCheck.timeoutMs (%d) must be less than intervalMs (%d)" $b.cluster $probeTimeout $probeInterval) }}
+{{- end }}
+- name: {{ $b.cluster | quote }}
+  {{- if eq $mode "mutual_tls" }}
+  tls:
+    ca:
+      ca_path: {{ printf "%s/ca.crt" $root.Values.gridIdentity.mountPath | quote }}
+    client_cert:
+      cert_path: {{ printf "%s/tls.crt" $root.Values.gridIdentity.mountPath | quote }}
+      key_path: {{ printf "%s/tls.key" $root.Values.gridIdentity.mountPath | quote }}
+    sni: {{ include "praxis-gateway.backendSni" $b | quote }}
+    verify: true
+  {{- else if eq $mode "tls" }}
+  tls:
+    {{- with ($b.transport).ca }}
+    ca:
+      ca_path: {{ printf "/etc/praxis/backend-ca/%d/%s" $i (.key | default "ca.crt") | quote }}
+    {{- end }}
+    sni: {{ include "praxis-gateway.backendSni" $b | quote }}
+    verify: true
+  {{- end }}
+  endpoints:
+    {{- range $b.endpoints }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- if $b.trustPrivate }}
+  trusted_private_endpoints:
+    {{- range $b.endpoints }}
+    {{- $host := include "praxis-gateway.endpointHost" . }}
+    {{- if not (include "praxis-gateway.isIPHost" $host) }}
+    - {{ $host | quote }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with $connect }}
+  connection_timeout_ms: {{ . }}
+  {{- end }}
+  {{- with $total }}
+  total_connection_timeout_ms: {{ . }}
+  {{- end }}
+  health_check:
+    {{- /* TLS backends default to a tcp probe. The active http probe is plaintext and cannot reach a TLS peer. A tcp connect works and still satisfies the present-health_check SSRF-skip guard. */}}
+    {{- $hcType := $hc.type | default (ternary "http" "tcp" (eq $mode "plaintext")) }}
+    type: {{ $hcType | quote }}
+    {{- if eq $hcType "http" }}
+    path: {{ $hc.path | default "/health" | quote }}
+    {{- end }}
+    interval_ms: {{ $probeInterval }}
+    timeout_ms: {{ $probeTimeout }}
+    healthy_threshold: {{ $hc.healthyThreshold | default 2 }}
+    unhealthy_threshold: {{ $hc.unhealthyThreshold | default 3 }}
+    {{- /* Passive checks mark an endpoint that refuses or fails requests down within a few of them. */}}
+    passive_unhealthy_threshold: {{ $hc.passiveUnhealthyThreshold | default 2 }}
+    passive_healthy_threshold: {{ $hc.passiveHealthyThreshold | default 2 }}
 {{- end }}

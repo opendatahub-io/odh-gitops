@@ -1,4 +1,20 @@
 ---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "default-invites"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
+
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -57,7 +73,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   podSelector:
@@ -89,7 +105,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   podSelector:
@@ -120,7 +136,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   podSelector:
@@ -152,7 +168,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: enrollment
 
@@ -168,7 +184,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 data:
   # Included at the end of postgresql.conf by the sclorg image (postgresql-cfg/).
@@ -187,12 +203,12 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 data:
   praxis.yaml: |
     admin:
-      address: "127.0.0.1:9901"
+      metrics_address: "127.0.0.1:9901"
     listeners:
       - name: default
         address: "0.0.0.0:8080"
@@ -228,7 +244,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   accessModes: ["ReadWriteOnce"]
@@ -246,7 +262,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["certificates.k8s.io"]
@@ -270,7 +286,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["certificates.k8s.io"]
@@ -284,6 +300,26 @@ rules:
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grid-enrollment-default-site-invite
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: ["grid.praxis.fast"]
+    resources: ["siteinvites"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["grid.praxis.fast"]
+    resources: ["siteinvites/status"]
+    verbs: ["patch"]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: grid-enrollment-default-auth-delegator
@@ -291,7 +327,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -313,7 +349,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -334,7 +370,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -349,6 +385,27 @@ subjects:
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grid-enrollment-default-site-invite
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: grid-enrollment-default-site-invite
+subjects:
+  - kind: ServiceAccount
+    name: grid-enrollment
+    namespace: default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: grid-enrollment-grid-admin
@@ -357,7 +414,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["grid.praxis.fast"]
@@ -380,12 +437,53 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["grid.praxis.fast"]
     resources: ["enrollments"]
     verbs: ["get", "delete"]
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grid-enrollment-site-invite-secrets
+  namespace: default-invites
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "delete"]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grid-enrollment-site-invite-secrets
+  namespace: default-invites
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grid-enrollment-site-invite-secrets
+subjects:
+  - kind: ServiceAccount
+    name: grid-enrollment
+    namespace: default
 
 
 ---
@@ -399,7 +497,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
@@ -422,7 +520,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: enrollment
 spec:
@@ -447,7 +545,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: "ClusterIP"
@@ -460,7 +558,6 @@ spec:
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
 
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: apps/v1
@@ -472,7 +569,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -605,7 +702,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -652,7 +749,7 @@ spec:
             - "until pg_isready -h grid-enrollment-db -p 5432; do echo 'waiting for db'; sleep 2; done"
       containers:
         - name: enrollment
-          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.2.0"
+          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.2.2"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -701,6 +798,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: ENROLLMENT_INVITE_SECRET_NAMESPACE
+              value: "default-invites"
             - name: ENROLLMENT_TOKEN_AUDIENCE
               value: "grid-enrollment"
             - name: ENROLLMENT_CSR_RECORD
@@ -753,7 +852,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -768,7 +867,7 @@ spec:
         app.kubernetes.io/instance: release-test
         app.kubernetes.io/name: praxis-gateway
       annotations:
-        checksum/config: 2d4a8d62cbe66df0e8b84e9d6cd38de59b6edb501083c83e1fc8b0d4b7a2609a
+        checksum/config: 1ca3b980e4b804c577ea8fcbec780f215c0e51892fabf41b882df91b022fce9d
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -779,7 +878,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway:v0.2.1
+          image: ghcr.io/praxis-proxy/grid-gateway:v0.2.2
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -841,7 +940,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: grid-gateway-config
+            name: "grid-gateway-config"
             items:
               - key: "praxis.yaml"
                 path: "praxis.yaml"
@@ -1097,7 +1196,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   failurePolicy: Fail
@@ -1125,7 +1224,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   failurePolicy: Fail
@@ -1153,7 +1252,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   policyName: grid-enrollment-default-csr-record
@@ -1169,7 +1268,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
 spec:
   policyName: grid-enrollment-default-csr-record-confine
@@ -1185,12 +1284,13 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+    helm.sh/hook-delete-policy: before-hook-creation
+automountServiceAccountToken: false
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
@@ -1203,12 +1303,12 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+    helm.sh/hook-delete-policy: before-hook-creation
 rules:
   # create cannot be resourceName-scoped (the object does not exist yet).
   - apiGroups: [""]
@@ -1250,12 +1350,12 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+    helm.sh/hook-delete-policy: before-hook-creation
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1277,7 +1377,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.2.0"
+    app.kubernetes.io/version: "v0.2.2"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: ca-bootstrap
   annotations:
@@ -1297,13 +1397,14 @@ spec:
       enableServiceLinks: false
       restartPolicy: Never
       serviceAccountName: grid-enrollment-ca-bootstrap
+      automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.2.0"
+          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.2.2"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -1315,6 +1416,8 @@ spec:
           env:
             - name: RUST_LOG
               value: "info"
+            - name: ENROLLMENT_WAIT_FOR_CONFINEMENT
+              value: "true"
           args:
             - "--namespace"
             - "default"
@@ -1351,3 +1454,116 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: grid-enrollment-default-bootstrap-secrets
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["secrets"]
+  matchConditions:
+    - name: grid-enrollment-bootstrap
+      expression: "request.userInfo.username == \"system:serviceaccount:default:grid-enrollment-ca-bootstrap\""
+  validations:
+    - expression: "(request.namespace == \"default\" && object.metadata.name in [\"enrollment-serving-tls\",\"grid-ca-bundle\",\"grid-ca-key\",\"grid-db-serving-tls\",\"grid-enrollment-db\"])"
+      message: "the grid enrollment bootstrap may only create the Secrets its chart renders"
+      reason: Forbidden
+
+    - expression: "!has(object.type) || object.type in [\"Opaque\",\"kubernetes.io/tls\"]"
+      message: "the grid enrollment bootstrap may only create an Opaque or kubernetes.io/tls Secret, so it cannot mint a token for another ServiceAccount"
+      reason: Forbidden
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: grid-enrollment-default-invite-secrets
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "DELETE"]
+        resources: ["secrets"]
+  matchConditions:
+    - name: grid-enrollment-service
+      expression: "request.userInfo.username == \"system:serviceaccount:default:grid-enrollment\""
+  validations:
+
+    - expression: "request.namespace == \"default-invites\" && (request.operation == \"DELETE\" ? oldObject.metadata.name.startsWith(\"grid-invite-\") : object.metadata.name.startsWith(\"grid-invite-\"))"
+      message: "the grid enrollment service may only write grid-invite- Secrets, in its invite namespace"
+      reason: Forbidden
+    - expression: "request.operation == \"DELETE\" || !has(object.type) || object.type == \"Opaque\""
+      message: "the grid enrollment service may only create an Opaque Secret, so it cannot mint a token for another ServiceAccount"
+      reason: Forbidden
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: grid-enrollment-default-bootstrap-secrets
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  policyName: grid-enrollment-default-bootstrap-secrets
+  validationActions: [Deny]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: grid-enrollment-default-invite-secrets
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.2.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  policyName: grid-enrollment-default-invite-secrets
+  validationActions: [Deny]

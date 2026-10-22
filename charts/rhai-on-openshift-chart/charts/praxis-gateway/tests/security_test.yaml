@@ -79,7 +79,7 @@ tests:
   - it: keeps the numeric user of a -fips image
     template: templates/deployment.yaml
     set:
-      image.tag: 0.4.0-fips
+      image.tag: 0.7.0-fips
     asserts:
       - notExists:
           path: spec.template.spec.containers[?(@.name == "praxis")].securityContext.runAsUser
