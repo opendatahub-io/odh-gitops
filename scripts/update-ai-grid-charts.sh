@@ -42,6 +42,9 @@ for chart in "${CHARTS[@]}"; do
   mkdir -p "$DEPS_DIR/$chart"
   git -C "$TMP_DIR/grid" archive "$SHA" "charts/$chart" | tar -x --strip-components=2 -C "$DEPS_DIR/$chart"
 
+  # Test-only files are not shipped in the vendored production charts.
+  rm -rf "${DEPS_DIR:?}/$chart/tests" "${DEPS_DIR:?}/$chart/templates/tests"
+
   version=$("$YQ" '.version' "$DEPS_DIR/$chart/Chart.yaml")
   "$YQ" -i "(.dependencies[] | select(.name == \"$chart\") | .version) = \"$version\"" "$PARENT/Chart.yaml"
   echo "  $chart $version"
