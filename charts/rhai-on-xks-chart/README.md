@@ -202,9 +202,6 @@ AI Grid is opt-in on xKS. Set `components.aigateway.spec.aiGrid.managementState`
 components:
   aigateway:
     enabled: true
-    modelsAsAService:
-      gateway:
-        create: false
     spec:
       aiGrid:
         managementState: Managed
