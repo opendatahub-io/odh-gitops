@@ -16,6 +16,14 @@ spec:
   relabelings:
     - targetLabel: scrape_source
       replacement: rhai-metrics
+  # Organization identity is specific to each sample on this shared endpoint.
+  # Keep organization_id and ACM's internal tenant_id; do not assign unscoped metrics.
+  metricRelabelings:
+    - sourceLabels: [organization_id]
+      regex: '(.+)'
+      targetLabel: grid_tenant_id
+      replacement: '$1'
+      action: replace
   staticConfigs:
     - targets:
         - data-science-collector-collector.redhat-ods-monitoring.svc:8890

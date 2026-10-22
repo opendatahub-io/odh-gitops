@@ -327,6 +327,10 @@ charts:
           - skipCrdCheck=true
           - dependencies.agentSandbox.enabled=true
 
+  rhai-on-openshift-chart/charts/ai-grid-o11y-spoke:
+    snapshots:
+      - name: default
+
   dependencies/cert-manager-operator:
     snapshots:
       - name: default
