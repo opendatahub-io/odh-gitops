@@ -1,0 +1,10 @@
+{{- if and .Values.enabled (include "rhai-on-xks-chart.aiGridManaged" .) }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "rhai-on-xks-chart.aiGridNamespace" . }}
+  labels:
+    {{- include "rhai-on-xks-chart.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+{{- end }}

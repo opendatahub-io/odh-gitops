@@ -500,6 +500,15 @@ charts:
           - imagePullSecret.dockerConfigJson=testauth
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
+      - name: azure-with-ai-grid
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - components.aigateway.enabled=true
+          - components.aigateway.modelsAsAService.gateway.create=false
+          - components.aigateway.spec.aiGrid.managementState=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
       - name: azure-with-maas-and-batch-gateway
         setFlags:
           - azure.enabled=true

@@ -309,6 +309,16 @@
                     }
                   }
                 },
+                "aiGrid": {
+                  "type": "object",
+                  "properties": {
+                    "managementState": {
+                      "type": "string",
+                      "enum": ["Managed", "Removed"],
+                      "default": "Removed"
+                    }
+                  }
+                },
                 "batchGateway": {
                   "type": "object",
                   "properties": {

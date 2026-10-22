@@ -107,6 +107,10 @@ components:
     spec:
       modelsAsAService:
         managementState: Removed
+      # AI Grid operator and CRDs. Keep Removed until an operator payload
+      # containing ai-gateway-operator PR #195 is deployed.
+      aiGrid:
+        managementState: Removed
       # Batch Gateway lifecycle. Keep Removed until its RHAII release default is confirmed.
       batchGateway:
         managementState: Removed

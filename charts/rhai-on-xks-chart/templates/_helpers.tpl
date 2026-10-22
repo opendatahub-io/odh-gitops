@@ -139,6 +139,29 @@ true
 {{- end -}}
 
 {{/*
+Return "true" when AI Grid is enabled and Managed.
+*/}}
+{{- define "rhai-on-xks-chart.aiGridManaged" -}}
+{{- if and .Values.components.aigateway.enabled (eq (dig "spec" "aiGrid" "managementState" "" .Values.components.aigateway) "Managed") -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the namespace used by the AI Grid operator.
+*/}}
+{{- define "rhai-on-xks-chart.aiGridNamespace" -}}
+{{- $appNs := .Values.rhaiOperator.applicationsNamespace -}}
+{{- if eq $appNs "redhat-ods-applications" -}}
+redhat-ai-grid
+{{- else if eq $appNs "opendatahub" -}}
+odh-ai-grid
+{{- else -}}
+{{- printf "%s-ai-grid" $appNs | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Return the infrastructure namespace for MaaS workloads (e.g. payload-processing).
 */}}
 {{- define "rhai-on-xks-chart.maasInfrastructureNamespace" -}}

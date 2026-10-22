@@ -4072,6 +4072,8 @@ spec:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
               spec:
+                aiGrid:
+                  managementState: Removed
                 batchGateway:
                   managementState: Removed
                 modelsAsAService:
