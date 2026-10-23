@@ -802,6 +802,8 @@ spec:
     helm:
       values: |
         skipCrdCheck: true
+        argocd:
+          enabled: true
         components:
           kserve:
             dsc:
@@ -830,6 +832,12 @@ kubectl annotate svc/authorino-authorino-authorization \
 ```
 
 Once the secret is created, set `dependencies.rhcl.config.tlsEnabled` to `true` in the ArgoCD application values.
+
+### Trust the OpenShift Service CA in Authorino
+
+The Authorino CR does not expose an environment-variable field, so the chart cannot configure `SSL_CERT_DIR` through `authorinoSpec`. Instead, when both `argocd.enabled` and `dependencies.rhcl.config.authorinoServiceCaTrust` are enabled, it emits a partial Deployment patch intended for Argo CD server-side apply. The patch adds the Service Account CA directory to `SSL_CERT_DIR` without replacing the platform CA bundle.
+
+Set `dependencies.rhcl.config.authorinoServiceCaTrust` to `false` to stop Argo CD from applying the patch. The patch is not rendered for direct Helm installs because a partial Deployment manifest is not valid as a standalone Helm-managed resource.
 
 ## Troubleshooting
 

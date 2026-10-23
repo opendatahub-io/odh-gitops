@@ -19,6 +19,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |-----|------|---------|-------------|
 | ai-grid-o11y-hub | object | `{"enabled":false}` | AI Grid observability hub subchart |
 | ai-grid-o11y-spoke | object | `{"enabled":false}` | AI Grid observability spoke subchart |
+| argocd | object | `{"enabled":false}` | Enable Argo CD-specific resources, including partial server-side-apply patches |
 | components.aiHub | object | `{"defaults":{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"instancesNamespace":null,"managementState":null}}` | AI Hub component (Model Registry; replaces modelregistry from DSC v2) |
 | components.aiHub.defaults | object | `{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.aiHub.dependencies | object | `{}` | Dependencies required by AI Hub |
@@ -147,7 +148,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
-| dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl | object | `{"config":{"authorinoServiceCaTrust":true,"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl.config.authorinoServiceCaTrust | bool | `true` | Trust the OpenShift Service CA in Authorino while retaining platform CA trust |
 | dependencies.rhcl.config.authorinoSpec | object | `{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1}` | Authorino CR spec (only created if tlsEnabled: true) |
 | dependencies.rhcl.config.spec | object | `{}` | Kuadrant CR spec (user can add any fields) |
 | dependencies.rhcl.config.tlsEnabled | bool | `false` | Enable Authorino TLS configuration |

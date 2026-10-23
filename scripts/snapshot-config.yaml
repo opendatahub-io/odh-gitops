@@ -155,6 +155,12 @@ charts:
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
 
+      - name: argocd-authorino-service-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+
       - name: maas-profile
         setFlags:
           - skipCrdCheck=true

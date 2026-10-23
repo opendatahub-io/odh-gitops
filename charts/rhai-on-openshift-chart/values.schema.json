@@ -21,6 +21,18 @@
       "default": false,
       "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
     },
+    "argocd": {
+      "type": "object",
+      "description": "Argo CD installation configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Argo CD-specific resources, including partial server-side-apply patches"
+        }
+      },
+      "additionalProperties": false
+    },
     "grid-enrollment": {
       "type": "object",
       "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/grid-enrollment for its values.",
@@ -1020,6 +1032,11 @@
               "type": "boolean",
               "default": false,
               "description": "Enable Authorino TLS configuration"
+            },
+            "authorinoServiceCaTrust": {
+              "type": "boolean",
+              "default": true,
+              "description": "Trust the OpenShift Service CA in Authorino while retaining platform CA trust"
             },
             "spec": {
               "type": "object",
