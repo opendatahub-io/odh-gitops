@@ -18,6 +18,13 @@ CHARTS=(grid-enrollment praxis-gateway)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PARENT="$ROOT/charts/rhai-on-openshift-chart"
 DEPS_DIR="$PARENT/charts"
+# Helm binary — repo-local pinned version (installed via `make helm`);
+# set HELM explicitly to use another binary
+HELM="${HELM:-$ROOT/bin/helm}"
+if ! command -v "${HELM}" &>/dev/null; then
+  echo "ERROR: helm not found at ${HELM}. Run 'make helm' to install it." >&2
+  exit 1
+fi
 
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -48,7 +55,7 @@ for chart in "${CHARTS[@]}"; do
 done
 
 python3 "$ROOT/scripts/adapt-ai-grid-charts.py"
-helm dependency update --skip-refresh "$PARENT"
+"${HELM}" dependency update --skip-refresh "$PARENT"
 
 make -C "$ROOT" helm-docs >/dev/null
 make -C "$ROOT" chart-snapshots CHART_NAME=rhai-on-openshift-chart >/dev/null

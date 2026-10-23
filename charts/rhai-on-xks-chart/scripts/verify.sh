@@ -20,6 +20,8 @@
 #   VALUES_FILE      - Extra values file for helm deploy (default: empty)
 #   PULL_SECRET      - Path to dockerconfigjson for image pull secret (default: empty)
 #   HELM_EXTRA_ARGS  - Extra args passed to every helm deploy (default: empty, TODO: remove)
+#   HELM             - Helm binary to use (default: repo-local bin/helm, the
+#                      version pinned in the Makefile)
 #   DELETE_TIMEOUT   - Helm uninstall timeout (default: 360s)
 #   CLEANUP_WAIT     - Seconds to wait for reconciliation (default: 90)
 
@@ -40,16 +42,16 @@ test_6_maas_bootstrap() {
   # Exercise installation with no existing release, MaaS namespace, or pull Secrets.
   # Other retained namespaces and CRDs can remain from the default installation tests.
   log "Cleaning up the test release and MaaS infrastructure namespace"
-  if helm status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
+  if "${HELM}" status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
     # Cert-manager teardown is a manual prerequisite, not a chart hook.
     bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
   fi
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found \
+  "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --ignore-not-found \
     --cascade foreground --wait --timeout "$DELETE_TIMEOUT" || return 1
   kubectl delete namespace redhat-ai-gateway-infra --ignore-not-found \
     --wait=true --timeout="${TIMEOUT}s" || return 1
 
-  if helm status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null \
+  if "${HELM}" status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null \
     || kubectl get namespace redhat-ai-gateway-infra &>/dev/null \
     || kubectl get secret rhai-pull-secret -n "$NAMESPACE" &>/dev/null \
     || kubectl get secret rhai-maas-ns-pull-secret -n "$NAMESPACE" &>/dev/null; then
@@ -93,7 +95,7 @@ test_6_maas_bootstrap() {
   [[ "$ASSERT_FAILED" -eq 0 ]] || return 1
 
   log "Failing the namespace hook with an unpullable image"
-  if helm upgrade "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --reuse-values \
+  if "${HELM}" upgrade "$RELEASE_NAME" "$CHART" -n "$NAMESPACE" --reuse-values \
     --set "hooks.cliImage=invalid.invalid/maas-bootstrap:missing" --timeout 20s; then
     fail "Upgrade with an unpullable hook image unexpectedly succeeded"
     return 1
@@ -121,7 +123,7 @@ test_6_maas_bootstrap() {
 
   # Simulate an interrupted bootstrap leaving its hook Secret behind.
   kubectl create secret generic rhai-maas-ns-pull-secret -n "$NAMESPACE" --from-literal=interrupted=true || return 1
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" || return 1
+  "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" || return 1
   assert_not_exists "Leftover bootstrap pull Secret (removed on uninstall)" secret/rhai-maas-ns-pull-secret -n "$NAMESPACE"
 }
 
@@ -133,7 +135,7 @@ test_1_install_check() {
   log "Verifying install..."
 
   # Helm release
-  if helm list -n "${NAMESPACE}" 2>/dev/null | grep -qF "${RELEASE_NAME}"; then
+  if "${HELM}" list -n "${NAMESPACE}" 2>/dev/null | grep -qF "${RELEASE_NAME}"; then
     pass "Helm release '${RELEASE_NAME}' found"
   else
     fail "Helm release '${RELEASE_NAME}' not found in namespace '${NAMESPACE}'"
@@ -237,11 +239,11 @@ test_3_lws_managed_unmanaged() {
 test_4_external_certmanager() {
   # Start a fresh installation, including when this test is selected on its own.
   # Disabling the subchart on an existing release would delete operand credentials.
-  if helm status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
+  if "${HELM}" status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
     log "Removing RHAI before installing standalone cert-manager"
     helm_deploy --reuse-values --set "uninstall.cleanupNamespaces=true" || return 1
     bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
-    helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+    "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
   fi
   assert_deployment_gone "cert-manager-operator"
   [[ "$ASSERT_FAILED" -eq 0 ]] || return 1
@@ -255,7 +257,7 @@ test_4_external_certmanager() {
   fi
   log "Installing standalone cert-manager operator"
   # Standalone installation supplies its own credentials after Helm creates namespaces.
-  helm upgrade --install "$certmanager_release" "${CHART}/../dependencies/cert-manager-operator" \
+  "${HELM}" upgrade --install "$certmanager_release" "${CHART}/../dependencies/cert-manager-operator" \
     -n "$NAMESPACE" --create-namespace "${pull_args[@]}" --timeout 10m || return 1
   if [[ -n "$PULL_SECRET" ]]; then
     for namespace in cert-manager-operator cert-manager; do
@@ -282,12 +284,12 @@ test_4_external_certmanager() {
 
   # Remove consumers first; standalone cert-manager must survive RHAI uninstall.
   # As with the other tests, failures retain resources for debugging.
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+  "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
   for deployment in cert-manager cert-manager-cainjector cert-manager-webhook; do
     wait_for_deployment "$deployment" "cert-manager" || return 1
   done
   bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
-  helm uninstall "$certmanager_release" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+  "${HELM}" uninstall "$certmanager_release" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
   for namespace in cert-manager-operator cert-manager; do
     kubectl delete secret external-cert-manager-pull-secret -n "$namespace" --ignore-not-found || return 1
     assert_not_exists "${namespace} fixture pull secret" secret/external-cert-manager-pull-secret -n "$namespace"
@@ -304,13 +306,13 @@ test_5_uninstall_lifecycle() {
   log "Phase A: helm uninstall (cleanupNamespaces=false)"
   # Cert-manager teardown is a manual prerequisite, not a chart hook.
   bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" || return 1
+  "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" || return 1
 
   wait_reconciliation 15
 
   log "Verifying clean uninstall..."
 
-  if helm status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
+  if "${HELM}" status "$RELEASE_NAME" -n "$NAMESPACE" &>/dev/null; then
     fail "Helm release $RELEASE_NAME still exists"
   else
     pass "Helm release $RELEASE_NAME removed"
@@ -337,7 +339,7 @@ test_5_uninstall_lifecycle() {
   log "Phase B: helm uninstall (cleanupNamespaces=true)"
   # Cert-manager teardown is a manual prerequisite, not a chart hook.
   bash "${SCRIPT_DIR}/remove-certmanager-operands.sh" || return 1
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
+  "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --wait --timeout "$DELETE_TIMEOUT" || return 1
 
   log "Verifying full cleanup including namespaces..."
   assert_not_exists "KubernetesEngine CR" "$KE_KIND/$KE_NAME"

@@ -55,6 +55,7 @@ Thank you for your interest in contributing to the OpenDataHub GitOps repository
 - `kubectl` or `oc` CLI
 - Access to an OpenShift cluster (for testing)
 - Kustomize v5 or later
+- Helm (pinned to `HELM_VERSION` in the Makefile; run `make helm` to install it locally — CI uses the same version)
 
 ## Add a New Kustomize Dependency Operator
 

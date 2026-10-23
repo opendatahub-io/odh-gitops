@@ -13,6 +13,9 @@ VALUES_FILE="${VALUES_FILE:-}"
 PULL_SECRET="${PULL_SECRET:-}"
 # TODO: remove HELM_EXTRA_ARGS once workflows pass PULL_SECRET directly
 HELM_EXTRA_ARGS="${HELM_EXTRA_ARGS:-}"
+# Helm binary — repo-local pinned version (installed via `make helm`);
+# set HELM explicitly to use another binary
+HELM="${HELM:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/bin/helm}"
 DELETE_TIMEOUT="${DELETE_TIMEOUT:-360s}"
 CLEANUP_WAIT="${CLEANUP_WAIT:-90}"
 
@@ -349,7 +352,7 @@ helm_deploy() {
     read -ra helm_extra <<< "$HELM_EXTRA_ARGS"
   fi
   log "helm upgrade --install $RELEASE_NAME ${version_args[*]:+(${version_args[*]})}"
-  if ! helm upgrade --install "$RELEASE_NAME" "$chart_ref" \
+  if ! "${HELM}" upgrade --install "$RELEASE_NAME" "$chart_ref" \
     -n "$NAMESPACE" --create-namespace \
     --set "${CLOUD_PROVIDER}.enabled=true" \
     ${version_args[@]+"${version_args[@]}"} \
@@ -393,11 +396,11 @@ wait_ke_ready() {
 ensure_deployed() {
   local extra_args=("$@")
   local status
-  status=$(helm status "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null \
+  status=$("${HELM}" status "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null \
     | jq -r '.info.status' 2>/dev/null || echo "not-installed")
   if [[ "$status" != "deployed" && "$status" != "not-installed" ]]; then
     log "Release in broken state '$status' — cleaning up..."
-    helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout 120s 2>/dev/null || true
+    "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout 120s 2>/dev/null || true
     kubectl wait --for=delete "$KE_KIND/$KE_NAME" --timeout=60s 2>/dev/null || true
   fi
   if [[ "$status" == "deployed" && ${#extra_args[@]} -eq 0 ]]; then
@@ -474,7 +477,7 @@ print_summary() {
 # ─── Prerequisite checks ──────────────────────────────────────────────────
 
 check_prerequisites() {
-  if ! command -v helm &>/dev/null; then echo "ERROR: helm not found" >&2; exit 1; fi
+  if ! command -v "${HELM}" &>/dev/null; then echo "ERROR: helm not found at ${HELM}. Run 'make helm' to install it." >&2; exit 1; fi
   if ! command -v kubectl &>/dev/null; then echo "ERROR: kubectl not found" >&2; exit 1; fi
   if ! command -v jq &>/dev/null; then echo "ERROR: jq not found" >&2; exit 1; fi
   if [[ -n "$CHART" && ! -d "$CHART" ]]; then echo "ERROR: Chart not found at: $CHART" >&2; exit 1; fi

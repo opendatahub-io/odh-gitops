@@ -11,19 +11,22 @@ NAMESPACE="${NAMESPACE:-rhai-gitops}"
 TIMEOUT="${TIMEOUT:-600}"  # 10 minutes default
 INTERVAL="${INTERVAL:-10}"
 OPERATOR_TYPE="${OPERATOR_TYPE:-odh}"  # odh or rhoai
+# Helm binary — repo-local pinned version (installed via `make helm`);
+# set HELM explicitly to use another binary
+HELM="${HELM:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/helm}"
 
 echo "=== Verifying Helm Chart Installation ==="
 
 # Check if helm CLI is installed
-if ! command -v helm &>/dev/null; then
-    echo "❌ helm CLI is not installed"
+if ! command -v "${HELM}" &>/dev/null; then
+    echo "❌ helm not found at ${HELM}. Run 'make helm' to install it."
     exit 1
 fi
-echo "✅ helm CLI found: $(helm version --short)"
+echo "✅ helm CLI found: $("${HELM}" version --short)"
 
 # Check if helm release exists
 echo "Checking Helm release for operator type: ${OPERATOR_TYPE}..."
-if ! helm list -n "${NAMESPACE}" 2>/dev/null | grep -q odh; then
+if ! "${HELM}" list -n "${NAMESPACE}" 2>/dev/null | grep -q odh; then
     echo "❌ Helm release 'odh' not found in namespace ${NAMESPACE}"
     exit 1
 fi

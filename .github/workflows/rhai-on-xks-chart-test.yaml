@@ -65,8 +65,12 @@ jobs:
           # Authorization requires a fresh maintainer label event for the current commit.
           allow-unsafe-pr-checkout: true
 
+      - name: Resolve pinned Helm version
+        run: echo "HELM_VERSION=$(make -s print-helm-version)" >> "$GITHUB_ENV"
       - name: Setup Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
 
       - name: Create kind cluster
         uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
@@ -122,8 +126,12 @@ jobs:
           # Authorization requires a fresh maintainer label event for the current commit.
           allow-unsafe-pr-checkout: true
 
+      - name: Resolve pinned Helm version
+        run: echo "HELM_VERSION=$(make -s print-helm-version)" >> "$GITHUB_ENV"
       - name: Setup Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
 
       - name: Create kind cluster
         uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1

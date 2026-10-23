@@ -52,6 +52,7 @@ KUBE_LINTER ?= $(LOCALBIN)/kube-linter
 YAMLLINT ?= $(LOCALBIN)/yamllint
 K8S_CLI ?= kubectl
 YQ ?= $(LOCALBIN)/yq
+HELM ?= $(LOCALBIN)/helm
 
 ## Application Versions
 # RHOAI version to use for bundle updates - update this when new catalog folder appears in RHOAI-Build-Config
@@ -62,6 +63,7 @@ KUSTOMIZE_VERSION ?= v5.8.0
 KUBE_LINTER_VERSION ?= v0.7.6
 YAMLLINT_VERSION ?= 1.37.1
 YQ_VERSION ?= v4.49.2
+HELM_VERSION ?= v4.2.4
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 
@@ -112,8 +114,24 @@ yq: $(YQ) ## Download yq locally if necessary.
 $(YQ): $(LOCALBIN)
 	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,$(YQ_VERSION))
 
+.PHONY: helm
+helm: $(LOCALBIN) ## Download helm locally if necessary.
+	@if [ ! -x "$(HELM)-$(HELM_VERSION)" ]; then \
+		set -e; \
+		echo "Downloading helm $(HELM_VERSION) for $(OS)/$(ARCH)..."; \
+		rm -rf "$(LOCALBIN)/$(OS)-$(ARCH)"; \
+		curl -fsSL "https://get.helm.sh/helm-$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz" | tar xz -C "$(LOCALBIN)" "$(OS)-$(ARCH)/helm"; \
+		mv "$(LOCALBIN)/$(OS)-$(ARCH)/helm" "$(HELM)-$(HELM_VERSION)"; \
+		rm -rf "$(LOCALBIN)/$(OS)-$(ARCH)"; \
+	fi
+	@ln -sf "helm-$(HELM_VERSION)" "$(HELM)"
+
+.PHONY: print-helm-version
+print-helm-version: ## Print pinned HELM_VERSION from Makefile
+	@echo $(HELM_VERSION)
+
 .PHONY: tools
-tools: kustomize kube-linter yamllint yq ## Download all validation tools locally.
+tools: kustomize kube-linter yamllint yq helm ## Download all validation tools locally.
 	@echo ""
 	@echo "All validation tools installed in $(LOCALBIN)"
 
@@ -236,18 +254,18 @@ CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),rhai-on-openshift-c
 HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
-chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
-	@./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
+chart-snapshots: yq helm ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
+	@HELM="$(HELM)" ./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 GRID_REPO ?= https://github.com/praxis-proxy/grid.git
 GRID_REF ?= 3359afdcddda926f3cdf986f5173f12b30b40aae
 .PHONY: update-ai-grid-charts
-update-ai-grid-charts: yq ## Vendor AI Grid charts from praxis-proxy/grid. Use GRID_REF=<tag|sha>, optional GRID_REPO=<url|path>
-	@YQ='$(subst ','"'"',$(YQ))' GRID_REPO='$(subst ','"'"',$(GRID_REPO))' ./scripts/update-ai-grid-charts.sh '$(subst ','"'"',$(GRID_REF))'
+update-ai-grid-charts: yq helm ## Vendor AI Grid charts from praxis-proxy/grid. Use GRID_REF=<tag|sha>, optional GRID_REPO=<url|path>
+	@YQ='$(subst ','"'"',$(YQ))' HELM="$(HELM)" GRID_REPO='$(subst ','"'"',$(GRID_REPO))' ./scripts/update-ai-grid-charts.sh '$(subst ','"'"',$(GRID_REF))'
 
 .PHONY: chart-test
-chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
-	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
+chart-test: yq helm ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
+	@HELM="$(HELM)" ./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure
@@ -261,8 +279,8 @@ helm-docs: helm-docs-ensure ## Run helm-docs for all charts.
 
 
 .PHONY: helm-verify
-helm-verify: ## Verify helm chart installation and DSC components
-	NAMESPACE=opendatahub-gitops OPERATOR_TYPE=$(OPERATOR_TYPE) ./scripts/verify-helm-chart.sh
+helm-verify: helm ## Verify helm chart installation and DSC components
+	HELM="$(HELM)" NAMESPACE=opendatahub-gitops OPERATOR_TYPE=$(OPERATOR_TYPE) ./scripts/verify-helm-chart.sh
 
 # Extra arguments to pass to helm commands (e.g., --set olm.source=custom-catalog)
 HELM_EXTRA_ARGS ?=
@@ -273,15 +291,15 @@ HELM_E2E_VALUES_FILE ?= $(CHART_PATH)/test/values-e2e.yaml
 HELM_INSTALL_ARGS := -f $(HELM_INSTALL_VALUES_FILE) $(if $(HELM_E2E_VALUES_FILE),-f $(HELM_E2E_VALUES_FILE)) --set components.ogx.dsc.managementState=Removed --set components.aigateway.dsc.modelsAsAService.managementState=Removed
 
 .PHONY: helm-install-verify
-helm-install-verify: ## Install helm chart and verify installation
+helm-install-verify: helm ## Install helm chart and verify installation
 	@echo "=== Step 1: Install operators ==="
-	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --create-namespace $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
+	$(HELM) upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --create-namespace $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
 	@echo "=== Step 2: Wait for CRDs (dependency) ==="
 	@./scripts/wait-for-crds.sh
 	@bash ./scripts/verify-dependencies.sh
 	@echo ""
 	@echo "=== Step 3: Enable DSC and DSCInitialization ==="
-	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
+	$(HELM) upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
 	@echo ""
 	@echo "=== Step 4: Verify operator and DSC installation, reducing dashboard replicas to 1 to reduce resource usage ==="
 	@echo "Waiting for odh-dashboard deployment to exist in namespace $(APPLICATIONS_NAMESPACE)..."
@@ -296,7 +314,7 @@ helm-install-verify: ## Install helm chart and verify installation
 	@$(MAKE) prepare-authorino-tls KUSTOMIZE_MODE=false
 	@echo ""
 	@echo "=== Step 6: Final helm upgrade with wait condition ==="
-	helm upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --wait --timeout 10m $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
+	$(HELM) upgrade --install odh ./$(CHART_PATH) -n opendatahub-gitops --wait --timeout 10m $(HELM_INSTALL_ARGS) $(HELM_EXTRA_ARGS)
 
 ## RHAI on XKS Chart
 XKS_CHART_PATH ?= $(CHARTS_DIR)/rhai-on-xks-chart
@@ -309,20 +327,20 @@ XKS_UPGRADE_FROM_CHART ?= oci://registry.redhat.io/rhai/rhai-on-xks-chart
 XKS_UPGRADE_FROM_VERSION ?= v3.5.0
 
 .PHONY: helm-verify-xks
-helm-verify-xks: ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test
-	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" VALUES_FILE="$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml)" bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
+helm-verify-xks: helm ## Verify rhai-on-xks-chart installation and lifecycle. Use XKS_TEST=<num> for specific test
+	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" HELM="$(HELM)" VALUES_FILE="$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml)" bash ./charts/rhai-on-xks-chart/scripts/verify.sh $(XKS_TEST)
 
 .PHONY: helm-install-verify-xks
 helm-install-verify-xks: ## Install and verify rhai-on-xks-chart
 	$(MAKE) helm-verify-xks
 
 .PHONY: helm-upgrade-verify-xks
-helm-upgrade-verify-xks: ## Upgrade test: install previous version, upgrade to current, verify
-	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" UPGRADE_FROM_CHART="$(XKS_UPGRADE_FROM_CHART)" UPGRADE_FROM_VERSION="$(XKS_UPGRADE_FROM_VERSION)" VALUES_FILE="$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml)" bash ./charts/rhai-on-xks-chart/scripts/verify-upgrade.sh
+helm-upgrade-verify-xks: helm ## Upgrade test: install previous version, upgrade to current, verify
+	RELEASE_NAME="$(XKS_RELEASE_NAME)" NAMESPACE="$(XKS_NAMESPACE)" CLOUD_PROVIDER="$(XKS_CLOUD_PROVIDER)" PULL_SECRET="$(XKS_PULL_SECRET)" HELM_EXTRA_ARGS="$(HELM_EXTRA_ARGS)" HELM="$(HELM)" UPGRADE_FROM_CHART="$(XKS_UPGRADE_FROM_CHART)" UPGRADE_FROM_VERSION="$(XKS_UPGRADE_FROM_VERSION)" VALUES_FILE="$(or $(XKS_VALUES_FILE),$(XKS_CHART_PATH)/test/values-e2e.yaml)" bash ./charts/rhai-on-xks-chart/scripts/verify-upgrade.sh
 
 .PHONY: helm-uninstall
-helm-uninstall: ## Uninstall helm chart and all dependencies
-	./scripts/uninstall-helm-chart.sh
+helm-uninstall: helm ## Uninstall helm chart and all dependencies
+	HELM="$(HELM)" ./scripts/uninstall-helm-chart.sh
 
 .PHONY: update-image
 update-image: yq ## Update xks chart images from Build-Config repo into values-$(BUILD_CONFIG_BRANCH).yaml

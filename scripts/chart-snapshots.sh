@@ -21,7 +21,10 @@
 #                                              message that must appear in
 #                                              helm's stderr output
 #
-# Requirements: helm, yq (bin/yq), gsed (macOS) or sed (Linux)
+# Requirements: bin/helm (installed via `make helm`), bin/yq, gsed (macOS) or sed (Linux)
+# Environment:
+#   HELM     helm binary to use (default: repo-local bin/helm, the version
+#            pinned in the Makefile; set explicitly to use another binary)
 #
 
 set -euo pipefail
@@ -36,6 +39,8 @@ trap 'echo "ERROR: Script failed at line $LINENO" >&2; exit 1' ERR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 YQ="${REPO_ROOT}/bin/yq"
+# Pinned helm installed by `make helm`; set HELM explicitly to use another binary
+HELM="${HELM:-${REPO_ROOT}/bin/helm}"
 CHARTS_DIR="${REPO_ROOT}/charts"
 CONFIG_FILE="${SCRIPT_DIR}/snapshot-config.yaml"
 
@@ -93,8 +98,8 @@ validate_requirements() {
     local errors=0
 
     # Check helm
-    if ! command -v helm &> /dev/null; then
-        echo "ERROR: helm is not installed or not in PATH"
+    if ! command -v "${HELM}" &> /dev/null; then
+        echo "ERROR: pinned helm not found at ${HELM}. Run 'make helm' to install it."
         errors=$((errors + 1))
     fi
 
@@ -297,7 +302,7 @@ process_snapshot() {
         mkdir -p "${snapshot_dir}"
 
         # Generate snapshot
-        if ! helm "${helm_args[@]}" "${chart_path}" > "${snapshot_file}"; then
+        if ! "${HELM}" "${helm_args[@]}" "${chart_path}" > "${snapshot_file}"; then
             echo "      FAIL: helm template failed while generating snapshot"
             rm -f "${snapshot_file}"
             return 1
@@ -319,7 +324,7 @@ process_snapshot() {
         # Wrapped in a condition so the global ERR trap does not abort the run:
         # a failing case must be reported and counted, not kill the script.
         local rc=0
-        if ! helm "${helm_args[@]}" "${chart_path}" > "${temp_file}" 2> "${stderr_file}"; then
+        if ! "${HELM}" "${helm_args[@]}" "${chart_path}" > "${temp_file}" 2> "${stderr_file}"; then
             rc=1
         fi
 
@@ -433,7 +438,7 @@ process_chart() {
     # Build chart dependencies if defined
     if [[ -f "${chart_path}/Chart.yaml" ]] && grep -q '^dependencies:' "${chart_path}/Chart.yaml"; then
         echo "  Building chart dependencies for ${chart_name}..."
-        helm dependency build "${chart_path}"
+        "${HELM}" dependency build "${chart_path}"
     fi
 
     local failed=0
