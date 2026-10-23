@@ -1575,7 +1575,7 @@ spec:
     - expression: "(request.namespace == \"default\" && object.metadata.name in [\"enrollment-serving-tls\",\"grid-ca-bundle\",\"grid-ca-key\",\"grid-db-serving-tls\",\"grid-enrollment-db\"])"
       message: "the grid enrollment bootstrap may only create the Secrets its chart renders"
       reason: Forbidden
-
+    
     - expression: "!has(object.type) || object.type in [\"Opaque\",\"kubernetes.io/tls\"]"
       message: "the grid enrollment bootstrap may only create an Opaque or kubernetes.io/tls Secret, so it cannot mint a token for another ServiceAccount"
       reason: Forbidden
@@ -1608,7 +1608,7 @@ spec:
     - name: grid-enrollment-service
       expression: "request.userInfo.username == \"system:serviceaccount:default:grid-enrollment\""
   validations:
-
+    
     - expression: "request.namespace == \"default-invites\" && (request.operation == \"DELETE\" ? oldObject.metadata.name.startsWith(\"grid-invite-\") : object.metadata.name.startsWith(\"grid-invite-\"))"
       message: "the grid enrollment service may only write grid-invite- Secrets, in its invite namespace"
       reason: Forbidden
@@ -1655,3 +1655,5 @@ metadata:
 spec:
   policyName: grid-enrollment-default-invite-secrets
   validationActions: [Deny]
+
+

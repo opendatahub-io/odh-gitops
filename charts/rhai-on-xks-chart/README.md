@@ -208,7 +208,8 @@ components:
 ```
 
 The chart creates the Grid namespace (`redhat-ai-grid` by default) and, when an image pull secret is enabled, precreates the `grid-operator`
-ServiceAccount with that secret. The AI Gateway operator then installs the Grid CRDs and operator. Override the Grid operator image with
+ServiceAccount with that secret. These namespace and ServiceAccount names are part of the AI Gateway operator contract and must stay aligned
+with the operator deployment. The AI Gateway operator then installs the Grid CRDs and operator. Override the Grid operator image with
 `rhaiOperator.relatedImages` using `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OPERATOR_IMAGE`.
 When using a custom applications namespace, keep it to 55 characters or fewer so the chart can create the derived
 `<applications-namespace>-ai-grid` namespace.

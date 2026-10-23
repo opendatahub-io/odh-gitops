@@ -4309,7 +4309,6 @@ spec:
               EOF
               echo "Gateway CR 'inference-gateway' created successfully."
 
-
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-job.yaml
 apiVersion: batch/v1
@@ -4366,7 +4365,6 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting Platform CR 'default'..."
               kubectl delete platform default --ignore-not-found --timeout=300s
-
               echo "Deleting AWSKubernetesEngine CR 'default-awskubernetesengine'..."
               kubectl delete awskubernetesengine default-awskubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
@@ -4436,7 +4434,6 @@ spec:
                 fi
               fi
               echo "Disabled component cleanup complete."
-
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: batch/v1

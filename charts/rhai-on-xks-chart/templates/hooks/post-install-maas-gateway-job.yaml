@@ -47,6 +47,6 @@ spec:
             - /bin/bash
             - -c
             - |
-              {{- tpl (.Files.Get "files/create-maas-gateway.sh") . | nindent 14 }}
+              {{- include "rhai-on-xks-chart.indentBlock" (tpl (.Files.Get "files/create-maas-gateway.sh") .) }}
 {{- end }}
 {{- end }}

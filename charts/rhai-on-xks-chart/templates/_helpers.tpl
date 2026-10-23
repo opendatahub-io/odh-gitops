@@ -32,6 +32,15 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
+Indent command content under a YAML block scalar without adding spaces to
+blank lines.
+*/}}
+{{- define "rhai-on-xks-chart.indentBlock" -}}
+{{- $indented := nindent 14 (trim .) -}}
+{{- regexReplaceAll "\n[ \t]+\n" $indented "\n\n" -}}
+{{- end -}}
+
+{{/*
 Check if imagePullSecret is enabled (dockerConfigJson is provided).
 */}}
 {{- define "rhai-on-xks-chart.imagePullSecretEnabled" -}}
