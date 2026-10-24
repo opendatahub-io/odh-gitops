@@ -1,0 +1,11 @@
+# E2E values for configured xks-gateway subchart (Kind / CI).
+# Use the in-cluster Kubernetes OIDC discovery endpoint so kube-auth-proxy can start without an external IdP.
+xks-gateway:
+  enabled: true
+  gateway:
+    domain: e2e.example.com
+    verifyProviderCertificate: false
+    oidc:
+      issuerURL: https://kubernetes.default.svc.cluster.local
+      clientID: e2e-gateway
+      oidcClientSecret: test-client-secret-value
