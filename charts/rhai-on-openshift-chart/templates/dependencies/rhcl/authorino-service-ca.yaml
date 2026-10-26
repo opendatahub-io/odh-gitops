@@ -1,0 +1,26 @@
+{{- $dep := .Values.dependencies.rhcl -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "rhcl" "dependency" $dep "root" $) -}}
+{{- if eq $shouldInstall "true" }}
+{{- if and .Values.argocd.enabled $dep.config }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorino
+  namespace: {{ $dep.olm.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  template:
+    spec:
+      containers:
+        - name: authorino
+          env:
+            {{- if $dep.config.authorinoServiceCaTrust }}
+            - name: SSL_CERT_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+            {{- end }}
+            - name: SSL_CERT_DIR
+              value: /etc/ssl/certs
+{{- end }}
+{{- end }}

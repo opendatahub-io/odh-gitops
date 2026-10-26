@@ -10,6 +10,10 @@ tags:
 # -- Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD.
 skipCrdCheck: false
 
+# -- Enable Argo CD-specific resources, including partial server-side-apply patches
+argocd:
+  enabled: false
+
 # -- Deploy profile: sets default managementState for components and services.
 # Options: default (all Removed), rhaii (inference), maas, ai-grid (Grid operator and CRDs)
 # Explicit managementState values override the profile.
@@ -528,6 +532,8 @@ dependencies:
     config:
       # -- Enable Authorino TLS configuration
       tlsEnabled: false
+      # -- Trust the OpenShift Service CA in Authorino while retaining platform CA trust
+      authorinoServiceCaTrust: false
       # -- Kuadrant CR spec (user can add any fields)
       spec: {}
       # -- Authorino CR spec (only created if tlsEnabled: true)
