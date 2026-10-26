@@ -161,6 +161,13 @@ charts:
           - argocd.enabled=true
           - profile=maas
 
+      - name: argocd-authorino-service-ca-disabled
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=false
+
       - name: maas-profile
         setFlags:
           - skipCrdCheck=true

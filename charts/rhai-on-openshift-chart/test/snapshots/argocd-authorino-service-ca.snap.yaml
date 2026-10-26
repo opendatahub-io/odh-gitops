@@ -65,11 +65,7 @@ kind: Deployment
 metadata:
   name: authorino
   namespace: kuadrant-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
   annotations:
-    helm.sh/resource-policy: keep
     argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
     argocd.argoproj.io/sync-wave: "10"
 spec:
@@ -78,8 +74,10 @@ spec:
       containers:
         - name: authorino
           env:
+            - name: SSL_CERT_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
             - name: SSL_CERT_DIR
-              value: /etc/ssl/certs:/var/run/secrets/kubernetes.io/serviceaccount
+              value: /etc/ssl/certs
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
