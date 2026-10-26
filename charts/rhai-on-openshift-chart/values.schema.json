@@ -1035,7 +1035,7 @@
             },
             "authorinoServiceCaTrust": {
               "type": "boolean",
-              "default": true,
+              "default": false,
               "description": "Trust the OpenShift Service CA in Authorino while retaining platform CA trust"
             },
             "spec": {

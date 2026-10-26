@@ -841,9 +841,9 @@ Once the secret is created, set `dependencies.rhcl.config.tlsEnabled` to `true` 
 
 ### Trust the OpenShift Service CA in Authorino
 
-The Authorino CR does not expose an environment-variable field, so the chart cannot configure its CA environment through `authorinoSpec`. Instead, when `argocd.enabled` is enabled, it emits a partial Deployment patch intended for Argo CD server-side apply. The patch sets `SSL_CERT_FILE` to the Service CA certificate and `SSL_CERT_DIR` to the platform CA directory.
+The Authorino CR does not expose an environment-variable field, so the chart cannot configure its CA environment through `authorinoSpec`. Instead, when both `argocd.enabled` and `dependencies.rhcl.config.authorinoServiceCaTrust` are enabled, it emits a partial Deployment patch intended for Argo CD server-side apply. The patch sets `SSL_CERT_FILE` to the Service CA certificate and `SSL_CERT_DIR` to the platform CA directory.
 
-Set `dependencies.rhcl.config.authorinoServiceCaTrust` to `false` to remove `SSL_CERT_FILE` and reset `SSL_CERT_DIR` to `/etc/ssl/certs`. The patch uses `Prune=false` and `Delete=false`, so the operator-managed Deployment remains if RHCL is later removed. The patch is not rendered for direct Helm installs because a partial Deployment manifest is not valid as a standalone Helm-managed resource.
+`dependencies.rhcl.config.authorinoServiceCaTrust` defaults to `false`; enable it explicitly when Authorino must trust the OpenShift Service CA. Setting it back to `false` removes `SSL_CERT_FILE` and resets `SSL_CERT_DIR` to `/etc/ssl/certs`. The patch uses `Prune=false` and `Delete=false`, so the operator-managed Deployment remains if RHCL is later removed. The patch is not rendered for direct Helm installs because a partial Deployment manifest is not valid as a standalone Helm-managed resource.
 
 Go loads trusted roots when Authorino starts. After the OpenShift Service CA rotates, restart Authorino with `kubectl rollout restart deployment/authorino -n kuadrant-system`.
 

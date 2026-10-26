@@ -160,6 +160,7 @@ charts:
           - skipCrdCheck=true
           - argocd.enabled=true
           - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
 
       - name: argocd-authorino-service-ca-disabled
         setFlags:
