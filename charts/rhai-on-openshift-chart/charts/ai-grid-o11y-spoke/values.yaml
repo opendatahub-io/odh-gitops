@@ -2,6 +2,12 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+collector:
+  # -- Namespace containing the data-science-collector. Must match `operator.<type>.monitoringNamespace` when used through the parent chart.
+  namespace: redhat-ods-monitoring
+  # -- Prometheus exporter port, shared by the scrape target, NetworkPolicy and parent-injected exporter.
+  port: 8890
+
 # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 

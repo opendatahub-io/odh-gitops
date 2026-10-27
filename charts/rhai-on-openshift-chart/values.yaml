@@ -695,9 +695,13 @@ ai-grid-o11y-hub:
   enabled: false
 
 # -- AI Grid observability spoke subchart
-# When enabled, automatically adds a prometheus/rhacm exporter
-# (endpoint 0.0.0.0:8890) to services.monitoring.dsci.metrics.exporters
-# so ACM can federate metrics from the data-science-collector.
-# User-supplied exporter values take precedence.
+# Requires active monitoring and ACM observability. Adds a prometheus/rhacm exporter
+# at `0.0.0.0:<collector.port>`; existing endpoint overrides must match.
+# Other user-supplied exporter options are preserved.
 ai-grid-o11y-spoke:
   enabled: false
+  collector:
+    # -- Must match `operator.<type>.monitoringNamespace`; use `opendatahub` for default ODH installations.
+    namespace: redhat-ods-monitoring
+    # -- Port used by the exporter, scrape target and NetworkPolicy.
+    port: 8890

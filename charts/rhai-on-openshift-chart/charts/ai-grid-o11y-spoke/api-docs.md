@@ -13,6 +13,8 @@ A Helm chart for Kubernetes
 | autoscaling.maxReplicas | int | `100` |  |
 | autoscaling.minReplicas | int | `1` |  |
 | autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
+| collector.namespace | string | `"redhat-ods-monitoring"` | Namespace containing the data-science-collector. Must match `operator.<type>.monitoringNamespace` when used through the parent chart. |
+| collector.port | int | `8890` | Prometheus exporter port, shared by the scrape target, NetworkPolicy and parent-injected exporter. |
 | fullnameOverride | string | `""` |  |
 | httpRoute | object | `{"annotations":{},"enabled":false,"hostnames":["chart-example.local"],"parentRefs":[{"name":"gateway","sectionName":"http"}],"rules":[{"matches":[{"path":{"type":"PathPrefix","value":"/headers"}}]}]}` | Expose the service via gateway-api HTTPRoute Requires Gateway API resources and suitable controller installed within the cluster (see: https://gateway-api.sigs.k8s.io/guides/) |
 | image.pullPolicy | string | `"IfNotPresent"` |  |

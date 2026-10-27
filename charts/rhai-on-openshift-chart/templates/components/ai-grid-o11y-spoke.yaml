@@ -1,0 +1,16 @@
+{{- /* Validate the parent/spoke connection even before the DSCI CRD is installed. */ -}}
+{{- $spoke := index .Values "ai-grid-o11y-spoke" -}}
+{{- if $spoke.enabled -}}
+{{- $operatorConfig := index .Values.operator .Values.operator.type -}}
+{{- if ne $spoke.collector.namespace $operatorConfig.monitoringNamespace -}}
+{{- fail (printf "ai-grid-o11y-spoke.collector.namespace must match operator.%s.monitoringNamespace (%s); got %s. Set both namespaces to the collector's namespace."
+    .Values.operator.type $operatorConfig.monitoringNamespace $spoke.collector.namespace) -}}
+{{- end -}}
+{{- $metrics := .Values.services.monitoring.dsci.metrics | default dict -}}
+{{- $rhacm := index ($metrics.exporters | default dict) "prometheus/rhacm" | default dict -}}
+{{- $endpoint := printf "0.0.0.0:%v" $spoke.collector.port -}}
+{{- if and $rhacm.endpoint (ne $rhacm.endpoint $endpoint) -}}
+{{- fail (printf "services.monitoring.dsci.metrics.exporters[\"prometheus/rhacm\"].endpoint must be %s when ai-grid-o11y-spoke is enabled; got %s. Bind to 0.0.0.0 and use ai-grid-o11y-spoke.collector.port."
+    $endpoint $rhacm.endpoint) -}}
+{{- end -}}
+{{- end -}}

@@ -18,4 +18,4 @@ spec:
       replacement: rhai-metrics
   staticConfigs:
     - targets:
-        - data-science-collector-collector.redhat-ods-monitoring.svc:8890
+        - data-science-collector-collector.{{ .Values.collector.namespace }}.svc:{{ .Values.collector.port }}

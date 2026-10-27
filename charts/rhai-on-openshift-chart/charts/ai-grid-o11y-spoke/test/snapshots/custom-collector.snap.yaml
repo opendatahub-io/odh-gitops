@@ -1,0 +1,58 @@
+---
+# Source: ai-grid-o11y-spoke/templates/networkpolicy-allow-acm-rhai-metrics.yaml
+# Allows the ACM observability metrics-collector agents (running in
+# open-cluster-management-agent-addon on managed clusters, including
+# local-cluster) to reach the RHOAI data-science-collector OpenTelemetry
+# collector's metrics port.
+#
+# The ScrapeConfig rhai-metrics (open-cluster-management-observability)
+# scrapes the collector namespace and port configured in values.
+#
+# NetworkPolicies are additive, so this complements rather than overrides
+# the operator-managed policy and will not be reconciled away.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acm-rhai-metrics
+  namespace: "custom-monitoring"
+  labels:
+    app.kubernetes.io/component: user-workload-metrics-collector
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: custom-monitoring.data-science-collector
+      app.kubernetes.io/component: opentelemetry-collector
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: open-cluster-management-agent-addon
+      ports:
+        - port: 9999
+          protocol: TCP
+
+---
+# Source: ai-grid-o11y-spoke/templates/scrapeconfig.yaml
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: rhai-metrics
+  namespace: open-cluster-management-observability
+  labels:
+    app.kubernetes.io/component: user-workload-metrics-collector
+spec:
+  jobName: rhai-metrics
+  metricsPath: /metrics
+  params:
+    match[]:
+      - '{__name__=~".*"}' # PromQL matchers
+  scheme: HTTP
+  # Add a label to make debugging easier, so we can validate these came from the RHAI stack
+  relabelings:
+    - targetLabel: scrape_source
+      replacement: rhai-metrics
+  staticConfigs:
+    - targets:
+        - data-science-collector-collector.custom-monitoring.svc:9999

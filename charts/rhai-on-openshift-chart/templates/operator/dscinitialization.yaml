@@ -5,16 +5,17 @@ DSCInitialization configuration
 {{- $operatorType := .Values.operator.type -}}
 {{- $operatorConfig := index .Values.operator $operatorType -}}
 {{- /* When the ai-grid-o11y-spoke subchart is enabled, ensure the DSCInitialization
-     monitoring spec exposes a prometheus/rhacm exporter on 8890 so the ACM
-     ScrapeConfig can federate from the data-science-collector. User-supplied
-     values win over the injected defaults (sprig merge semantics). */ -}}
+     monitoring spec exposes a prometheus/rhacm exporter on the spoke's collector
+     port. Preserve other user-supplied exporter options; the parent/spoke
+     connection is validated independently of CRD availability. */ -}}
 {{- $dsci := deepCopy (.Values.services.monitoring.dsci | default dict) -}}
-{{- if (index .Values "ai-grid-o11y-spoke" "enabled") }}
+{{- $spoke := index .Values "ai-grid-o11y-spoke" -}}
+{{- if $spoke.enabled }}
 {{-   $metrics := deepCopy (index $dsci "metrics" | default dict) -}}
 {{-   $exporters := deepCopy (index $metrics "exporters" | default dict) -}}
 {{-   $rhacm := deepCopy (index $exporters "prometheus/rhacm" | default dict) -}}
 {{-   if not $rhacm.endpoint }}
-{{-     $_ := set $rhacm "endpoint" "0.0.0.0:8890" }}
+{{-     $_ := set $rhacm "endpoint" (printf "0.0.0.0:%v" $spoke.collector.port) }}
 {{-   end }}
 {{-   $_ := set $exporters "prometheus/rhacm" $rhacm -}}
 {{-   $_ := set $metrics "exporters" $exporters -}}
