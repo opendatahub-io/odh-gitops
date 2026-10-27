@@ -328,10 +328,92 @@ charts:
           - skipCrdCheck=true
           - operator.type=rhoai
 
+      - name: o11y-spoke-rhoai
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+
+      - name: o11y-spoke-odh
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=odh
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+          - ai-grid-o11y-spoke.collector.namespace=opendatahub
+
+      - name: o11y-spoke-custom-collector
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - operator.rhoai.monitoringNamespace=custom-monitoring
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+          - ai-grid-o11y-spoke.collector.namespace=custom-monitoring
+          - ai-grid-o11y-spoke.collector.port=9999
+
+      - name: o11y-spoke-preserve-exporters
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+        setJsonFlags:
+          - 'services.monitoring.dsci.metrics.exporters={"prometheus/rhacm":{"endpoint":"0.0.0.0:8890","send_timestamps":true},"prometheus/other":{"endpoint":"0.0.0.0:8891"}}'
+
+      # Parent/spoke consistency must be checked even before CRDs are installed.
+      - name: o11y-spoke-reject-namespace-mismatch
+        expectFail: true
+        expectMessage: "ai-grid-o11y-spoke.collector.namespace must match operator.rhoai.monitoringNamespace"
+        setFlags:
+          - operator.type=rhoai
+          - operator.rhoai.monitoringNamespace=custom-monitoring
+          - ai-grid-o11y-spoke.enabled=true
+
+      - name: o11y-spoke-reject-endpoint-port
+        expectFail: true
+        expectMessage: 'endpoint must be 0.0.0.0:8890'
+        setFlags:
+          - operator.type=rhoai
+          - ai-grid-o11y-spoke.enabled=true
+        setJsonFlags:
+          - 'services.monitoring.dsci.metrics.exporters={"prometheus/rhacm":{"endpoint":"0.0.0.0:9999"}}'
+
+      - name: o11y-spoke-reject-loopback
+        expectFail: true
+        expectMessage: 'endpoint must be 0.0.0.0:8890'
+        setFlags:
+          - operator.type=rhoai
+          - ai-grid-o11y-spoke.enabled=true
+        setJsonFlags:
+          - 'services.monitoring.dsci.metrics.exporters={"prometheus/rhacm":{"endpoint":"127.0.0.1:8890"}}'
+
       - name: agent-sandbox-enabled
         setFlags:
           - skipCrdCheck=true
           - dependencies.agentSandbox.enabled=true
+
+  rhai-on-openshift-chart/charts/ai-grid-o11y-spoke:
+    snapshots:
+      - name: default
+
+      - name: custom-collector
+        setFlags:
+          - collector.namespace=custom-monitoring
+          - collector.port=9999
+
+      - name: reject-invalid-port
+        expectFail: true
+        expectMessage: "port"
+        setFlags:
+          - collector.port=65536
+
+      - name: reject-invalid-namespace
+        expectFail: true
+        expectMessage: "pattern"
+        setFlags:
+          - collector.namespace=Invalid_Namespace
 
   dependencies/cert-manager-operator:
     snapshots:

@@ -280,7 +280,12 @@
     },
     "ai-grid-o11y-spoke": {
       "type": "object",
-      "description": "Values for the ai-grid-o11y-spoke subchart. Schema is intentionally permissive; see the subchart's own values for available options.",
+      "description": "Values for the ai-grid-o11y-spoke subchart. Collector settings are validated by the subchart schema and must match the parent monitoring configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
       "additionalProperties": true
     }
   },

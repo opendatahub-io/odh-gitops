@@ -18,7 +18,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | ai-grid-o11y-hub | object | `{"enabled":false}` | AI Grid observability hub subchart |
-| ai-grid-o11y-spoke | object | `{"enabled":false}` | AI Grid observability spoke subchart When enabled, automatically adds a prometheus/rhacm exporter (endpoint 0.0.0.0:8890) to services.monitoring.dsci.metrics.exporters so ACM can federate metrics from the data-science-collector. User-supplied exporter values take precedence. |
+| ai-grid-o11y-spoke | object | `{"collector":{"namespace":"redhat-ods-monitoring","port":8890},"enabled":false}` | AI Grid observability spoke subchart Requires active monitoring and ACM observability. Adds a prometheus/rhacm exporter at `0.0.0.0:<collector.port>`; existing endpoint overrides must match. Other user-supplied exporter options are preserved. |
+| ai-grid-o11y-spoke.collector.namespace | string | `"redhat-ods-monitoring"` | Must match `operator.<type>.monitoringNamespace`; use `opendatahub` for default ODH installations. |
+| ai-grid-o11y-spoke.collector.port | int | `8890` | Port used by the exporter, scrape target and NetworkPolicy. |
 | components.aiHub | object | `{"defaults":{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"instancesNamespace":null,"managementState":null}}` | AI Hub component (Model Registry; replaces modelregistry from DSC v2) |
 | components.aiHub.defaults | object | `{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.aiHub.dependencies | object | `{}` | Dependencies required by AI Hub |
