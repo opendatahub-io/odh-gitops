@@ -21,6 +21,18 @@
       "default": false,
       "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
     },
+    "argocd": {
+      "type": "object",
+      "description": "Argo CD installation configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Argo CD-specific resources, including partial server-side-apply patches"
+        }
+      },
+      "additionalProperties": false
+    },
     "grid-enrollment": {
       "type": "object",
       "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/grid-enrollment for its values.",
@@ -514,6 +526,39 @@
             "argoWorkflowsControllers": {
               "type": "object",
               "description": "Argo Workflows Controllers configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "dashboardComponent": {
+      "type": "object",
+      "description": "Dashboard component configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Dashboard",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "maasPortal": {
+              "type": "object",
+              "description": "MaaS Consumer Portal sub-component",
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"
@@ -1024,6 +1069,11 @@
               "type": "boolean",
               "default": false,
               "description": "Enable Authorino TLS configuration"
+            },
+            "authorinoServiceCaTrust": {
+              "type": "boolean",
+              "default": false,
+              "description": "Trust the OpenShift Service CA in Authorino while retaining platform CA trust"
             },
             "spec": {
               "type": "object",

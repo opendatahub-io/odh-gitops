@@ -161,6 +161,27 @@ charts:
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
 
+      - name: argocd-authorino-service-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+
+      - name: argocd-authorino-service-ca-disabled
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=false
+
+      - name: argocd-kuadrant-auth-timeout
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+          - dependencies.rhcl.olm.config.env[0].name=AUTH_SERVICE_TIMEOUT
+          - dependencies.rhcl.olm.config.env[0].value=1s
+
       - name: maas-profile
         setFlags:
           - skipCrdCheck=true

@@ -802,6 +802,8 @@ spec:
     helm:
       values: |
         skipCrdCheck: true
+        argocd:
+          enabled: true
         components:
           kserve:
             dsc:
@@ -813,11 +815,17 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 20s
+        factor: 2
+        maxDuration: 5m
     syncOptions:
       - SkipDryRunOnMissingResource=true
 ```
 
-ArgoCD automatically retries failed resources, so after operators install their CRDs, subsequent syncs will successfully apply the CRs.
+With the retry policy above, ArgoCD retries failed resources, so after operators install their CRDs, subsequent syncs will successfully apply the CRs.
 
 ### Enable Authorino TLS in ArgoCD
 
@@ -830,6 +838,20 @@ kubectl annotate svc/authorino-authorino-authorization \
 ```
 
 Once the secret is created, set `dependencies.rhcl.config.tlsEnabled` to `true` in the ArgoCD application values.
+
+### Trust the OpenShift Service CA in Authorino
+
+The Authorino CR does not expose an environment-variable field, so the chart cannot configure its CA environment through `authorinoSpec`. Instead, when both `argocd.enabled` and `dependencies.rhcl.config.authorinoServiceCaTrust` are enabled, it emits a partial Deployment patch intended for Argo CD server-side apply. The patch sets `SSL_CERT_FILE` to the Service CA certificate and `SSL_CERT_DIR` to the platform CA directory.
+
+`dependencies.rhcl.config.authorinoServiceCaTrust` defaults to `false`; enable it explicitly when Authorino must trust the OpenShift Service CA. Setting it back to `false` removes `SSL_CERT_FILE` and resets `SSL_CERT_DIR` to `/etc/ssl/certs`. The patch uses `Prune=false` and `Delete=false`, so the operator-managed Deployment remains if RHCL is later removed. The patch is not rendered for direct Helm installs because a partial Deployment manifest is not valid as a standalone Helm-managed resource.
+
+Go loads trusted roots when Authorino starts. After the OpenShift Service CA rotates, restart Authorino with `kubectl rollout restart deployment/authorino -n kuadrant-system`.
+
+On a fresh installation, the Authorino operator may not have created `Deployment/authorino` before Argo CD applies the wave-10 patch. Configure the retry policy shown in the example Application so Argo CD retries the same revision after the Deployment exists.
+
+### Tune the Kuadrant auth-service timeout
+
+Kuadrant configures its Wasm auth call with a `200ms` timeout by default. For cross-cluster OIDC providers or other higher-latency authorization chains, set `AUTH_SERVICE_TIMEOUT` through `dependencies.rhcl.olm.config.env`. OLM owns the operator Deployment and will preserve the variable when it reconciles the Subscription.
 
 ## Troubleshooting
 
