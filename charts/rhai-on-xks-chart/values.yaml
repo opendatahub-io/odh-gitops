@@ -48,7 +48,7 @@ rhaiOperator:
   #     value: quay.io/opendatahub/kserve-controller:latest
 
 hooks:
-  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573
+  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d7d83501b7199d32028de4ad44804cf46d51ff4210a48236f3e2f2df78af9ecf
   # Default resources for all hook job containers
   resources:
     limits:
