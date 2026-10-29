@@ -1,0 +1,44 @@
+{{- if and .Values.enabled .Values.metricsQuery.enabled }}
+{{- if not .Values.metricsQuery.hubHostname }}{{ fail "metricsQuery.hubHostname is required" }}{{ end }}
+{{- $routeNamespace := default .Values.tenantAdminNamespace.name .Values.metricsRoute.namespace }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-grid-o11y-spoke.fullname" . }}-relay
+  namespace: {{ $routeNamespace }}
+  labels:
+    {{- include "ai-grid-o11y-spoke.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    worker_processes 1;
+    pid /tmp/nginx.pid;
+    error_log /dev/stderr warn;
+    events { worker_connections 1024; }
+    http {
+      access_log off;
+      resolver {{ .Values.metricsQuery.dnsResolver }} valid=30s;
+      client_body_temp_path /tmp/client_body;
+      proxy_temp_path /tmp/proxy;
+      fastcgi_temp_path /tmp/fastcgi;
+      uwsgi_temp_path /tmp/uwsgi;
+      scgi_temp_path /tmp/scgi;
+      server {
+        listen 127.0.0.1:{{ .Values.metricsQuery.listenPort }};
+        if ($request_method != GET) { return 405; }
+        location / {
+          set $hub_upstream {{ .Values.metricsQuery.hubHostname | quote }};
+          proxy_pass_request_headers off;
+          proxy_pass https://$hub_upstream;
+          proxy_ssl_server_name on;
+          proxy_ssl_name {{ .Values.metricsQuery.hubHostname }};
+          proxy_ssl_trusted_certificate /etc/grid/server-ca/ca.crt;
+          proxy_ssl_verify on;
+          proxy_ssl_certificate /etc/grid/client/tls.crt;
+          proxy_ssl_certificate_key /etc/grid/client/tls.key;
+          proxy_set_header Host {{ .Values.metricsQuery.hubHostname }};
+          proxy_set_header Authorization "";
+          proxy_http_version 1.1;
+        }
+      }
+    }
+{{- end }}

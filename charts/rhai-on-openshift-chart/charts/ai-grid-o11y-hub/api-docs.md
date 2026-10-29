@@ -1,8 +1,8 @@
 # ai-grid-o11y-hub
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
+![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.3.0](https://img.shields.io/badge/AppVersion-0.3.0-informational?style=flat-square)
 
-Central LokiStack on an ACM hub that AI Grid spokes write MaaS usage logs to, with the ACM policy that configures them
+Hub-side AI Grid observability resources
 
 ## Values
 
@@ -22,6 +22,23 @@ Central LokiStack on an ACM hub that AI Grid spokes write MaaS usage logs to, wi
 | lokiStack.size | string | `"1x.extra-small"` | Loki t-shirt size. `1x.extra-small` requests 1 CPU and 5.25Gi per ingester across three ingesters and will not schedule on a small hub; `1x.demo` carries identical ingestion limits (4 MB/s sustained, 6 MB burst, 5 MB per stream) with a single ingester and no resource requests at all, but has no redundancy and is documented by Loki as demo-only. |
 | lokiStack.storageClassName | string | `"gp3-csi"` | StorageClass for the ingester, compactor and index-gateway volumes. Must be RWO. |
 | lokiStack.template | object | `{}` | `spec.template`, passed through, for per-component replicas, tolerations and node placement. |
+| mtlsIngress.clientCASecretName | string | `""` | Secret with ca.crt for the dedicated spoke client CA. |
+| mtlsIngress.dnsResolver | string | `"dns-default.openshift-dns.svc"` | OpenShift DNS resolver used to track Thanos Service address changes. |
+| mtlsIngress.enabled | bool | `false` | Expose approved read endpoints of ACM Thanos through a TLS passthrough Route requiring a spoke client certificate. |
+| mtlsIngress.hostname | string | `""` | Public hub Route hostname. Required when enabled. |
+| mtlsIngress.image.digest | string | `"sha256:d1eb117322c0374e286f73d6f67912c1171c605eb34cd5dd33005375747c77a5"` |  |
+| mtlsIngress.image.pullPolicy | string | `"IfNotPresent"` |  |
+| mtlsIngress.image.repository | string | `"registry.access.redhat.com/ubi9/nginx-124"` |  |
+| mtlsIngress.listenPort | int | `8443` |  |
+| mtlsIngress.resources.limits.cpu | string | `"100m"` |  |
+| mtlsIngress.resources.limits.memory | string | `"128Mi"` |  |
+| mtlsIngress.resources.requests.cpu | string | `"10m"` |  |
+| mtlsIngress.resources.requests.memory | string | `"64Mi"` |  |
+| mtlsIngress.routerNamespaceSelector | object | `{"matchLabels":{"network.openshift.io/policy-group":"ingress"}}` | OpenShift router namespace selector for the ingress NetworkPolicy. |
+| mtlsIngress.routerPodSelector | object | `{"matchLabels":{"ingresscontroller.operator.openshift.io/deployment-ingresscontroller":"default"}}` | OpenShift default router pod selector. Override for a custom ingress controller. |
+| mtlsIngress.serverTLSSecretName | string | `""` | Secret with tls.crt and tls.key for the Route hostname. |
+| mtlsIngress.thanosHostname | string | `"observability-thanos-query.open-cluster-management-observability.svc.cluster.local"` | ACM Thanos Query Service hostname reached from the hub ingress. |
+| mtlsIngress.thanosPort | int | `9090` | ACM Thanos Query Service port. |
 | namespace | string | `"ai-grid-o11y"` | Namespace holding the LokiStack, its storage Secret and the ingest identities. |
 | objectStorage.obc.create | bool | `false` | Render an ObjectBucketClaim, for a hub with OpenShift Data Foundation. The claim's credentials are **not** copied into the storage Secret: ODF publishes them under different key names than Loki reads, and no controller translates them. See the chart README for the one command that does it. |
 | objectStorage.obc.generateBucketName | string | `""` | Bucket name prefix; ODF appends a unique suffix. |

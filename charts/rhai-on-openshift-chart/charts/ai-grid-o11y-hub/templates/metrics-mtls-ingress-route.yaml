@@ -1,0 +1,19 @@
+{{- if .Values.mtlsIngress.enabled }}
+{{- if not .Values.mtlsIngress.hostname }}{{ fail "mtlsIngress.hostname is required" }}{{ end }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "ai-grid-o11y-hub.fullname" . }}-mtls
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.mtlsIngress.hostname | quote }}
+  port:
+    targetPort: tls
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: None
+  to:
+    kind: Service
+    name: {{ include "ai-grid-o11y-hub.fullname" . }}-mtls
+{{- end }}

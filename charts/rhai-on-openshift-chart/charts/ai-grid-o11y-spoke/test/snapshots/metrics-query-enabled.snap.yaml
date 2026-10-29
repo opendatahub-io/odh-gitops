@@ -1,0 +1,387 @@
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-admin-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+    maas.opendatahub.io/gateway-access: "true"
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-query-networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: release-test-ai-grid-o11y-spoke-query-ingress
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-o11y-spoke
+      app.kubernetes.io/instance: release-test
+      app.kubernetes.io/component: metrics-query
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: maas-default-gateway
+      ports:
+        - protocol: TCP
+          port: 8081
+
+---
+# Source: ai-grid-o11y-spoke/templates/networkpolicy-allow-acm-rhai-metrics.yaml
+# Allows the ACM observability metrics-collector agents (running in
+# open-cluster-management-agent-addon on managed clusters, including
+# local-cluster) to reach the RHOAI data-science-collector OpenTelemetry
+# collector's metrics port.
+#
+# The ScrapeConfig rhai-metrics (open-cluster-management-observability)
+# scrapes the collector namespace and port configured in values.
+#
+# NetworkPolicies are additive, so this complements rather than overrides
+# the operator-managed policy and will not be reconciled away.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acm-rhai-metrics
+  namespace: "redhat-ods-monitoring"
+  labels:
+    app.kubernetes.io/component: user-workload-metrics-collector
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: redhat-ods-monitoring.data-science-collector
+      app.kubernetes.io/component: opentelemetry-collector
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: open-cluster-management-agent-addon
+      ports:
+        - port: 8890
+          protocol: TCP
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-relay-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-test-ai-grid-o11y-spoke-relay
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+data:
+  nginx.conf: |
+    worker_processes 1;
+    pid /tmp/nginx.pid;
+    error_log /dev/stderr warn;
+    events { worker_connections 1024; }
+    http {
+      access_log off;
+      resolver dns-default.openshift-dns.svc valid=30s;
+      client_body_temp_path /tmp/client_body;
+      proxy_temp_path /tmp/proxy;
+      fastcgi_temp_path /tmp/fastcgi;
+      uwsgi_temp_path /tmp/uwsgi;
+      scgi_temp_path /tmp/scgi;
+      server {
+        listen 127.0.0.1:8080;
+        if ($request_method != GET) { return 405; }
+        location / {
+          set $hub_upstream "metrics-hub.example.test";
+          proxy_pass_request_headers off;
+          proxy_pass https://$hub_upstream;
+          proxy_ssl_server_name on;
+          proxy_ssl_name metrics-hub.example.test;
+          proxy_ssl_trusted_certificate /etc/grid/server-ca/ca.crt;
+          proxy_ssl_verify on;
+          proxy_ssl_certificate /etc/grid/client/tls.crt;
+          proxy_ssl_certificate_key /etc/grid/client/tls.key;
+          proxy_set_header Host metrics-hub.example.test;
+          proxy_set_header Authorization "";
+          proxy_http_version 1.1;
+        }
+      }
+    }
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-query-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-test-ai-grid-o11y-spoke-query
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/component: metrics-query
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-query-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-test-ai-grid-o11y-spoke-query
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-o11y-spoke
+      app.kubernetes.io/instance: release-test
+      app.kubernetes.io/component: metrics-query
+  template:
+    metadata:
+      annotations:
+        checksum/config: f16bea279da7c559f387200191173b379412ce9404afd31422bfee967b2d5240
+      labels:
+        app.kubernetes.io/name: ai-grid-o11y-spoke
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/component: metrics-query
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prom-label-proxy
+          image: "registry.redhat.io/openshift4/ose-prom-label-proxy-rhel9@sha256:4053948b40f66dc5f8d2baaeb62463aec85079b55add1151a658f1005cc604f4"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-insecure-listen-address=0.0.0.0:8081"
+            - -header-name=X-Scope-OrgID
+            - "-label=organization_id"
+            - -enable-label-apis
+            # Perses checks this data-free Thanos endpoint for datasource health.
+            - -unsafe-passthrough-paths=/-/healthy
+            - "-upstream=http://127.0.0.1:8080"
+          ports:
+            - name: http
+              containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+        - name: nginx
+          image: "registry.access.redhat.com/ubi9/nginx-124@sha256:d1eb117322c0374e286f73d6f67912c1171c605eb34cd5dd33005375747c77a5"
+          imagePullPolicy: IfNotPresent
+          command: ["nginx"]
+          args: ["-e", "/dev/stderr", "-c", "/etc/grid/config/nginx.conf", "-g", "daemon off;"]
+          ports:
+            - name: relay
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/grid/config
+              readOnly: true
+            - name: client
+              mountPath: /etc/grid/client
+              readOnly: true
+            - name: server-ca
+              mountPath: /etc/grid/server-ca
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: release-test-ai-grid-o11y-spoke-relay
+        - name: client
+          secret:
+            secretName: spoke-client-tls
+        - name: server-ca
+          secret:
+            secretName: hub-server-ca
+        - name: tmp
+          emptyDir: {}
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-authpolicy.yaml
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: grid-tenant-metrics
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: grid-tenant-metrics
+  rules:
+    authentication:
+      fixture-jwt:
+        jwt:
+          jwksUrl: https://identity.example.test/jwks
+    authorization:
+      require-get:
+        patternMatching:
+          patterns:
+            - predicate: 'request.method == "GET"'
+      deny-client-scope-header:
+        patternMatching:
+          patterns:
+            - predicate: '!("x-scope-orgid" in request.headers)'
+      require-trusted-issuer:
+        patternMatching:
+          patterns:
+            - predicate: "auth.identity.iss == \"https://identity.example.test/\""
+      require-intended-audience:
+        patternMatching:
+          patterns:
+            - predicate: "auth.identity.aud == \"grid-metrics\" || (type(auth.identity.aud) == type([]) && \"grid-metrics\" in auth.identity.aud)"
+      require-viewer:
+        patternMatching:
+          patterns:
+            - predicate: "auth.identity.groups.exists(g, g == (auth.identity[\"https://redhat.com/maas/orgs\"][0].organization_id) + \"/ai-grid-dashboard-viewer\")"
+    response:
+      success:
+        headers:
+          X-Scope-OrgID:
+            plain:
+              expression: "auth.identity[\"https://redhat.com/maas/orgs\"][0].organization_id"
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-httproute.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grid-tenant-metrics
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  parentRefs:
+    - name: maas-default-gateway
+      namespace: openshift-ingress
+      sectionName: https
+  hostnames:
+    - "grid.example.test"
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: "/metrics"
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: release-test-ai-grid-o11y-spoke-query
+          port: 8081
+
+---
+# Source: ai-grid-o11y-spoke/templates/metrics-perses-datasource.yaml
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  name: grid-tenant-hub-metrics
+  namespace: ai-grid-o11y-tenant-admin
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-spoke
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  instanceSelector:
+    matchLabels:
+      platform.opendatahub.io/part-of: monitoring
+  config:
+    display:
+      name: Grid tenant metrics
+    default: false
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        directUrl: "https://grid.example.test/metrics"

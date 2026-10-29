@@ -10,7 +10,8 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
 apiVersion: v1
@@ -23,7 +24,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: v1
@@ -37,7 +38,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: v1
@@ -51,7 +52,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/object-storage.yaml
 apiVersion: v1
@@ -65,9 +66,10 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -80,7 +82,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 rules:
   - apiGroups: ["loki.grafana.com"]
     resources: ["infrastructure"]
@@ -98,7 +100,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 rules:
   - apiGroups: ["loki.grafana.com"]
     resources: ["infrastructure"]
@@ -116,7 +118,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -137,7 +139,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -146,6 +148,7 @@ subjects:
   - kind: ServiceAccount
     name: "usage-logs-reader"
     namespace: "ai-grid-o11y"
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -163,6 +166,7 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -229,6 +233,7 @@ spec:
       workbenchNamespace: opendatahub
       workbenchesV2:
         managementState: Removed
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/lokistack.yaml
 apiVersion: loki.grafana.com/v1
@@ -242,7 +247,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 spec:
   size: "1x.demo"
   managementState: Managed
@@ -269,6 +274,7 @@ spec:
           - name: service.name
       retention:
         days: 30
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
 apiVersion: cluster.open-cluster-management.io/v1beta2
@@ -282,9 +288,10 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 spec:
   clusterSet: "default"
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/object-storage.yaml
 apiVersion: objectbucket.io/v1alpha1
@@ -298,7 +305,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 spec:
   generateBucketName: "usage-logs"
   storageClassName: "openshift-storage.noobaa.io"
@@ -327,7 +334,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 spec:
   clusterSets:
     - "default"
@@ -353,7 +360,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
 placementRef:
   apiGroup: cluster.open-cluster-management.io
   kind: Placement
@@ -362,6 +369,7 @@ subjects:
   - apiGroup: policy.open-cluster-management.io
     kind: Policy
     name: "ai-grid-maas-remote-usage-logs"
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/policy.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -375,7 +383,7 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.3.0"
   annotations:
     policy.open-cluster-management.io/standards: AI Grid
 spec:
@@ -418,6 +426,7 @@ spec:
                       exporters:
                         otlphttp/hub:
                           endpoint: "https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure/otlp"
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

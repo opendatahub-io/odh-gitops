@@ -1,30 +1,21 @@
-# ai-grid-o11y-spoke is the spoke side of AI Grid observability, and it does two unrelated
-# jobs for the one collector in `collector.namespace`:
+# ai-grid-o11y-spoke provides three capabilities on a spoke:
 #
-#   metrics      a ScrapeConfig and a NetworkPolicy that let the ACM observability
-#                metrics-collector agents federate RHOAI metrics off this cluster
-#   usage logs   the monitoring namespace and the hub credential the usage-log collector
-#                mounts, in place *before* that collector starts
+#   metrics collection  a NetworkPolicy for ACM metrics-collector agents, plus an optional
+#                       ScrapeConfig when this cluster owns that resource
+#   usage logs          the monitoring namespace and hub credential mounted by the collector
+#   tenant queries      a protected Perses datasource and query path to hub Thanos
 #
-# Neither configures the collector itself. Metrics exporters and
-# `services.monitoring.dsci.usageLogs` are both the parent chart's, which the platform
-# operator passes to odh-observability — a subchart cannot contribute to the
-# DSCInitialization, which the parent owns.
+# The parent chart configures the collector and DSCInitialization; this subchart cannot
+# contribute to those parent resources. Its usage-log credential must exist before the
+# operator starts the collector. Helm orders this chart's Namespace and Secret ahead of
+# DSCInitialization during install, avoiding a FailedMount that blocks local and remote logs.
 #
-# Why the usage-log half exists at all: the monitoring namespace is created by the operator
-# while it reconciles the DSCInitialization, so before the parent chart runs there is
-# nowhere to put the credential. A collector whose `credentialSecret` names a Secret that
-# does not exist yet sits in ContainerCreating on FailedMount, and because both the local
-# and the remote pipeline share one collector deployment, the spoke then has no usage
-# logging at all — not just no forwarding. Helm orders Namespace and Secret ahead of
-# unrecognised kinds such as DSCInitialization, so rendering them here closes that window in
-# a single install.
-#
-# Nothing here is created unless `enabled` is true.
+# The parent chart includes this subchart only when `enabled` is true. The three features
+# have separate switches below.
 
-# -- Render this chart. The parent chart gates the whole subchart on this key through
-# `condition:` in its Chart.yaml, so it is not re-checked in the templates here; each half
-# below has its own toggle.
+# -- Include this subchart through the parent chart's dependency condition. The metrics
+# collection and credential templates use their own toggles in a standalone install;
+# tenant query templates also check this key.
 enabled: false
 
 collector:
@@ -35,6 +26,12 @@ collector:
   # -- Prometheus exporter port, shared by the scrape target, NetworkPolicy and
   # parent-injected exporter.
   port: 8890
+  scrapeConfig:
+    # -- Render ScrapeConfig for chart-managed collection. Enabled by default to preserve
+    # collection on upgrade. Set false for query-only installs or after verifying an
+    # ACM-managed replacement. Requires metrics.enabled, the ACM observability namespace,
+    # and the rhobs ScrapeConfig CRD.
+    enabled: true
   # -- Create `collector.namespace`, so the usage-log credential has somewhere to land
   # before the operator reconciles the DSCInitialization. Only consulted when
   # `credential.enabled` is set, since that Secret is the only reason to create it early.
@@ -51,19 +48,14 @@ collector:
   # is using.
   createNamespace: false
 
-# -- Labels added to the objects this chart's usage-log half renders: the credential `Secret`
-# and the monitoring `Namespace`. The metrics half (`ScrapeConfig`,
-# `NetworkPolicy allow-acm-rhai-metrics`) does not carry them, so that #215's rendered output
-# stays byte-identical.
+# -- Labels added to usage-log and tenant-query objects. Metrics collection resources
+# keep their existing labels.
 commonLabels: {}
 
 metrics:
-  # -- Federate RHOAI metrics to ACM: render the ScrapeConfig and the NetworkPolicy that
-  # lets the metrics-collector agents reach the collector. On by default, which is this
-  # chart's original behaviour. It needs ACM observability on the cluster — the ScrapeConfig
-  # goes to `open-cluster-management-observability` and needs the rhobs CRD — so a spoke
-  # outside an ACM fleet, installing this chart only to receive the usage-log credential,
-  # sets this false.
+  # -- Allow ACM metrics-collector agents to reach the RHOAI collector through a
+  # NetworkPolicy. On by default. Also gates the optional ScrapeConfig controlled by
+  # collector.scrapeConfig.enabled. Set false on spokes without ACM metrics collection.
   enabled: true
 
 credential:
@@ -93,3 +85,108 @@ credential:
   # Helm stores the supplied token in release history as well as the credential Secret.
   # Restrict access to the release namespace as strictly as the credential namespace.
   token: ""
+
+metricsQuery:
+  # -- Enable the tenant metrics datasource, Gateway route, policy, proxy, and hub relay.
+  enabled: false
+  # -- Hub mTLS Route hostname; the relay uses HTTPS with certificate verification.
+  hubHostname: ""
+  # -- OpenShift DNS resolver used to track hub Route address changes.
+  dnsResolver: dns-default.openshift-dns.svc
+  # -- Secret with tls.crt and tls.key for the spoke client certificate.
+  clientTLSSecretName: ""
+  # -- Secret with ca.crt for the hub server CA.
+  serverCASecretName: ""
+  # -- Optional pull secrets for the relay and proxy images.
+  imagePullSecrets: []
+  proxy:
+    image:
+      # -- Pinned OpenShift prom-label-proxy image repository.
+      repository: registry.redhat.io/openshift4/ose-prom-label-proxy-rhel9
+      # -- Image digest; align with the target RHOAI payload before rollout.
+      digest: sha256:4053948b40f66dc5f8d2baaeb62463aec85079b55add1151a658f1005cc604f4
+      pullPolicy: IfNotPresent
+    # -- Gateway-facing proxy port. Must differ from metricsQuery.listenPort.
+    listenPort: 8081
+    # -- Tenant label stored in hub Thanos.
+    label: organization_id
+    # -- Enable tenant-filtered label name and value discovery.
+    enableLabelAPIs: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  image:
+    # -- Spoke NGINX mTLS relay image repository.
+    repository: registry.access.redhat.com/ubi9/nginx-124
+    digest: sha256:d1eb117322c0374e286f73d6f67912c1171c605eb34cd5dd33005375747c77a5
+    pullPolicy: IfNotPresent
+  # -- Loopback port for the NGINX mTLS relay sidecar.
+  listenPort: 8080
+  # -- Gateway namespace and pod selectors for the proxy ingress policy.
+  gatewayNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: openshift-ingress
+  gatewayPodSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: maas-default-gateway
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+tenantAdminNamespace:
+  # -- Perses project and datasource namespace for tenant metrics queries.
+  name: ai-grid-o11y-tenant-admin
+  # When created by this chart, it is labeled for MaaS Gateway route admission.
+  # If managed elsewhere, apply the same gateway-access label there.
+  # -- Create and own the namespace with this Helm release.
+  create: false
+
+datasource:
+  name: grid-tenant-hub-metrics
+  apiVersion: perses.dev/v1alpha2
+  # Match only the intended spoke Perses instance.
+  # -- Label selector for the intended spoke Perses instance.
+  instanceSelector: {}
+
+metricsRoute:
+  # Empty uses tenantAdminNamespace.name. Set this to a namespace admitted by
+  # the Gateway listener when the Perses project is not admitted. The local
+  # backend Service and AuthPolicy must be in this namespace.
+  # -- Namespace for the HTTPRoute and AuthPolicy; empty uses the Perses project.
+  namespace: ""
+  name: grid-tenant-metrics
+  # -- Public Gateway hostname, used to derive the datasource's HTTPS /metrics URL.
+  hostname: ""
+  pathPrefix: /metrics
+  # The Gateway listener must allow routes from the route namespace.
+  # -- Target the default MaaS Gateway HTTPS listener; override for a different Gateway.
+  parentRefs:
+    - name: maas-default-gateway
+      namespace: openshift-ingress
+      sectionName: https
+  # The chart creates the local proxy and mTLS relay pod in this namespace.
+
+metricsAuthPolicy:
+  # Gateway session/JWT authentication. The chart enforces the viewer group.
+  # -- Gateway session or JWT authentication rules for Authorino.
+  authentication: {}
+  # -- Optional additional authorization rules; viewer membership is always required.
+  authorization: {}
+  # RHCL 1.4.3 jwt.issuerUrl discovered signing keys but did not reject a token
+  # with the wrong iss or aud. The chart checks both in verified auth data.
+  # -- Trusted shared OIDC issuer URL.
+  issuer: ""
+  # -- Intended MaaS audience.
+  audience: ""
+  # CEL expression deriving the QGUID from a verified selected organization.
+  # The chart injects its result as X-Scope-OrgID after authentication.
+  # -- CEL expression selecting the verified organization_id/QGUID.
+  scopeExpression: ""

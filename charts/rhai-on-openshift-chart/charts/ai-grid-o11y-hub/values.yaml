@@ -3,7 +3,8 @@
 # write. It installs on the ACM hub and needs no RHOAI — only the Loki operator, which the
 # parent chart provides through `dependencies.loki`.
 #
-# Nothing here is created unless `enabled` is true.
+# In the parent chart, `enabled` gates this subchart. In a standalone install,
+# usage-log resources require `enabled`; the mTLS ingress has its own switch.
 
 # -- Render this chart. The parent gates the subchart on the same key.
 enabled: false
@@ -252,3 +253,41 @@ spokePolicy:
     # no such store and ignores it, so the empty default — which leaves the spoke's value
     # alone — is what nearly every fleet wants.
     size: ""
+
+# Optional hub mTLS ingress for tenant metrics queries to ACM Thanos.
+# It is independent of the usage-log store and spoke policy.
+mtlsIngress:
+  # -- Expose approved read endpoints of ACM Thanos through a TLS passthrough Route requiring a spoke client certificate.
+  enabled: false
+  # -- Public hub Route hostname. Required when enabled.
+  hostname: ""
+  # -- Secret with tls.crt and tls.key for the Route hostname.
+  serverTLSSecretName: ""
+  # -- Secret with ca.crt for the dedicated spoke client CA.
+  clientCASecretName: ""
+  # -- ACM Thanos Query Service hostname reached from the hub ingress.
+  thanosHostname: observability-thanos-query.open-cluster-management-observability.svc.cluster.local
+  # -- ACM Thanos Query Service port.
+  thanosPort: 9090
+  # -- OpenShift DNS resolver used to track Thanos Service address changes.
+  dnsResolver: dns-default.openshift-dns.svc
+  image:
+    repository: registry.access.redhat.com/ubi9/nginx-124
+    digest: sha256:d1eb117322c0374e286f73d6f67912c1171c605eb34cd5dd33005375747c77a5
+    pullPolicy: IfNotPresent
+  listenPort: 8443
+  # -- OpenShift router namespace selector for the ingress NetworkPolicy.
+  routerNamespaceSelector:
+    matchLabels:
+      network.openshift.io/policy-group: ingress
+  # -- OpenShift default router pod selector. Override for a custom ingress controller.
+  routerPodSelector:
+    matchLabels:
+      ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

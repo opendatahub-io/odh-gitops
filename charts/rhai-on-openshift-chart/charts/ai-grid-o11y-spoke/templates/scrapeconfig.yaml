@@ -1,4 +1,4 @@
-{{- if .Values.metrics.enabled }}
+{{- if and .Values.metrics.enabled .Values.collector.scrapeConfig.enabled }}
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
 metadata:

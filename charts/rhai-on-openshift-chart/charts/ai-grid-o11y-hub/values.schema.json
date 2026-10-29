@@ -326,6 +326,19 @@
         }
       },
       "additionalProperties": false
+    },
+    "mtlsIngress": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "hostname": { "type": "string", "maxLength": 253, "pattern": "^[a-z0-9.-]*$" },
+        "serverTLSSecretName": { "type": "string" },
+        "clientCASecretName": { "type": "string" },
+        "thanosHostname": { "type": "string", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9.-]+$" },
+        "thanosPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "dnsResolver": { "type": "string", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9.-]+$" },
+        "listenPort": { "type": "integer", "minimum": 1024, "maximum": 65535 }
+      }
     }
   },
   "additionalProperties": false

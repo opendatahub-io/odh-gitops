@@ -1,0 +1,108 @@
+{{- if and .Values.enabled .Values.metricsQuery.enabled }}
+{{- if not .Values.metricsQuery.clientTLSSecretName }}{{ fail "metricsQuery.clientTLSSecretName is required" }}{{ end }}
+{{- if not .Values.metricsQuery.serverCASecretName }}{{ fail "metricsQuery.serverCASecretName is required" }}{{ end }}
+{{- if eq (int .Values.metricsQuery.proxy.listenPort) (int .Values.metricsQuery.listenPort) }}{{ fail "metricsQuery.proxy.listenPort must differ from metricsQuery.listenPort" }}{{ end }}
+{{- $routeNamespace := default .Values.tenantAdminNamespace.name .Values.metricsRoute.namespace }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-grid-o11y-spoke.fullname" . }}-query
+  namespace: {{ $routeNamespace }}
+  labels:
+    {{- include "ai-grid-o11y-spoke.labels" . | nindent 4 }}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      {{- include "ai-grid-o11y-spoke.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: metrics-query
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/metrics-relay-configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "ai-grid-o11y-spoke.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: metrics-query
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      {{- with .Values.metricsQuery.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: prom-label-proxy
+          image: {{ printf "%s@%s" .Values.metricsQuery.proxy.image.repository .Values.metricsQuery.proxy.image.digest | quote }}
+          imagePullPolicy: {{ .Values.metricsQuery.proxy.image.pullPolicy }}
+          args:
+            - {{ printf "-insecure-listen-address=0.0.0.0:%v" .Values.metricsQuery.proxy.listenPort | quote }}
+            - -header-name=X-Scope-OrgID
+            - {{ printf "-label=%s" .Values.metricsQuery.proxy.label | quote }}
+            {{- if .Values.metricsQuery.proxy.enableLabelAPIs }}
+            - -enable-label-apis
+            {{- end }}
+            # Perses checks this data-free Thanos endpoint for datasource health.
+            - -unsafe-passthrough-paths=/-/healthy
+            - {{ printf "-upstream=http://127.0.0.1:%v" .Values.metricsQuery.listenPort | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.metricsQuery.proxy.listenPort }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.metricsQuery.proxy.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+        - name: nginx
+          image: {{ printf "%s@%s" .Values.metricsQuery.image.repository .Values.metricsQuery.image.digest | quote }}
+          imagePullPolicy: {{ .Values.metricsQuery.image.pullPolicy }}
+          command: ["nginx"]
+          args: ["-e", "/dev/stderr", "-c", "/etc/grid/config/nginx.conf", "-g", "daemon off;"]
+          ports:
+            - name: relay
+              containerPort: {{ .Values.metricsQuery.listenPort }}
+          resources:
+            {{- toYaml .Values.metricsQuery.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/grid/config
+              readOnly: true
+            - name: client
+              mountPath: /etc/grid/client
+              readOnly: true
+            - name: server-ca
+              mountPath: /etc/grid/server-ca
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "ai-grid-o11y-spoke.fullname" . }}-relay
+        - name: client
+          secret:
+            secretName: {{ .Values.metricsQuery.clientTLSSecretName }}
+        - name: server-ca
+          secret:
+            secretName: {{ .Values.metricsQuery.serverCASecretName }}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

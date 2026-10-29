@@ -1,0 +1,223 @@
+---
+# Source: ai-grid-o11y-hub/templates/metrics-mtls-ingress-networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: release-test-ai-grid-o11y-hub-mtls-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-o11y-hub-mtls
+      app.kubernetes.io/instance: release-test
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+          podSelector:
+            matchLabels:
+              ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
+      ports:
+        - protocol: TCP
+          port: 8443
+
+---
+# Source: ai-grid-o11y-hub/templates/metrics-mtls-ingress-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-test-ai-grid-o11y-hub-mtls
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+data:
+  nginx.conf: |
+    worker_processes 1;
+    pid /tmp/nginx.pid;
+    error_log /dev/stderr warn;
+    events { worker_connections 1024; }
+    http {
+      access_log off;
+      client_body_temp_path /tmp/client_body;
+      proxy_temp_path /tmp/proxy;
+      fastcgi_temp_path /tmp/fastcgi;
+      uwsgi_temp_path /tmp/uwsgi;
+      scgi_temp_path /tmp/scgi;
+      # Only the read endpoints needed by the spoke label proxy can reach Thanos.
+      map $uri $allowed_query_path {
+        default 0;
+        /-/healthy 1;
+        /api/v1/query 1;
+        /api/v1/query_range 1;
+        /api/v1/query_exemplars 1;
+        /api/v1/series 1;
+        /api/v1/labels 1;
+        ~^/api/v1/label/[a-zA-Z_][a-zA-Z0-9_]*/values$ 1;
+      }
+      resolver dns-default.openshift-dns.svc valid=30s;
+      server {
+        listen 8443 ssl;
+        ssl_certificate /etc/grid/server/tls.crt;
+        ssl_certificate_key /etc/grid/server/tls.key;
+        ssl_client_certificate /etc/grid/client-ca/ca.crt;
+        ssl_verify_client on;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        if ($request_method != GET) { return 405; }
+        if ($allowed_query_path = 0) { return 404; }
+        location / {
+          set $thanos_upstream "observability-thanos-query.open-cluster-management-observability.svc.cluster.local:9090";
+          proxy_pass_request_headers off;
+          proxy_pass_request_body off;
+          proxy_pass http://$thanos_upstream$uri$is_args$args;
+          proxy_set_header Host "observability-thanos-query.open-cluster-management-observability.svc.cluster.local";
+          proxy_set_header Authorization "";
+          proxy_set_header Content-Length "";
+          proxy_http_version 1.1;
+        }
+      }
+    }
+
+---
+# Source: ai-grid-o11y-hub/templates/metrics-mtls-ingress-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-test-ai-grid-o11y-hub-mtls
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  type: ClusterIP
+  ports:
+    - name: tls
+      port: 8443
+      targetPort: tls
+  selector:
+    app.kubernetes.io/name: ai-grid-o11y-hub-mtls
+    app.kubernetes.io/instance: release-test
+
+---
+# Source: ai-grid-o11y-hub/templates/metrics-mtls-ingress-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-test-ai-grid-o11y-hub-mtls
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+    app.kubernetes.io/component: mtls-ingress
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-o11y-hub-mtls
+      app.kubernetes.io/instance: release-test
+  template:
+    metadata:
+      annotations:
+        checksum/config: b80b459780d5a2a92d669b1dc3e7f249c583f0afe3e3dd24a6a0f5b699e68e85
+      labels:
+        app.kubernetes.io/name: ai-grid-o11y-hub-mtls
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/component: mtls-ingress
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: "registry.access.redhat.com/ubi9/nginx-124@sha256:d1eb117322c0374e286f73d6f67912c1171c605eb34cd5dd33005375747c77a5"
+          imagePullPolicy: IfNotPresent
+          command: ["nginx"]
+          args: ["-e", "/dev/stderr", "-c", "/etc/grid/config/nginx.conf", "-g", "daemon off;"]
+          ports:
+            - name: tls
+              containerPort: 8443
+          readinessProbe:
+            tcpSocket:
+              port: tls
+          livenessProbe:
+            tcpSocket:
+              port: tls
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/grid/config
+              readOnly: true
+            - name: server
+              mountPath: /etc/grid/server
+              readOnly: true
+            - name: client-ca
+              mountPath: /etc/grid/client-ca
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: release-test-ai-grid-o11y-hub-mtls
+        - name: server
+          secret:
+            secretName: hub-server-tls
+        - name: client-ca
+          secret:
+            secretName: spoke-client-ca
+        - name: tmp
+          emptyDir: {}
+
+---
+# Source: ai-grid-o11y-hub/templates/metrics-mtls-ingress-route.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: release-test-ai-grid-o11y-hub-mtls
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.3.0"
+spec:
+  host: "metrics-hub.example.test"
+  port:
+    targetPort: tls
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: None
+  to:
+    kind: Service
+    name: release-test-ai-grid-o11y-hub-mtls

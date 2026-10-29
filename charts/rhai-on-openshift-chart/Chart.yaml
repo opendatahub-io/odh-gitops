@@ -19,8 +19,8 @@ dependencies:
     version: "0.2.2"
     condition: praxis-gateway.enabled
   - name: ai-grid-o11y-hub
-    version: 0.1.0
+    version: 0.3.0
     condition: ai-grid-o11y-hub.enabled
   - name: ai-grid-o11y-spoke
-    version: 0.1.0
+    version: 0.3.0
     condition: ai-grid-o11y-spoke.enabled

@@ -22,7 +22,14 @@
           "minimum": 1,
           "maximum": 65535
         },
-        "createNamespace": { "type": "boolean" }
+        "createNamespace": { "type": "boolean" },
+        "scrapeConfig": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
       },
       "required": ["namespace", "port"],
       "additionalProperties": false
@@ -41,6 +48,191 @@
         "enabled": { "type": "boolean" },
         "secretName": { "type": "string", "minLength": 1, "maxLength": 253 },
         "token": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "metricsQuery": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "hubHostname": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^[a-z0-9.-]*$"
+        },
+        "dnsResolver": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$"
+        },
+        "clientTLSSecretName": {
+          "type": "string"
+        },
+        "serverCASecretName": {
+          "type": "string"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "proxy": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                "pullPolicy": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "listenPort": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            "label": {
+              "type": "string",
+              "enum": [
+                "organization_id",
+                "grid_tenant_id"
+              ]
+            },
+            "enableLabelAPIs": {
+              "type": "boolean"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "listenPort": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "pullPolicy": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "gatewayNamespaceSelector": {
+          "type": "object"
+        },
+        "gatewayPodSelector": {
+          "type": "object"
+        },
+        "resources": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tenantAdminNamespace": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "create": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "datasource": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "perses.dev/v1alpha2",
+            "perses.dev/v1alpha1"
+          ]
+        },
+        "instanceSelector": {
+          "type": "object"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "metricsRoute": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "pathPrefix": {
+          "const": "/metrics"
+        },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "hostname": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^[a-z0-9.-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "metricsAuthPolicy": {
+      "type": "object",
+      "properties": {
+        "authentication": {
+          "type": "object"
+        },
+        "authorization": {
+          "type": "object"
+        },
+        "issuer": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "scopeExpression": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     }

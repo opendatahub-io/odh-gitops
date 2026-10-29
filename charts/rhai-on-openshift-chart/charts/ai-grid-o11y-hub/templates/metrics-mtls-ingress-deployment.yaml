@@ -1,0 +1,75 @@
+{{- if .Values.mtlsIngress.enabled }}
+{{- if not .Values.mtlsIngress.serverTLSSecretName }}{{ fail "mtlsIngress.serverTLSSecretName is required" }}{{ end }}
+{{- if not .Values.mtlsIngress.clientCASecretName }}{{ fail "mtlsIngress.clientCASecretName is required" }}{{ end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-grid-o11y-hub.fullname" . }}-mtls
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mtls-ingress
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      {{- include "ai-grid-o11y-hub.mtlsSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/metrics-mtls-ingress-configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "ai-grid-o11y-hub.mtlsSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mtls-ingress
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: {{ printf "%s@%s" .Values.mtlsIngress.image.repository .Values.mtlsIngress.image.digest | quote }}
+          imagePullPolicy: {{ .Values.mtlsIngress.image.pullPolicy }}
+          command: ["nginx"]
+          args: ["-e", "/dev/stderr", "-c", "/etc/grid/config/nginx.conf", "-g", "daemon off;"]
+          ports:
+            - name: tls
+              containerPort: {{ .Values.mtlsIngress.listenPort }}
+          readinessProbe:
+            tcpSocket:
+              port: tls
+          livenessProbe:
+            tcpSocket:
+              port: tls
+          resources:
+            {{- toYaml .Values.mtlsIngress.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/grid/config
+              readOnly: true
+            - name: server
+              mountPath: /etc/grid/server
+              readOnly: true
+            - name: client-ca
+              mountPath: /etc/grid/client-ca
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "ai-grid-o11y-hub.fullname" . }}-mtls
+        - name: server
+          secret:
+            secretName: {{ .Values.mtlsIngress.serverTLSSecretName }}
+        - name: client-ca
+          secret:
+            secretName: {{ .Values.mtlsIngress.clientCASecretName }}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

@@ -1,35 +1,34 @@
 # ai-grid-o11y-hub
 
-The hub side of AI Grid usage-log aggregation, in two halves that install on the same
-cluster:
+This chart provides three AI Grid observability capabilities on the ACM hub:
 
-| | |
+| Capability | What it renders |
 |---|---|
-| **the store** | a LokiStack that spoke clusters write their MaaS usage records to, plus the identities that authorize the write. `lokiStack.enabled`, on by default |
-| **the spoke policy** | one ACM `Placement` and one `Policy` that configure every MaaS spoke to forward here. `spokePolicy.enabled`, off by default |
+| Usage-log store | A LokiStack and identities that let spokes write MaaS usage records; `lokiStack.enabled`, on by default |
+| Usage-log spoke policy | An ACM Placement and Policy that configure selected spokes to forward usage logs; `spokePolicy.enabled`, off by default |
+| Tenant metrics ingress | An mTLS Route and NGINX ingress for ACM Thanos read queries; `mtlsIngress.enabled`, off by default |
 
-Both run on the hub. The spoke policy is *about* spokes but installs nowhere near one: a
-spoke in an ACM fleet receives its configuration through the policy and needs nothing
-installed on it.
-
-A spoke outside ACM is the sibling chart's job:
-[ai-grid-o11y-spoke](../ai-grid-o11y-spoke) installs on the spoke itself and places the
-credential there directly.
+All three run on the hub when enabled. The spoke policy configures usage-log forwarding on
+ACM-managed spokes; it does not install the spoke chart. For direct usage-log delivery
+outside ACM, [ai-grid-o11y-spoke](../ai-grid-o11y-spoke) installs on the spoke and places
+the credential there. Tenant metrics queries also require the spoke chart for its label
+proxy and mTLS relay.
 
 The hub runs no OpenShift AI, so set `operator.enabled: false` on the parent chart. The
 `DSCInitialization` and `DataScienceCluster` then disappear too, since they are gated on their
-CRDs existing and nothing installs them on a hub — a fresh hub gets 13 objects: the Loki
-operator, this chart's store, and nothing else. A render with `--set skipCrdCheck=true` still
-shows the two CRs, because that flag forces the check true.
+CRDs existing and nothing installs them on a hub. A render with `--set skipCrdCheck=true`
+still shows the two CRs, because that flag forces the check true.
 
 The store needs the Loki operator and an S3-compatible endpoint, nothing else — no RHOAI and
 no `odh-observability`. The spoke policy needs ACM on
 this cluster and the spokes imported; it renders ACM resources and does not install ACM,
 following `grid-enrollment`.
 
-Disabled by default. `ai-grid-o11y-hub.enabled=true` turns it on.
+The parent chart disables this subchart by default. Set `ai-grid-o11y-hub.enabled: true`
+to render the selected capabilities. In a standalone chart install, the usage-log store and
+spoke policy also require the top-level `enabled: true`; mTLS ingress uses its own switch.
 
-## Prerequisites
+## Usage-log prerequisites
 
 | | |
 |---|---|
@@ -49,8 +48,9 @@ prints the applicable wait commands. For a render without a cluster, where
 the second flag is what a subchart can see.
 
 `lokiStack.enabled` covers the whole store — the `LokiStack`, its object storage and the
-ingest identities. Leaving it true is the normal case; false renders only the spoke policy,
-for a hub that forwards to a LokiStack this chart did not create.
+ingest identities. Set it false when the store lives elsewhere or when only tenant metrics
+queries are needed. The spoke policy and mTLS ingress have separate switches; the
+usage-log `Namespace` is controlled by `enabled` and `createNamespace`.
 
 ## What it creates
 
@@ -68,6 +68,7 @@ for a hub that forwards to a LokiStack this chart did not create.
 | `ManagedClusterSetBinding` | `default` | spoke policy only; ACM matches it to the set by name |
 | `Placement` + `PlacementBinding` | `ai-grid-maas-spokes` | spoke policy only |
 | `Policy` | `ai-grid-maas-remote-usage-logs` | spoke policy only; one `ConfigurationPolicy`, two object templates |
+| `ConfigMap`, `Deployment`, `Service`, `Route`, `NetworkPolicy` | mTLS query ingress | only with `mtlsIngress.enabled`; in the Helm release namespace |
 
 ## The ingest contract
 
@@ -360,7 +361,7 @@ It is not implemented because it inverts the operational cost: individually revo
 tokens to mint and rotate, and N independent silent expiries instead of one. It is worth
 doing after automated rotation exists, not before.
 
-## Per-spoke read isolation
+## Per-spoke usage-log read isolation
 
 Read access is a separate problem, and a more expensive one. Every spoke writes to the one
 `infrastructure` tenant, so any credential that can read the tenant reads every spoke's usage
@@ -373,7 +374,7 @@ mechanism, which changes the ingest contract above for every spoke, and therefor
 policy too. It is a design decision, not a value, which is why this chart does not offer the
 mode.
 
-## Verify
+## Verify usage-log ingestion
 
 ```bash
 oc wait --for=condition=Ready lokistack/usage-logs -n ai-grid-o11y --timeout=15m
@@ -401,6 +402,78 @@ oc logs -n ai-grid-o11y usage-logs-ingester-0 | grep 'flushing stream'
 
 A `memberlist fast-join` error during cold start is benign — a single ingester has no peer
 to join yet. Check for errors after the first flush.
+
+## Tenant metrics queries
+
+The parent chart must enable `ai-grid-o11y-hub`, and `mtlsIngress.enabled: true` turns
+on the ingress after its certificate Secrets exist. For metrics queries without usage logs,
+use values like these in the parent chart:
+
+```yaml
+ai-grid-o11y-hub:
+  enabled: true
+  lokiStack:
+    enabled: false
+  createNamespace: false
+  mtlsIngress:
+    enabled: true
+    hostname: metrics-hub.example.com
+    serverTLSSecretName: metrics-hub-server-tls
+    clientCASecretName: metrics-spoke-client-ca
+```
+
+`createNamespace: false` omits the unused usage-log namespace; the ingress resources and
+certificate Secrets belong in the Helm release namespace. The spoke chart owns the tenant
+label proxy; the hub chart deploys the mTLS ingress.
+
+The query path is spoke Gateway and AuthPolicy, spoke `prom-label-proxy`, spoke
+NGINX mTLS relay, hub NGINX mTLS ingress, then ACM Thanos Query. The hub
+ingress verifies the spoke client certificate and forwards only GET requests
+for `/-/healthy`, `/api/v1/query`, `/api/v1/query_range`,
+`/api/v1/query_exemplars`, `/api/v1/series`, `/api/v1/labels`, and
+`/api/v1/label/<name>/values`. It drops caller headers
+and request bodies before forwarding. The hub does not apply a tenant label
+matcher; that happens in the spoke proxy.
+
+An accepted client certificate can issue unfiltered queries against these
+Thanos read endpoints if it connects directly to the hub Route. Use a
+dedicated client CA, issue certificates only to trusted spoke relays, and
+protect their private keys. The Route is TLS passthrough, and the ingress
+NetworkPolicy admits only the selected OpenShift router pods. No direct Route
+to the Thanos Service is created by this chart.
+
+Create these Secrets in the hub Helm release namespace before enabling ingress:
+
+- `mtlsIngress.serverTLSSecretName`: `tls.crt` and `tls.key` for the exact
+  `mtlsIngress.hostname`;
+- `mtlsIngress.clientCASecretName`: `ca.crt` for the spoke client certificates.
+
+Each spoke needs the matching client certificate and the hub server CA. Set
+`mtlsIngress.thanosHostname` and `mtlsIngress.thanosPort` to the ACM Thanos
+Query Service. The default Service is
+`observability-thanos-query.open-cluster-management-observability.svc.cluster.local:9090`.
+The ingress uses `mtlsIngress.dnsResolver` to follow Service address changes.
+
+When upgrading an earlier metrics-query deployment that used the hub proxy, upgrade
+the spoke chart before the hub chart. The new spoke relay drops `X-Scope-OrgID`, so
+the old hub proxy rejects queries until the hub ingress is upgraded; plan for that
+temporary query outage. Upgrading the hub first would let the old spoke relay reach unfiltered
+Thanos through the new ingress. Verify that the spoke proxy filters two distinct
+organization IDs and that direct hub access without an accepted client
+certificate fails. This chart does not provide per-certificate revocation. If
+a spoke client certificate is compromised, rotate the dedicated client CA,
+issue new certificates to all trusted spokes, replace the hub client-CA Secret
+and every spoke client-certificate Secret, and restart the ingress and relay
+Deployments. Until the old CA is removed from the hub and the ingress
+restarts, that certificate remains trusted.
+
+The default router selectors match the OpenShift default ingress controller
+in `openshift-ingress`. Set `mtlsIngress.routerNamespaceSelector` and
+`mtlsIngress.routerPodSelector` for a different ingress controller. The
+caller's verified organization ID must match the `organization_id` metric
+label in Thanos; set the spoke chart's `metricsQuery.proxy.label` accordingly.
+Until producer metrics with that label reach hub Thanos, tenant queries can
+succeed but return no series.
 
 ## Values
 

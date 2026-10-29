@@ -1,0 +1,22 @@
+{{- if .Values.mtlsIngress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ai-grid-o11y-hub.fullname" . }}-mtls-ingress
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ai-grid-o11y-hub.mtlsSelectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            {{- toYaml .Values.mtlsIngress.routerNamespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml .Values.mtlsIngress.routerPodSelector | nindent 12 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.mtlsIngress.listenPort }}
+{{- end }}

@@ -517,14 +517,82 @@ charts:
           - skipCrdCheck=true
           - dependencies.agentSandbox.enabled=true
 
+  rhai-on-openshift-chart/charts/ai-grid-o11y-hub:
+    snapshots:
+      - name: default
+
+      - name: mtls-ingress
+        setFlags:
+          - mtlsIngress.enabled=true
+          - mtlsIngress.hostname=metrics-hub.example.test
+          - mtlsIngress.serverTLSSecretName=hub-server-tls
+          - mtlsIngress.clientCASecretName=spoke-client-ca
+
+      - name: reject-mtls-missing-client-ca
+        expectFail: true
+        expectMessage: "mtlsIngress.clientCASecretName is required"
+        setFlags:
+          - mtlsIngress.enabled=true
+          - mtlsIngress.hostname=metrics-hub.example.test
+          - mtlsIngress.serverTLSSecretName=hub-server-tls
+
   rhai-on-openshift-chart/charts/ai-grid-o11y-spoke:
     snapshots:
       - name: default
+
+      - name: scrape-config-disabled
+        setFlags:
+          - collector.scrapeConfig.enabled=false
 
       - name: custom-collector
         setFlags:
           - collector.namespace=custom-monitoring
           - collector.port=9999
+          - collector.scrapeConfig.enabled=true
+
+      - name: metrics-query-enabled
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/test/metrics-query-values.yaml
+
+      - name: reject-query-port-collision
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/test/metrics-query-values.yaml
+        expectFail: true
+        expectMessage: "metricsQuery.proxy.listenPort must differ from metricsQuery.listenPort"
+        setFlags:
+          - metricsQuery.proxy.listenPort=8080
+
+      - name: reject-query-without-authentication
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/test/metrics-query-values.yaml
+        expectFail: true
+        expectMessage: "metricsAuthPolicy.authentication is required"
+        setJsonFlags:
+          - 'metricsAuthPolicy.authentication={}'
+
+      - name: reject-static-scope
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/test/metrics-query-values.yaml
+        expectFail: true
+        expectMessage: "metricsAuthPolicy.scopeExpression must derive from validated auth.identity"
+        setFlags:
+          - metricsAuthPolicy.scopeExpression=static
+
+      - name: reject-reserved-viewer-rule
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/test/metrics-query-values.yaml
+        expectFail: true
+        expectMessage: "require-viewer is reserved for the chart"
+        setJsonFlags:
+          - 'metricsAuthPolicy.authorization={"require-viewer":{}}'
+
+      - name: reject-missing-datasource-selector
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/test/metrics-query-values.yaml
+        expectFail: true
+        expectMessage: "datasource.instanceSelector must select the intended Perses instance"
+        setJsonFlags:
+          - 'datasource.instanceSelector={}'
 
       - name: credential
         setFlags:

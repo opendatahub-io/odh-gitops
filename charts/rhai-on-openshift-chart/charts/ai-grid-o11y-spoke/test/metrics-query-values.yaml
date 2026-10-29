@@ -1,0 +1,26 @@
+# Render-only fixture for the authenticated spoke metrics query path.
+enabled: true
+collector:
+  scrapeConfig:
+    enabled: false
+metricsQuery:
+  enabled: true
+  hubHostname: metrics-hub.example.test
+  clientTLSSecretName: spoke-client-tls
+  serverCASecretName: hub-server-ca
+tenantAdminNamespace:
+  create: true
+datasource:
+  instanceSelector:
+    matchLabels:
+      platform.opendatahub.io/part-of: monitoring
+metricsRoute:
+  hostname: grid.example.test
+metricsAuthPolicy:
+  authentication:
+    fixture-jwt:
+      jwt:
+        jwksUrl: https://identity.example.test/jwks
+  issuer: https://identity.example.test/
+  audience: grid-metrics
+  scopeExpression: 'auth.identity["https://redhat.com/maas/orgs"][0].organization_id'

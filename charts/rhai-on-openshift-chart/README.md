@@ -246,9 +246,9 @@ with payloads that do not yet expose the field. `--set profile=ai-grid` explicit
 and its `aiGrid` sub-component to `Managed`; other sub-components remain `Removed`.
 An explicit `components.aigateway.dsc.aiGrid.managementState=Removed` overrides the profile.
 
-The AI Gateway operator owns the Grid operator and its CRDs (ai-gateway-operator PR #148).
-This chart does not install a second Grid operator. The profile requires an operator payload
-containing opendatahub-operator PR #4186; chart version `3.6.0` alone does not guarantee that payload.
+The AI Gateway operator owns the Grid operator and its CRDs. This chart does not install a
+second Grid operator. The profile requires an operator payload with `aiGrid` support;
+chart version `3.6.0` alone does not guarantee that payload.
 
 The profile also enables the Helm-managed gateway and enrollment workloads. Both runtime
 `enabled` flags default to `true`, but resources render only when the effective AIGateway
@@ -267,6 +267,32 @@ ConfigMaps, Secrets or databases, or resources retained by upstream Helm hooks/r
 
 The gateway/enrollment charts are version `0.2.0`, vendored from `praxis-proxy/grid@3359afdcddda926f3cdf986f5173f12b30b40aae`.
 The parent defaults to the Grid gateway image, rather than the generic Praxis AI image.
+
+### AI Grid observability charts
+
+The `ai-grid-o11y-hub` and `ai-grid-o11y-spoke` dependencies are disabled by
+default. They provide separate packaging points for hub-side and spoke-side
+AI Grid observability work across metrics collection, scoped queries, and usage
+logs. Deploy the appropriate chart in a separate Helm release on the ACM hub
+or each spoke.
+
+The [hub chart](charts/ai-grid-o11y-hub/README.md) provides an optional mTLS
+Route and allowlisted read-query ingress to ACM Thanos. With
+`enabled: true` and `metricsQuery.enabled: true`, the [spoke chart](charts/ai-grid-o11y-spoke/README.md)
+adds a local label proxy and mTLS NGINX relay in one pod, a tenant-admin
+Perses datasource, and an authenticated GET-only `/metrics` Gateway route.
+The spoke filters on `organization_id` by default. Supply the certificate
+Secrets, cluster hostnames, and verified OIDC viewer policy before activating
+queries. Configure Perses project
+authorization separately.
+
+The spoke chart keeps its ScrapeConfig enabled by default to preserve existing
+collection on upgrade. For query-only installs without the ACM observability
+namespace, set `collector.scrapeConfig.enabled: false` in the standalone chart
+or `ai-grid-o11y-spoke.collector.scrapeConfig.enabled: false` in the parent.
+When migrating collection to ACM management, verify the replacement before
+disabling the chart-managed ScrapeConfig.
+
 Refresh with `make update-ai-grid-charts GRID_REF=<tag-or-sha>`; this reapplies the downstream
 image/review patches and runtime template adapter, updates the dependency lock, and regenerates
 docs and snapshots. The adapter exports named resource templates so the parent can gate rendering

@@ -1,0 +1,16 @@
+{{- if .Values.mtlsIngress.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-grid-o11y-hub.fullname" . }}-mtls
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: tls
+      port: {{ .Values.mtlsIngress.listenPort }}
+      targetPort: tls
+  selector:
+    {{- include "ai-grid-o11y-hub.mtlsSelectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,22 @@
+{{- if and .Values.enabled .Values.metricsQuery.enabled }}
+{{- if and (not .Values.datasource.instanceSelector.matchLabels) (not .Values.datasource.instanceSelector.matchExpressions) }}{{ fail "datasource.instanceSelector must select the intended Perses instance" }}{{ end }}
+{{- $directURL := printf "https://%s%s" .Values.metricsRoute.hostname .Values.metricsRoute.pathPrefix }}
+apiVersion: {{ .Values.datasource.apiVersion }}
+kind: PersesDatasource
+metadata:
+  name: {{ .Values.datasource.name }}
+  namespace: {{ .Values.tenantAdminNamespace.name }}
+  labels:
+    {{- include "ai-grid-o11y-spoke.labels" . | nindent 4 }}
+spec:
+  instanceSelector:
+    {{- toYaml .Values.datasource.instanceSelector | nindent 4 }}
+  config:
+    display:
+      name: Grid tenant metrics
+    default: false
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        directUrl: {{ $directURL | quote }}
+{{- end }}

@@ -1,9 +1,9 @@
 apiVersion: v2
 name: ai-grid-o11y-spoke
-description: The spoke side of AI Grid observability — RHOAI metrics federated to ACM, and the hub credential its usage-log collector mounts
+description: Spoke-side AI Grid observability resources
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.3.0
+appVersion: "0.3.0"
 keywords:
   - ai-grid
   - observability

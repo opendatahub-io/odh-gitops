@@ -1,0 +1,60 @@
+{{- if and .Values.enabled .Values.metricsQuery.enabled }}
+{{- if not .Values.metricsAuthPolicy.authentication }}{{ fail "metricsAuthPolicy.authentication is required" }}{{ end }}
+{{- if not .Values.metricsAuthPolicy.issuer }}{{ fail "metricsAuthPolicy.issuer is required" }}{{ end }}
+{{- if not .Values.metricsAuthPolicy.audience }}{{ fail "metricsAuthPolicy.audience is required" }}{{ end }}
+{{- if hasKey .Values.metricsAuthPolicy.authorization "deny-client-scope-header" }}{{ fail "deny-client-scope-header is reserved for the chart" }}{{ end }}
+{{- if hasKey .Values.metricsAuthPolicy.authorization "require-trusted-issuer" }}{{ fail "require-trusted-issuer is reserved for the chart" }}{{ end }}
+{{- if hasKey .Values.metricsAuthPolicy.authorization "require-intended-audience" }}{{ fail "require-intended-audience is reserved for the chart" }}{{ end }}
+{{- if hasKey .Values.metricsAuthPolicy.authorization "require-get" }}{{ fail "require-get is reserved for the chart" }}{{ end }}
+{{- if hasKey .Values.metricsAuthPolicy.authorization "require-viewer" }}{{ fail "require-viewer is reserved for the chart" }}{{ end }}
+{{- if not (contains "auth.identity" .Values.metricsAuthPolicy.scopeExpression) }}{{ fail "metricsAuthPolicy.scopeExpression must derive from validated auth.identity" }}{{ end }}
+{{- if not (contains "organization_id" .Values.metricsAuthPolicy.scopeExpression) }}{{ fail "metricsAuthPolicy.scopeExpression must select organization_id" }}{{ end }}
+{{- $routeNamespace := default .Values.tenantAdminNamespace.name .Values.metricsRoute.namespace }}
+{{- $issuer := .Values.metricsAuthPolicy.issuer | toJson }}
+{{- $audience := .Values.metricsAuthPolicy.audience | toJson }}
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: {{ .Values.metricsRoute.name }}
+  namespace: {{ $routeNamespace }}
+  labels:
+    {{- include "ai-grid-o11y-spoke.labels" . | nindent 4 }}
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: {{ .Values.metricsRoute.name }}
+  rules:
+    authentication:
+      {{- toYaml .Values.metricsAuthPolicy.authentication | nindent 6 }}
+    authorization:
+      require-get:
+        patternMatching:
+          patterns:
+            - predicate: 'request.method == "GET"'
+      deny-client-scope-header:
+        patternMatching:
+          patterns:
+            - predicate: '!("x-scope-orgid" in request.headers)'
+      require-trusted-issuer:
+        patternMatching:
+          patterns:
+            - predicate: {{ printf "auth.identity.iss == %s" $issuer | quote }}
+      require-intended-audience:
+        patternMatching:
+          patterns:
+            - predicate: {{ printf "auth.identity.aud == %s || (type(auth.identity.aud) == type([]) && %s in auth.identity.aud)" $audience $audience | quote }}
+      require-viewer:
+        patternMatching:
+          patterns:
+            - predicate: {{ printf "auth.identity.groups.exists(g, g == (%s) + \"/ai-grid-dashboard-viewer\")" .Values.metricsAuthPolicy.scopeExpression | quote }}
+      {{- with .Values.metricsAuthPolicy.authorization }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    response:
+      success:
+        headers:
+          X-Scope-OrgID:
+            plain:
+              expression: {{ .Values.metricsAuthPolicy.scopeExpression | quote }}
+{{- end }}

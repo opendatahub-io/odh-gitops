@@ -1,0 +1,32 @@
+{{- if and .Values.enabled .Values.metricsQuery.enabled }}
+{{- if not .Values.metricsRoute.hostname }}{{ fail "metricsRoute.hostname is required" }}{{ end }}
+{{- if not .Values.metricsRoute.parentRefs }}{{ fail "metricsRoute.parentRefs is required" }}{{ end }}
+{{- $routeNamespace := default .Values.tenantAdminNamespace.name .Values.metricsRoute.namespace }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.metricsRoute.name }}
+  namespace: {{ $routeNamespace }}
+  labels:
+    {{- include "ai-grid-o11y-spoke.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    {{- toYaml .Values.metricsRoute.parentRefs | nindent 4 }}
+  hostnames:
+    - {{ .Values.metricsRoute.hostname | quote }}
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: {{ .Values.metricsRoute.pathPrefix | quote }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ include "ai-grid-o11y-spoke.fullname" . }}-query
+          port: {{ .Values.metricsQuery.proxy.listenPort }}
+{{- end }}
