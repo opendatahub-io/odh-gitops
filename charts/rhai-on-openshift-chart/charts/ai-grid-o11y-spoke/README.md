@@ -126,6 +126,7 @@ Set on the parent chart, with `credentialSecret` matching `credential.secretName
 services:
   monitoring:
     dsci:
+      managementState: Managed
       usageLogs:
         # No storage: a spoke forwards to the hub and keeps no local store, so no
         # LokiStack is deployed and no object storage is needed.
