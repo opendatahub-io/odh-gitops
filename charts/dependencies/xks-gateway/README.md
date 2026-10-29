@@ -30,6 +30,44 @@ Set `gateway.domain` to the base DNS domain, such as `example.com`. The operator
 `*.` in `gateway.domain`; it would produce an invalid Gateway listener hostname. A wildcard
 DNS record or TLS certificate can still cover the resulting hostname.
 
+### AKS browser OIDC
+
+Configure the Gateway's Entra app with delegated `user.read` permission for the AKS AAD Server
+application (`<AKS_SERVER_APP_ID>`) and obtain tenant admin consent. Request
+an AKS-audience access token, forward it to downstream services, and skip the Microsoft Graph
+userinfo request (which cannot use an AKS-audience access token):
+
+```yaml
+xks-gateway:
+  enabled: true
+  gateway:
+    domain: example.com
+    oidc:
+      issuerURL: https://login.microsoftonline.com/<tenant-id>/v2.0
+      clientID: <gateway-app-client-id>
+      clientSecretRef:
+        name: my-oidc-secret
+      scope: "openid offline_access <AKS_SERVER_APP_ID>/.default"
+      passAccessToken: true
+      skipClaimsFromProfileURL: true
+```
+
+Replace bracketed placeholders with your Entra tenant ID, Gateway app client ID, and AKS server
+application ID. All three settings are optional. Without them, kube-auth-proxy keeps its default OIDC scope and
+downstream services receive the ID token. See RHOAIENG-96566 for the separate AKS LoadBalancer
+health-probe issue.
+
+Entra v2 requires `offline_access` to issue a refresh token; the example includes it because the
+chart configures periodic session refresh. With `skipClaimsFromProfileURL: true`, kube-auth-proxy
+requires a nonempty `email` claim in the ID token to complete login. Requesting the `email` scope
+alone does not guarantee that claim for users without an email address. Check ID-token claims for
+your users and configure Entra claims mapping if needed.
+
+> **Security:** With `passAccessToken: true`, authenticated requests to services routed through
+> this Gateway carry the user's AKS API bearer token in `Authorization`, `x-auth-request-access-token`,
+> and `x-forwarded-access-token`. The token grants the user's Kubernetes RBAC permissions until it
+> expires. Route only trusted services through the Gateway; do not log these headers downstream.
+
 ## CRD handling
 
 The GatewayConfig CRD is a regular Helm template, rendered from `files/gatewayconfig-crd.yaml`
