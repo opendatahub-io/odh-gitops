@@ -361,6 +361,26 @@ charts:
         expectFail: true
         expectMessage: "without a query or fragment"
 
+      - name: ai-grid-o11y-hub-spoke-policy-reject-empty-query
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp?'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-empty-fragment
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp#'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
       - name: ai-grid-o11y-spoke-acm
         valuesFiles:
           - docs/examples/values-ai-grid-o11y-spoke-acm.yaml

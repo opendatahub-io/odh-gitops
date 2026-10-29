@@ -137,6 +137,10 @@ first.
    TOKEN_FILE=$(mktemp)
    oc create token {{ $o11yHub.ingest.writer.serviceAccountName | default (printf "%s-writer" $o11yHub.lokiStack.name) }} \
      -n {{ $o11yHub.namespace }} --duration=8760h > "$TOKEN_FILE"
+{{- else }}
+
+4. The writer identity is managed outside this release.
+   Set TOKEN_FILE to a private file containing its writer token.
 {{- end }}
 {{- else }}
 lokiStack.enabled is false, so this release renders no store and no writer identity. The
