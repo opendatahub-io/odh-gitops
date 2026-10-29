@@ -360,6 +360,137 @@ spec:
           spec:
             description: GatewayConfigSpec defines the desired state of GatewayConfig
             properties:
+              additionalIngresses:
+                description: |-
+                  AdditionalIngresses defines additional Gateways managed by GatewayConfig.
+                  Component controllers manage the HTTPRoutes attached to these Gateways.
+                items:
+                  description: AdditionalIngress defines an additional Gateway.
+                  properties:
+                    auth:
+                      default: {}
+                      description: |-
+                        Auth configures this ingress's client credentials and auth proxy capacity.
+                        Authentication mode and provider settings are inherited from the default gateway.
+                      properties:
+                        maxReplicas:
+                          default: 10
+                          description: |-
+                            MaxReplicas is the maximum number of replicas for this ingress's auth proxy.
+                            The minimum remains fixed at 2. This does not configure the default proxy.
+                            A value of 2 fixes the HPA minimum and maximum at two replicas.
+                          format: int32
+                          maximum: 10
+                          minimum: 2
+                          type: integer
+                        oidc:
+                          description: |-
+                            OIDC supplies this ingress's distinct client identity in OIDC mode.
+                            Required in OIDC mode; omit in integrated OpenShift OAuth mode, where the
+                            operator generates a distinct OAuthClient. The issuer comes from spec.oidc.
+                          properties:
+                            clientID:
+                              description: ClientID is distinct from the default ingress
+                                and sibling ingress client IDs.
+                              minLength: 1
+                              type: string
+                            clientSecretRef:
+                              description: |-
+                                ClientSecretRef references an administrator-managed Secret containing the client secret.
+                                Each ingress must reference a distinct Secret, including from the default ingress.
+                                The operator must not own or delete this source Secret.
+                                Name and key must be nonempty; optional must be omitted or false.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  default: ""
+                                  description: |-
+                                    Name of the referent.
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                              x-kubernetes-validations:
+                              - message: clientSecretRef.name must be non-empty
+                                rule: has(self.name) && size(self.name) > 0
+                              - message: clientSecretRef.key must be non-empty
+                                rule: size(self.key) > 0
+                              - message: clientSecretRef.optional must be false
+                                rule: '!has(self.optional) || !self.optional'
+                            secretNamespace:
+                              description: SecretNamespace is the source Secret's
+                                namespace; defaults to the gateway namespace.
+                              maxLength: 63
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                          - clientID
+                          - clientSecretRef
+                          type: object
+                      type: object
+                    hostname:
+                      description: Hostname is the externally visible hostname for
+                        this ingress.
+                      maxLength: 253
+                      pattern: ^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)(\.([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?))*$
+                      type: string
+                    ingressControllerName:
+                      description: IngressControllerName is the IngressController
+                        whose Route admission is used for readiness.
+                      maxLength: 63
+                      pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    name:
+                      description: |-
+                        Name is the Gateway name and stable identity of this ingress.
+                        The 36-character limit keeps Istio's <Gateway>-<GatewayClass> Service name within 63 characters.
+                      maxLength: 36
+                      pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                      x-kubernetes-validations:
+                      - message: name conflicts with a default Gateway
+                        rule: self != 'data-science-gateway' && self != 'rh-ai-gateway'
+                    routeLabels:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        RouteLabels are applied to the bridge Route and can match the target
+                        IngressController route selector. They do not prevent other matching
+                        IngressControllers from admitting the Route.
+                      minProperties: 1
+                      type: object
+                  required:
+                  - hostname
+                  - ingressControllerName
+                  - name
+                  - routeLabels
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              authProxyMaxReplicas:
+                default: 10
+                description: |-
+                  AuthProxyMaxReplicas is the maximum number of replicas for the default gateway's auth proxy.
+                  The HPA minimum is fixed at 2; setting the maximum to 2 fixes the replica count.
+                  Additional ingress proxies are configured independently through their auth.maxReplicas.
+                format: int32
+                maximum: 10
+                minimum: 2
+                type: integer
               authProxyTimeout:
                 description: |-
                   AuthProxyTimeout defines the timeout for external authorization service calls (e.g., "5s", "10s")
@@ -376,19 +507,43 @@ spec:
                 description: Certificate specifies configuration of the TLS certificate
                   securing communication for the gateway.
                 properties:
+                  issuerRef:
+                    description: |-
+                      IssuerRef optionally overrides the cert-manager issuer used on XKS. The gateway TLS certificate
+                      uses it when Type=SelfSigned; the kube-auth-proxy TLS certificate uses it whenever the auth proxy
+                      is enabled. This field is ignored on OpenShift.
+                    properties:
+                      kind:
+                        description: |-
+                          Kind of the cert-manager issuer.
+                          When empty, the operator environment is used, falling back to ClusterIssuer.
+                        enum:
+                        - Issuer
+                        - ClusterIssuer
+                        type: string
+                      name:
+                        description: Name of the cert-manager issuer. When empty,
+                          the platform default issuer name is used.
+                        maxLength: 253
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                    type: object
                   secretName:
                     description: |-
                       SecretName specifies the name of the Kubernetes Secret resource that contains a
                       TLS certificate secure HTTP communications for the KNative network.
                     type: string
                   type:
-                    default: OpenshiftDefaultIngress
                     description: |-
                       Type specifies if the TLS certificate should be generated automatically, or if the certificate
                       is provided by the user. Allowed values are:
-                      * SelfSigned: A certificate is going to be generated using an own private key.
+                      * SelfSigned: A certificate is generated automatically; on XKS, cert-manager issues it.
                       * Provided: Pre-existence of the TLS Secret (see SecretName) with a valid certificate is assumed.
                       * OpenshiftDefaultIngress: Uses the cluster's default ingress certificate (OpenShift only).
+                      When unset, the operator selects a platform-appropriate default: OpenshiftDefaultIngress on
+                      OpenShift and SelfSigned on XKS (vanilla Kubernetes), where cert-manager issues the
+                      certificate. A static CRD default is intentionally omitted so this platform-aware selection
+                      can apply; see handleCertificates.
                     enum:
                     - SelfSigned
                     - Provided
@@ -440,23 +595,53 @@ spec:
                 - LoadBalancer
                 type: string
               networkPolicy:
-                description: NetworkPolicy configuration for kube-auth-proxy
+                description: |-
+                  NetworkPolicy configures NetworkPolicy behavior for kube-auth-proxy.
+                  It is retained for backward compatibility and has no effect; the operator
+                  always manages the kube-auth-proxy NetworkPolicy.
+                  Deprecated: This setting is ignored and will be removed in a future API version.
                 properties:
                   ingress:
                     description: |-
-                      Ingress defines ingress NetworkPolicy rules.
-                      When nil, ingress rules are applied by default (allows traffic from Gateway pods and monitoring namespaces).
-                      When specified, Enabled must be set to true to apply rules or false to skip NetworkPolicy creation.
-                      Set Enabled=false only in development environments or when using alternative network security controls.
+                      Ingress is retained for backward compatibility and has no effect.
+                      Deprecated: This setting is ignored.
                     properties:
                       enabled:
                         description: |-
-                          Enabled determines whether ingress rules are applied.
-                          When true, creates NetworkPolicy allowing traffic only from Gateway pods and monitoring namespaces.
+                          Enabled is retained for backward compatibility and has no effect.
+                          Deprecated: This setting is ignored.
                         type: boolean
                     required:
                     - enabled
                     type: object
+                type: object
+              ocpRoute:
+                description: |-
+                  OCPRoute configures the OpenShift Route exposing the default shared Gateway.
+                  These settings are only valid in OcpRoute mode and do not configure an external load balancer.
+                  Remove this field when switching to LoadBalancer mode.
+                properties:
+                  serverTimeout:
+                    description: |-
+                      ServerTimeout is the maximum server-side inactivity interval enforced by the OpenShift router.
+                      It applies to all traffic using the default shared Gateway Route, independently of HTTPRoute timeouts
+                      and AuthProxyTimeout. It does not apply to additional ingress Routes or upgraded connections.
+                      Specify a positive integer without leading zeros and with a unit of ms, s, m, or h (for example, "330s").
+                      The maximum is 2147483647ms, matching HAProxy's supported timeout range.
+                      When omitted, the operator sets a 60s Route timeout if the default IngressController's
+                      server timeout is below 60s (OpenShift uses 30s when that field is unset).
+                      Otherwise, or if the default IngressController is missing or its API is unsupported,
+                      no timeout annotation is set. Other lookup errors, including permission and connection
+                      failures, fail reconciliation.
+                      Automatic behavior reads openshift-ingress-operator/default.
+                      Removing this field restores automatic behavior; automatic values are not written to GatewayConfig.
+                    maxLength: 16
+                    pattern: ^[1-9][0-9]*(ms|s|m|h)$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: serverTimeout must be positive and no greater than
+                        2147483647ms
+                      rule: duration(self) > duration('0s') && duration(self) <= duration('2147483647ms')
                 type: object
               oidc:
                 description: OIDC configuration (used when cluster is in OIDC authentication
@@ -563,9 +748,111 @@ spec:
                   For production use with self-signed certificates, use ProviderCASecretName instead.
                 type: boolean
             type: object
+            x-kubernetes-validations:
+            - message: ocpRoute is only valid in OcpRoute ingress mode
+              rule: '!has(self.ingressMode) || self.ingressMode != ''LoadBalancer''
+                || !has(self.ocpRoute)'
           status:
             description: GatewayConfigStatus defines the observed state of GatewayConfig
             properties:
+              additionalIngresses:
+                description: |-
+                  AdditionalIngresses contains configured additional ingresses, including entries that are not ready.
+                  Their GatewayReady conditions feed the top-level AdditionalGatewaysReady condition.
+                items:
+                  description: AdditionalIngressStatus reports readiness for one additional
+                    ingress.
+                  properties:
+                    conditions:
+                      description: Conditions report Gateway, Route, authentication,
+                        and aggregate readiness.
+                      items:
+                        properties:
+                          lastHeartbeatTime:
+                            description: |-
+                              The last time we got an update on a given condition, this should not be set and is
+                              present only for backward compatibility reasons
+                            format: date-time
+                            type: string
+                          lastTransitionTime:
+                            description: |-
+                              lastTransitionTime is the last time the condition transitioned from one status to another.
+                              This should be when the underlying condition changed.
+                              If that is not known, then using the time when the API field changed is acceptable.
+                            format: date-time
+                            type: string
+                          message:
+                            description: message is a human-readable message indicating
+                              details about the transition.
+                            type: string
+                          observedGeneration:
+                            description: |-
+                              observedGeneration represents the .metadata.generation that the condition was set based upon.
+                              For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+                              is 9, the condition is out of date with respect to the current state of the instance.
+                            format: int64
+                            minimum: 0
+                            type: integer
+                          reason:
+                            description: |-
+                              reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                              The value should be a CamelCase string.
+                            type: string
+                          severity:
+                            description: |-
+                              Severity with which to treat failures of this type of condition.
+                              When this is not specified, it defaults to Error.
+                            type: string
+                          status:
+                            description: status of the condition, one of True, False,
+                              Unknown.
+                            enum:
+                            - "True"
+                            - "False"
+                            - Unknown
+                            type: string
+                          type:
+                            description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            maxLength: 316
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                            type: string
+                        required:
+                        - status
+                        - type
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - type
+                      x-kubernetes-list-type: map
+                    gatewayRef:
+                      description: |-
+                        GatewayRef identifies the operator-managed Gateway for component HTTPRoute parentRefs.
+                        The reference remains published while the ingress is configured, regardless of readiness.
+                      properties:
+                        name:
+                          description: Name is the Gateway name.
+                          type: string
+                        namespace:
+                          description: Namespace is the namespace containing the Gateway.
+                          type: string
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                    hostname:
+                      description: Hostname is the configured externally visible hostname.
+                      type: string
+                    name:
+                      description: Name is the stable identity of the configured ingress.
+                      type: string
+                  required:
+                  - hostname
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               conditions:
                 items:
                   properties:
@@ -3981,7 +4268,7 @@ spec:
             - name: RHAI_APPLICATIONS_NAMESPACE
               value: "redhat-ods-applications"
             - name: RHAI_VERSION
-              value: "3.5.0"
+              value: "3.6.0"
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: RHAI_CA_SECRET_NAME
@@ -4965,10 +5252,10 @@ spec:
               set -euo pipefail
               TIMEOUT=300
               INTERVAL=5
-              
+
               # Quoted once here so untrusted values can never reach the shell unquoted.
               APP_NAMESPACE="redhat-ods-applications"
-              
+
               # general wait function for resource to be ready in the cluster
               wait_for() {
                 local desc="$1"; shift
@@ -4985,7 +5272,7 @@ spec:
                 done
                 echo "${desc} is available."
               }
-              
+
               # Readiness predicates for wait_for (only invoked when TLS is enabled).
               # ISSUER_ARGS is built in the TLS step below, before issuer_ready is called.
               issuer_ready() {
@@ -4995,18 +5282,18 @@ spec:
               cert_ready() {
                 [ "$(kubectl get certificate inference-gateway-cert -n "$APP_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = "True" ]
               }
-              
+
               echo "Step 1: Gateway API CRDs required by Gateway CR 'inference-gateway'..."
               wait_for "Gateway API CRDs" kubectl get crd gateways.gateway.networking.k8s.io
-              
+
               echo "Step 2: cert-manager CA secret required by Gateway CR 'inference-gateway'..."
               wait_for "cert-manager CA secret" kubectl get secret rhai-ca -n cert-manager
-              
+
               echo "Step 3: Creating CA bundle ConfigMap for Gateway CR 'inference-gateway'..."
               kubectl get secret rhai-ca -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/ca.crt
               kubectl create configmap rhai-ca-bundle --from-file=ca.crt=/tmp/ca.crt -n "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
               echo "CA bundle ConfigMap created."
-              
+
               echo "Step 4: Create ConfigMap used by Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: v1
@@ -5057,12 +5344,12 @@ spec:
                   - "*.redhat-ods-applications.svc"
               EOF
               echo "Certificate 'inference-gateway-cert' created."
-              
+
               wait_for "Certificate 'inference-gateway-cert' to be Ready" cert_ready
-              
+
               echo "Step 6: GatewayClass 'istio' required by Gateway CR 'inference-gateway'..."
               wait_for "GatewayClass 'istio'" kubectl get gatewayclass istio
-              
+
               echo "Step 7: Creating Gateway CR 'inference-gateway'..."
               kubectl apply -f - <<'EOF'
               apiVersion: gateway.networking.k8s.io/v1
@@ -5100,7 +5387,6 @@ spec:
                     name: inference-gateway-config
               EOF
               echo "Gateway CR 'inference-gateway' created successfully."
-              
 
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-job.yaml
@@ -5158,7 +5444,6 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting Platform CR 'default'..."
               kubectl delete platform default --ignore-not-found --timeout=300s
-              
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."
@@ -5228,7 +5513,6 @@ spec:
                 fi
               fi
               echo "Disabled component cleanup complete."
-
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-upgrade-migrate-certmanager-job.yaml
 apiVersion: batch/v1
@@ -5302,48 +5586,48 @@ spec:
               # Expected env vars:
               #   RELEASE_NAME      - Current Helm release name
               #   RELEASE_NAMESPACE - Current Helm release namespace
-              
+
               set -euo pipefail
-              
+
               WAIT_TIMEOUT="${WAIT_TIMEOUT:-300}"
-              
+
               # Check if cert-manager-operator namespace exists at all.
               if ! kubectl get namespace cert-manager-operator &>/dev/null; then
                 echo "cert-manager-operator namespace not found; nothing to migrate."
                 exit 0
               fi
-              
+
               # KE_RESOURCE and KE_NAME are injected by the Helm Job template (provider-specific).
               if [[ -z "${KE_RESOURCE:-}" ]] || [[ -z "${KE_NAME:-}" ]]; then
                 echo "KE_RESOURCE or KE_NAME not set; skipping migration."
                 exit 0
               fi
-              
+
               KE_FULL="${KE_RESOURCE}/${KE_NAME}"
-              
+
               if ! kubectl get "$KE_FULL" &>/dev/null 2>&1; then
                 echo "KubernetesEngine CR '${KE_FULL}' not found; skipping migration."
                 exit 0
               fi
-              
+
               echo "Found KubernetesEngine CR: ${KE_FULL}"
-              
+
               # Check current managementPolicy — only migrate if CCM is actively managing cert-manager.
               # If already Unmanaged, nothing to do.
               CURRENT_POLICY=$(kubectl get "$KE_FULL" \
                 -o jsonpath='{.spec.dependencies.certManager.managementPolicy}' 2>/dev/null || true)
-              
+
               if [[ "$CURRENT_POLICY" != "Managed" ]]; then
                 echo "certManager.managementPolicy is '${CURRENT_POLICY}'; nothing to migrate."
                 exit 0
               fi
-              
+
               # Patch KE CR to set certManager.managementPolicy=Unmanaged.
               # This tells CCM to stop managing cert-manager and clean up its resources.
               echo "Patching ${KE_FULL}: certManager.managementPolicy → Unmanaged..."
               kubectl patch "$KE_FULL" --type=merge \
                 -p '{"spec":{"dependencies":{"certManager":{"managementPolicy":"Unmanaged"}}}}' 2>&1
-              
+
               # Wait for CCM's foreground deletion of the cert-manager operator Deployment.
               # No wait is needed when CCM has already removed it before the hook starts.
               if ! deployment_names=$(kubectl get deployment -n cert-manager-operator \
@@ -5371,7 +5655,7 @@ spec:
               else
                 echo "cert-manager-operator deployment not found; continuing."
               fi
-              
+
               # CCM cleanup can remove the old operator's RBAC before it gracefully releases
               # this Lease. Foreground Deployment deletion waits for its blocking dependents.
               if kubectl get lease cert-manager-operator-lock -n cert-manager-operator &>/dev/null; then
@@ -5385,5 +5669,3 @@ spec:
                 echo "cert-manager-operator-lock Lease not found; nothing to shorten."
               fi
               echo "Migration complete. The replacement cert-manager operator will reconcile any remaining operands."
-              
-
