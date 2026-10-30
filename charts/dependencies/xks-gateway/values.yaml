@@ -18,7 +18,7 @@ cleanupOnDisable: true
 # chart so standalone and parent-chart installs use the same bootstrap path.
 hooks:
   # -- Image containing kubectl and bash for lifecycle hooks.
-  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d876c1d98b39d65c00c4261431bb84b90284699f3aef84d8701a25c786fb79a1
+  cliImage: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:d7d83501b7199d32028de4ad44804cf46d51ff4210a48236f3e2f2df78af9ecf
   # -- Resources for the lifecycle hook Job.
   resources:
     limits:
