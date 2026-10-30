@@ -168,7 +168,33 @@ spokePolicy:
   # `oc get route <stack> -n <namespace>` after the LokiStack is Ready. Required when delivering configuration.
   # Must have a hostname and the exact `/api/logs/v1/infrastructure/otlp` path,
   # without a query or fragment. Not read when `deliverConfiguration` is false.
+  #
+  # May instead be an **ACM hub template**, resolved on the hub at delivery time.
+  # That is how a GitOps consumer supplies this without committing a cluster's
+  # Route host: the hub knows its own Route, Argo CD's repo-server does not, and
+  # `helm lookup` cannot help because the repo-server renders without cluster
+  # access. A template is not parsed at render time, so the checks that remain
+  # are made against its text: the tenant path, the `/v1/logs` suffix, and the
+  # scheme, where `https://` must appear and a literal `http://` must not --
+  # interpolate only the Route host into an `https://` format string. Only ACM
+  # resolves the template, so no check here can prove what it produces. `lookup`
+  # additionally needs `hubTemplateOptions.serviceAccountName` below.
+  #
+  #   endpoint: '{{hub printf "https://%s/api/logs/v1/infrastructure/otlp"
+  #     (index (lookup "route.openshift.io/v1" "Route" "ai-grid-o11y" "usage-logs").status.ingress 0).host hub}}'
   endpoint: ""
+
+  # -- `spec.hubTemplateOptions`, which names the ServiceAccount ACM resolves this
+  # policy's hub templates as. Only needed when a template reads beyond the policy's
+  # own namespace and the target `ManagedCluster`, which is ACM's default limit —
+  # a `lookup` of the ingest Route, for instance. Requires ACM 2.12 or later.
+  #
+  # It applies to **every** template in the policy, the credential's `fromSecret`
+  # included, so the ServiceAccount needs `get` on that Secret as well as on
+  # whatever the lookup reads, plus `list` and `watch` on both kinds. Grant it
+  # narrowly: this is a hub-wide read identity otherwise.
+  hubTemplateOptions:
+    serviceAccountName: ""
 
   # -- Name of the Secret in `spokePolicy.namespace` holding the writer token under key
   # `token`. This chart does not create it, because a token is not a declarative object. ACM

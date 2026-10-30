@@ -1,0 +1,191 @@
+---
+# Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "ai-grid-o11y"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+---
+# Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "ai-grid-policies"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opendatahub-operator-system
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: "default"
+  namespace: "ai-grid-policies"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  clusterSet: "default"
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+---
+# Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/placement.yaml
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: "ai-grid-maas-spokes"
+  namespace: "ai-grid-policies"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  clusterSets:
+    - "default"
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchExpressions:
+            - key: "ai-grid.redhat.com/maas"
+              operator: In
+              values: ["true"]
+            - key: local-cluster
+              operator: DoesNotExist
+---
+# Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/placement.yaml
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: "ai-grid-maas-spokes"
+  namespace: "ai-grid-policies"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: "ai-grid-maas-spokes"
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: "ai-grid-maas-remote-usage-logs"
+---
+# Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/policy.yaml
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: "ai-grid-maas-remote-usage-logs"
+  namespace: "ai-grid-policies"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    policy.open-cluster-management.io/standards: AI Grid
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: "usage-logs-endpoint-templating"
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: "ai-grid-maas-remote-usage-logs"
+        spec:
+          remediationAction: enforce
+          severity: medium
+          pruneObjectBehavior: DeleteIfCreated
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: "hub-usage-logs-auth"
+                  namespace: "redhat-ods-monitoring"
+                data:
+                  token: '{{hub fromSecret "ai-grid-policies" "usage-logs-hub-credential" "token" hub}}'
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: dscinitialization.opendatahub.io/v1
+                kind: DSCInitialization
+                metadata:
+                  name: "default-dsci"
+                spec:
+                  monitoring:
+                    usageLogs:
+                      credentialSecret: "hub-usage-logs-auth"
+                      attributes:
+                        cluster_id: '{{ (lookup "cluster.open-cluster-management.io/v1alpha1" "ClusterClaim" "" "id.k8s.io").spec.value }}'
+                        cluster_name: '{{hub .ManagedClusterName hub}}'
+                      exporters:
+                        otlphttp/hub:
+                          endpoint: "{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp\" (index (lookup \"route.openshift.io/v1\" \"Route\" \"ai-grid-o11y\" \"usage-logs\").status.ingress 0).host hub}}"
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opendatahub-operator
+  namespace: opendatahub-operator-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: fast-3
+  installPlanApproval: Automatic
+  name: opendatahub-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: DISABLE_DSC_CONFIG
+      value: "true"
