@@ -6,6 +6,7 @@
 {{- include "praxis-gateway.validateProbes" . }}
 {{- include "praxis-gateway.validateMetricsListener" . }}
 {{- $gridServing := include "praxis-gateway.gridServing" . | fromYaml }}
+{{- $providerRole := and (eq .Values.praxisConfig.source "render") (eq (.Values.praxisConfig.render.role | default "consumer") "provider") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -222,7 +223,10 @@ spec:
             {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-            {{- if $gridServing.enabled }}
+            {{- if and $gridServing.enabled $providerRole }}
+            - name: GRID_PROVIDER_CONFIG
+              value: {{ printf "%s/provider.json" $gridServing.mountPath | quote }}
+            {{- else if $gridServing.enabled }}
             - name: GRID_SERVING_CONFIG
               value: {{ printf "%s/serving-config.json" $gridServing.mountPath | quote }}
             {{- end }}
@@ -317,6 +321,11 @@ spec:
             {{- end }}
             {{- end }}
             {{- end }}
+            {{- range $i, $ca := $gridServing.backendCAs }}
+            - name: grid-backend-ca-{{ $i }}
+              mountPath: {{ printf "/run/secrets/grid-backend-ca/%s" (include "praxis-gateway.backendCADir" $ca) | quote }}
+              readOnly: true
+            {{- end }}
             {{- if .Values.listenerTls.secretName }}
             - name: listener-tls
               mountPath: {{ .Values.listenerTls.mountPath | quote }}
@@ -402,7 +411,8 @@ spec:
         - name: grid-serving
           configMap:
             name: {{ include "praxis-gateway.servingConfigMap" . | quote }}
-            optional: false
+            {{- /* A provider starts without it and refuses every peer until the operator writes it. */}}
+            optional: {{ $providerRole }}
         {{- end }}
         {{- if .Values.upstreamCA.secretName }}
         - name: upstream-ca
@@ -422,6 +432,20 @@ spec:
           {{- end }}
         {{- end }}
         {{- end }}
+        {{- end }}
+        {{- range $i, $ca := $gridServing.backendCAs }}
+        {{- $key := $ca.key | default "ca.crt" }}
+        - name: grid-backend-ca-{{ $i }}
+          {{- if $ca.configMapName }}
+          configMap:
+            name: {{ $ca.configMapName | quote }}
+          {{- else }}
+          secret:
+            secretName: {{ $ca.secretName | quote }}
+          {{- end }}
+            items:
+              - key: {{ $key | quote }}
+                path: {{ $key | quote }}
         {{- end }}
         {{- $validateCA := .Values.praxisConfig.render.auth.validateCA }}
         {{- $apiKeyRender := and (eq .Values.praxisConfig.source "render") (eq .Values.praxisConfig.render.auth.mode "api-key") }}

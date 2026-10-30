@@ -8,9 +8,6 @@ argocd.argoproj.io/sync-options: Prune=false,Delete=false
 {{- $ext := .Values.external -}}
 {{- $cm := .Values.external.certManager -}}
 {{- if .Values.managedClusters.enabled -}}
-{{- if and .Values.gridIdentity.enabled (ne .Values.gridIdentity.networkName .Values.managedClusters.networkName) -}}
-{{- fail "gridIdentity.networkName must match managedClusters.networkName" -}}
-{{- end -}}
 {{- if ne .Values.mode "external" -}}
 {{- fail "managedClusters.enabled requires mode=external" -}}
 {{- end -}}

@@ -2,8 +2,8 @@ apiVersion: v2
 name: grid-enrollment
 description: Grid enrollment service with self-provisioned Grid CA and Postgres
 type: application
-version: 0.3.0-rc.2
-appVersion: "v0.3.0-rc.2"
+version: 0.3.0-rc.3
+appVersion: "v0.3.0-rc.3"
 # Not raised to 1.30 for the ValidatingAdmissionPolicy API the default render uses, since
 # that requirement is conditional: enrollment.csrRecord.enabled and
 # ca.bootstrap.policy.enabled turn the policies off and the chart then installs on 1.26.

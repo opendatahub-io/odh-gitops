@@ -8,7 +8,8 @@ kind: ServiceMonitor
 metadata:
   name: {{ $name }}
   labels:
-    {{- include "praxis-gateway.labels" $ | nindent 4 }}
+    {{- $labels := include "praxis-gateway.labels" $ | fromYaml }}
+    {{- toYaml (mustMergeOverwrite (deepCopy (.serviceMonitor.labels | default dict)) $labels) | nindent 4 }}
 spec:
   selector:
     matchLabels:

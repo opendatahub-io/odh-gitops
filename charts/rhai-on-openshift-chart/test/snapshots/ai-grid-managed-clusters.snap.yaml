@@ -184,7 +184,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:8a0319dab9870ceed7dda389415dd108db53e422ed8070811d8933641f15be17
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -350,7 +350,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.2"
+    app.kubernetes.io/version: "v0.3.0-rc.3"
     app.kubernetes.io/managed-by: Helm
 spec:
   ca:
@@ -516,7 +516,7 @@ spec:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/name: grid-enrollment
                   app.kubernetes.io/instance: release-test
-                  app.kubernetes.io/version: "v0.3.0-rc.2"
+                  app.kubernetes.io/version: "v0.3.0-rc.3"
                   app.kubernetes.io/managed-by: Helm
               spec:
                 secretName: "{{hub $secret hub}}"
@@ -820,6 +820,7 @@ spec:
           {{hub $state := lookup "v1" "ConfigMap" $stateNamespace $stateName hub}}
           {{hub $id := index $state.data "gridId" hub}}
           {{hub if not $id hub}}{{hub fail "waiting for bootstrap grid identity" hub}}{{hub end hub}}
+          {{hub if not $state.immutable hub}}{{hub fail (printf "bootstrap grid identity is not immutable; patch %s in place with {\"immutable\":true}" $stateName) hub}}{{hub end hub}}
           {{ $namespace := {{hub printf "%q" $namespace hub}} }}
           {{ $identity := {{hub printf "%q" $identity hub}} }}
           {{ $ca := {{hub printf "%q" $ca hub}} }}
@@ -827,6 +828,21 @@ spec:
           {{ fail "waiting for the enrolled site identity" }}{{ end }}
           {{ if not (lookup "v1" "Secret" $namespace $ca).metadata.name }}
           {{ fail "waiting for the grid trust bundle" }}{{ end }}
+          {{/* Adopting a different ID would move a status-only member or wedge a spec-set one. */}}
+          {{ $bootstrapId := {{hub printf "%q" $id hub}} }}
+          {{ $network := {{hub printf "%q" $network hub}} }}
+          {{/* All of them: a site runs one grid, and a differently named network would escape a by-name check. */}}
+          {{ range (lookup "grid.praxis.fast/v1alpha1" "GridNetwork" "" "").items }}
+          {{ if ne .metadata.name $network }}
+          {{ fail (printf "GridNetwork %s already exists on this site; enrollment manages only GridNetwork %s and will not add a second" .metadata.name $network) }}
+          {{ end }}
+          {{ $existingId := "" }}
+          {{ with .status }}{{ $existingId = default "" .gridId }}{{ end }}
+          {{ with .spec }}{{ $existingId = default $existingId .gridId }}{{ end }}
+          {{ if $existingId }}{{ if ne $existingId $bootstrapId }}
+          {{ fail (printf "existing grid ID %s differs from bootstrap state %s; delete and recreate %s with %s (immutable), or recreate this GridNetwork to join %s" $existingId $bootstrapId {{hub printf "%q" $stateName hub}} $existingId $bootstrapId) }}
+          {{ end }}{{ end }}
+          {{ end }}
           - complianceType: musthave
             objectDefinition:
               apiVersion: grid.praxis.fast/v1alpha1
@@ -887,49 +903,13 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.2"
+    app.kubernetes.io/version: "v0.3.0-rc.3"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation
 automountServiceAccountToken: false
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: default-grid-bootstrap-ca-bootstrap-d7e7479f
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation
-rules:
-  - apiGroups: [grid.praxis.fast]
-    resources: [gridnetworks]
-    resourceNames: ["grid"]
-    verbs: [get]
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: default-grid-bootstrap-ca-bootstrap-d7e7479f
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: default-grid-bootstrap-ca-bootstrap-d7e7479f
-subjects:
-  - kind: ServiceAccount
-    name: grid-bootstrap-ca-bootstrap
-    namespace: default
-
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
@@ -942,7 +922,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.2"
+    app.kubernetes.io/version: "v0.3.0-rc.3"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -968,7 +948,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.2"
+    app.kubernetes.io/version: "v0.3.0-rc.3"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -983,6 +963,7 @@ subjects:
     name: grid-bootstrap-ca-bootstrap
     namespace: default
 
+
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: batch/v1
@@ -994,7 +975,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.2"
+    app.kubernetes.io/version: "v0.3.0-rc.3"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: ca-bootstrap
   annotations:
@@ -1021,7 +1002,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:cc939019b5fbe332f3effe175451df6caf73b2836b9cdb82668dbd4663b778eb"
+          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -1038,8 +1019,6 @@ spec:
             - "default"
             - "--grid-id-config-map"
             - "grid-bootstrap-state"
-            - "--grid-network"
-            - "grid"
             - "--skip-ca"
           resources:
             limits:
@@ -1048,3 +1027,5 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+
+

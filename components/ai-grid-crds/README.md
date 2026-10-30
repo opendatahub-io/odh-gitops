@@ -1,7 +1,7 @@
 # Temporary AI Grid CRD carry
 
 This opt-in Kustomize overlay carries the five Grid CRDs from
-[`praxis-proxy/grid` at `f81f979`](https://github.com/praxis-proxy/grid/tree/f81f979a8b10690216cc4bc766faac48c7f55ce2/deploy/crds)
+[`praxis-proxy/grid` at `399028f`](https://github.com/praxis-proxy/grid/tree/399028f1c959442b469bff56e4c0d6c5b5e37ac8/deploy/crds)
 while the downstream RHOAI operator's manifest bundle catches up. The files in
 `base/` are unchanged copies of that commit's `deploy/crds/` directory. The
 schemas already exist upstream; this overlay only adds GitOps ownership metadata.

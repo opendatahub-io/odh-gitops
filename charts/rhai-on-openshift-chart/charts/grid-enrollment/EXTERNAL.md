@@ -17,15 +17,84 @@ cluster. The hub needs the governance policy add-on and any optional PKI
 integration.
 
 Enable `gridIdentity.enabled` to create the grid ID once in the immutable
-`grid-bootstrap-state` ConfigMap. Bootstrap adopts the named GridNetwork's
-declared ID, or its legacy status ID, when one exists; otherwise it generates
-a UUID v4. Retries reuse the saved value, including concurrent bootstrap runs.
-A malformed existing ConfigMap is an error, never a reason to mint another ID.
-Back up this ConfigMap with the CA and retain it through CA rotation.
+`grid-bootstrap-state` ConfigMap. Bootstrap reads and writes only that
+ConfigMap: when it is absent, bootstrap generates a UUID v4 and saves it.
+Retries reuse the saved value, including concurrent bootstrap runs. A malformed
+existing ConfigMap is an error, never a reason to mint another ID. Bootstrap
+reads no Grid object, so the hub needs no Grid CRD. Back up this ConfigMap with
+the CA and retain it through CA rotation.
+
+To keep an existing grid's ID, create the ConfigMap before the first
+`gridIdentity.enabled` run, with that ID under `gridId`. Bootstrap mints a new
+ID when the ConfigMap is absent, and creating it afterwards cannot replace one
+already saved. Apply the same object bootstrap writes:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grid-bootstrap-state
+  namespace: <release-namespace>
+  labels:
+    app.kubernetes.io/managed-by: grid-enrollment-bootstrap
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+immutable: true
+data:
+  gridId: <existing-grid-id>
+```
+
+Bootstrap uses a pre-created ConfigMap unchanged, and refuses one without
+`immutable: true`. A ConfigMap created by an earlier release's
+`kubectl create configmap` instructions is mutable, so make it immutable in
+place before upgrading. Do not delete and recreate it: bootstrap could mint a
+new ID in between.
+
+```bash
+kubectl -n <release-namespace> patch configmap grid-bootstrap-state --type merge -p '{"immutable":true}'
+```
+
+The existing ID is each
+member GridNetwork's `spec.gridId` when set, otherwise its `status.gridId`.
+Every member must report the same ID. The member policy checks every
+GridNetwork on the member. It refuses a GridNetwork with another name, and
+refuses to touch one whose ID differs from the saved one, reporting `existing
+grid ID <old> differs from bootstrap state <new>`.
+
+To recover from that refusal, pick one side. To keep the member's grid, delete
+`grid-bootstrap-state` and create it again, immutable, with `<old>`. Bootstrap
+mints a new ID when the ConfigMap is absent, so do this only while bootstrap
+cannot run: no `helm upgrade` of this release and no Argo sync of its
+Application between the delete and the create. To move the member to `<new>`,
+delete its GridNetwork; the policy recreates it with the saved ID. Moving a
+member drops the state its peers hold under the old ID.
+
+Earlier releases also created a hook ClusterRole and ClusterRoleBinding that
+let bootstrap read the GridNetwork. Helm does not delete a hook resource that a
+chart stops rendering, so remove that pair after the upgrade:
+
+```bash
+name=<release-namespace>-<bootstrap-service-account>
+prefix=$(printf %s "${name:0:54}" | sed -e 's/-$//' -e 's/\./\\./g')
+kubectl get clusterrole,clusterrolebinding -o name | grep -E "/${prefix}-[0-9a-f]{8}$"
+```
+
+That lists the pair the earlier chart named after the release. Check it, then
+delete each object it printed:
+
+```bash
+for object in $(kubectl get clusterrole,clusterrolebinding -o name | grep -E "/${prefix}-[0-9a-f]{8}$"); do
+  kubectl delete "$object"
+done
+```
 
 In external mode the existing bootstrap Job uses `--skip-ca` and has no Secret
 permissions. In service mode that same Job also handles CA and credentials.
 Use an image that supports `--grid-id-config-map` before enabling it.
+Upgrade the chart and the bootstrap image together. This chart no longer grants
+GridNetwork read access or passes `--grid-network`, so a v0.3.0-rc.2 or earlier
+image, which reads the GridNetwork named by its `grid` default, fails with 403.
 For managed clusters, the enrollment policy creates a complete GridNetwork
 with the saved ID, Local membership, polling, SPIFFE trust, and references to
 the delivered identity and CA Secrets. It waits for those Secrets before
@@ -232,6 +301,49 @@ Deleting a Certificate stops renewal but does not cryptographically revoke an
 issued certificate. Cert-manager normally retains its Secret, and governance policy
 removal is not a guarantee of remote object deletion. Shared CA resources
 remain outside the site's lifecycle.
+
+## Upgrade members that hold the grid ID in status
+
+Operators before v0.3.0-rc.2 minted the grid ID into `status.gridId` only.
+#474 (in v0.3.0-rc.2) removed that minting, so rc.2 operators stopped running
+those status-only members. This release's operator copies a status-only ID
+into an empty `spec.gridId` once, which restores them. A CEL rule keeps
+`spec.gridId` fixed after that.
+
+Upgrade in this order:
+
+1. Upgrade the operator on every member, and wait until each member's
+   GridNetwork shows the copied `spec.gridId`.
+2. Create `grid-bootstrap-state` with that ID, as described in Bootstrap.
+3. Upgrade this chart on the hub with `gridIdentity.enabled`.
+
+Once a member's `spec.gridId` is set, the CEL rule refuses any write that
+changes it, including one from an rc.2 hub policy that predates the guard.
+A member that is still status-only has no such protection.
+
+An rc.2 hub that already ran with `gridIdentity.enabled` may have moved
+status-only members to its ID. Audit by comparing each member's IDs with the
+saved one. On the hub:
+
+```bash
+kubectl -n <release-namespace> get configmap grid-bootstrap-state -o jsonpath='{.data.gridId}{"\n"}'
+```
+
+On each member:
+
+```bash
+kubectl get gridnetworks -o custom-columns=NAME:.metadata.name,SPEC:.spec.gridId,STATUS:.status.gridId
+```
+
+A member whose `spec.gridId` matches the ConfigMap while its `status.gridId`
+differs was moved and has not yet reconciled. After it reconciles, status
+mirrors spec and this comparison no longer shows the move, so also compare
+against the grid ID recorded before the upgrade.
+
+A member whose GridNetwork comes from the `grid-site` chart through Argo CD
+must set `gridNetwork.gridId` to its current `status.gridId` in the same change
+that upgrades the operator, or ignore `/spec/gridId`. See
+[0.3.x CRD Field Migration](../../docs/installation/migration-0.3.x.md#grid-id-on-gitops-managed-members).
 
 ## Migrate an existing installation
 

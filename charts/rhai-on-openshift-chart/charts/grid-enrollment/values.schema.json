@@ -12,7 +12,7 @@
     "gridIdentity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["enabled", "configMapName", "networkName"],
+      "required": ["enabled", "configMapName"],
       "properties": {
         "enabled": {"type": "boolean"},
         "configMapName": {
@@ -22,6 +22,7 @@
           "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
         },
         "networkName": {
+          "description": "Deprecated and ignored. Bootstrap reads no GridNetwork.",
           "type": "string",
           "minLength": 1,
           "maxLength": 63,

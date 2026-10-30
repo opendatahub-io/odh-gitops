@@ -112,6 +112,23 @@
                   "role": {
                     "const": "provider"
                   }
+                },
+                "not": {
+                  "required": [
+                    "gridServing"
+                  ],
+                  "properties": {
+                    "gridServing": {
+                      "required": [
+                        "enabled"
+                      ],
+                      "properties": {
+                        "enabled": {
+                          "const": true
+                        }
+                      }
+                    }
+                  }
                 }
               },
               "then": {
@@ -190,6 +207,46 @@
                         ]
                       }
                     ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "role",
+                  "gridServing"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "provider"
+                  },
+                  "gridServing": {
+                    "required": [
+                      "enabled"
+                    ],
+                    "properties": {
+                      "enabled": {
+                        "const": true
+                      }
+                    }
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "peerTrust"
+                ],
+                "properties": {
+                  "peerTrust": {
+                    "required": [
+                      "mode"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "const": "spiffe"
+                      }
+                    }
                   }
                 }
               }
@@ -786,6 +843,56 @@
                   "pattern": "^/",
                   "description": "Directory the ConfigMap is mounted at."
                 },
+                "backendCAs": {
+                  "type": "array",
+                  "description": "CA bundles for the operator's tls dials, mounted at /run/secrets/grid-backend-ca/<name>/<key>. Needs gridServing.enabled; not with mountReconciliation.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "secretName": {
+                        "type": "string",
+                        "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$"
+                      },
+                      "configMapName": {
+                        "type": "string",
+                        "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$"
+                      },
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[-._a-zA-Z0-9]+$"
+                      }
+                    },
+                    "oneOf": [
+                      {
+                        "required": [
+                          "secretName"
+                        ],
+                        "properties": {
+                          "secretName": {
+                            "minLength": 1
+                          },
+                          "configMapName": {
+                            "maxLength": 0
+                          }
+                        }
+                      },
+                      {
+                        "required": [
+                          "configMapName"
+                        ],
+                        "properties": {
+                          "configMapName": {
+                            "minLength": 1
+                          },
+                          "secretName": {
+                            "maxLength": 0
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
                 "siteRoute": {
                   "type": "object",
                   "additionalProperties": false,
@@ -1003,6 +1110,13 @@
                   "type": "string"
                 }
               }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Additional labels on the ServiceMonitor, for a collector that selects by label."
             }
           }
         }

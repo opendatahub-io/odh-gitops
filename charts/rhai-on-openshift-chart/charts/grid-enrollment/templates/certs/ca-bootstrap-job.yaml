@@ -74,8 +74,6 @@ spec:
             {{- if .Values.gridIdentity.enabled }}
             - "--grid-id-config-map"
             - {{ .Values.gridIdentity.configMapName | quote }}
-            - "--grid-network"
-            - {{ .Values.gridIdentity.networkName | quote }}
             {{- end }}
             {{- if eq .Values.mode "external" }}
             - "--skip-ca"

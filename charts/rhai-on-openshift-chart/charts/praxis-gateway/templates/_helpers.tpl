@@ -191,7 +191,7 @@ Validate praxisConfig: the source, and that each source gets only the settings i
 {{- fail (printf "praxisConfig.render.%s is set but praxisConfig.source is %s, which ignores it: set praxisConfig.source to render, or unset it" $key $source) }}
 {{- end }}
 {{- end }}
-{{- if or $render.backends $auth.mode $telemetry.enabled $provider $gridServing.enabled $peerTrust.certDigests $auth.validateUrl $validateCA.configMapName $validateCA.secretName }}
+{{- if or $render.backends $auth.mode $telemetry.enabled $provider $gridServing.enabled $gridServing.backendCAs $peerTrust.certDigests $auth.validateUrl $validateCA.configMapName $validateCA.secretName }}
 {{- fail (printf "praxisConfig.render settings are set but praxisConfig.source is %s, which ignores them: set praxisConfig.source to render, or unset them" $source) }}
 {{- end }}
 {{- end }}
@@ -218,6 +218,7 @@ Validate praxisConfig: the source, and that each source gets only the settings i
 {{- if and (not ($render.backends | default list)) (not $gridServing.enabled) }}
 {{- fail "praxisConfig.render.backends needs at least one backend when praxisConfig.source is render without gridServing" }}
 {{- end }}
+{{- include "praxis-gateway.validateBackendCAs" . }}
 {{- if and (not $auth.mode) (not $provider) }}
 {{- fail "praxisConfig.render.auth.mode is required when praxisConfig.source is render: api-key (needs an image with praxis-policy 0.4 or later) or none (only behind an authenticating front)" }}
 {{- end }}
@@ -231,13 +232,24 @@ Validate praxisConfig: the source, and that each source gets only the settings i
 {{- if not .Values.gridIdentity.tlsSecretName }}
 {{- fail "praxisConfig.render.role provider needs gridIdentity.tlsSecretName for its client identity and Grid CA" }}
 {{- end }}
-{{- if ne (len $render.backends) 1 }}
+{{- if $gridServing.enabled }}
+{{- /* The operator's provider file names the backends and the admitted sites, so the chart names neither. */}}
+{{- if $render.backends }}
+{{- fail "praxisConfig.render.role provider with gridServing serves the backends the operator's provider file names; unset praxisConfig.render.backends" }}
+{{- end }}
+{{- if ne ($peerTrust.mode | default "pin") "spiffe" }}
+{{- fail "praxisConfig.render.role provider with gridServing admits peers by their Grid-CA SVID: set praxisConfig.render.peerTrust.mode spiffe" }}
+{{- end }}
+{{- if or $peerTrust.spiffeIds $peerTrust.allowAnyGridSite $peerTrust.certDigests }}
+{{- fail "praxisConfig.render.role provider with gridServing admits the sites the operator's provider file lists; unset peerTrust spiffeIds, allowAnyGridSite and certDigests" }}
+{{- end }}
+{{- else if ne (len $render.backends) 1 }}
 {{- fail "praxisConfig.render.role provider routes to exactly one local backend" }}
 {{- end }}
 {{- if .Values.listenerTls.secretName }}
 {{- fail "praxisConfig.render.role provider serves the grid identity; unset listenerTls" }}
 {{- end }}
-{{- if eq ($peerTrust.mode | default "pin") "spiffe" }}
+{{- if and (eq ($peerTrust.mode | default "pin") "spiffe") (not $gridServing.enabled) }}
 {{- if and (not $peerTrust.spiffeIds) (not $peerTrust.allowAnyGridSite) }}
 {{- fail "praxisConfig.render.peerTrust spiffe mode needs spiffeIds, or allowAnyGridSite true to admit every Grid-CA site" }}
 {{- end }}
@@ -245,7 +257,7 @@ Validate praxisConfig: the source, and that each source gets only the settings i
 {{- fail "praxisConfig.render.peerTrust.allowAnyGridSite admits every Grid-CA site, so it cannot be set beside spiffeIds" }}
 {{- end }}
 {{- $_ := include "praxis-gateway.peerSites" ($peerTrust.spiffeIds | default list) }}
-{{- else if not $peerTrust.certDigests }}
+{{- else if and (not $gridServing.enabled) (not $peerTrust.certDigests) }}
 {{- fail "praxisConfig.render.peerTrust pin mode needs certDigests" }}
 {{- end }}
 {{- else if $peerTrust.certDigests }}
@@ -478,8 +490,8 @@ Validate enabled mounts have a non-empty resource name.
 {{- if not .Values.gridIdentity.tlsSecretName }}
 {{- fail (printf "%s polls peers with the grid identity: set gridIdentity.tlsSecretName" $key) }}
 {{- end }}
-{{- if eq (.Values.praxisConfig.render.role | default "consumer") "provider" }}
-{{- fail (printf "%s routes callers across sites; it applies to the consumer role only" $key) }}
+{{- if and (eq (.Values.praxisConfig.render.role | default "consumer") "provider") (not (or $serving.gatewayRefName $serving.configMapName)) }}
+{{- fail (printf "%s on a provider reads the consumer gateway's serving ConfigMap: set gatewayRefName to that gateway's name, or configMapName" $key) }}
 {{- end }}
 {{- if ne .Values.image.flavor "grid-gateway" }}
 {{- fail (printf "%s needs image.flavor grid-gateway" $key) }}
@@ -488,6 +500,39 @@ Validate enabled mounts have a non-empty resource name.
 {{- fail "praxisConfig.operator.gridServing needs mountReconciliation.enabled: every operator praxis.yaml revision must roll the pod so it re-reads its provider-hop backends" }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{/*
+Validate praxisConfig.render.gridServing.backendCAs.
+*/}}
+{{- define "praxis-gateway.validateBackendCAs" -}}
+{{- $serving := .Values.praxisConfig.render.gridServing | default dict }}
+{{- if $serving.backendCAs }}
+{{- if not $serving.enabled }}
+{{- fail "praxisConfig.render.gridServing.backendCAs needs praxisConfig.render.gridServing.enabled: the CAs are for the operator's dials" }}
+{{- end }}
+{{- if .Values.mountReconciliation.enabled }}
+{{- fail "praxisConfig.render.gridServing.backendCAs and mountReconciliation both mount /run/secrets/grid-backend-ca: let the operator mount the CAs, or disable mountReconciliation" }}
+{{- end }}
+{{- end }}
+{{- $dirs := dict }}
+{{- range $serving.backendCAs }}
+{{- if eq (empty .secretName) (empty .configMapName) }}
+{{- fail "praxisConfig.render.gridServing.backendCAs: set secretName or configMapName on each entry, not both" }}
+{{- end }}
+{{- $dir := include "praxis-gateway.backendCADir" . }}
+{{- if hasKey $dirs $dir }}
+{{- fail (printf "praxisConfig.render.gridServing.backendCAs: %s is listed twice; one entry per Secret or ConfigMap" $dir) }}
+{{- end }}
+{{- $_ := set $dirs $dir true }}
+{{- end }}
+{{- end }}
+
+{{/*
+A backendCAs entry's directory under /run/secrets/grid-backend-ca, named as the operator's dns_safe names it.
+*/}}
+{{- define "praxis-gateway.backendCADir" -}}
+{{- regexReplaceAll "[^a-z0-9]+" (lower (.secretName | default .configMapName)) "-" | trimAll "-" | trunc 63 | trimSuffix "-" -}}
 {{- end }}
 
 {{/*

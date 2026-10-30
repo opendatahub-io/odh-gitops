@@ -1,6 +1,7 @@
 {{hub $state := lookup "v1" "ConfigMap" $stateNamespace $stateName hub}}
 {{hub $id := index $state.data "gridId" hub}}
 {{hub if not $id hub}}{{hub fail "waiting for bootstrap grid identity" hub}}{{hub end hub}}
+{{hub if not $state.immutable hub}}{{hub fail (printf "bootstrap grid identity is not immutable; patch %s in place with {\"immutable\":true}" $stateName) hub}}{{hub end hub}}
 {{ $namespace := {{hub printf "%q" $namespace hub}} }}
 {{ $identity := {{hub printf "%q" $identity hub}} }}
 {{ $ca := {{hub printf "%q" $ca hub}} }}
@@ -8,6 +9,21 @@
 {{ fail "waiting for the enrolled site identity" }}{{ end }}
 {{ if not (lookup "v1" "Secret" $namespace $ca).metadata.name }}
 {{ fail "waiting for the grid trust bundle" }}{{ end }}
+{{/* Adopting a different ID would move a status-only member or wedge a spec-set one. */}}
+{{ $bootstrapId := {{hub printf "%q" $id hub}} }}
+{{ $network := {{hub printf "%q" $network hub}} }}
+{{/* All of them: a site runs one grid, and a differently named network would escape a by-name check. */}}
+{{ range (lookup "grid.praxis.fast/v1alpha1" "GridNetwork" "" "").items }}
+{{ if ne .metadata.name $network }}
+{{ fail (printf "GridNetwork %s already exists on this site; enrollment manages only GridNetwork %s and will not add a second" .metadata.name $network) }}
+{{ end }}
+{{ $existingId := "" }}
+{{ with .status }}{{ $existingId = default "" .gridId }}{{ end }}
+{{ with .spec }}{{ $existingId = default $existingId .gridId }}{{ end }}
+{{ if $existingId }}{{ if ne $existingId $bootstrapId }}
+{{ fail (printf "existing grid ID %s differs from bootstrap state %s; delete and recreate %s with %s (immutable), or recreate this GridNetwork to join %s" $existingId $bootstrapId {{hub printf "%q" $stateName hub}} $existingId $bootstrapId) }}
+{{ end }}{{ end }}
+{{ end }}
 - complianceType: musthave
   objectDefinition:
     apiVersion: grid.praxis.fast/v1alpha1

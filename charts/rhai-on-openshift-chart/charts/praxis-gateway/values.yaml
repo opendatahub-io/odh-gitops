@@ -327,7 +327,8 @@ praxisConfig:
     # -- Operator-rendered serving data for grid_site_route. This does not select the operator
     # source: praxisConfig.source remains render and the chart still renders praxis.yaml.
     gridServing:
-      # -- Mount the serving data, set GRID_SERVING_CONFIG, and use grid_site_route.
+      # -- Mount the serving data, set GRID_SERVING_CONFIG, and use grid_site_route. On a provider,
+      # read provider.json from the consumer gatewayRefName's ConfigMap and serve with grid_provider.
       enabled: false
       # -- GridNetwork name, which with gatewayRefName names the operator's ConfigMap. Empty uses grid.networkName.
       networkName: ""
@@ -337,6 +338,11 @@ praxisConfig:
       configMapName: ""
       # -- Mount directory for the serving ConfigMap.
       mountPath: "/etc/praxis/grid-serving"
+      # -- CA bundles the operator's tls dials verify against, each { secretName or
+      # configMapName, key (default ca.crt) }, mounted read-only at
+      # /run/secrets/grid-backend-ca/<name>/<key>. One entry per Secret or ConfigMap.
+      # Leave empty when mountReconciliation lets the operator mount them.
+      backendCAs: []
       # -- Tuning for the grid_site_route filter block: availability and prefixAffinity, keys as
       # the filter reads them. Fields and defaults in examples/gateway/grid-site-route.yaml.
       siteRoute:
@@ -440,6 +446,8 @@ metricsListener:
     caConfigMap:
       name: ""
       key: "ca.crt"
+    # -- Additional labels on the ServiceMonitor, for a collector that selects by label.
+    labels: {}
 
 # -- Gateway Service configuration.
 service:
@@ -500,7 +508,7 @@ overlay:
       repository: ghcr.io/praxis-proxy/grid-overlay-sync
       # -- Image tag. Empty uses the chart appVersion, which is the praxis version,
       # not a grid-overlay-sync tag, so keep this set.
-      tag: "v0.3.0-rc.2"
+      tag: "v0.3.0-rc.3"
       # -- Image pull policy.
       pullPolicy: IfNotPresent
     # -- ConfigMap data key containing the overlay envelope.

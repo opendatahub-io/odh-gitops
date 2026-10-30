@@ -5,9 +5,8 @@ mode: service
 # -- Persist grid identity once during bootstrap, separately from CA issuance.
 gridIdentity:
   enabled: false
+  # -- Pre-create this ConfigMap with an existing grid's gridId to keep that ID.
   configMapName: grid-bootstrap-state
-  # -- Existing GridNetwork to adopt during migration; otherwise bootstrap generates an ID.
-  networkName: grid
 
 # -- External identities and optional cert-manager issuance, with managed-cluster delivery.
 external:

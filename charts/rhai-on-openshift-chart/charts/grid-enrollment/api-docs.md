@@ -1,6 +1,6 @@
 # grid-enrollment
 
-![Version: 0.3.0-rc.2](https://img.shields.io/badge/Version-0.3.0--rc.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.3.0-rc.2](https://img.shields.io/badge/AppVersion-v0.3.0--rc.2-informational?style=flat-square)
+![Version: 0.3.0-rc.3](https://img.shields.io/badge/Version-0.3.0--rc.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.3.0-rc.3](https://img.shields.io/badge/AppVersion-v0.3.0--rc.3-informational?style=flat-square)
 
 Grid enrollment service with self-provisioned Grid CA and Postgres
 
@@ -41,8 +41,8 @@ Kubernetes: `>=1.26.0-0`
 | fullnameOverride | string | `""` |  |
 | grid | object | `{"membership":{"source":"Swim"}}` | Grid-wide settings shared with the other grid charts. |
 | grid.membership.source | string | `"Swim"` | Where sites learn their members, Swim or Local, as the grid-operator chart's grid.membership.source. Local creates and delivers no SWIM key. |
-| gridIdentity | object | `{"configMapName":"grid-bootstrap-state","enabled":false,"networkName":"grid"}` | Persist grid identity once during bootstrap, separately from CA issuance. |
-| gridIdentity.networkName | string | `"grid"` | Existing GridNetwork to adopt during migration; otherwise bootstrap generates an ID. |
+| gridIdentity | object | `{"configMapName":"grid-bootstrap-state","enabled":false}` | Persist grid identity once during bootstrap, separately from CA issuance. |
+| gridIdentity.configMapName | string | `"grid-bootstrap-state"` | Pre-create this ConfigMap with an existing grid's gridId to keep that ID. |
 | host | string | `""` | The enrollment name sites connect to. It joins the serving cert names and is the default route.host. |
 | hubSite.caSecretName | string | `"grid-ca"` | Secret the grid CA is written to beside it. |
 | hubSite.identitySecretName | string | `"grid-site-identity"` | Secret the site identity is written to. |

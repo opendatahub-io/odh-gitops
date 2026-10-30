@@ -4,6 +4,7 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
 {{- define "praxis-gateway.gatewayConfigData" }}
 {{- $cfg := .Values.praxisConfig.render }}
 {{- $provider := eq ($cfg.role | default "consumer") "provider" }}
+{{- $providerFile := and $provider ($cfg.gridServing).enabled }}
 {{- $apiKey := and (not $provider) (eq ($cfg.auth.mode | default "none") "api-key") }}
 {{- $telemetry := $cfg.telemetry | default dict }}
 {{- $hasSamplingRate := and (hasKey $telemetry "samplingRate") (ne $telemetry.samplingRate nil) }}
@@ -86,7 +87,24 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           {{- if $telemetry.enabled }}
           - filter: trace_context
           {{- end }}
-          {{- if $provider }}
+          {{- if $providerFile }}
+          {{- /* First, and the only filter that picks an upstream: the gateway refuses to start otherwise. */}}
+          - filter: grid_provider
+            allowed_paths:
+              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings")) }}
+              - {{ . | quote }}
+              {{- end }}
+          {{- with ($cfg.peerTrust).rateLimit }}
+          - filter: rate_limit
+            mode: global
+            rate: {{ .rate }}
+            burst: {{ .burst }}
+          {{- end }}
+          - filter: headers
+            response_set:
+              - name: X-Grid-Provider-Site
+                value: {{ $.Values.grid.siteName | quote }}
+          {{- else if $provider }}
           {{- if ne (($cfg.peerTrust).mode | default "pin") "spiffe" }}
           - filter: peer_identity_trust
             trusted_peers:
