@@ -1,0 +1,162 @@
+{{- define "grid-enrollment.rhoai.enrollment/managed-cluster-enrollment.yaml" -}}
+{{- if .Values.managedClusters.enabled }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- $cfg := .Values.managedClusters }}
+{{- $name := include "grid-enrollment.membership.name" . }}
+{{- $ext := .Values.external }}
+{{- $cm := $ext.certManager }}
+{{- $bundle := ternary $cm.ca.secretName $ext.trustBundleSecretRef (and $cm.enabled $cm.issuer.create) }}
+{{- $bundleKey := ternary "tls.crt" $ext.trustBundleSecretKey (and $cm.enabled $cm.issuer.create) }}
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: {{ $name }}-hub
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterSets: [{{ $cfg.clusterSet | quote }}]
+  predicates:
+  - requiredClusterSelector:
+      labelSelector:
+        matchLabels:
+          name: {{ $cfg.hubClusterName | quote }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: {{ $name }}-hub
+  namespace: {{ .Release.Namespace }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: {{ $name }}-hub
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: {{ $name }}-hub
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: {{ $name }}-hub
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    policy.open-cluster-management.io/trigger-update: {{ include "grid-enrollment.membership.lookupRules" . | sha256sum | quote }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: {{ $name }}
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: {{ $name }}-enrollment
+      spec:
+        remediationAction: enforce
+        severity: high
+        evaluationInterval:
+          compliant: watch
+          noncompliant: watch
+        # Withdraw observers and stop renewal after inventory removal. Existing
+        # shared resources (including the namespace and CA) are never pruned.
+        pruneObjectBehavior: DeleteIfCreated
+        object-templates-raw: |
+          {{ printf "{{hub $label := %q hub}}" $cfg.clusterLabel }}
+          {{ printf "{{hub $labelValue := %q hub}}" $cfg.clusterLabelValue }}
+          {{ printf "{{hub $clusterSet := %q hub}}" $cfg.clusterSet }}
+          {{ printf "{{hub $workName := %q hub}}" $cfg.workName }}
+          {{ printf "{{hub $namespace := %q hub}}" .Release.Namespace }}
+          {{ printf "{{hub $secretPrefix := %q hub}}" $cfg.identitySecretPrefix }}
+          - complianceType: musthave
+            objectDefinition:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                name: {{ .Release.Namespace | quote }}
+          {{- .Files.Get "files/managed-cluster-inventory.yaml" | nindent 10 }}
+          {{ `{{hub if and (eq (index $cluster.metadata.labels $label) $labelValue) (or (eq $clusterSet "global") (eq (index $cluster.metadata.labels "cluster.open-cluster-management.io/clusterset") $clusterSet)) hub}}` }}
+          {{ `{{hub $site := $cluster.metadata.name hub}}` }}
+          {{ `{{hub $secret := printf "%s%s" $secretPrefix $site hub}}` }}
+          {{- if $cm.enabled }}
+          - complianceType: musthave
+            objectDefinition:
+              {{- include "grid-enrollment.siteCertificate" (dict "root" $ "name" "{{hub $site hub}}" "secretName" "{{hub $secret hub}}") | nindent 14 }}
+          {{- end }}
+          {{- .Files.Get "files/managed-cluster-observers.yaml" | nindent 10 }}
+          {{ `{{hub end hub}}` }}
+          {{ `{{hub end hub}}` }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: {{ $name }}-identities
+  namespace: {{ .Release.Namespace }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: {{ $name }}
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: {{ $name }}-identities
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: {{ $name }}-identities
+  namespace: {{ .Release.Namespace }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: {{ $name }}-identities
+      spec:
+        remediationAction: enforce
+        severity: high
+        evaluationInterval:
+          compliant: watch
+          noncompliant: watch
+        # Retain delivered identities on removal; membership controls peer access.
+        pruneObjectBehavior: None
+        object-templates:
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: {{ $ext.delivery.namespace | quote }}
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: kubernetes.io/tls
+            metadata:
+              name: {{ $ext.delivery.identitySecretName | quote }}
+              namespace: {{ $ext.delivery.namespace | quote }}
+              {{- if $cm.enabled }}
+              annotations:
+                cert-manager.io/certificate-name: '{{ printf "{{hub printf \"%%s%%s\" %q .ManagedClusterName hub}}" $cfg.identitySecretPrefix }}'
+              {{- end }}
+            data:
+              tls.crt: '{{ printf "{{hub fromSecret %q (printf \"%%s%%s\" %q .ManagedClusterName) \"tls.crt\" hub}}" .Release.Namespace $cfg.identitySecretPrefix }}'
+              tls.key: '{{ printf "{{hub fromSecret %q (printf \"%%s%%s\" %q .ManagedClusterName) \"tls.key\" hub}}" .Release.Namespace $cfg.identitySecretPrefix }}'
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: Opaque
+            metadata:
+              name: {{ $ext.delivery.caSecretName | quote }}
+              namespace: {{ $ext.delivery.namespace | quote }}
+            data:
+              ca.crt: '{{ printf "{{hub fromSecret %q %q %q hub}}" .Release.Namespace $bundle $bundleKey }}'
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/managed-cluster-enrollment.yaml" . }}
+{{- end }}

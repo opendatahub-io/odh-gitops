@@ -1,4 +1,70 @@
-# grid-enrollment: batteries-included by default.
+# -- Identity lifecycle backend: service runs the enrollment API and bootstrap;
+# external consumes identity Secrets supplied by another issuer or PKI.
+mode: service
+
+# -- Persist grid identity once during bootstrap, separately from CA issuance.
+gridIdentity:
+  enabled: false
+  # -- Pre-create this ConfigMap with an existing grid's gridId to keep that ID.
+  configMapName: grid-bootstrap-state
+
+# -- External identities and optional cert-manager issuance, with managed-cluster delivery.
+external:
+  # -- Site names mapped to secretName, optional dnsNames, and optional managed cluster.
+  sites: {}
+  # -- Public trust bundle for externally supplied identities; never a signing key.
+  trustBundleSecretRef: ''
+  trustBundleSecretKey: ca.crt
+  delivery:
+    enabled: false
+    namespace: ''
+    clusterSet: default
+    identitySecretName: grid-site-identity
+    caSecretName: grid-ca
+    createClusterSetBinding: true
+    # -- Permit delivery to the local cluster, using the same flow as other members.
+    includeLocalCluster: false
+  certManager:
+    # -- Optional integration; cert-manager must already be installed.
+    enabled: false
+    issuer:
+      # -- False references an existing issuer; true creates a namespaced CA Issuer.
+      create: false
+      name: grid-ca
+      kind: Issuer
+      group: cert-manager.io
+    ca:
+      # -- Generate is only for a new grid; Existing never writes the CA Secret.
+      mode: Existing
+      secretName: grid-ca-key
+      certificateName: grid-root-ca
+      bootstrapIssuerName: grid-root-selfsigned
+      commonName: grid-root-ca
+      durationHours: 87600
+      renewBeforeHours: 8760
+    certificate:
+      durationHours: 4320
+      # Renew when one third remains, matching the operator's rotation deadline.
+      renewBeforeHours: 1440
+
+# -- Bootstrap managed-cluster discovery, GridSite watches and peer distribution. Requires managed-cluster APIs and external mode.
+managedClusters:
+  enabled: false
+  networkName: grid
+  # -- Per-cluster gateway referenced by the enrolled GridNetwork; empty omits it.
+  gatewayName: grid-gateway
+  clusterSet: default
+  clusterLabel: grid.praxis.fast/member
+  clusterLabelValue: 'true'
+  # -- Bootstrap creates one shared binding unless another release owns it.
+  createClusterSetBinding: true
+  workName: grid-site-observer
+  # -- The hub must be registered with the policy add-on so it can reconcile
+  # dynamically generated Certificates, observers and their RBAC.
+  hubClusterName: local-cluster
+  identitySecretPrefix: grid-site-
+
+# Service mode: batteries included by default.
 # `helm install` with no overrides stands up a full grid site ready to enroll:
 # it generates the Grid CA, issues the enrollment endpoint's serving cert,
 # deploys Postgres, generates a grid-admin token, and runs the enrollment
@@ -315,10 +381,10 @@ db:
 #     network: grid
 #     cluster: prod-01
 
-# -- ACM Policy delivering each invited site its token, the CA bundle and the gossip key.
+# -- Governance Policy delivering each invited site its token, the CA bundle and the gossip key.
 # The site names come from `invites`, so they are not restated here.
 invitePolicy:
-  # -- Render the policy. Needs ACM on this cluster and the sites imported.
+  # -- Render the policy. Requires governance policy APIs on the hub and registered member clusters.
   enabled: false
   # -- Namespace on each site that its operator reads the Secrets from. Required when the
   # policy is enabled, with no default: the grid operator's namespace is grid or
@@ -333,6 +399,13 @@ invitePolicy:
 # -- The hub's own site identity, issued by the bootstrap Job straight from the grid
 # CA, so the hub never enrolls or needs an invite. It rotates like an enrolled site.
 # Delete the Secret and upgrade to re-issue it.
+# -- Grid-wide settings shared with the other grid charts.
+grid:
+  membership:
+    # -- Where sites learn their members, Swim or Local, as the grid-operator chart's
+    # grid.membership.source. Local creates and delivers no SWIM key.
+    source: Swim
+
 hubSite:
   # -- Hub site name. Empty disables it. Must not also be invited.
   name: ""

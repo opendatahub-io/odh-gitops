@@ -2,6 +2,228 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "service",
+        "external"
+      ]
+    },
+    "gridIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "configMapName"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "configMapName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "networkName": {
+          "description": "Deprecated and ignored. Bootstrap reads no GridNetwork.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        }
+      }
+    },
+    "external": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sites",
+        "delivery",
+        "certManager"
+      ],
+      "properties": {
+        "sites": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]([-a-z0-9]{0,49}[a-z0-9])?$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "secretName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              },
+              "dnsNames": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253
+                }
+              },
+              "cluster": {
+                "type": "string",
+                "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+              }
+            }
+          }
+        },
+        "trustBundleSecretRef": {
+          "type": "string",
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+        },
+        "trustBundleSecretKey": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._-]+$"
+        },
+        "delivery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "namespace": {
+              "type": "string",
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+            },
+            "clusterSet": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "identitySecretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "caSecretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "createClusterSetBinding": {
+              "type": "boolean"
+            },
+            "includeLocalCluster": {
+              "type": "boolean"
+            }
+          }
+        },
+        "certManager": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "issuer": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "create": {
+                  "type": "boolean"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "group": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "create",
+                "name",
+                "kind",
+                "group"
+              ]
+            },
+            "ca": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "Existing",
+                    "Generate"
+                  ]
+                },
+                "secretName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "certificateName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "bootstrapIssuerName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "commonName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "durationHours": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 876000
+                },
+                "renewBeforeHours": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 875999
+                }
+              }
+            },
+            "certificate": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "durationHours": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 876000
+                },
+                "renewBeforeHours": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 875999
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled",
+            "issuer",
+            "ca",
+            "certificate"
+          ]
+        }
+      }
+    },
     "route": {
       "type": "object",
       "properties": {
@@ -621,6 +843,13 @@
         }
       ]
     },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "membership": { "type": "object", "additionalProperties": false, "properties": { "source": { "type": "string", "enum": ["Swim", "Local"], "description": "Where sites learn their members, Swim or Local. Local creates and delivers no SWIM key." } } }
+      }
+    },
     "hubSite": {
       "description": "Issue the hub's own site identity straight from the grid CA, so the hub never enrolls.",
       "type": "object",
@@ -739,6 +968,62 @@
         "clusterSet": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "managedClusters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gatewayName": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "networkName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "clusterSet": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "clusterLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "clusterLabelValue": {
+          "type": "string",
+          "maxLength": 63
+        },
+        "createClusterSetBinding": {
+          "type": "boolean"
+        },
+        "workName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "hubClusterName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "identitySecretPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "pattern": "^[a-z0-9][a-z0-9-]*-$"
         }
       }
     },

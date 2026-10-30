@@ -173,6 +173,19 @@ praxisConfig:
     # -- Allow a LoadBalancer or NodePort Service. The operator's praxis.yaml has no
     # caller authentication; use only when something outside this chart limits access.
     allowUnauthenticatedExposure: false
+    # -- Operator serving data for a GridNetwork gatewayRef with praxisConfig.siteRouter
+    # gridSiteRoute. Requires mountReconciliation and image.flavor grid-gateway.
+    gridServing:
+      # -- Mount the serving data and set GRID_SERVING_CONFIG.
+      enabled: false
+      # -- GridNetwork name. Empty uses mountReconciliation.network.
+      networkName: ""
+      # -- This gateway's name in the GridNetwork gatewayRefs. Empty uses mountReconciliation.gatewayRef.
+      gatewayRefName: ""
+      # -- Override the derived serving ConfigMap name grid-serving-<networkName>-<gatewayRefName>.
+      configMapName: ""
+      # -- Mount directory for the serving ConfigMap.
+      mountPath: "/etc/praxis/grid-serving"
 
   # -- Settings used only with source render. Other source modes reject these values. The
   # chart emits
@@ -314,9 +327,10 @@ praxisConfig:
     # -- Operator-rendered serving data for grid_site_route. This does not select the operator
     # source: praxisConfig.source remains render and the chart still renders praxis.yaml.
     gridServing:
-      # -- Mount the serving data, set GRID_SERVING_CONFIG, and use grid_site_route.
+      # -- Mount the serving data, set GRID_SERVING_CONFIG, and use grid_site_route. On a provider,
+      # read provider.json from the consumer gatewayRefName's ConfigMap and serve with grid_provider.
       enabled: false
-      # -- GridNetwork name, which with gatewayRefName names the operator's ConfigMap.
+      # -- GridNetwork name, which with gatewayRefName names the operator's ConfigMap. Empty uses grid.networkName.
       networkName: ""
       # -- This gateway's name in the GridNetwork gatewayRefs. Defaults to the release fullname.
       gatewayRefName: ""
@@ -324,6 +338,11 @@ praxisConfig:
       configMapName: ""
       # -- Mount directory for the serving ConfigMap.
       mountPath: "/etc/praxis/grid-serving"
+      # -- CA bundles the operator's tls dials verify against, each { secretName or
+      # configMapName, key (default ca.crt) }, mounted read-only at
+      # /run/secrets/grid-backend-ca/<name>/<key>. One entry per Secret or ConfigMap.
+      # Leave empty when mountReconciliation lets the operator mount them.
+      backendCAs: []
       # -- Tuning for the grid_site_route filter block: availability and prefixAffinity, keys as
       # the filter reads them. Fields and defaults in examples/gateway/grid-site-route.yaml.
       siteRoute:
@@ -427,6 +446,8 @@ metricsListener:
     caConfigMap:
       name: ""
       key: "ca.crt"
+    # -- Additional labels on the ServiceMonitor, for a collector that selects by label.
+    labels: {}
 
 # -- Gateway Service configuration.
 service:
@@ -487,7 +508,7 @@ overlay:
       repository: ghcr.io/praxis-proxy/grid-overlay-sync
       # -- Image tag. Empty uses the chart appVersion, which is the praxis version,
       # not a grid-overlay-sync tag, so keep this set.
-      tag: "v0.2.2"
+      tag: "v0.3.0-rc.3"
       # -- Image pull policy.
       pullPolicy: IfNotPresent
     # -- ConfigMap data key containing the overlay envelope.
@@ -555,7 +576,8 @@ shutdownDelaySeconds: 5
 # -- Seconds Kubernetes gives a terminating pod before killing it. Empty: 30 plus
 # shutdownDelaySeconds, so Praxis still gets its default 30 seconds
 # (shutdown_timeout_secs) to drain in-flight requests after the delay. Raise it if your
-# Praxis config sets a longer shutdown_timeout_secs. Must exceed shutdownDelaySeconds.
+# Praxis config sets a longer shutdown_timeout_secs. Must exceed shutdownDelaySeconds,
+# and with praxisConfig.source operator, whose config drains for 30, cover 30 plus it.
 terminationGracePeriodSeconds: null
 
 # -- Container resource requests and limits.

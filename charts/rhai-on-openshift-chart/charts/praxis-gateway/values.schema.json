@@ -64,6 +64,37 @@
             "allowUnauthenticatedExposure": {
               "type": "boolean",
               "description": "Allow a LoadBalancer or NodePort Service although the operator's praxis.yaml has no caller authentication."
+            },
+            "gridServing": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Operator serving data used only with praxisConfig.source operator and a gridSiteRoute gatewayRef.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Mount the operator's serving config, set GRID_SERVING_CONFIG, and route with grid_site_route."
+                },
+                "networkName": {
+                  "type": "string",
+                  "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+                  "description": "GridNetwork name. Defaults to mountReconciliation.network."
+                },
+                "gatewayRefName": {
+                  "type": "string",
+                  "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+                  "description": "This gateway's name in GridNetwork gatewayRefs. Defaults to mountReconciliation.gatewayRef, then the release fullname."
+                },
+                "configMapName": {
+                  "type": "string",
+                  "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
+                  "description": "Overrides grid-serving-<networkName>-<gatewayRefName>."
+                },
+                "mountPath": {
+                  "type": "string",
+                  "pattern": "^/",
+                  "description": "Directory the ConfigMap is mounted at."
+                }
+              }
             }
           }
         },
@@ -80,6 +111,23 @@
                 "properties": {
                   "role": {
                     "const": "provider"
+                  }
+                },
+                "not": {
+                  "required": [
+                    "gridServing"
+                  ],
+                  "properties": {
+                    "gridServing": {
+                      "required": [
+                        "enabled"
+                      ],
+                      "properties": {
+                        "enabled": {
+                          "const": true
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -159,6 +207,46 @@
                         ]
                       }
                     ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "role",
+                  "gridServing"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "provider"
+                  },
+                  "gridServing": {
+                    "required": [
+                      "enabled"
+                    ],
+                    "properties": {
+                      "enabled": {
+                        "const": true
+                      }
+                    }
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "peerTrust"
+                ],
+                "properties": {
+                  "peerTrust": {
+                    "required": [
+                      "mode"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "const": "spiffe"
+                      }
+                    }
                   }
                 }
               }
@@ -738,7 +826,7 @@
                 "networkName": {
                   "type": "string",
                   "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-                  "description": "GridNetwork name."
+                  "description": "GridNetwork name. Defaults to grid.networkName."
                 },
                 "gatewayRefName": {
                   "type": "string",
@@ -754,6 +842,56 @@
                   "type": "string",
                   "pattern": "^/",
                   "description": "Directory the ConfigMap is mounted at."
+                },
+                "backendCAs": {
+                  "type": "array",
+                  "description": "CA bundles for the operator's tls dials, mounted at /run/secrets/grid-backend-ca/<name>/<key>. Needs gridServing.enabled; not with mountReconciliation.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "secretName": {
+                        "type": "string",
+                        "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$"
+                      },
+                      "configMapName": {
+                        "type": "string",
+                        "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$"
+                      },
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[-._a-zA-Z0-9]+$"
+                      }
+                    },
+                    "oneOf": [
+                      {
+                        "required": [
+                          "secretName"
+                        ],
+                        "properties": {
+                          "secretName": {
+                            "minLength": 1
+                          },
+                          "configMapName": {
+                            "maxLength": 0
+                          }
+                        }
+                      },
+                      {
+                        "required": [
+                          "configMapName"
+                        ],
+                        "properties": {
+                          "configMapName": {
+                            "minLength": 1
+                          },
+                          "secretName": {
+                            "maxLength": 0
+                          }
+                        }
+                      }
+                    ]
+                  }
                 },
                 "siteRoute": {
                   "type": "object",
@@ -905,7 +1043,13 @@
       "description": "TLS listener serving only GET /metrics.",
       "properties": {
         "enabled": {
-          "enum": [true, false, "true", "false", "auto"],
+          "enum": [
+            true,
+            false,
+            "true",
+            "false",
+            "auto"
+          ],
           "description": "auto serves the listener for the grid-gateway image on OpenShift with networkPolicy.enabled and fills unset values from the platform. true needs each value set."
         },
         "port": {
@@ -940,7 +1084,13 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "enum": [true, false, "true", "false", "auto"],
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                "auto"
+              ],
               "description": "auto renders the ServiceMonitor when the listener is on, monitoring.coreos.com/v1 is served, and a CA is set."
             },
             "interval": {
@@ -960,6 +1110,13 @@
                   "type": "string"
                 }
               }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Additional labels on the ServiceMonitor, for a collector that selects by label."
             }
           }
         }
@@ -1386,24 +1543,57 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean", "description": "Annotate and delegate generated Secret mounts to the Grid operator." },
-        "network": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "GridNetwork name that opted into mount reconciliation." },
-        "gatewayRef": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "GridNetwork gatewayRefs name. Defaults to the Deployment name." },
-        "releaseHelmMounts": { "type": "boolean", "description": "Release selected Helm-managed credentials and non-serving TLS mounts after the operator-owned configuration is ready." },
-        "managedCredentialNames": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 }, "description": "Credential Secret names whose mounts are owned by Grid; other credentials remain Helm-managed." },
+        "enabled": {
+          "type": "boolean",
+          "description": "Annotate and delegate generated Secret mounts to the Grid operator."
+        },
+        "network": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+          "description": "GridNetwork name that opted into mount reconciliation."
+        },
+        "gatewayRef": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+          "description": "GridNetwork gatewayRefs name. Defaults to the Deployment name."
+        },
+        "releaseHelmMounts": {
+          "type": "boolean",
+          "description": "Release selected Helm-managed credentials and non-serving TLS mounts after the operator-owned configuration is ready."
+        },
+        "managedCredentialNames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Credential Secret names whose mounts are owned by Grid; other credentials remain Helm-managed."
+        },
         "rbac": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "create": { "type": "boolean", "description": "Create a Role and RoleBinding in the release namespace that let the operator ServiceAccount get and patch this chart's Deployment and no other." }
+            "create": {
+              "type": "boolean",
+              "description": "Create a Role and RoleBinding in the release namespace that let the operator ServiceAccount get and patch this chart's Deployment and no other."
+            }
           }
         },
         "operator": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "serviceAccount": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$", "description": "Operator ServiceAccount the Role binds. Empty fails the render while rbac.create is true." },
-            "namespace": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$", "description": "Namespace of the operator ServiceAccount. Empty fails the render while rbac.create is true." }
+            "serviceAccount": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$",
+              "description": "Operator ServiceAccount the Role binds. Empty fails the render while rbac.create is true."
+            },
+            "namespace": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
+              "description": "Namespace of the operator ServiceAccount. Empty fails the render while rbac.create is true."
+            }
           }
         }
       }

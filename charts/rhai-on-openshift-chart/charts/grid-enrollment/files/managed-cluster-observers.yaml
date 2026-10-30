@@ -1,0 +1,36 @@
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: work.open-cluster-management.io/v1
+    kind: ManifestWork
+    metadata:
+      name: {{hub printf "%q" $workName hub}}
+      namespace: {{hub printf "%q" $site hub}}
+    spec:
+      deleteOption:
+        propagationPolicy: Orphan
+      workload:
+        manifests:
+        - apiVersion: grid.praxis.fast/v1alpha1
+          kind: GridSite
+          metadata:
+            name: {{hub printf "%q" $site hub}}
+      manifestConfigs:
+      - resourceIdentifier:
+          group: grid.praxis.fast
+          resource: gridsites
+          name: {{hub printf "%q" $site hub}}
+        updateStrategy:
+          type: ReadOnly
+        feedbackScrapeType: Watch
+        feedbackRules:
+        - type: JSONPaths
+          jsonPaths:
+          - {name: siteName, path: .metadata.name}
+          - {name: networkName, path: .spec.gridNetworkRef}
+          - {name: gatewayAddress, path: .spec.gatewayEndpoint.address}
+          - {name: gatewayServerName, path: .spec.gatewayEndpoint.tls.serverName}
+          - {name: signalsAddress, path: .spec.signalsEndpoint.address}
+          - {name: signalsServerName, path: .spec.signalsEndpoint.serverName}
+          - {name: region, path: .spec.region}
+          - {name: zone, path: .spec.zone}
+          - {name: sovereigntyZone, path: .spec.sovereigntyZone}

@@ -1,4 +1,5 @@
 {{- define "grid-enrollment.rhoai.enrollment/invite-namespace.yaml" -}}
+{{- if eq .Values.mode "service" }}
 {{- include "grid-enrollment.normalize" . }}
 {{- $ns := include "grid-enrollment.inviteSecretsNamespace" . }}
 {{- /* Only the derived namespace. An explicit value names a namespace its author owns and
@@ -33,6 +34,7 @@ metadata:
     {{- include "grid-enrollment.labels" . | nindent 4 }}
   annotations:
     helm.sh/resource-policy: keep
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

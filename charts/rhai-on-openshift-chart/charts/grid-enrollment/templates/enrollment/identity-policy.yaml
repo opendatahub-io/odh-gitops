@@ -1,0 +1,112 @@
+{{- define "grid-enrollment.rhoai.enrollment/identity-policy.yaml" -}}
+{{- if and (eq .Values.mode "external") .Values.external.delivery.enabled }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- $ext := .Values.external -}}
+{{- $cm := .Values.external.certManager }}
+{{- $ns := .Release.Namespace }}
+{{- $bundle := ternary $cm.ca.secretName $ext.trustBundleSecretRef (and $cm.enabled $cm.issuer.create) }}
+{{- $bundleKey := ternary "tls.crt" $ext.trustBundleSecretKey (and $cm.enabled $cm.issuer.create) }}
+{{- if $ext.delivery.createClusterSetBinding }}
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: {{ $ext.delivery.clusterSet | quote }}  {{/* must match the set it binds */}}
+  namespace: {{ $ns | quote }}
+spec:
+  clusterSet: {{ $ext.delivery.clusterSet | quote }}
+{{- end }}
+{{- range $site, $entry := $ext.sites }}
+{{- if $entry.cluster }}
+{{- $cluster := $entry.cluster }}
+{{- $secret := $entry.secretName | default (printf "grid-site-%s" $site) }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: grid-identity-{{ $site }}
+  namespace: {{ $ns | quote }}
+spec:
+  clusterSets: [{{ $ext.delivery.clusterSet | quote }}]
+  predicates:
+  - requiredClusterSelector:
+      labelSelector:
+        matchExpressions:
+        - {key: name, operator: In, values: [{{ $cluster | quote }}]}
+        {{- if not $ext.delivery.includeLocalCluster }}
+        - {key: local-cluster, operator: DoesNotExist}
+        {{- end }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: grid-identity-{{ $site }}
+  namespace: {{ $ns | quote }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: grid-identity-{{ $site }}
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: grid-identity-{{ $site }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: grid-identity-{{ $site }}
+  namespace: {{ $ns | quote }}
+  annotations:
+    policy.open-cluster-management.io/standards: AI Grid
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: grid-identity-{{ $site }}
+      spec:
+        remediationAction: enforce
+        severity: medium
+        object-templates:
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: {{ $ext.delivery.namespace | quote }}
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: kubernetes.io/tls
+            metadata:
+              name: {{ $ext.delivery.identitySecretName | quote }}
+              namespace: {{ $ext.delivery.namespace | quote }}
+              {{- if $cm.enabled }}
+              annotations:
+                # The operator uses this to recognize external renewal. The
+                # Certificate remains on the hub beside the issuer.
+                cert-manager.io/certificate-name: {{ $secret | quote }}
+              {{- end }}
+            data:
+              tls.crt: '{{ printf "{{hub fromSecret %q %q \"tls.crt\" hub}}" $ns $secret }}'
+              tls.key: '{{ printf "{{hub fromSecret %q %q \"tls.key\" hub}}" $ns $secret }}'
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: Opaque
+            metadata:
+              name: {{ $ext.delivery.caSecretName | quote }}
+              namespace: {{ $ext.delivery.namespace | quote }}
+            data:
+              ca.crt: '{{ printf "{{hub fromSecret %q %q %q hub}}" $ns $bundle $bundleKey }}'
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/identity-policy.yaml" . }}
+{{- end }}

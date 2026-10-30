@@ -254,10 +254,10 @@ true
 {{- end }}
 
 {{/*
-The bootstrap Job runs to generate the CA or a credentials Secret. Emits "true" or nothing.
+The bootstrap Job persists grid identity and optionally generates service credentials.
 */}}
 {{- define "grid-enrollment.bootstrapRuns" -}}
-{{- if or (ne (include "grid-enrollment.caProvided" .) "true") (include "grid-enrollment.generatesAdminTokens" .) -}}
+{{- if or .Values.gridIdentity.enabled (and (eq .Values.mode "service") (or (ne (include "grid-enrollment.caProvided" .) "true") (include "grid-enrollment.generatesAdminTokens" .))) -}}
 true
 {{- end -}}
 {{- end }}
@@ -273,6 +273,8 @@ Job reads, keys in sorted order.
 */}}
 {{- define "grid-enrollment.normalize" -}}
 {{- $v := .Values }}
+{{- /* Without SWIM there is no SWIM key to create or deliver. */}}
+{{- if eq (dig "membership" "source" "Swim" ($v.grid | default dict)) "Local" }}{{- $_ := set $v.hubSite "swimKeySecretName" "" }}{{- end }}
 {{- if not $v.enrollment.service.type }}
 {{- $lb := and $v.host (not (include "grid-enrollment.routeEnabled" .)) }}
 {{- $_ := set $v.enrollment.service "type" (ternary "LoadBalancer" "ClusterIP" (not (not $lb))) }}

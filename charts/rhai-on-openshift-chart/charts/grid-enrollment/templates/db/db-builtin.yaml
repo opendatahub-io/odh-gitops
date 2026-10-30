@@ -1,4 +1,5 @@
 {{- define "grid-enrollment.rhoai.db/db-builtin.yaml" -}}
+{{- if eq .Values.mode "service" }}
 {{- include "grid-enrollment.normalize" . }}
 {{- if and (eq (include "grid-enrollment.caProvided" .) "true") (eq .Values.db.type "builtin") }}
 {{- fail "ca.method=provided (or ca.provided.keySecretRef) requires db.type=external: the builtin Postgres TLS cert is issued by the bootstrap Job, which a provided CA skips, so the builtin DB would serve plaintext and the service refuses it" }}
@@ -188,6 +189,7 @@ spec:
           configMap:
             name: {{ $dbName }}-tls
         {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

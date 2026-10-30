@@ -1,0 +1,104 @@
+{{hub $members := (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items hub}}
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: grid-operator-config
+      namespace: {{hub printf "%q" $namespace hub}}
+    data:
+      config.yaml: |
+        version: 1
+        site:
+          name: {{hub printf "%q" .ManagedClusterName hub}}
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: {{hub printf "%q" (printf "%s-reader" $workName) hub}}
+      labels:
+        open-cluster-management.io/aggregate-to-work: "true"
+    rules:
+    - apiGroups: [grid.praxis.fast]
+      resources: [gridsites]
+      verbs: [get, list, watch]
+{{hub range $cluster := $members hub}}
+{{hub if and (eq (index $cluster.metadata.labels $label) $labelValue) (or (eq $clusterSet "global") (eq (index $cluster.metadata.labels "cluster.open-cluster-management.io/clusterset") $clusterSet)) (ne $cluster.metadata.name $.ManagedClusterName) hub}}
+{{hub $work := lookup "work.open-cluster-management.io/v1" "ManifestWork" $cluster.metadata.name $workName hub}}
+{{hub range $manifest := $work.status.resourceStatus.manifests hub}}
+{{hub $site := "" hub}}
+{{hub $siteNetwork := "" hub}}
+{{hub $gatewayAddress := "" hub}}
+{{hub $gatewayServerName := "" hub}}
+{{hub $signalsAddress := "" hub}}
+{{hub $signalsServerName := "" hub}}
+{{hub $region := "" hub}}
+{{hub $zone := "" hub}}
+{{hub $sovereigntyZone := "" hub}}
+{{hub range $field := $manifest.statusFeedback.values hub}}
+{{hub if eq $field.name "siteName" hub}}{{hub $site = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "networkName" hub}}{{hub $siteNetwork = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "gatewayAddress" hub}}{{hub $gatewayAddress = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "gatewayServerName" hub}}{{hub $gatewayServerName = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "signalsAddress" hub}}{{hub $signalsAddress = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "signalsServerName" hub}}{{hub $signalsServerName = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "region" hub}}{{hub $region = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "zone" hub}}{{hub $zone = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub if eq $field.name "sovereigntyZone" hub}}{{hub $sovereigntyZone = $field.fieldValue.string hub}}{{hub end hub}}
+{{hub end hub}}
+{{hub if and (eq $site $cluster.metadata.name) (eq $siteNetwork $network) (ne $gatewayAddress "") hub}}
+- complianceType: mustonlyhave
+  metadataComplianceType: musthave
+  objectDefinition:
+    apiVersion: grid.praxis.fast/v1alpha1
+    kind: GridSite
+    metadata:
+      name: {{hub printf "%q" $site hub}}
+      labels:
+        grid.praxis.fast/membership: declared
+        grid.praxis.fast/auto-discovered: "false"
+    spec:
+      gridNetworkRef: {{hub printf "%q" $network hub}}
+      gatewayEndpoint:
+        address: {{hub printf "%q" $gatewayAddress hub}}
+        tls:
+          mode: Mutual
+          serverName: {{hub if ne $gatewayServerName "" hub}}{{hub printf "%q" $gatewayServerName hub}}{{hub else hub}}{{hub printf "%q" (printf "%s.grid.internal" $site) hub}}{{hub end hub}}
+      # Replace the peer spec to remove legacy aliases, including explicit nulls.
+      # Preserve controller-owned labels, annotations, and status.
+      trust: null
+      {{hub if or (ne $signalsAddress "") (ne $signalsServerName "") hub}}
+      signalsEndpoint:
+        {{hub if ne $signalsAddress "" hub}}
+        address: {{hub printf "%q" $signalsAddress hub}}
+        {{hub else hub}}
+        address: null
+        {{hub end hub}}
+        {{hub if ne $signalsServerName "" hub}}
+        serverName: {{hub printf "%q" $signalsServerName hub}}
+        {{hub else hub}}
+        serverName: null
+        {{hub end hub}}
+      {{hub else hub}}
+      signalsEndpoint: null
+      {{hub end hub}}
+      {{hub if ne $region "" hub}}
+      region: {{hub printf "%q" $region hub}}
+      {{hub else hub}}
+      region: null
+      {{hub end hub}}
+      {{hub if ne $zone "" hub}}
+      zone: {{hub printf "%q" $zone hub}}
+      {{hub else hub}}
+      zone: null
+      {{hub end hub}}
+      {{hub if ne $sovereigntyZone "" hub}}
+      sovereigntyZone: {{hub printf "%q" $sovereigntyZone hub}}
+      {{hub else hub}}
+      sovereigntyZone: null
+      {{hub end hub}}
+{{hub end hub}}
+{{hub end hub}}
+{{hub end hub}}
+{{hub end hub}}

@@ -1,0 +1,141 @@
+{{- define "grid-enrollment.rhoai.enrollment/managed-clusters.yaml" -}}
+{{- if .Values.managedClusters.enabled }}
+{{- if ne .Values.mode "external" }}
+{{- fail "managedClusters.enabled requires mode=external" }}
+{{- end }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- $cfg := .Values.managedClusters }}
+{{- $name := include "grid-enrollment.membership.name" . }}
+{{- $role := include "grid-enrollment.membership.clusterRoleName" . }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $role }}
+# Hub templates can resolve before the hub policy creates observers. Keep their
+# read permission in the release so inventory additions need no RBAC round trip.
+rules:
+{{- include "grid-enrollment.membership.lookupRules" . | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $role }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $role }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+{{- if $cfg.createClusterSetBinding }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: {{ $cfg.clusterSet | quote }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterSet: {{ $cfg.clusterSet | quote }}
+{{- end }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterSets: [{{ $cfg.clusterSet | quote }}]
+  predicates:
+  - requiredClusterSelector:
+      labelSelector:
+        matchLabels:
+          {{ $cfg.clusterLabel | quote }}: {{ $cfg.clusterLabelValue | quote }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: {{ $name }}
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: {{ $name }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    # A denied lookup cannot watch its dependency; RBAC changes must retry it.
+    policy.open-cluster-management.io/trigger-update: {{ include "grid-enrollment.membership.lookupRules" . | sha256sum | quote }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: {{ $name }}
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: {{ $name }}
+      spec:
+        remediationAction: enforce
+        severity: high
+        evaluationInterval:
+          compliant: watch
+          noncompliant: watch
+        # Withdraw peer records and observer permissions on membership removal.
+        # The local GridSite remains authoritative and is never copied back.
+        pruneObjectBehavior: DeleteAll
+        object-templates-raw: |
+          {{ printf "{{hub $network := %q hub}}" $cfg.networkName }}
+          {{ printf "{{hub $label := %q hub}}" $cfg.clusterLabel }}
+          {{ printf "{{hub $labelValue := %q hub}}" $cfg.clusterLabelValue }}
+          {{ printf "{{hub $workName := %q hub}}" $cfg.workName }}
+          {{ printf "{{hub $namespace := %q hub}}" .Values.external.delivery.namespace }}
+          {{ printf "{{hub $clusterSet := %q hub}}" $cfg.clusterSet }}
+          {{- .Files.Get "files/managed-cluster-ready.yaml" | trim | nindent 10 }}
+          {{- .Files.Get "files/managed-cluster-peers.yaml" | trim | nindent 10 }}
+{{- if .Values.gridIdentity.enabled }}
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: {{ $name }}-network
+      spec:
+        remediationAction: enforce
+        severity: high
+        evaluationInterval:
+          compliant: watch
+          noncompliant: watch
+        # A membership removal must not delete the grid or reset its identity.
+        pruneObjectBehavior: None
+        object-templates-raw: |
+          {{ printf "{{hub $stateNamespace := %q hub}}" .Release.Namespace }}
+          {{ printf "{{hub $stateName := %q hub}}" .Values.gridIdentity.configMapName }}
+          {{ printf "{{hub $network := %q hub}}" $cfg.networkName }}
+          {{ printf "{{hub $namespace := %q hub}}" .Values.external.delivery.namespace }}
+          {{ printf "{{hub $identity := %q hub}}" .Values.external.delivery.identitySecretName }}
+          {{ printf "{{hub $ca := %q hub}}" .Values.external.delivery.caSecretName }}
+          {{ printf "{{hub $gateway := %q hub}}" $cfg.gatewayName }}
+          {{- .Files.Get "files/managed-cluster-ready.yaml" | trim | nindent 10 }}
+          {{- .Files.Get "files/managed-cluster-network.yaml" | trim | nindent 10 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.enrollment/managed-clusters.yaml" . }}
+{{- end }}
