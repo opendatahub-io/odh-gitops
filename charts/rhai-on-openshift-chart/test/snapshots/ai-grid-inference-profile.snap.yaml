@@ -71,6 +71,39 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 
 ---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grid-provider-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              grid.opendatahub.io/gateway-client: "true"
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+        - ipBlock:
+            cidr: 10.0.0.0/16
+      ports:
+        - port: 8080
+          protocol: TCP
+
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/grid-model-client.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -98,6 +131,220 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 type: kubernetes.io/service-account-token
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grid-provider-gateway-config
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  praxis.yaml: |
+    runtime:
+      upstream_ca_file: "/etc/praxis/upstream-ca/ca.crt"
+    admin:
+      metrics_address: "127.0.0.1:9901"
+    listeners:
+      - name: gateway
+        address: "0.0.0.0:8080"
+        tls:
+          certificates:
+            - cert_path: "/etc/praxis/tls/tls.crt"
+              key_path: "/etc/praxis/tls/tls.key"
+          client_ca:
+            ca_path: "/etc/praxis/tls/ca.crt"
+          client_cert_mode: require_named
+        filter_chains: [main]
+    filter_chains:
+      - name: main
+        filters:
+          - filter: grid_provider
+            allowed_paths:
+              - "/v1/chat/completions"
+              - "/v1/completions"
+              - "/v1/models"
+              - "/v1/embeddings"
+          - filter: headers
+            response_set:
+              - name: X-Grid-Provider-Site
+                value: "local-cluster"
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-provider-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: "ClusterIP"
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: "TCP"
+  selector:
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grid-provider-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/name: praxis-gateway
+      annotations:
+        checksum/config: b2fddc91f84c5bcacead20b19255fd945efa2830b7968f71a273d757645cb0c5
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 35
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: praxis
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --config
+            - /etc/praxis/praxis.yaml
+          env:
+            - name: GRID_PROVIDER_CONFIG
+              value: "/etc/praxis/grid-serving/provider.json"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: "TCP"
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - 'if command -v curl >/dev/null 2>&1; then exec curl -fsS -m 2 -o /dev/null -H
+                ''Host: 127.0.0.1'' "$1"; else exec wget -q -T 2 --header ''Host: 127.0.0.1''
+                -O /dev/null "$1"; fi'
+              - probe
+              - http://127.0.0.1:9901/healthy
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - 'if command -v curl >/dev/null 2>&1; then exec curl -fsS -m 2 -o /dev/null -H
+                ''Host: 127.0.0.1'' "$1"; else exec wget -q -T 2 --header ''Host: 127.0.0.1''
+                -O /dev/null "$1"; fi'
+              - probe
+              - http://127.0.0.1:9901/healthy
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          resources:
+            limits:
+              cpu: 2
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/praxis
+              readOnly: true
+            - name: tls
+              mountPath: "/etc/praxis/tls"
+              readOnly: true
+            - name: grid-serving
+              mountPath: "/etc/praxis/grid-serving"
+              readOnly: true
+            - name: upstream-ca
+              mountPath: "/etc/praxis/upstream-ca"
+              readOnly: true
+            - name: credential-0
+              mountPath: "/run/secrets/grid-credentials/grid-model-client-token"
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: "grid-provider-gateway-config"
+            items:
+              - key: "praxis.yaml"
+                path: "praxis.yaml"
+        - name: tls
+          projected:
+            sources:
+              - secret:
+                  name: "grid-site-identity"
+                  items:
+                    - key: tls.crt
+                      path: tls.crt
+                    - key: tls.key
+                      path: tls.key
+              - secret:
+                  name: "grid-ca"
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+        - name: grid-serving
+          configMap:
+            name: "grid-serving-grid-grid-gateway"
+            optional: true
+        - name: upstream-ca
+          secret:
+            secretName: "openshift-service-ca"
+        - name: credential-0
+          secret:
+            secretName: "grid-model-client-token"
+            optional: false
+
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
@@ -363,6 +610,34 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: grid-provider-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    haproxy.router.openshift.io/timeout: 300s
+spec:
+  host: "local-cluster.grid.internal"
+  to:
+    kind: Service
+    name: grid-provider-gateway
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: None
+  wildcardPolicy: None
+
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml

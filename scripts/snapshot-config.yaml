@@ -259,16 +259,18 @@ charts:
           - skipCrdCheck=true
           - operator.type=rhoai
           - profile=ai-grid-inference
+          - praxis-gateway.grid.siteName=local-cluster
         setJsonFlags:
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
 
-      # An explicit runtime toggle overrides the profile's runtime default
+      # An explicit runtime toggle remains available even when the profile enables it
       - name: ai-grid-inference-with-gateway
         setFlags:
           - skipCrdCheck=true
           - operator.type=rhoai
           - profile=ai-grid-inference
           - praxis-gateway.enabled=true
+          - praxis-gateway.grid.siteName=local-cluster
         setJsonFlags:
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
 
