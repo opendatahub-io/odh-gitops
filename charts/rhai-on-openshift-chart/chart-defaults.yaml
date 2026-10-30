@@ -1,0 +1,771 @@
+ai-grid-o11y-hub:
+  enabled: false
+ai-grid-o11y-spoke:
+  enabled: false
+argocd:
+  enabled: false
+components:
+  aiHub:
+    defaults:
+      odh:
+        instancesNamespace: odh-model-registry
+      rhoai:
+        instancesNamespace: rhoai-model-registries
+    dependencies: {}
+    dsc: {}
+  aigateway:
+    dependencies: {}
+    dsc:
+      batchGateway: {}
+      modelsAsAService: {}
+    modelsAsAService:
+      gateway:
+        annotations:
+          opendatahub.io/managed: "false"
+          security.opendatahub.io/authorino-tls-bootstrap: "true"
+        create: auto
+        name: maas-default-gateway
+        namespace: openshift-ingress
+        openshiftRoute:
+          enabled: false
+          gatewayParametersName: maas-gateway-options
+          host: ""
+          name: maas-gateway-route
+          servingCertSecretName: maas-gw-service-tls
+        spec:
+          gatewayClassName: maas-gateway-class
+          listeners:
+          - allowedRoutes:
+              namespaces: null
+            name: https
+            port: 443
+            protocol: HTTPS
+      gatewayClass:
+        create: auto
+        name: maas-gateway-class
+        spec:
+          controllerName: openshift.io/gateway-controller/v1
+  aipipelines:
+    dependencies: {}
+    dsc: {}
+  dashboard:
+    dependencies: {}
+    dsc:
+      maasPortal: {}
+      standard: {}
+  data:
+    dependencies: {}
+    dsc:
+      dataRegistry: {}
+      featureStore: {}
+  kserve:
+    dependencies:
+      certManager: true
+      customMetricsAutoscaler: false
+      leaderWorkerSet: false
+      rhcl: true
+    dsc:
+      modelExpress: {}
+      nim: {}
+      rawDeploymentServiceConfig: Headless
+    gateway:
+      create: auto
+      gridModelClient:
+        create: auto
+        namespace: redhat-ai-grid
+        serviceAccountName: grid-model-client
+        tokenSecretName: grid-model-client-token
+      labels:
+        istio.io/rev: openshift-gateway
+      name: openshift-ai-inference
+      namespace: openshift-ingress
+      spec:
+        gatewayClassName: openshift-ai-inference
+        listeners:
+        - allowedRoutes:
+            namespaces: null
+          name: https
+          port: 443
+          protocol: HTTPS
+    gatewayClass:
+      create: auto
+      name: openshift-ai-inference
+      spec:
+        controllerName: openshift.io/gateway-controller/v1
+  kueue:
+    dependencies:
+      certManager: true
+      kueue: true
+    dsc:
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
+  mcplifecycleoperator:
+    dependencies: {}
+    dsc: {}
+  mlflowoperator:
+    dependencies: {}
+    dsc: {}
+  ogx:
+    dependencies:
+      nfd: true
+      nvidiaGPUOperator: true
+    dsc: {}
+  ray:
+    dependencies:
+      certManager: true
+    dsc: {}
+  sparkoperator:
+    dependencies: {}
+    dsc:
+      managementState: Removed
+  trainer:
+    dependencies:
+      certManager: true
+      jobSet: true
+    dsc: {}
+  trustyai:
+    dependencies: {}
+    dsc:
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
+  workbenches:
+    defaults:
+      odh:
+        workbenchNamespace: opendatahub
+      rhoai:
+        workbenchNamespace: rhods-notebooks
+    dependencies: {}
+    dsc:
+      workbenchesV2: {}
+dependencies:
+  agentSandbox:
+    dependencies: {}
+    enabled: auto
+    olm:
+      channel: preview-0.9
+      name: agent-sandbox-operator
+      namespace: agent-sandbox-system
+  certManager:
+    dependencies: {}
+    enabled: auto
+    olm:
+      channel: stable-v1
+      name: openshift-cert-manager-operator
+      namespace: cert-manager-operator
+  clusterObservability:
+    dependencies:
+      opentelemetry: true
+    enabled: auto
+    olm:
+      channel: stable
+      name: cluster-observability-operator
+      namespace: openshift-cluster-observability-operator
+      operatorGroupName: openshift-cluster-observability-operator
+  customMetricsAutoscaler:
+    dependencies: {}
+    enabled: auto
+    olm:
+      channel: stable
+      name: openshift-custom-metrics-autoscaler-operator
+      namespace: openshift-keda
+  jobSet:
+    config:
+      spec:
+        logLevel: Normal
+        operatorLogLevel: Normal
+    dependencies:
+      certManager: true
+    enabled: auto
+    olm:
+      channel: stable-v1.0
+      name: job-set
+      namespace: openshift-jobset-operator
+      targetNamespaces:
+      - openshift-jobset-operator
+  kueue:
+    config:
+      spec:
+        config:
+          integrations:
+            frameworks:
+            - Deployment
+            - Pod
+            - PyTorchJob
+            - RayCluster
+            - RayJob
+            - StatefulSet
+            - TrainJob
+        managementState: Managed
+    dependencies:
+      certManager: true
+    enabled: auto
+    olm:
+      channel: stable-v1.4
+      name: kueue-operator
+      namespace: openshift-kueue-operator
+  leaderWorkerSet:
+    config:
+      spec:
+        logLevel: Normal
+        managementState: Managed
+        operatorLogLevel: Normal
+    dependencies:
+      certManager: true
+    enabled: auto
+    olm:
+      channel: stable-v1.0
+      name: leader-worker-set
+      namespace: openshift-lws-operator
+      targetNamespaces:
+      - openshift-lws-operator
+  loki:
+    dependencies: {}
+    enabled: auto
+    olm:
+      channel: stable-6.5
+      createNamespace: true
+      createOperatorGroup: true
+      name: loki-operator
+      namespace: openshift-operators-redhat
+  nfd:
+    dependencies: {}
+    enabled: auto
+    olm:
+      channel: stable
+      name: nfd
+      namespace: openshift-nfd
+      targetNamespaces:
+      - openshift-nfd
+  nvidiaGPUOperator:
+    dependencies:
+      nfd: true
+    enabled: auto
+    olm:
+      channel: v25.10
+      name: gpu-operator-certified
+      namespace: nvidia-gpu-operator
+      source: certified-operators
+      targetNamespaces:
+      - nvidia-gpu-operator
+  opentelemetry:
+    dependencies: {}
+    enabled: auto
+    olm:
+      channel: stable
+      name: opentelemetry-product
+      namespace: openshift-opentelemetry-operator
+  rhcl:
+    config:
+      authorinoServiceCaTrust: false
+      authorinoSpec:
+        clusterWide: true
+        listener:
+          tls:
+            certSecretRef:
+              name: authorino-server-cert
+            enabled: true
+        oidcServer:
+          tls:
+            enabled: false
+        replicas: 1
+      spec: {}
+      tlsEnabled: false
+    dependencies:
+      certManager: true
+    enabled: auto
+    olm:
+      channel: stable
+      name: rhcl-operator
+      namespace: kuadrant-system
+  tempo:
+    dependencies:
+      opentelemetry: true
+    enabled: auto
+    olm:
+      channel: stable
+      name: tempo-product
+      namespace: openshift-tempo-operator
+global:
+  relatedImages: []
+grid-enrollment:
+  ca:
+    bootstrap:
+      policy:
+        enabled: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      ttlSecondsAfterFinished: 86400
+    bundleSecretName: grid-ca-bundle
+    commonName: grid-ca
+    confirmRotation: ""
+    forceRegenerate: false
+    keySecretName: grid-ca-key
+    method: builtin
+    provided:
+      keySecretRef: ""
+  commonLabels: {}
+  db:
+    builtin:
+      auth:
+        database: enrollment
+        existingSecretRef: ""
+        username: enrollment
+      image: quay.io/sclorg/postgresql-16-c9s:20260923
+      imageDigest: ""
+      pullPolicy: IfNotPresent
+      pvcAnnotations: {}
+      resources:
+        limits:
+          cpu: 1
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      storage: 8Gi
+      tls:
+        servingSecretName: grid-db-serving-tls
+    external:
+      caConfigMapKey: ca.crt
+      caConfigMapName: ""
+      connectionUrlSecretKey: DB_CONNECTION_URL
+      connectionUrlSecretRef: ""
+    type: builtin
+  enrollment:
+    affinity: {}
+    authz: kube
+    certLifetimeSecs: ""
+    csrRecord:
+      enabled: true
+      policy:
+        enabled: true
+      signerName: grid.praxis.fast/site
+    enrollmentAdmins:
+      subjects: []
+    gridAdminTokens:
+      existingSecretRef: ""
+      generate: true
+    gridAdmins:
+      serviceAccount:
+        create: false
+        name: grid-admin
+      subjects: []
+    inviteSecrets:
+      namespace: ""
+    listenAddr: 0.0.0.0:8443
+    nodeSelector: {}
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 1
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    rotation:
+      enabled: true
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+    service:
+      annotations: {}
+      loadBalancerIP: ""
+      loadBalancerSourceRanges: []
+      type: ""
+    serviceAccount:
+      create: true
+      name: ""
+    tokenAudience: grid-enrollment
+    tolerations: []
+  external:
+    certManager:
+      ca:
+        bootstrapIssuerName: grid-root-selfsigned
+        certificateName: grid-root-ca
+        commonName: grid-root-ca
+        durationHours: 87600
+        mode: Existing
+        renewBeforeHours: 8760
+        secretName: grid-ca-key
+      certificate:
+        durationHours: 4320
+        renewBeforeHours: 1440
+      enabled: false
+      issuer:
+        create: false
+        group: cert-manager.io
+        kind: Issuer
+        name: grid-ca
+    delivery:
+      caSecretName: grid-ca
+      clusterSet: default
+      createClusterSetBinding: true
+      enabled: false
+      identitySecretName: grid-site-identity
+      includeLocalCluster: false
+      namespace: ""
+    sites: {}
+    trustBundleSecretKey: ca.crt
+    trustBundleSecretRef: ""
+  fullnameOverride: grid-enrollment
+  global:
+    relatedImages: []
+  grid:
+    membership:
+      source: Swim
+  gridIdentity:
+    configMapName: grid-bootstrap-state
+    enabled: false
+  host: ""
+  hubSite:
+    caSecretName: grid-ca
+    identitySecretName: grid-site-identity
+    name: ""
+    namespace: ""
+    seedSecretName: grid-reserved-seeds
+    swimKeySecretName: grid-swim-key
+  image:
+    digest: sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749
+    pullPolicy: IfNotPresent
+    repository: ghcr.io/praxis-proxy/grid-enrollment
+    tag: ""
+  imagePullSecrets: []
+  initResources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 32Mi
+  invitePolicy:
+    clusterSet: default
+    enabled: false
+    namespace: ""
+  loadBalancerScope: internal
+  log:
+    filter: ""
+    level: info
+  managedClusters:
+    clusterLabel: grid.praxis.fast/member
+    clusterLabelValue: "true"
+    clusterSet: default
+    createClusterSetBinding: true
+    enabled: false
+    gatewayName: grid-gateway
+    hubClusterName: local-cluster
+    identitySecretPrefix: grid-site-
+    networkName: grid
+    workName: grid-site-observer
+  mode: service
+  nameOverride: ""
+  networkPolicy:
+    enabled: true
+    from: []
+    routerNamespaceSelector:
+      matchLabels:
+        network.openshift.io/policy-group: ingress
+  platform: ""
+  route:
+    annotations: {}
+    enabled: auto
+    host: ""
+    rateLimit:
+      concurrentTcp: 10
+      enabled: true
+      rateTcp: 20
+    tls:
+      destinationCACertificate: ""
+      insecureEdgeTerminationPolicy: None
+      termination: passthrough
+  serving:
+    existingSecretRef: ""
+    extraDnsNames: []
+    secretName: enrollment-serving-tls
+labels: {}
+olm:
+  installPlanApproval: Automatic
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+operator:
+  enabled: true
+  odh:
+    applicationsNamespace: opendatahub
+    monitoringNamespace: opendatahub
+    olm:
+      channel: fast-3
+      createNamespace: true
+      name: opendatahub-operator
+      namespace: opendatahub-operator-system
+      source: community-operators
+  rhoai:
+    applicationsNamespace: redhat-ods-applications
+    monitoringNamespace: redhat-ods-monitoring
+    olm:
+      channel: beta
+      createNamespace: true
+      name: rhods-operator
+      namespace: redhat-ods-operator
+      source: redhat-operators
+  type: odh
+praxis-gateway:
+  affinity: {}
+  args:
+  - --config
+  - /etc/praxis/praxis.yaml
+  command: []
+  commonLabels: {}
+  env: []
+  fullnameOverride: grid-gateway
+  global:
+    relatedImages: []
+  grid:
+    networkName: ""
+    siteName: ""
+  gridIdentity:
+    caSecretName: ""
+    mountPath: /etc/praxis/tls
+    tlsSecretName: ""
+  health:
+    adminProbeCommand: []
+    liveness:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      tcpSocket: {}
+    readiness:
+      initialDelaySeconds: 3
+      periodSeconds: 5
+      tcpSocket: {}
+  image:
+    digest: sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+    flavor: grid-gateway
+    pullPolicy: IfNotPresent
+    repository: ghcr.io/praxis-proxy/grid-gateway
+    tag: v0.3.0-rc.3
+  imagePullSecrets: []
+  imageUser:
+    enabled: auto
+    gid: 101
+    uid: 100
+  listenerTls:
+    mountPath: /etc/praxis/listener-tls
+    secretName: ""
+  loadBalancerScope: internal
+  log:
+    filter: ""
+    level: ""
+  metricsListener:
+    enabled: auto
+    existingSecret: ""
+    fromNamespaces: []
+    mountPath: /etc/praxis/metrics-tls
+    port: 9443
+    service:
+      annotations: {}
+    serviceMonitor:
+      caConfigMap:
+        key: ca.crt
+        name: ""
+      enabled: auto
+      interval: 30s
+      labels: {}
+      scrapeTimeout: ""
+  mountReconciliation:
+    enabled: false
+    gatewayRef: ""
+    managedCredentialNames: []
+    network: ""
+    operator:
+      namespace: ""
+      serviceAccount: grid-operator
+    rbac:
+      create: true
+    releaseHelmMounts: false
+  nameOverride: ""
+  networkPolicy:
+    enabled: true
+    from:
+    - podSelector:
+        matchLabels:
+          grid.opendatahub.io/gateway-client: "true"
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  nodeSelector: {}
+  overlay:
+    configMapName: ""
+    mountPath: /etc/praxis/routing
+    sidecar:
+      dataKey: routing-overlay.json
+      enabled: true
+      image:
+        pullPolicy: IfNotPresent
+        repository: ghcr.io/praxis-proxy/grid-overlay-sync
+        tag: v0.3.0-rc.3
+      resources:
+        limits:
+          cpu: 50m
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 16Mi
+  platform: ""
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  port:
+    containerPort: 8080
+    name: ""
+    protocol: TCP
+  praxisConfig:
+    byo:
+      configMapName: ""
+      inline: |
+        admin:
+          metrics_address: "127.0.0.1:9901"
+        listeners:
+          - name: default
+            address: "0.0.0.0:8080"
+            filter_chains: [default]
+        filter_chains:
+          - name: default
+            filters:
+              - filter: static_response
+                status: 200
+                headers:
+                  - name: Content-Type
+                    value: application/json
+                body: '{"status": "ok", "server": "praxis"}'
+                conditions:
+                  - when:
+                      path: "/"
+              - filter: static_response
+                status: 404
+                headers:
+                  - name: Content-Type
+                    value: application/json
+                body: '{"error": "not found"}'
+      key: praxis.yaml
+    operator:
+      allowUnauthenticatedExposure: false
+      configMapName: ""
+      gridServing:
+        configMapName: ""
+        enabled: false
+        gatewayRefName: ""
+        mountPath: /etc/praxis/grid-serving
+        networkName: ""
+    render:
+      auth:
+        allowPrivateEndpoint: false
+        allowUnauthenticatedExposure: false
+        mode: ""
+        prefix: 'Bearer '
+        stripAuthorization: true
+        timeoutSecs: 5
+        validateCA:
+          configMapName: ""
+          key: ca.crt
+          mountPath: /etc/praxis/validate-ca
+          secretName: ""
+        validateUrl: ""
+      gridServing:
+        backendCAs: []
+        configMapName: ""
+        enabled: false
+        gatewayRefName: ""
+        mountPath: /etc/praxis/grid-serving
+        networkName: ""
+        siteRoute:
+          availability: {}
+          prefixAffinity: {}
+      model: ""
+      peerTrust:
+        allowAnyGridSite: false
+        certDigests: []
+        digest: ""
+        mode: pin
+        nextDigest: ""
+        rateLimit: {}
+        spiffeId: ""
+        spiffeIds: []
+      provider:
+        allowedPaths:
+        - /v1/chat/completions
+        - /v1/completions
+        - /v1/models
+        - /v1/embeddings
+      role: consumer
+      telemetry:
+        enabled: false
+        environment: ""
+        otlpEndpoint: ""
+        serviceName: ""
+        serviceVersion: ""
+    source: byo
+  priorityClassName: ""
+  providerCredentials: []
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 2
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  route:
+    annotations: {}
+    enabled: false
+    externalTls: false
+    host: ""
+    tls:
+      destinationCACertificate: ""
+      termination: passthrough
+  service:
+    annotations: {}
+    enabled: true
+    loadBalancerIP: ""
+    port: 8080
+    type: ""
+  shutdownDelaySeconds: 5
+  tolerations: []
+  topologySpreadConstraints: []
+  upstreamCA:
+    key: ca.crt
+    mountPath: /etc/praxis/upstream-ca
+    secretName: ""
+profile: default
+services:
+  monitoring:
+    dependencies:
+      certManager: true
+      clusterObservability: true
+      loki: true
+      opentelemetry: true
+      tempo: true
+    dsci:
+      alerting: {}
+      logs: {}
+      metrics: {}
+      traces: {}
+      usageLogs: {}
+skipCrdCheck: false
+tags:
+  install-with-helm-dependencies: false
+trustedCABundle:
+  customCABundle: ""
+  managementState: Managed
+
+

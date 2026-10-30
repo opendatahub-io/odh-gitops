@@ -114,7 +114,7 @@ spec:
         managementState: Removed
       nim:
         managementState: Removed
-      rawDeploymentServiceConfig: Headless
+      rawDeploymentServiceConfig: Headed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -234,6 +234,9 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+spec:
+  observability:
+    enable: true
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml

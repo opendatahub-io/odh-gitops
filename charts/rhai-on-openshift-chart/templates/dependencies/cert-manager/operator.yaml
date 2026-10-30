@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $dep := .Values.dependencies.certManager -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict
   "dependencyName" "certManager"

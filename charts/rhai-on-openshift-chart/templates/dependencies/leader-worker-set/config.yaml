@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $dep := .Values.dependencies.leaderWorkerSet -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "leaderWorkerSet" "dependency" $dep "root" $) -}}
 {{- if eq $shouldInstall "true" }}

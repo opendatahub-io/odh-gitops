@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $dep := .Values.dependencies.kueue -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict
   "dependencyName" "kueue"

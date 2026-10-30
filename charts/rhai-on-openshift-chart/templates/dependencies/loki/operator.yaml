@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $dep := .Values.dependencies.loki -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict
   "dependencyName" "loki"

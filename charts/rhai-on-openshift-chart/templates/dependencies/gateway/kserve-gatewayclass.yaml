@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $kserve := .Values.components.kserve | default dict -}}
 {{- $kserveDsc := $kserve.dsc | default dict -}}
 {{- $effectiveKserveState := include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $kserveDsc.managementState "root" . "name" "kserve") -}}

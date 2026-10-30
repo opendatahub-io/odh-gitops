@@ -196,7 +196,7 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 | `default` | All components Removed (manual configuration) | None | None |
 | `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
 | `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, rhcl |
-| `ai-grid` | AI Grid multi-cluster routing | aigateway (aiGrid) | None |
+| `ai-grid-ingress` | AI Grid ingress site with MaaS and Grid routing | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
 | `ai-grid-inference` | AI Grid inference site: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl |
 
 With ordinary chart defaults, the `maas` profile installs `certManager` and `rhcl` (through `kserve`) but not
@@ -210,8 +210,8 @@ Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. Se
 ### AI Grid
 
 AI Grid is opt-in. The default profile leaves it disabled and omits `aiGrid` for compatibility
-with payloads that do not yet expose the field. `--set profile=ai-grid` explicitly sets AIGateway
-and its `aiGrid` sub-component to `Managed`; other sub-components remain `Removed`.
+with payloads that do not yet expose the field. `--set profile=ai-grid-ingress` explicitly sets
+AIGateway, `modelsAsAService`, and `aiGrid` to `Managed`.
 An explicit `components.aigateway.dsc.aiGrid.managementState=Removed` overrides the profile.
 
 The AI Gateway operator owns the Grid operator and its CRDs (ai-gateway-operator PR #148).
@@ -302,11 +302,13 @@ when testing a custom payload, rather than setting a Helm-managed operator image
 
 ### How profiles work
 
-- When `profile` is set, it provides default `managementState` values for components that are not explicitly configured
-- **Explicit values always win**: setting `--set components.kserve.dsc.managementState=Removed` overrides the profile
+- When `profile` is set, its YAML file is deep-merged into the chart values as a defaults layer
+- **Explicit user values win**: setting `--set components.kserve.dsc.managementState=Removed` overrides the profile
 - Profile `default` preserves the standard behavior — all components are `Removed` unless you enable them manually
-- Profiles also control component dependency defaults (e.g., `rhaii` disables `jobSet` for kserve since it's not needed for inference-only deployments)
-- Profiles can also set the AI Grid runtimes' `grid-enrollment.enabled` and `praxis-gateway.enabled` (e.g., `ai-grid-inference` turns both off); an explicit value overrides the profile
+- Profiles can set any chart or vendored-subchart value, including component dependency defaults and AI Grid runtime values
+- Maps merge recursively; arrays and scalars from a profile replace the corresponding chart default
+- `chart-defaults.yaml` records Helm's complete coalesced default layer. Regenerate it with `make chart-defaults` after changing `values.yaml` or vendored subchart defaults; chart tests reject a stale file
+- Helm does not retain value provenance. An explicit user value identical to a chart default is indistinguishable from that default and therefore cannot override a profile default
 
 ### Example: RHAII deployment
 
@@ -710,7 +712,7 @@ dependencies:
 ### Global Settings
 
 ```yaml
-# Deployment profile: default (all Removed), rhaii, maas, ai-grid, ai-grid-inference
+# Deployment profile: default (all Removed), rhaii, maas, ai-grid-ingress, ai-grid-inference
 # Explicit managementState values override the profile.
 profile: default
 

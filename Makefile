@@ -237,6 +237,7 @@ HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
 chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
+	@bash ./scripts/generate-chart-defaults.sh --check charts/rhai-on-openshift-chart
 	@./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
 
 GRID_REPO ?= https://github.com/praxis-proxy/grid.git
@@ -247,7 +248,12 @@ update-ai-grid-charts: yq ## Vendor AI Grid charts from praxis-proxy/grid. Use G
 
 .PHONY: chart-test
 chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
+	@bash ./scripts/generate-chart-defaults.sh --check charts/rhai-on-openshift-chart
 	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
+
+.PHONY: chart-defaults
+chart-defaults: ## Regenerate the RHOAI chart's coalesced default values
+	@bash ./scripts/generate-chart-defaults.sh charts/rhai-on-openshift-chart
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure

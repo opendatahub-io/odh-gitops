@@ -1,6 +1,20 @@
 # MaaS profile - Models as a Service platform
 # Enables AIGateway with modelsAsAService + KServe for inference.
 # Dependencies auto-installed: cert-manager, leader-worker-set, RHCL/Kuadrant
+
+dependencies:
+  rhcl:
+    olm:
+      config:
+        env:
+          - name: AUTH_SERVICE_TIMEOUT
+            value: 5s
+    config:
+      authorinoServiceCaTrust: true
+      spec:
+        observability:
+          enable: true
+
 components:
   aigateway:
     dependencies:

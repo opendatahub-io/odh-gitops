@@ -11,6 +11,18 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 
 ---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-lws-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -62,6 +74,27 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 type: kubernetes.io/service-account-token
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorino
+  namespace: kuadrant-system
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  template:
+    spec:
+      containers:
+        - name: authorino
+          env:
+            - name: SSL_CERT_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+            - name: SSL_CERT_DIR
+              value: /etc/ssl/certs
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
@@ -161,6 +194,15 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
     istio.io/rev: openshift-gateway
+  annotations:
+    grid.opendatahub.io/serving: |-
+      {
+        "networkName": "grid",
+        "namespace": "redhat-ai-grid",
+        "serviceAccount": "grid-model-client",
+        "tokenSecret": "grid-model-client-token",
+        "publishMetrics": true
+      }
 spec:
   gatewayClassName: openshift-ai-inference
   listeners:
@@ -196,6 +238,23 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+spec:
+  observability:
+    enable: true
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
+apiVersion: operator.openshift.io/v1
+kind: LeaderWorkerSetOperator
+metadata:
+  name: cluster
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  logLevel: Normal
+  managementState: Managed
+  operatorLogLevel: Normal
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
@@ -209,6 +268,21 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: leader-worker-set
+  namespace: openshift-lws-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+  targetNamespaces:
+    - openshift-lws-operator
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
@@ -255,6 +329,23 @@ spec:
 
 
 ---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: leader-worker-set
+  namespace: openshift-lws-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable-v1.0
+  installPlanApproval: Automatic
+  name: leader-worker-set
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -270,6 +361,10 @@ spec:
   name: rhcl-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: AUTH_SERVICE_TIMEOUT
+      value: 5s
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml

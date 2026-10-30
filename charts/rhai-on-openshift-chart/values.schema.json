@@ -55,9 +55,9 @@
     },
     "profile": {
       "type": "string",
-      "enum": ["default", "maas", "ai-grid", "ai-grid-inference", "rhaii"],
+      "minLength": 1,
       "default": "default",
-      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid' enables AIGateway with only the aiGrid sub-component. 'ai-grid-inference' enables KServe and AIGateway with only aiGrid, and turns off the Grid gateway and enrollment runtimes, for an AI Grid site that serves models without MaaS. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
+      "description": "Deploy profile matching a bundled profiles/<name>.yaml file. Profile values can provide defaults for any chart or vendored-subchart value; explicit non-null user values override them. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid-ingress' enables AIGateway with modelsAsAService and aiGrid. 'ai-grid-inference' enables KServe and AIGateway with only aiGrid, and turns off the Grid gateway and enrollment runtimes. 'rhaii' enables only KServe."
     },
     "olm": {
       "type": "object",

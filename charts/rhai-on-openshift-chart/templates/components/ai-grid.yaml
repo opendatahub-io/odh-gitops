@@ -1,7 +1,9 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- if include "rhoai-dependencies.aiGridManaged" . -}}
 {{- range $name := list "grid-enrollment" "praxis-gateway" -}}
 {{- if include "rhoai-dependencies.aiGridRuntimeEnabled" (dict "root" $ "name" $name) -}}
 {{- with index $.Subcharts $name -}}
+{{- $_ := mergeOverwrite .Values (index $.Values $name) -}}
 {{ include (printf "%s.rhoai.resources" $name) . }}
 {{- end -}}
 {{- end -}}

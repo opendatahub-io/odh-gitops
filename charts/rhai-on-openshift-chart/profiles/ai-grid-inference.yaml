@@ -4,6 +4,25 @@
 # cluster's MaaS gateway. The Grid gateway and enrollment runtimes are off: enrollment
 # runs on the grid hub, and the gateway in front of MaaS runs on ingress sites.
 # Dependencies auto-installed (through kserve): cert-manager, RHCL/Kuadrant
+
+# TODO: Enable more: nfd, nvidia, o11y-spoke
+
+argocd:
+  enabled: true
+
+dependencies:
+  rhcl:
+    olm:
+      config:
+        env:
+          - name: AUTH_SERVICE_TIMEOUT
+            value: 5s
+    config:
+      authorinoServiceCaTrust: true
+      spec:
+        observability:
+          enable: true
+
 components:
   aigateway:
     dependencies:
@@ -17,8 +36,47 @@ components:
   kserve:
     dependencies:
       jobSet: false
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
     dsc:
       managementState: Managed
+    gateway:
+      annotations:
+        grid.opendatahub.io/serving: >-
+          {
+            "networkName": "grid",
+            "namespace": "redhat-ai-grid",
+            "serviceAccount": "grid-model-client",
+            "tokenSecret": "grid-model-client-token",
+            "publishMetrics": true
+          }
+      spec:
+        listeners:
+          - name: http
+            port: 80
+            # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
+            protocol: HTTP
+            allowedRoutes:
+              namespaces:
+                # AI project namespaces opt in with grid.opendatahub.io/allowed=true.
+                from: Selector
+                selector:
+                  matchLabels:
+                    grid.opendatahub.io/allowed: "true"
+
+          # TODO: fix https listener with TLS certs
+          - name: https
+            port: 443
+            # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
+            protocol: HTTPS
+            allowedRoutes:
+              namespaces:
+                # AI project namespaces opt in with grid.opendatahub.io/allowed=true.
+                from: Selector
+                selector:
+                  matchLabels:
+                    grid.opendatahub.io/allowed: "true"
 grid-enrollment:
   enabled: false
 praxis-gateway:

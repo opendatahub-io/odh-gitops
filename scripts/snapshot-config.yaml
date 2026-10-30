@@ -15,6 +15,13 @@ charts:
       - name: default
         # No additional flags for default
 
+      - name: missing-profile
+        expectFail: true
+        expectMessage: "profile missing-profile does not match a bundled profiles/missing-profile.yaml file"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=missing-profile
+
       - name: skip-crd-check-odh
         setFlags:
           - skipCrdCheck=true
@@ -203,7 +210,8 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - operator.type=odh
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
         setJsonFlags:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
@@ -211,13 +219,13 @@ charts:
       - name: ai-grid-removed
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - components.aigateway.dsc.aiGrid.managementState=Removed
 
       - name: ai-grid-parent-removed
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - components.aigateway.dsc.managementState=Removed
 
       - name: ai-grid-manual
@@ -229,21 +237,22 @@ charts:
       - name: ai-grid-external-runtimes
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.enabled=false
           - praxis-gateway.enabled=false
 
       - name: ai-grid-external-gateway
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - praxis-gateway.enabled=false
 
       - name: ai-grid-external-enrollment
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.enabled=false
+          - praxis-gateway.grid.siteName=local-cluster
 
       - name: ai-grid-inference-profile
         setFlags:
@@ -266,7 +275,8 @@ charts:
       - name: ai-grid-external-identities
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.mode=external
           - grid-enrollment.external.sites.site-a.secretName=provided-site-a
           - grid-enrollment.external.sites.site-a.cluster=managed-a
@@ -277,7 +287,8 @@ charts:
       - name: ai-grid-existing-ca
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.mode=external
           - grid-enrollment.external.certManager.enabled=true
           - grid-enrollment.external.certManager.issuer.create=true
@@ -285,7 +296,8 @@ charts:
       - name: ai-grid-managed-clusters
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.fullnameOverride=grid-bootstrap
           - grid-enrollment.mode=external
           - grid-enrollment.gridIdentity.enabled=true
@@ -298,7 +310,8 @@ charts:
       - name: ai-grid-generated-ca
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.mode=external
           - grid-enrollment.external.certManager.enabled=true
           - grid-enrollment.external.certManager.issuer.create=true
@@ -308,7 +321,8 @@ charts:
       - name: ai-grid-invites
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.enrollment.authz=kube
           - grid-enrollment.invites.site-a.network=grid
 
@@ -317,15 +331,17 @@ charts:
         expectMessage: "protocol"
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - praxis-gateway.port.protocol=UDP
 
-      - name: ai-grid-reject-plaintext-route
+      - name: ai-grid-reject-source-override
         expectFail: true
-        expectMessage: "inline/external config requires route.externalTls"
+        expectMessage: "praxisConfig.render settings are set but praxisConfig.source is operator"
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - praxis-gateway.praxisConfig.source=operator
           - praxis-gateway.route.enabled=true
           - praxis-gateway.route.host=gateway.apps.example.com
 
@@ -334,7 +350,7 @@ charts:
         expectMessage: "plaintext telemetry"
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - praxis-gateway.praxisConfig.source=render
           - praxis-gateway.praxisConfig.render.telemetry.otlpEndpoint=http://collector:4317
 
@@ -343,7 +359,7 @@ charts:
         expectMessage: "networkPolicy.from requires explicit enrollment clients"
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.route.enabled=false
           - grid-enrollment.host=enrollment.example.com
 
@@ -355,10 +371,10 @@ charts:
 
       - name: ai-grid-hub
         setFlags:
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.route.enabled=false
           - skipCrdCheck=true
-          - praxis-gateway.praxisConfig.byo.configMapName=grid-gateway-config
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.enrollment.authz=kube
           - grid-enrollment.enrollment.serviceAccount.create=true
           - grid-enrollment.db.type=external

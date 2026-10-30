@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $operatorType := .Values.operator.type }}
 
 {{ $operatorType | upper }} Chart installed successfully!

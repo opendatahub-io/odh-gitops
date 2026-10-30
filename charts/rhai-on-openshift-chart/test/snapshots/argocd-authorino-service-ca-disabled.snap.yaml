@@ -74,6 +74,8 @@ spec:
       containers:
         - name: authorino
           env:
+            - name: SSL_CERT_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
             - name: SSL_CERT_DIR
               value: /etc/ssl/certs
 
@@ -133,7 +135,7 @@ spec:
         managementState: Removed
       nim:
         managementState: Removed
-      rawDeploymentServiceConfig: Headless
+      rawDeploymentServiceConfig: Headed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
@@ -253,6 +255,9 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+spec:
+  observability:
+    enable: true
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
@@ -405,6 +410,10 @@ spec:
   name: rhcl-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: AUTH_SERVICE_TIMEOUT
+      value: 5s
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml

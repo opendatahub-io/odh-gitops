@@ -240,6 +240,9 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+spec:
+  observability:
+    enable: true
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
@@ -392,6 +395,10 @@ spec:
   name: rhcl-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: AUTH_SERVICE_TIMEOUT
+      value: 5s
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml

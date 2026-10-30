@@ -56,6 +56,83 @@ Merge dependency OLM config with root-level OLM defaults
 
 {{/*
 =============================================================================
+Load the raw values from the selected profile. The profile name is arbitrary,
+but a non-default profile must have a matching bundled YAML file.
+=============================================================================
+Arguments:
+  - root context ($)
+*/}}
+{{- define "rhoai-dependencies.profileFileValues" -}}
+{{- $profile := .Values.profile | default "default" -}}
+{{- $profileFile := printf "profiles/%s.yaml" $profile -}}
+{{- $profileValues := .Files.Get $profileFile | fromYaml | default dict -}}
+{{- if and (not $profileValues) (ne $profile "default") -}}
+{{- fail (printf "profile %s does not match a bundled profiles/%s.yaml file" $profile $profile) -}}
+{{- end -}}
+{{- toYaml $profileValues -}}
+{{- end }}
+
+{{/*
+=============================================================================
+INTERNAL: Return values that differ from the chart's shipped defaults.
+Helm merges user values and chart defaults before rendering, so comparing
+the effective values with chart-defaults.yaml recovers the user layer.
+=============================================================================
+Arguments (passed as dict):
+  - defaults: chart default values
+  - values: effective values before profile loading
+*/}}
+{{- define "rhoai-dependencies.profileUserOverrides" -}}
+{{- $defaults := .defaults -}}
+{{- $values := .values -}}
+{{- $overrides := dict -}}
+{{- range $key, $value := $values -}}
+  {{- if not (kindIs "invalid" $value) -}}
+    {{- $default := index $defaults $key -}}
+    {{- if kindIs "invalid" $default -}}
+      {{- $_ := set $overrides $key $value -}}
+    {{- else if and (kindIs "map" $value) (kindIs "map" $default) -}}
+      {{- $child := include "rhoai-dependencies.profileUserOverrides" (dict "defaults" $default "values" $value) | fromYaml -}}
+      {{- if $child -}}
+        {{- $_ := set $overrides $key $child -}}
+      {{- end -}}
+    {{- else if ne (toYaml $value) (toYaml $default) -}}
+      {{- $_ := set $overrides $key $value -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- toYaml $overrides -}}
+{{- end }}
+
+{{/*
+=============================================================================
+Apply the selected profile to the current template's values.
+
+The effective precedence is:
+  1. Explicit non-null user values
+  2. Values from profiles/<name>.yaml
+  3. Chart defaults from values.yaml
+
+Every root-chart template calls this helper before reading .Values. Helm
+executes templates independently, so a value mutation in one template is not
+visible in another. chart-defaults.yaml records Helm's coalesced defaults,
+including vendored subchart defaults, and is used to recover the user layer.
+=============================================================================
+Arguments:
+  - root context ($)
+*/}}
+{{- define "rhoai-dependencies.applyProfileValues" -}}
+{{- $chartDefaults := .Files.Get "chart-defaults.yaml" | fromYaml | default dict -}}
+{{- $profileValues := include "rhoai-dependencies.profileFileValues" . | fromYaml | default dict -}}
+{{- $userValues := include "rhoai-dependencies.profileUserOverrides" (dict "defaults" $chartDefaults "values" .Values) | fromYaml | default dict -}}
+{{- $merged := deepCopy .Values -}}
+{{- $_ := mergeOverwrite $merged $profileValues -}}
+{{- $_ := mergeOverwrite $merged $userValues -}}
+{{- $_ := mergeOverwrite .Values $merged -}}
+{{- end }}
+
+{{/*
+=============================================================================
 Get profile defaults for a component.
 Returns YAML with dsc managementState and optional sub-component
 states and dependency overrides.
@@ -65,9 +142,7 @@ Arguments (passed as dict):
   - name: the component name
 */}}
 {{- define "rhoai-dependencies.profileComponentDefaults" -}}
-{{- $profile := .root.Values.profile | default "default" -}}
-{{- $profileFile := printf "profiles/%s.yaml" $profile -}}
-{{- $profileValues := .root.Files.Get $profileFile | fromYaml -}}
+{{- $profileValues := include "rhoai-dependencies.profileFileValues" .root | fromYaml -}}
 {{- $items := dict -}}
 {{- if $profileValues -}}
   {{- $items = index ($profileValues.components | default dict) .name | default dict -}}
@@ -85,9 +160,7 @@ Arguments (passed as dict):
   - name: the service name
 */}}
 {{- define "rhoai-dependencies.profileServiceDefaults" -}}
-{{- $profile := .root.Values.profile | default "default" -}}
-{{- $profileFile := printf "profiles/%s.yaml" $profile -}}
-{{- $profileValues := .root.Files.Get $profileFile | fromYaml -}}
+{{- $profileValues := include "rhoai-dependencies.profileFileValues" .root | fromYaml -}}
 {{- $items := dict -}}
 {{- if $profileValues -}}
   {{- $items = index ($profileValues.services | default dict) .name | default dict -}}
@@ -785,8 +858,7 @@ Arguments (passed as dict):
 {{- define "rhoai-dependencies.aiGridRuntimeEnabled" -}}
 {{- $enabled := index (index .root.Values .name | default dict) "enabled" -}}
 {{- if kindIs "invalid" $enabled -}}
-  {{- $profile := .root.Values.profile | default "default" -}}
-  {{- $profileValues := .root.Files.Get (printf "profiles/%s.yaml" $profile) | fromYaml | default dict -}}
+  {{- $profileValues := include "rhoai-dependencies.profileFileValues" .root | fromYaml | default dict -}}
   {{- $enabled = dig "enabled" true (index $profileValues .name | default dict) -}}
 {{- end -}}
 {{- if $enabled -}}

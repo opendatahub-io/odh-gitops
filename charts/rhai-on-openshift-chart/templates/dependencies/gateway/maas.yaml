@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $aigateway := .Values.components.aigateway | default dict -}}
 {{- $aigatewayDscMerged := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "aigateway" "component" $aigateway "root" .) | fromYaml -}}
 {{- $maas := $aigateway.modelsAsAService | default dict -}}
