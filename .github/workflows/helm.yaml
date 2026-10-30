@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'charts/**'
+      - 'scripts/chart-snapshots.sh'
   workflow_dispatch:
 
 jobs:
