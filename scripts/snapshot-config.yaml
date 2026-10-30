@@ -615,6 +615,26 @@ charts:
           - gateway.oidc.oidcClientSecret=test-client-secret-value
           - gateway.oidc.clientSecretRef.name=managed-oidc-secret
 
+      - name: with-aks-oidc
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://login.microsoftonline.com/example/v2.0
+          - gateway.oidc.clientID=gateway-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - gateway.oidc.scope=openid <AKS_SERVER_APP_ID>/.default
+          - gateway.oidc.passAccessToken=true
+          - gateway.oidc.skipClaimsFromProfileURL=true
+
+      - name: reject-oidc-scope-without-openid
+        expectFail: true
+        expectMessage: "does not match pattern"
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://login.microsoftonline.com/example/v2.0
+          - gateway.oidc.clientID=gateway-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - gateway.oidc.scope=profile
+
   rhai-on-xks-chart:
     snapshots:
       - name: with-custom-namespace

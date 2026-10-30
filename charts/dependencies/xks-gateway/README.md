@@ -30,6 +30,33 @@ Set `gateway.domain` to the base DNS domain, such as `example.com`. The operator
 `*.` in `gateway.domain`; it would produce an invalid Gateway listener hostname. A wildcard
 DNS record or TLS certificate can still cover the resulting hostname.
 
+### AKS browser OIDC
+
+Configure the Gateway's Entra app with delegated `user.read` permission for the AKS AAD Server
+application (`<AKS_SERVER_APP_ID>`) and obtain tenant admin consent. Request
+an AKS-audience access token, forward it to downstream services, and skip the Microsoft Graph
+userinfo request (which cannot use an AKS-audience access token):
+
+```yaml
+xks-gateway:
+  enabled: true
+  gateway:
+    domain: example.com
+    oidc:
+      issuerURL: https://login.microsoftonline.com/<tenant-id>/v2.0
+      clientID: <gateway-app-client-id>
+      clientSecretRef:
+        name: my-oidc-secret
+      scope: "openid <AKS_SERVER_APP_ID>/.default"
+      passAccessToken: true
+      skipClaimsFromProfileURL: true
+```
+
+Replace bracketed placeholders with your Entra tenant ID, Gateway app client ID, and AKS server
+application ID. All three settings are optional. Without them, kube-auth-proxy keeps its default OIDC scope and
+downstream services receive the ID token. See RHOAIENG-96566 for the separate AKS LoadBalancer
+health-probe issue.
+
 ## CRD handling
 
 The GatewayConfig CRD is a regular Helm template, rendered from `files/gatewayconfig-crd.yaml`

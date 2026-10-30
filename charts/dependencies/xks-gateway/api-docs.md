@@ -30,7 +30,10 @@ XKS Gateway onboarding chart - installs the GatewayConfig CRD, gateway namespace
 | gateway.oidc.clientSecretRef.name | string | `""` | Name of the Kubernetes Secret (existing or chart-created) |
 | gateway.oidc.issuerURL | required | `""` | OIDC provider URL (e.g., https://keycloak.example.com/realms/rhai) |
 | gateway.oidc.oidcClientSecret | string | `""` | OIDC client secret value; when set, the chart creates the Secret in gateway.namespace. Prefer referencing an existing Secret via clientSecretRef (BYO) for production; use --set-file with oidcClientSecret only for dev/test (the value is stored in the Helm release Secret). |
+| gateway.oidc.passAccessToken | bool | `false` | Forward the OIDC access token to downstream services instead of the ID token. |
+| gateway.oidc.scope | string | `""` | Complete OIDC scope (replaces "openid email profile"). AKS needs "openid <AKS server app ID>/.default". |
 | gateway.oidc.secretNamespace | string | `""` | Namespace where the client secret is located (defaults to gateway.namespace if empty) |
+| gateway.oidc.skipClaimsFromProfileURL | bool | `false` | Skip IdP userinfo lookup when the access token targets AKS rather than the userinfo endpoint. |
 | gateway.providerCASecretName | string | `""` | Name of Secret containing CA cert for the auth provider (must have ca.crt key, in gateway namespace) |
 | gateway.subdomain | string | `""` | Subdomain prefix for the gateway |
 | gateway.verifyProviderCertificate | bool | `true` | Verify auth provider TLS certificate (set to false only for development) |

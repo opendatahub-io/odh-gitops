@@ -136,6 +136,22 @@
             "secretNamespace": {
               "type": "string",
               "description": "Namespace where the client secret is located (defaults to gateway.namespace if empty)"
+            },
+            "scope": {
+              "type": "string",
+              "description": "Complete OIDC scope replacing the default openid email profile; include openid and the AKS server resource for AKS browser login.",
+              "maxLength": 1024,
+              "pattern": "^$|^([\\x21\\x23-\\x5B\\x5D-\\x7E]+ )*openid( [\\x21\\x23-\\x5B\\x5D-\\x7E]+)*$"
+            },
+            "passAccessToken": {
+              "type": "boolean",
+              "description": "Forward the OIDC access token to downstream services instead of the ID token.",
+              "default": false
+            },
+            "skipClaimsFromProfileURL": {
+              "type": "boolean",
+              "description": "Skip IdP userinfo lookup when the access token targets an external resource such as AKS.",
+              "default": false
             }
           },
           "additionalProperties": false

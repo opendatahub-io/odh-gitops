@@ -651,7 +651,15 @@
                     "key": { "type": "string", "default": "client-secret" }
                   }
                 },
-                "secretNamespace": { "type": "string" }
+                "secretNamespace": { "type": "string" },
+                "scope": {
+                  "type": "string",
+                  "description": "Complete OIDC scope replacing the default openid email profile; include openid and the AKS server resource for AKS browser login.",
+                  "maxLength": 1024,
+                  "pattern": "^$|^([\\x21\\x23-\\x5B\\x5D-\\x7E]+ )*openid( [\\x21\\x23-\\x5B\\x5D-\\x7E]+)*$"
+                },
+                "passAccessToken": { "type": "boolean", "default": false },
+                "skipClaimsFromProfileURL": { "type": "boolean", "default": false }
               }
             },
             "cookie": {

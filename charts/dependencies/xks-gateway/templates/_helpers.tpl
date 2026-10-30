@@ -102,6 +102,11 @@ spec:
       name: {{ include "xks-gateway.oidcClientSecretRefName" . | quote }}
       key: {{ $gw.oidc.clientSecretRef.key | default "client-secret" | quote }}
     secretNamespace: {{ include "xks-gateway.oidcSecretNamespace" . | quote }}
+    {{- with $gw.oidc.scope }}
+    scope: {{ . | quote }}
+    {{- end }}
+    passAccessToken: {{ $gw.oidc.passAccessToken | default false }}
+    skipClaimsFromProfileURL: {{ $gw.oidc.skipClaimsFromProfileURL | default false }}
   {{- if or $gw.cookie.expire $gw.cookie.refresh }}
   cookie:
     {{- with $gw.cookie.expire }}
