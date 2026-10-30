@@ -5,12 +5,17 @@
 # runs on the grid hub, and the gateway in front of MaaS runs on ingress sites.
 # Dependencies auto-installed (through kserve): cert-manager, RHCL/Kuadrant
 
-# TODO: Enable more: nfd, nvidia, o11y-spoke
-
 argocd:
   enabled: true
 
+ai-grid-o11y-spoke:
+  enabled: true
+
 dependencies:
+  nfd:
+    enabled: true
+  nvidiaGPUOperator:
+    enabled: true
   rhcl:
     olm:
       config:

@@ -196,8 +196,8 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 | `default` | All components Removed (manual configuration) | None | None |
 | `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
 | `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, rhcl |
-| `ai-grid-ingress` | AI Grid ingress site with MaaS and Grid routing | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
-| `ai-grid-inference` | AI Grid inference site: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl |
+| `ai-grid-ingress` | AI Grid ingress site with MaaS, Grid routing, and the observability spoke | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
+| `ai-grid-inference` | AI Grid inference site with the observability spoke: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl, nfd, nvidiaGPUOperator |
 
 With ordinary chart defaults, the `maas` profile installs `certManager` and `rhcl` (through `kserve`) but not
 `leaderWorkerSet` — `aigateway`'s `null` dependency default for it is not activated. Enable it explicitly

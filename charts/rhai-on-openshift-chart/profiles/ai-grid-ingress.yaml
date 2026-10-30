@@ -1,9 +1,10 @@
 # AI Grid profile - AI Grid multi-cluster routing only
 # Enables AIGateway with only aiGrid and its gateway/enrollment runtimes.
 
-# TODO: Enable more: o11y-spoke
-
 argocd:
+  enabled: true
+
+ai-grid-o11y-spoke:
   enabled: true
 
 dependencies:
