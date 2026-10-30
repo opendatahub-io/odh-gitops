@@ -128,7 +128,7 @@ verify_certmanager_migration() {
 
 cleanup_upgrade_test() {
   log "Cleaning up upgrade test release..."
-  helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" 2>/dev/null || true
+  "${HELM}" uninstall "$RELEASE_NAME" -n "$NAMESPACE" --timeout "$DELETE_TIMEOUT" 2>/dev/null || true
   kubectl wait --for=delete "$KE_KIND/$KE_NAME" --timeout=60s 2>/dev/null || true
 }
 
@@ -204,7 +204,7 @@ test_1_upgrade() {
 
   # Helm release
   local status
-  status=$(helm status "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null \
+  status=$("${HELM}" status "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null \
     | jq -r '.info.status' 2>/dev/null || echo "unknown")
   if [[ "$status" == "deployed" ]]; then
     pass "Helm release status: deployed"

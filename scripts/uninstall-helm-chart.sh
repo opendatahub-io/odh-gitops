@@ -19,6 +19,13 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 HELM_RELEASE="${HELM_RELEASE:-odh}"
 HELM_NAMESPACE="${HELM_NAMESPACE:-rhai-gitops}"
+# Helm binary — repo-local pinned version (installed via `make helm`);
+# set HELM explicitly to use another binary
+HELM="${HELM:-${REPO_ROOT}/bin/helm}"
+if ! command -v "${HELM}" &>/dev/null; then
+    echo "ERROR: helm not found at ${HELM}. Run 'make helm' to install it." >&2
+    exit 1
+fi
 
 
 # Operator CRDs (created by ODH/RHOAI operator)
@@ -106,8 +113,8 @@ echo "✓ Operator CRDs removed"
 echo ""
 echo "=== Step 5: Running Helm Uninstall ==="
 
-if helm status "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" &>/dev/null; then
-    helm uninstall "${HELM_RELEASE}" -n "${HELM_NAMESPACE}"
+if "${HELM}" status "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" &>/dev/null; then
+    "${HELM}" uninstall "${HELM_RELEASE}" -n "${HELM_NAMESPACE}"
     oc delete --ignore-not-found namespace "${HELM_NAMESPACE}"
     echo "✓ Helm release ${HELM_RELEASE} uninstalled"
 else
