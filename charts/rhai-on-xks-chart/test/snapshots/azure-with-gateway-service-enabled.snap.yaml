@@ -686,11 +686,38 @@ spec:
                     x-kubernetes-validations:
                     - message: issuerURL must have a non-empty host
                       rule: url(self).getHostname() != ''
+                  passAccessToken:
+                    description: |-
+                      PassAccessToken controls whether kube-auth-proxy forwards the raw OIDC
+                      access token to the Gateway (via the x-auth-request-access-token header)
+                      for downstream services, in addition to the ID token.
+                      If unset (false), only the ID token is forwarded, preserving existing
+                      GatewayConfig behavior.
+                    type: boolean
+                  scope:
+                    description: |-
+                      Scope is a complete replacement for kube-auth-proxy's default OIDC scope
+                      ("openid email profile"). When set, kube-auth-proxy requests exactly this
+                      space-separated scope list instead of the default. Some identity
+                      providers (e.g. Azure AD/AKS) require a resource-specific scope, such as
+                      "openid APP_ID/.default", to mint an access token for a
+                      particular audience.
+                      If unset, kube-auth-proxy uses its default scope.
+                      When set, scope must include "openid" and use space-separated OAuth scope tokens.
+                    maxLength: 1024
+                    pattern: ^$|^([\x21\x23-\x5B\x5D-\x7E]+ )*openid( [\x21\x23-\x5B\x5D-\x7E]+)*$
+                    type: string
                   secretNamespace:
                     description: |-
                       Namespace where the client secret is located.
                       If unset, defaults to the gateway namespace.
                     type: string
+                  skipClaimsFromProfileURL:
+                    description: |-
+                      SkipClaimsFromProfileURL disables querying the IdP profile/userinfo URL for missing claims.
+                      Set to true when the access token is scoped to an external resource (e.g. AKS)
+                      rather than the IdP's userinfo endpoint.
+                    type: boolean
                 required:
                 - clientID
                 - clientSecretRef
@@ -2825,6 +2852,30 @@ rules:
       - update
       - watch
   - apiGroups:
+      - apiextensions.k8s.io
+    resourceNames:
+      - datascienceclusters.datasciencecluster.opendatahub.io
+    resources:
+      - customresourcedefinitions/status
+    verbs:
+      - patch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resourceNames:
+      - dscinitializations.dscinitialization.opendatahub.io
+    resources:
+      - customresourcedefinitions/status
+    verbs:
+      - patch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resourceNames:
+      - platforms.config.opendatahub.io
+    resources:
+      - customresourcedefinitions/status
+    verbs:
+      - patch
+  - apiGroups:
       - apiregistration.k8s.io
     resources:
       - apiservices
@@ -3322,6 +3373,15 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - migration.k8s.io
+      - storagemigration.k8s.io
+    resources:
+      - storageversionmigrations
+    verbs:
+      - create
+      - delete
+      - get
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -4375,6 +4435,38 @@ spec:
             medium: Memory
             sizeLimit: 10Mi
           name: tmp
+
+---
+# Source: rhai-on-xks-chart/templates/webhooks/validatingwebhookconfiguration-rhai-operator-validating-webhook-configuration.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: redhat-ods-operator/rhai-operator-webhook-cert
+  name: rhai-operator-validating-webhook-configuration
+  namespace: redhat-ods-operator
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: rhai-operator-webhook-service
+        namespace: redhat-ods-operator
+        path: /validate-gatewayconfig
+    failurePolicy: Fail
+    matchPolicy: Exact
+    name: gatewayconfig-validator.opendatahub.io
+    rules:
+      - apiGroups:
+          - services.platform.opendatahub.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - gatewayconfigs
+    sideEffects: None
 
 ---
 # Source: rhai-on-xks-chart/charts/cert-manager-operator/templates/certmanager.yaml
