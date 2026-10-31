@@ -6,7 +6,7 @@ image:
   # -- Image repository.
   repository: ghcr.io/praxis-proxy/ai
   # -- Image tag. Used when digest is empty.
-  tag: "0.7.0"
+  tag: "0.9.0"
   # -- Immutable image digest (sha256:<64 hex>). When set, tag is ignored.
   digest: ""
   # -- Image pull policy.
