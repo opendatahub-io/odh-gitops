@@ -16,6 +16,11 @@ dependencies:
             value: 5s
     config:
       authorinoServiceCaTrust: true
+      authorinoTrustedCA:
+        mountPath: /etc/pki/tls/certs
+        configMaps:
+          - odh-trusted-ca-bundle
+          - openshift-service-ca.crt
       spec:
         observability:
           enable: true
@@ -38,6 +43,8 @@ services:
 components:
   dashboard:
     dsc:
+      standard:
+        managementState: Managed
       maasPortal:
         managementState: Managed
   aigateway:
@@ -107,10 +114,9 @@ grid-enrollment:
 
 praxis-gateway:
   enabled: true
-  # The provider gateway of every site where models run: peers dial it over grid
-  # mTLS, and it reaches the site's models through the RHOAI serving gateway.
-  # Peers dial this directly, so the SNI stays <site>.grid.internal and matches the leaf.
-  fullnameOverride: grid-provider-gateway
+  # MaaS dials this service to reach Grid sites. Keep the name and service
+  # certificate contract expected by the tenant's ExternalProvider policy.
+  fullnameOverride: grid-gateway
 
   image:
     flavor: grid-gateway

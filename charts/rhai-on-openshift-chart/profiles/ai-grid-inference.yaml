@@ -112,6 +112,10 @@ grid-enrollment:
   enabled: false
 
 praxis-gateway:
+  enabled: false
+
+praxis-provider-gateway:
+  enabled: true
   # The provider gateway of every site where models run: peers dial it over grid
   # mTLS, and it reaches the site's models through the RHOAI serving gateway.
   # Peers dial this directly, so the SNI stays <site>.grid.internal and matches the leaf.
@@ -163,4 +167,4 @@ praxis-gateway:
     annotations:
       haproxy.router.openshift.io/timeout: 300s
 
-  # networkPolicy.from is set per site by hub/04-provider-gateway-applicationset.yaml.
+  # networkPolicy.from is set per site by the rhoai ApplicationSet.

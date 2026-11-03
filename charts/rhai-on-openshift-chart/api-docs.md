@@ -12,6 +12,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |  | ai-grid-o11y-spoke | 0.1.0 |
 |  | grid-enrollment | 0.3.0-rc.3 |
 |  | praxis-gateway | 0.3.0-rc.3 |
+|  | praxis-provider-gateway(praxis-gateway) | 0.3.0-rc.3 |
 
 ## Values
 
@@ -153,9 +154,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
-| dependencies.rhcl | object | `{"config":{"authorinoServiceCaTrust":false,"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl | object | `{"config":{"authorinoServiceCaTrust":false,"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"authorinoTrustedCA":{},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
 | dependencies.rhcl.config.authorinoServiceCaTrust | bool | `false` | Trust the OpenShift Service CA in Authorino while retaining platform CA trust |
 | dependencies.rhcl.config.authorinoSpec | object | `{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1}` | Authorino CR spec (only created if tlsEnabled: true) |
+| dependencies.rhcl.config.authorinoTrustedCA | object | `{}` | Mount additional CA ConfigMaps into Authorino, such as the cluster trust bundle |
 | dependencies.rhcl.config.spec | object | `{}` | Kuadrant CR spec (user can add any fields) |
 | dependencies.rhcl.config.tlsEnabled | bool | `false` | Enable Authorino TLS configuration |
 | dependencies.rhcl.dependencies | object | `{"certManager":true}` | Dependencies required by rhcl |
@@ -179,6 +181,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | praxis-gateway | object | `{"fullnameOverride":"grid-gateway","image":{"digest":"sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.3.0-rc.3"}}` | AI Grid gateway (Praxis) |
 | praxis-gateway.fullnameOverride | string | `"grid-gateway"` | Stable resource names, independent of the release name |
 | praxis-gateway.image.repository | string | `"ghcr.io/praxis-proxy/grid-gateway"` | Use the Grid gateway build, which includes Grid routing filters. |
+| praxis-provider-gateway | object | `{}` | AI Grid provider gateway for inference sites; a profile alias of praxis-gateway |
 | profile | string | `"default"` | Deploy profile: provides defaults for any chart or vendored-subchart value. Options: default (all Removed), rhaii (inference), maas, ai-grid-ingress (Grid ingress), ai-grid-inference (AI Grid inference site: KServe and the Grid operator, no MaaS or Grid runtimes) Explicit non-null user values override the profile. |
 | services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"logs":{},"managementState":null,"metrics":{},"traces":{},"usageLogs":{}}}` | Monitoring service configuration |
 | services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default or Removed. |

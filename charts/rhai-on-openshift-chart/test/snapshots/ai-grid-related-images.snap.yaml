@@ -101,7 +101,7 @@ metadata:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: grid-provider-gateway
+  name: grid-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
@@ -132,7 +132,7 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grid-provider-gateway-config
+  name: grid-gateway-config
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
@@ -171,7 +171,7 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
-  name: grid-provider-gateway
+  name: grid-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
@@ -196,7 +196,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: grid-provider-gateway
+  name: grid-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: praxis-gateway
@@ -307,7 +307,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: "grid-provider-gateway-config"
+            name: "grid-gateway-config"
             items:
               - key: "praxis.yaml"
                 path: "praxis.yaml"
@@ -361,7 +361,19 @@ spec:
             - name: SSL_CERT_FILE
               value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
             - name: SSL_CERT_DIR
-              value: /etc/ssl/certs
+              value: /etc/pki/tls/certs:/etc/ssl/certs
+          volumeMounts:
+            - name: authorino-trusted-ca
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+      volumes:
+        - name: authorino-trusted-ca
+          projected:
+            sources:
+              - configMap:
+                  name: odh-trusted-ca-bundle
+              - configMap:
+                  name: openshift-service-ca.crt
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
@@ -416,7 +428,7 @@ spec:
       maasPortal:
         managementState: Managed
       standard:
-        managementState: Removed
+        managementState: Managed
     data:
       dataRegistry:
         managementState: Removed

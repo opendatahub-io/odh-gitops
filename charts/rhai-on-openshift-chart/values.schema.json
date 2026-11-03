@@ -53,11 +53,21 @@
         }
       }
     },
+    "praxis-provider-gateway": {
+      "type": "object",
+      "description": "AI Grid provider runtime for inference sites, rendered only when a profile enables it. See charts/praxis-gateway for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Unset uses the profile default, then false. Inference profiles enable it."
+        }
+      }
+    },
     "profile": {
       "type": "string",
       "minLength": 1,
       "default": "default",
-      "description": "Deploy profile matching a bundled profiles/<name>.yaml file. Profile values can provide defaults for any chart or vendored-subchart value, and profile files can inherit bundled profiles with extends. Explicit non-null user values override the profile chain. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid-ingress' enables AIGateway with modelsAsAService and aiGrid. 'ai-grid-inference' enables KServe and AIGateway with only aiGrid. 'ai-grid-combined' enables MaaS ingress and local model serving. 'rhaii' enables only KServe."
+      "description": "Deploy profile matching a bundled profiles/<name>.yaml file. Profile values can provide defaults for any chart or vendored-subchart value, and profile files can inherit bundled profiles with extends. Explicit non-null user values override the profile chain. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid-ingress' enables MaaS and the Grid consumer gateway. 'ai-grid-inference' enables KServe and the Grid provider gateway. 'ai-grid-combined' enables MaaS, KServe, and both Grid gateways. 'rhaii' enables only KServe."
     },
     "olm": {
       "type": "object",
@@ -1074,6 +1084,24 @@
               "type": "boolean",
               "default": false,
               "description": "Trust the OpenShift Service CA in Authorino while retaining platform CA trust"
+            },
+            "authorinoTrustedCA": {
+              "type": "object",
+              "description": "Mount additional CA ConfigMaps into Authorino",
+              "properties": {
+                "mountPath": {
+                  "type": "string",
+                  "description": "Directory where the CA ConfigMaps are mounted"
+                },
+                "configMaps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "CA ConfigMaps mounted into Authorino"
+                }
+              },
+              "additionalProperties": false
             },
             "spec": {
               "type": "object",

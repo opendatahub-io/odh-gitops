@@ -18,6 +18,10 @@ dependencies:
   - name: praxis-gateway
     version: "0.3.0-rc.3"
     condition: praxis-gateway.enabled
+  - name: praxis-gateway
+    alias: praxis-provider-gateway
+    version: "0.3.0-rc.3"
+    condition: praxis-provider-gateway.enabled
   - name: ai-grid-o11y-hub
     version: 0.1.0
     condition: ai-grid-o11y-hub.enabled

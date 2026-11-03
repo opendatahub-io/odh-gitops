@@ -1,18 +1,6 @@
 # AI Grid combined profile - one site provides both MaaS ingress and inference.
-# It inherits the ingress site's MaaS/dashboard configuration, then the
-# inference site's local model-serving and provider-gateway configuration.
+# It inherits the inference site's local model-serving and Grid provider
+# gateway, then the ingress site's MaaS consumer gateway.
 extends:
-  - ai-grid-ingress
   - ai-grid-inference
-
-# The inference parent makes this a Grid mTLS provider. Its gridIdentity
-# certificate replaces the ingress parent's consumer listener certificate and
-# Service serving-cert annotation.
-praxis-gateway:
-  port:
-    name: https
-  listenerTls:
-    secretName: ""
-  service:
-    annotations:
-      service.beta.openshift.io/serving-cert-secret-name: ""
+  - ai-grid-ingress

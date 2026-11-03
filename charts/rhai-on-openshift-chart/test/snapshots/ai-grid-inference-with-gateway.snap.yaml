@@ -128,14 +128,14 @@ metadata:
   name: grid-provider-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/name: praxis-provider-gateway
       app.kubernetes.io/instance: release-test
   policyTypes: [Ingress]
   ingress:
@@ -188,7 +188,7 @@ metadata:
   name: grid-provider-gateway-config
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
@@ -232,7 +232,7 @@ metadata:
   name: grid-provider-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
@@ -244,7 +244,7 @@ spec:
       targetPort: http
       protocol: "TCP"
   selector:
-    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
 
 ---
@@ -255,7 +255,7 @@ metadata:
   name: grid-provider-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
@@ -265,14 +265,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/name: praxis-provider-gateway
       app.kubernetes.io/instance: release-test
   template:
     metadata:
       labels:
         app.kubernetes.io/component: gateway
         app.kubernetes.io/instance: release-test
-        app.kubernetes.io/name: praxis-gateway
+        app.kubernetes.io/name: praxis-provider-gateway
       annotations:
         checksum/config: b2fddc91f84c5bcacead20b19255fd945efa2830b7968f71a273d757645cb0c5
     spec:
@@ -285,7 +285,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+          image: ghcr.io/praxis-proxy/ai:0.7.0
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -729,7 +729,7 @@ metadata:
   name: grid-provider-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm

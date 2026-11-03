@@ -270,6 +270,7 @@ dependencies:
           tls:
             enabled: false
         replicas: 1
+      authorinoTrustedCA: {}
       spec: {}
       tlsEnabled: false
     dependencies:
@@ -554,6 +555,232 @@ praxis-gateway:
     pullPolicy: IfNotPresent
     repository: ghcr.io/praxis-proxy/grid-gateway
     tag: v0.3.0-rc.3
+  imagePullSecrets: []
+  imageUser:
+    enabled: auto
+    gid: 101
+    uid: 100
+  listenerTls:
+    mountPath: /etc/praxis/listener-tls
+    secretName: ""
+  loadBalancerScope: internal
+  log:
+    filter: ""
+    level: ""
+  metricsListener:
+    enabled: auto
+    existingSecret: ""
+    fromNamespaces: []
+    mountPath: /etc/praxis/metrics-tls
+    port: 9443
+    service:
+      annotations: {}
+    serviceMonitor:
+      caConfigMap:
+        key: ca.crt
+        name: ""
+      enabled: auto
+      interval: 30s
+      labels: {}
+      scrapeTimeout: ""
+  mountReconciliation:
+    enabled: false
+    gatewayRef: ""
+    managedCredentialNames: []
+    network: ""
+    operator:
+      namespace: ""
+      serviceAccount: grid-operator
+    rbac:
+      create: true
+    releaseHelmMounts: false
+  nameOverride: ""
+  networkPolicy:
+    enabled: true
+    from:
+    - podSelector:
+        matchLabels:
+          grid.opendatahub.io/gateway-client: "true"
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+  nodeSelector: {}
+  overlay:
+    configMapName: ""
+    mountPath: /etc/praxis/routing
+    sidecar:
+      dataKey: routing-overlay.json
+      enabled: true
+      image:
+        pullPolicy: IfNotPresent
+        repository: ghcr.io/praxis-proxy/grid-overlay-sync
+        tag: v0.3.0-rc.3
+      resources:
+        limits:
+          cpu: 50m
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 16Mi
+  platform: ""
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  port:
+    containerPort: 8080
+    name: ""
+    protocol: TCP
+  praxisConfig:
+    byo:
+      configMapName: ""
+      inline: |
+        admin:
+          metrics_address: "127.0.0.1:9901"
+        listeners:
+          - name: default
+            address: "0.0.0.0:8080"
+            filter_chains: [default]
+        filter_chains:
+          - name: default
+            filters:
+              - filter: static_response
+                status: 200
+                headers:
+                  - name: Content-Type
+                    value: application/json
+                body: '{"status": "ok", "server": "praxis"}'
+                conditions:
+                  - when:
+                      path: "/"
+              - filter: static_response
+                status: 404
+                headers:
+                  - name: Content-Type
+                    value: application/json
+                body: '{"error": "not found"}'
+      key: praxis.yaml
+    operator:
+      allowUnauthenticatedExposure: false
+      configMapName: ""
+      gridServing:
+        configMapName: ""
+        enabled: false
+        gatewayRefName: ""
+        mountPath: /etc/praxis/grid-serving
+        networkName: ""
+    render:
+      auth:
+        allowPrivateEndpoint: false
+        allowUnauthenticatedExposure: false
+        mode: ""
+        prefix: 'Bearer '
+        stripAuthorization: true
+        timeoutSecs: 5
+        validateCA:
+          configMapName: ""
+          key: ca.crt
+          mountPath: /etc/praxis/validate-ca
+          secretName: ""
+        validateUrl: ""
+      gridServing:
+        backendCAs: []
+        configMapName: ""
+        enabled: false
+        gatewayRefName: ""
+        mountPath: /etc/praxis/grid-serving
+        networkName: ""
+        siteRoute:
+          availability: {}
+          prefixAffinity: {}
+      model: ""
+      peerTrust:
+        allowAnyGridSite: false
+        certDigests: []
+        digest: ""
+        mode: pin
+        nextDigest: ""
+        rateLimit: {}
+        spiffeId: ""
+        spiffeIds: []
+      provider:
+        allowedPaths:
+        - /v1/chat/completions
+        - /v1/completions
+        - /v1/models
+        - /v1/embeddings
+      role: consumer
+      telemetry:
+        enabled: false
+        environment: ""
+        otlpEndpoint: ""
+        serviceName: ""
+        serviceVersion: ""
+    source: byo
+  priorityClassName: ""
+  providerCredentials: []
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 2
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  route:
+    annotations: {}
+    enabled: false
+    externalTls: false
+    host: ""
+    tls:
+      destinationCACertificate: ""
+      termination: passthrough
+  service:
+    annotations: {}
+    enabled: true
+    loadBalancerIP: ""
+    port: 8080
+    type: ""
+  shutdownDelaySeconds: 5
+  tolerations: []
+  topologySpreadConstraints: []
+  upstreamCA:
+    key: ca.crt
+    mountPath: /etc/praxis/upstream-ca
+    secretName: ""
+praxis-provider-gateway:
+  affinity: {}
+  args:
+  - --config
+  - /etc/praxis/praxis.yaml
+  command: []
+  commonLabels: {}
+  env: []
+  fullnameOverride: ""
+  global:
+    relatedImages: []
+  grid:
+    networkName: ""
+    siteName: ""
+  gridIdentity:
+    caSecretName: ""
+    mountPath: /etc/praxis/tls
+    tlsSecretName: ""
+  health:
+    adminProbeCommand: []
+    liveness:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      tcpSocket: {}
+    readiness:
+      initialDelaySeconds: 3
+      periodSeconds: 5
+      tcpSocket: {}
+  image:
+    digest: ""
+    flavor: ai
+    pullPolicy: IfNotPresent
+    repository: ghcr.io/praxis-proxy/ai
+    tag: 0.7.0
   imagePullSecrets: []
   imageUser:
     enabled: auto

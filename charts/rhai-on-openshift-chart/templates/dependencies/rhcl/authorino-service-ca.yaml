@@ -22,6 +22,22 @@ spec:
               value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
             {{- end }}
             - name: SSL_CERT_DIR
-              value: /etc/ssl/certs
+              value: {{ with $dep.config.authorinoTrustedCA }}{{ printf "%s:/etc/ssl/certs" .mountPath }}{{ else }}/etc/ssl/certs{{ end }}
+          {{- with $dep.config.authorinoTrustedCA }}
+          volumeMounts:
+            - name: authorino-trusted-ca
+              mountPath: {{ .mountPath }}
+              readOnly: true
+          {{- end }}
+      {{- with $dep.config.authorinoTrustedCA }}
+      volumes:
+        - name: authorino-trusted-ca
+          projected:
+            sources:
+              {{- range .configMaps }}
+              - configMap:
+                  name: {{ . }}
+              {{- end }}
+      {{- end }}
 {{- end }}
 {{- end }}

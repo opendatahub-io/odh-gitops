@@ -220,12 +220,14 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - components.aigateway.dsc.aiGrid.managementState=Removed
 
       - name: ai-grid-parent-removed
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - components.aigateway.dsc.managementState=Removed
 
       - name: ai-grid-manual
@@ -259,7 +261,7 @@ charts:
           - skipCrdCheck=true
           - operator.type=rhoai
           - profile=ai-grid-inference
-          - praxis-gateway.grid.siteName=local-cluster
+          - praxis-provider-gateway.grid.siteName=local-cluster
         setJsonFlags:
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
 
@@ -269,8 +271,8 @@ charts:
           - skipCrdCheck=true
           - operator.type=rhoai
           - profile=ai-grid-inference
-          - praxis-gateway.enabled=true
-          - praxis-gateway.grid.siteName=local-cluster
+          - praxis-provider-gateway.enabled=true
+          - praxis-provider-gateway.grid.siteName=local-cluster
         setJsonFlags:
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
 
@@ -280,6 +282,7 @@ charts:
           - operator.type=rhoai
           - profile=ai-grid-combined
           - praxis-gateway.grid.siteName=local-cluster
+          - praxis-provider-gateway.grid.siteName=local-cluster
 
       - name: ai-grid-external-identities
         setFlags:
@@ -341,6 +344,7 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - praxis-gateway.port.protocol=UDP
 
       - name: ai-grid-reject-source-override
@@ -360,6 +364,7 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - praxis-gateway.praxisConfig.source=render
           - praxis-gateway.praxisConfig.render.telemetry.otlpEndpoint=http://collector:4317
 
@@ -369,6 +374,7 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.enabled=true
           - grid-enrollment.route.enabled=false
           - grid-enrollment.host=enrollment.example.com

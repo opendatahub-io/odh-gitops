@@ -546,6 +546,8 @@ dependencies:
       tlsEnabled: false
       # -- Trust the OpenShift Service CA in Authorino while retaining platform CA trust
       authorinoServiceCaTrust: false
+      # -- Mount additional CA ConfigMaps into Authorino, such as the cluster trust bundle
+      authorinoTrustedCA: {}
       # -- Kuadrant CR spec (user can add any fields)
       spec: {}
       # -- Authorino CR spec (only created if tlsEnabled: true)
@@ -749,6 +751,9 @@ praxis-gateway:
     tag: v0.3.0-rc.3
     digest: sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
     flavor: grid-gateway
+
+# -- AI Grid provider gateway for inference sites; a profile alias of praxis-gateway
+praxis-provider-gateway: {}
 
 # =============================================================================
 # Subcharts

@@ -196,9 +196,9 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 | `default` | All components Removed (manual configuration) | None | None |
 | `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
 | `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, rhcl |
-| `ai-grid-ingress` | AI Grid ingress site with MaaS, Grid routing, and the observability spoke | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
-| `ai-grid-inference` | AI Grid inference site with the observability spoke: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl, nfd, nvidiaGPUOperator |
-| `ai-grid-combined` | AI Grid site combining MaaS ingress and local model serving | aigateway (`modelsAsAService`, `aiGrid`), kserve | certManager, leaderWorkerSet, rhcl, nfd, nvidiaGPUOperator |
+| `ai-grid-ingress` | AI Grid ingress site with MaaS, the `grid-gateway` consumer, and the observability spoke | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
+| `ai-grid-inference` | AI Grid inference site with the `grid-provider-gateway` provider: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl, nfd, nvidiaGPUOperator |
+| `ai-grid-combined` | AI Grid site with MaaS, local model serving, and both Grid gateways | aigateway (`modelsAsAService`, `aiGrid`), kserve | certManager, leaderWorkerSet, rhcl, nfd, nvidiaGPUOperator |
 
 With ordinary chart defaults, the `maas` profile installs `certManager` and `rhcl` (through `kserve`) but not
 `leaderWorkerSet` — `aigateway`'s `null` dependency default for it is not activated. Enable it explicitly
@@ -219,9 +219,10 @@ The AI Gateway operator owns the Grid operator and its CRDs (ai-gateway-operator
 This chart does not install a second Grid operator. The profile requires an operator payload
 containing opendatahub-operator PR #4186; chart version `3.6.0` alone does not guarantee that payload.
 
-The profile also enables the Helm-managed gateway and enrollment workloads. Both runtime
-`enabled` flags default to `true`, but resources render only when the effective AIGateway
-and `aiGrid` management states are both `Managed`. Thus the default profile installs neither.
+The profile also enables the Helm-managed gateway and enrollment workloads. Runtime `enabled`
+flags default to `true` for the MaaS consumer and enrollment runtimes and `false` for the
+Grid provider gateway alias, but resources render only when the effective AIGateway and
+`aiGrid` management states are both `Managed`. Thus the default profile installs none of them.
 Setting either state to `Removed` suppresses both runtimes on the next Helm upgrade or GitOps
 sync with pruning enabled, even if their `enabled` flags remain `true`. Editing the live DSC
 alone does not update a Helm release.
@@ -229,10 +230,10 @@ Set an individual runtime's `enabled: false` to supply that service externally.
 
 `--set profile=ai-grid-inference` configures an inference site: a cluster that serves models to
 the grid but runs no MaaS and no portal. It sets KServe and AIGateway with only `aiGrid` to
-`Managed`, leaves `modelsAsAService` and the dashboard `Removed`, and turns off both runtimes:
-enrollment runs on the grid hub, and the gateway in front of MaaS runs on ingress sites. Tenants
-reach the site's models through another cluster's MaaS gateway. A runtime's `enabled` is unset by
-default, so the profile decides; an explicit `enabled: true` or `false` overrides it.
+`Managed`, leaves `modelsAsAService` and the dashboard `Removed`, and enables the Grid provider
+gateway. Enrollment runs on the grid hub, and the gateway in front of MaaS runs on ingress sites.
+Tenants reach the site's models through another cluster's MaaS gateway. A runtime's `enabled` is
+unset by default, so the profile decides; an explicit `enabled: true` or `false` overrides it.
 
 Use [`values-ai-grid-hub.yaml`](../../docs/examples/values-ai-grid-hub.yaml) to configure a
 hub's hostname, gateway ConfigMap and database Secret. The profile defaults render the upstream
@@ -713,7 +714,7 @@ dependencies:
 ### Global Settings
 
 ```yaml
-# Deployment profile: default (all Removed), rhaii, maas, ai-grid-ingress, ai-grid-inference
+# Deployment profile: default (all Removed), rhaii, maas, ai-grid-ingress, ai-grid-inference, ai-grid-combined
 # Explicit managementState values override the profile.
 profile: default
 

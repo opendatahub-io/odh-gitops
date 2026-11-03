@@ -898,9 +898,10 @@ true
 
 {{/*
 =============================================================================
-Resolve whether an AI Grid runtime subchart (grid-enrollment, praxis-gateway)
-renders. An explicit <name>.enabled value wins; unset uses the profile's
-<name>.enabled, then true. Helm loads the subchart unless enabled is false.
+Resolve whether an AI Grid runtime subchart (grid-enrollment, praxis-gateway,
+praxis-provider-gateway) renders. An explicit <name>.enabled value wins; unset
+uses the profile's <name>.enabled. The default is true except for the provider
+gateway alias, which only inference profiles enable.
 =============================================================================
 Arguments (passed as dict):
   - root: root context ($)
@@ -910,7 +911,11 @@ Arguments (passed as dict):
 {{- $enabled := index (index .root.Values .name | default dict) "enabled" -}}
 {{- if kindIs "invalid" $enabled -}}
   {{- $profileValues := include "rhoai-dependencies.profileFileValues" .root | fromYaml | default dict -}}
-  {{- $enabled = dig "enabled" true (index $profileValues .name | default dict) -}}
+  {{- $defaultEnabled := true -}}
+  {{- if eq .name "praxis-provider-gateway" -}}
+    {{- $defaultEnabled = false -}}
+  {{- end -}}
+  {{- $enabled = dig "enabled" $defaultEnabled (index $profileValues .name | default dict) -}}
 {{- end -}}
 {{- if $enabled -}}
 true
