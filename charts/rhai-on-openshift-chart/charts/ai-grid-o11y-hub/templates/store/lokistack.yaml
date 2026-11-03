@@ -1,0 +1,41 @@
+{{- if and .Values.enabled .Values.lokiStack.enabled (include "ai-grid-o11y-hub.crdExists" (dict "crdName" "lokistacks.loki.grafana.com" "root" $)) }}
+{{- $name := include "ai-grid-o11y-hub.lokiStackName" . }}
+{{- range $i, $schema := .Values.lokiStack.schemas }}
+{{- if not $schema.effectiveDate }}
+{{- fail (printf "lokiStack.schemas[%d].effectiveDate is required: a date in the future leaves the LokiStack permanently not Ready" $i) }}
+{{- end }}
+{{- end }}
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: {{ $name | quote }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  size: {{ .Values.lokiStack.size | quote }}
+  managementState: Managed
+  storageClassName: {{ .Values.lokiStack.storageClassName | quote }}
+  storage:
+    schemas:
+      {{- toYaml .Values.lokiStack.schemas | nindent 6 }}
+    secret:
+      name: {{ include "ai-grid-o11y-hub.storageSecretName" . | quote }}
+      type: s3
+    {{- if .Values.objectStorage.serviceCA.enabled }}
+    tls:
+      caName: {{ .Values.objectStorage.serviceCA.configMapName | quote }}
+      caKey: service-ca.crt
+    {{- end }}
+  tenants:
+    {{- /* See the ai-grid-o11y-hub.tenant helper for why this is not configurable. */}}
+    mode: openshift-logging
+  {{- with .Values.lokiStack.limits }}
+  limits:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.lokiStack.template }}
+  template:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

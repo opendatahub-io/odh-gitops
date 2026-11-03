@@ -1,0 +1,94 @@
+{{- if and .Values.enabled .Values.spokePolicy.enabled }}
+{{- $d := .Values.spokePolicy }}
+{{- $spoke := $d.spoke }}
+{{- if not (or $d.deliverCredential $d.deliverConfiguration) }}
+{{- fail "spokePolicy needs deliverCredential and/or deliverConfiguration: with both false the ConfigurationPolicy would carry no object-templates" }}
+{{- end }}
+{{- if and $d.deliverConfiguration (eq $spoke.exporterName "otlphttp/loki") }}
+{{- fail "spokePolicy.spoke.exporterName may not be otlphttp/loki: that name is reserved for the spoke-local write and odh-observability rejects it" }}
+{{- end }}
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: {{ $d.name | quote }}
+  namespace: {{ $d.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+  {{- with $d.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  remediationAction: {{ $d.remediationAction }}
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: {{ $d.name | quote }}
+        spec:
+          remediationAction: {{ $d.remediationAction }}
+          severity: {{ $d.severity }}
+          pruneObjectBehavior: {{ $d.pruneObjectBehavior }}
+          object-templates:
+            {{- /* The credential first, then the configuration that names it. Order is not
+                   enforced by ACM, but a collector that reconciles between the two reports a
+                   missing Secret rather than a failed write. Either half can be turned off:
+                   a fleet whose spokes are installed by GitOps carries the configuration in
+                   its own values and takes only the credential from here. */}}
+            {{- if $d.deliverCredential }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: {{ $spoke.credentialSecretName | quote }}
+                  namespace: {{ $spoke.monitoringNamespace | quote }}
+                data:
+                  {{- /* fromSecret emits base64 already, and ships it as $ocm_encrypted:
+                         ciphertext with a per-policy IV. Under stringData it would be encoded
+                         a second time and the policy would still report Compliant, so the
+                         collector would present a corrupt token. The printf is what stops Helm
+                         consuming ACM's braces. */}}
+                  token: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $d.credentialSecretName }}'
+            {{- end }}
+            {{- if $d.deliverConfiguration }}
+            {{- /* musthave on a map merges, which is what this needs: the patch must not
+                   disturb the rest of spec.monitoring — metrics, traces and log forwarding
+                   are the spoke's own, and mustonlyhave would replace them. It also means the
+                   patch creates usageLogs where the spoke's install leaves it absent, which
+                   is now the normal case. */}}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: dscinitialization.opendatahub.io/v1
+                kind: DSCInitialization
+                metadata:
+                  name: {{ $spoke.dsciName | quote }}
+                spec:
+                  monitoring:
+                    usageLogs:
+                      credentialSecret: {{ $spoke.credentialSecretName | quote }}
+                      {{- with $spoke.size }}
+                      size: {{ . | quote }}
+                      {{- end }}
+                      {{- with $spoke.attributes }}
+                      attributes:
+                        {{- /* Emitted one key at a time rather than with toYaml, which wraps a
+                               long value at 80 columns. YAML folding keeps such a value
+                               correct, but these are ACM templates a reader has to be able to
+                               check by eye, and a folded one cannot be. Single quotes suit
+                               them: they contain double quotes and no single ones. */}}
+                        {{- range $k, $v := . }}
+                        {{- if contains "'" ($v | toString) }}
+                        {{- fail (printf "spokePolicy.spoke.attributes.%s may not contain a single quote: the value is emitted as a single-quoted YAML scalar" $k) }}
+                        {{- end }}
+                        {{ $k }}: '{{ $v }}'
+                        {{- end }}
+                      {{- end }}
+                      exporters:
+                        {{ $spoke.exporterName }}:
+                          endpoint: {{ include "ai-grid-o11y-hub.spokeEndpoint" $ | quote }}
+            {{- end }}
+{{- end }}

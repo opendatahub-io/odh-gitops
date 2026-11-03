@@ -1,6 +1,11 @@
 ai-grid-o11y-hub:
   enabled: false
 ai-grid-o11y-spoke:
+  collector:
+    namespace: redhat-ods-monitoring
+    port: 8890
+  credential:
+    enabled: false
   enabled: false
 argocd:
   enabled: false
@@ -202,7 +207,7 @@ dependencies:
       certManager: true
     enabled: auto
     olm:
-      channel: stable-v1.4
+      channel: stable-v1.5
       name: kueue-operator
       namespace: openshift-kueue-operator
   leaderWorkerSet:
@@ -290,6 +295,7 @@ dependencies:
       namespace: openshift-tempo-operator
 global:
   relatedImages: []
+  skipCrdCheck: false
 grid-enrollment:
   ca:
     bootstrap:
@@ -424,6 +430,7 @@ grid-enrollment:
   fullnameOverride: grid-enrollment
   global:
     relatedImages: []
+    skipCrdCheck: false
   grid:
     membership:
       source: Swim
@@ -532,6 +539,7 @@ praxis-gateway:
   fullnameOverride: grid-gateway
   global:
     relatedImages: []
+    skipCrdCheck: false
   grid:
     networkName: ""
     siteName: ""
@@ -758,6 +766,7 @@ praxis-provider-gateway:
   fullnameOverride: ""
   global:
     relatedImages: []
+    skipCrdCheck: false
   grid:
     networkName: ""
     siteName: ""

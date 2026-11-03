@@ -187,6 +187,39 @@ components:
                 mode: Terminate
 ```
 
+### AI Grid observability spoke
+
+The observability spoke requires ACM observability and an active data-science-collector.
+When the parent chart manages monitoring, enable it explicitly:
+
+```yaml
+operator:
+  type: rhoai
+services:
+  monitoring:
+    dsci:
+      managementState: Managed
+ai-grid-o11y-spoke:
+  enabled: true
+  collector:
+    namespace: redhat-ods-monitoring
+    port: 8890
+```
+
+The spoke's `collector.namespace` must match `operator.<type>.monitoringNamespace`.
+For ODH defaults, set it to `opendatahub`; for a custom monitoring namespace, set both
+values to that namespace. The chart validates this even before the DSCI CRD is installed.
+The NetworkPolicy namespace, collector pod selector and scrape hostname use this value.
+
+`collector.port` configures the scrape target, NetworkPolicy and default
+`services.monitoring.dsci.metrics.exporters["prometheus/rhacm"].endpoint` together.
+An explicit endpoint must be `0.0.0.0:<collector.port>` so the collector is reachable
+from ACM. Other exporter options and additional exporters are preserved.
+
+For a standalone spoke installation, configure `collector.namespace` and `collector.port`
+in the subchart values and configure the existing collector to expose that endpoint.
+The standalone chart does not manage DSCI.
+
 ## Deploy Profiles
 
 Profiles provide preconfigured deployment types that set the right `managementState` for components and dependencies with a single `--set profile=<name>` flag.

@@ -1,62 +1,36 @@
-{{/*
-Expand the name of the chart.
-*/}}
 {{- define "ai-grid-o11y-spoke.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- .Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "ai-grid-o11y-spoke.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
 {{- define "ai-grid-o11y-spoke.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Common labels
+Common labels. part-of matches ai-grid-o11y-hub, so both ends of the aggregation path can be
+listed together.
 */}}
 {{- define "ai-grid-o11y-spoke.labels" -}}
 helm.sh/chart: {{ include "ai-grid-o11y-spoke.chart" . }}
-{{ include "ai-grid-o11y-spoke.selectorLabels" . }}
+app.kubernetes.io/name: {{ include "ai-grid-o11y-spoke.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/part-of: ai-grid-usage-logs
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*
-Selector labels
-*/}}
-{{- define "ai-grid-o11y-spoke.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ai-grid-o11y-spoke.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
+The hub token, required rather than defaulted.
 
-{{/*
-Create the name of the service account to use
+--set-file keeps the token contents out of shell history and process arguments.
+Helm still stores the supplied value in release history, as well as in the rendered
+credential Secret; restrict access to both namespaces accordingly.
 */}}
-{{- define "ai-grid-o11y-spoke.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "ai-grid-o11y-spoke.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
+{{- define "ai-grid-o11y-spoke.token" -}}
+{{- .Values.credential.token | required "credential.token is required when ai-grid-o11y-spoke.credential.enabled is set: mint it on the hub with `oc create token <writer-sa> -n <o11y-namespace>` and pass it with --set-file ai-grid-o11y-spoke.credential.token=./token" -}}
 {{- end }}

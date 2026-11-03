@@ -10,6 +10,8 @@ argocd:
 
 ai-grid-o11y-spoke:
   enabled: true
+  collector:
+    namespace: redhat-ods-monitoring
 
 dependencies:
   nfd:

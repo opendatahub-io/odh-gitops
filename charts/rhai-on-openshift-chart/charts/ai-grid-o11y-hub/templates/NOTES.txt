@@ -1,0 +1,124 @@
+{{- if .Values.enabled }}
+ai-grid-o11y-hub installed into namespace {{ .Values.namespace }}.
+{{- if .Values.lokiStack.enabled }}
+
+LokiStack {{ include "ai-grid-o11y-hub.lokiStackName" . }} is deploying. It is not usable until
+Ready, and the Loki operator creates the Route only in openshift-logging tenant mode:
+
+  oc wait --for=condition=Ready lokistack/{{ include "ai-grid-o11y-hub.lokiStackName" . }} -n {{ .Values.namespace }} --timeout=15m
+  oc get route {{ include "ai-grid-o11y-hub.lokiStackName" . }} -n {{ .Values.namespace }} -o jsonpath='{.spec.host}{"\n"}'
+
+The ingest endpoint spokes write to is that host plus the tenant path:
+
+  https://<route-host>/api/logs/v1/{{ include "ai-grid-o11y-hub.tenant" . }}/otlp
+{{- if .Values.objectStorage.obc.create }}
+
+An ObjectBucketClaim was created, but its credentials are NOT in the storage Secret: ODF
+publishes them under key names the Loki operator does not read, and nothing translates them.
+Until you run this, the LokiStack will not become Ready:
+
+  NS={{ .Values.namespace }}
+  OBC={{ include "ai-grid-o11y-hub.obcName" . }}
+  (
+    set -euo pipefail
+    STORAGE_CREDENTIAL_DIR=$(mktemp -d)
+    trap 'rm -rf -- "$STORAGE_CREDENTIAL_DIR"' EXIT
+    oc get cm "$OBC" -n "$NS" -o jsonpath='{.data.BUCKET_NAME}' > "$STORAGE_CREDENTIAL_DIR/bucketnames"
+    printf '%s' 'https://s3.openshift-storage.svc:443' > "$STORAGE_CREDENTIAL_DIR/endpoint"
+    oc get secret "$OBC" -n "$NS" -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d > "$STORAGE_CREDENTIAL_DIR/access_key_id"
+    oc get secret "$OBC" -n "$NS" -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d > "$STORAGE_CREDENTIAL_DIR/access_key_secret"
+    oc create secret generic {{ include "ai-grid-o11y-hub.storageSecretName" . }} -n "$NS" \
+      --from-file=bucketnames="$STORAGE_CREDENTIAL_DIR/bucketnames" \
+      --from-file=endpoint="$STORAGE_CREDENTIAL_DIR/endpoint" \
+      --from-file=access_key_id="$STORAGE_CREDENTIAL_DIR/access_key_id" \
+      --from-file=access_key_secret="$STORAGE_CREDENTIAL_DIR/access_key_secret" \
+      --dry-run=client -o yaml | oc apply -f -
+  )
+{{- end }}
+{{- if .Values.ingest.writer.create }}
+
+Spokes authenticate as {{ include "ai-grid-o11y-hub.writerName" . }}. The chart creates the
+identity but cannot mint its token, which is not a declarative object, and no object this
+chart renders ever contains it. Mint it here:
+
+  TOKEN_FILE=$(mktemp)
+  oc create token {{ include "ai-grid-o11y-hub.writerName" . }} -n {{ .Values.namespace }} --duration=8760h > "$TOKEN_FILE"
+
+It then reaches spokes one of two ways, and you need only one of them.
+{{ if and .Values.spokePolicy.enabled .Values.spokePolicy.deliverCredential }}
+ACM: the command below puts it in Secret {{ .Values.spokePolicy.credentialSecretName }}, and the
+policy delivers it to every selected spoke. Nothing else to do per spoke.
+{{- else if .Values.spokePolicy.enabled }}
+ACM delivers configuration only: spokePolicy.deliverCredential is false. The credential
+must reach each spoke through its existing credential manager; no hub Secret is read.
+{{- else }}
+ACM: set spokePolicy.enabled and spokePolicy.deliverCredential, then hold it in a Secret this hub's policy reads, which then
+delivers it to every selected spoke.
+{{- end }}
+Directly: hand the file to the ai-grid-o11y-spoke chart on the spoke cluster, which creates
+the Secret its collector mounts:
+
+  helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+    -f docs/examples/values-ai-grid-o11y-spoke.yaml \
+    --set-file ai-grid-o11y-spoke.credential.token="$TOKEN_FILE" \
+    -n rhoai-gitops --create-namespace
+
+After completing the chosen delivery command, delete the private file: rm -- "$TOKEN_FILE".
+Nothing rotates the token and no object reports
+its age; treat the expiry as an operational commitment, not a default.
+{{- end }}
+{{- else }}
+
+lokiStack.enabled is false: no store, object storage or ingest identity was rendered.
+{{- end }}
+{{- if .Values.spokePolicy.enabled }}
+
+The spoke policy is on. Policy {{ .Values.spokePolicy.name }} targets managed clusters
+labelled{{- range $k, $v := .Values.spokePolicy.placement.matchLabels }} {{ $k }}={{ $v }}{{- end }}.
+
+{{- if .Values.spokePolicy.deliverCredential }}
+Hold the writer token where the Policy reads it. The chart does not create it. TOKEN_FILE
+must point to a private file containing the writer token, minted above or at an external store:
+
+     oc create secret generic {{ .Values.spokePolicy.credentialSecretName }} -n {{ .Values.spokePolicy.namespace }} \
+       --from-file=token="$TOKEN_FILE"
+{{- else }}
+Credential delivery is disabled. This policy configures forwarding but does not read or
+deliver a credential Secret; supply the named credential separately on every spoke.
+{{- end }}
+
+Label each spoke so the Placement selects it. Nothing sets these automatically:
+{{- range $k, $v := .Values.spokePolicy.placement.matchLabels }}
+
+     oc label managedcluster <spoke> {{ $k }}={{ $v }}
+{{- end }}
+
+Confirm the Placement resolved before looking at compliance:
+
+     oc get placementdecision -n {{ .Values.spokePolicy.namespace }} \
+       -l cluster.open-cluster-management.io/placement={{ .Values.spokePolicy.placement.name }} \
+       -o jsonpath='{.items[*].status.decisions[*].clusterName}{"\n"}'
+
+     oc get policy {{ .Values.spokePolicy.name }} -n {{ .Values.spokePolicy.namespace }}
+{{ if eq .Values.spokePolicy.remediationAction "inform" }}
+remediationAction is inform: drift is reported and nothing is changed. Switch to enforce to
+deliver.
+{{- else }}
+remediationAction is enforce: an object deleted on a spoke is recreated within about one
+evaluation interval.
+{{- end }}
+
+usageLogs.storage is not delivered by this policy. A forwarding-only spoke needs no local
+store; supply storage through the spoke's install only when retaining a local copy.
+
+Before teardown, stop enforcement and remove or replace each spoke's forwarding references
+before removing its credential. See the README teardown sequence.
+
+Compliance says the Secret matches the policy, not that the token works. An expired or
+wrongly scoped token distributes as Compliant, and ManagedClusterView refuses Secrets, so
+the hub cannot read back what a spoke holds. The signal that the chain works is records
+arriving here with the right cluster_name.
+{{- end }}
+{{- else }}
+ai-grid-o11y-hub rendered nothing: enabled is false.
+{{- end }}

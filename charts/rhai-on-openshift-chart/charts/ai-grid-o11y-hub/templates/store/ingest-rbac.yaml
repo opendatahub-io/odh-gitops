@@ -1,0 +1,83 @@
+{{- if and .Values.enabled .Values.lokiStack.enabled }}
+{{- $ns := .Values.namespace }}
+{{- $tenant := include "ai-grid-o11y-hub.tenant" . }}
+{{- $stack := include "ai-grid-o11y-hub.lokiStackName" . }}
+{{- if .Values.ingest.writer.create }}
+{{- $writer := include "ai-grid-o11y-hub.writerName" . }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $writer | quote }}
+  namespace: {{ $ns | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+---
+{{- /* The tenant is the resource and `logs` is the resourceName; the pairing is what the
+       gateway's SubjectAccessReview asks about. Reversing them authorizes nothing while
+       looking plausible. */}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ printf "%s-%s-writer" $stack $tenant | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["loki.grafana.com"]
+    resources: [{{ $tenant | quote }}]
+    resourceNames: ["logs"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ printf "%s-%s-writer" $stack $tenant | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "%s-%s-writer" $stack $tenant | quote }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $writer | quote }}
+    namespace: {{ $ns | quote }}
+{{- end }}
+{{- if .Values.ingest.reader.create }}
+{{- $reader := include "ai-grid-o11y-hub.readerName" . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $reader | quote }}
+  namespace: {{ $ns | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ printf "%s-%s-reader" $stack $tenant | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["loki.grafana.com"]
+    resources: [{{ $tenant | quote }}]
+    resourceNames: ["logs"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ printf "%s-%s-reader" $stack $tenant | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "%s-%s-reader" $stack $tenant | quote }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $reader | quote }}
+    namespace: {{ $ns | quote }}
+{{- end }}
+{{- end }}
