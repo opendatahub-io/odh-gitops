@@ -198,6 +198,7 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 | `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, rhcl |
 | `ai-grid-ingress` | AI Grid ingress site with MaaS, Grid routing, and the observability spoke | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
 | `ai-grid-inference` | AI Grid inference site with the observability spoke: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl, nfd, nvidiaGPUOperator |
+| `ai-grid-combined` | AI Grid site combining MaaS ingress and local model serving | aigateway (`modelsAsAService`, `aiGrid`), kserve | certManager, leaderWorkerSet, rhcl, nfd, nvidiaGPUOperator |
 
 With ordinary chart defaults, the `maas` profile installs `certManager` and `rhcl` (through `kserve`) but not
 `leaderWorkerSet` — `aigateway`'s `null` dependency default for it is not activated. Enable it explicitly
@@ -205,7 +206,7 @@ with `--set components.aigateway.dependencies.leaderWorkerSet=true`. The profile
 listener configuration for both `aigateway` and `kserve` before it renders — see
 [Enable Models as Service](#enable-models-as-service) and [KServe Gateway](#kserve-gateway).
 
-Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
+Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. A profile can inherit bundled profiles with `extends: [base, overlay]`; parents merge left to right, the child's own values override its parents, and explicit user values override the whole profile chain. Inheritance uses the normal value merge rules: maps merge recursively, while arrays and scalars replace. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
 
 ### AI Grid
 

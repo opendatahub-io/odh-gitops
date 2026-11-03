@@ -345,6 +345,7 @@ Only include the values you want to change from the chart defaults. Maps merge r
 Profile values sit below explicit user values and above chart defaults. `chart-defaults.yaml` captures Helm's coalesced defaults so the loader can preserve user overrides; regenerate it with `make chart-defaults` whenever `values.yaml` or a vendored subchart's defaults change.
 
 The `profile` value accepts any bundled profile name. Rendering fails if `profiles/<name>.yaml` does not exist, so a typo cannot silently fall back to the default profile.
+Profiles can inherit other bundled profiles with `extends: [base, overlay]`. Parent profiles merge left to right, the child's own values override its parents, and explicit user values override the complete profile chain. Inheritance uses the normal value merge rules: maps merge recursively, while arrays and scalars replace. Inheritance cycles and missing or malformed parents fail rendering.
 
 #### Step 2: Add Snapshot Test
 

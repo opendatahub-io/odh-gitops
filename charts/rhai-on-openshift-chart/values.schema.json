@@ -57,7 +57,7 @@
       "type": "string",
       "minLength": 1,
       "default": "default",
-      "description": "Deploy profile matching a bundled profiles/<name>.yaml file. Profile values can provide defaults for any chart or vendored-subchart value; explicit non-null user values override them. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid-ingress' enables AIGateway with modelsAsAService and aiGrid. 'ai-grid-inference' enables KServe and AIGateway with only aiGrid, and turns off the Grid gateway and enrollment runtimes. 'rhaii' enables only KServe."
+      "description": "Deploy profile matching a bundled profiles/<name>.yaml file. Profile values can provide defaults for any chart or vendored-subchart value, and profile files can inherit bundled profiles with extends. Explicit non-null user values override the profile chain. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid-ingress' enables AIGateway with modelsAsAService and aiGrid. 'ai-grid-inference' enables KServe and AIGateway with only aiGrid. 'ai-grid-combined' enables MaaS ingress and local model serving. 'rhaii' enables only KServe."
     },
     "olm": {
       "type": "object",

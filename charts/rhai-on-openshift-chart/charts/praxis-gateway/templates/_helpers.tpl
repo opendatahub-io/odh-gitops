@@ -565,7 +565,12 @@ The gridServing block the selected source reads, as YAML: render's, operator's, 
 {{/* Service annotations, the platform's merged under the Service's own. Only a LoadBalancer gets the platform's. */}}
 {{- define "praxis-gateway.serviceAnnotations" -}}
 {{- $svc := .Values.service -}}
-{{- $own := $svc.annotations | default dict -}}
+{{- $own := dict -}}
+{{- range $key, $value := ($svc.annotations | default dict) -}}
+{{- if $value -}}
+{{- $_ := set $own $key $value -}}
+{{- end -}}
+{{- end -}}
 {{- $platform := dict -}}
 {{- $cloud := .Values.platform | default "" -}}
 {{- $internal := eq (.Values.loadBalancerScope | default "internal") "internal" -}}

@@ -11,6 +11,18 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 
 ---
+# Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-cluster-observability-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -23,11 +35,49 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 
 ---
+# Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-operators-redhat
+  annotations:
+    helm.sh/resource-policy: keep
+    openshift.io/node-selector: ""
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+    openshift.io/cluster-monitoring: "true"
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-opentelemetry-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: kuadrant-system
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-tempo-operator
   annotations:
     helm.sh/resource-policy: keep
   labels:
@@ -72,20 +122,10 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
-        - ipBlock:
-            cidr: 10.0.0.0/16
       ports:
-        - port: 8080
+        - port: 8443
           protocol: TCP
 
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: grid-bootstrap-membership
-  namespace: default
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
@@ -107,65 +147,24 @@ data:
       metrics_address: "127.0.0.1:9901"
     listeners:
       - name: gateway
-        address: "0.0.0.0:8080"
+        address: "0.0.0.0:8443"
         tls:
           certificates:
-            - cert_path: "/etc/praxis/tls/tls.crt"
-              key_path: "/etc/praxis/tls/tls.key"
-          client_ca:
-            ca_path: "/etc/praxis/tls/ca.crt"
-          client_cert_mode: require_named
+            - cert_path: "/etc/praxis/listener-tls/tls.crt"
+              key_path: "/etc/praxis/listener-tls/tls.key"
         filter_chains: [main]
     filter_chains:
       - name: main
         filters:
-          - filter: grid_provider
-            allowed_paths:
-              - "/v1/chat/completions"
-              - "/v1/completions"
-              - "/v1/models"
-              - "/v1/embeddings"
+          # The caller's credential authenticates this hop only; never forward it upstream.
           - filter: headers
-            response_set:
-              - name: X-Grid-Provider-Site
-                value: "local-cluster"
+            request_remove: [Authorization]
+          - filter: model_to_header
+            header: X-Gateway-Model-Name
+          - filter: grid_site_route
+            model_header: X-Gateway-Model-Name
+            clusters: []
 
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: default-grid-bootstrap-membership-a38bf115
-# Hub templates can resolve before the hub policy creates observers. Keep their
-# read permission in the release so inventory additions need no RBAC round trip.
-rules:
-  - apiGroups: [cluster.open-cluster-management.io]
-    resources: [managedclusters]
-    verbs: [get, list, watch]
-  - apiGroups: [work.open-cluster-management.io]
-    resources: [manifestworks]
-    resourceNames: ["grid-site-observer"]
-    verbs: [get, list, watch]
-  - apiGroups: [""]
-    resources: [configmaps]
-    resourceNames: ["grid-bootstrap-state"]
-    verbs: [get, list, watch]
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: default-grid-bootstrap-membership-a38bf115
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: default-grid-bootstrap-membership-a38bf115
-subjects:
-- kind: ServiceAccount
-  name: grid-bootstrap-membership
-  namespace: default
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
@@ -179,12 +178,14 @@ metadata:
     app.kubernetes.io/instance: release-test
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: grid-gateway-listener-tls
 spec:
   type: "ClusterIP"
   ports:
-    - name: http
-      port: 8080
-      targetPort: http
+    - name: https
+      port: 443
+      targetPort: https
       protocol: "TCP"
   selector:
     app.kubernetes.io/name: praxis-gateway
@@ -217,7 +218,7 @@ spec:
         app.kubernetes.io/instance: release-test
         app.kubernetes.io/name: praxis-gateway
       annotations:
-        checksum/config: b2fddc91f84c5bcacead20b19255fd945efa2830b7968f71a273d757645cb0c5
+        checksum/config: b099dc29d2cd4e4e41e991034048514147121029a5e559b438d0df94324b5397
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -234,8 +235,8 @@ spec:
             - --config
             - /etc/praxis/praxis.yaml
           env:
-            - name: GRID_PROVIDER_CONFIG
-              value: "/etc/praxis/grid-serving/provider.json"
+            - name: GRID_SERVING_CONFIG
+              value: "/etc/praxis/grid-serving/serving-config.json"
           securityContext:
             runAsNonRoot: true
             runAsUser: 100
@@ -246,8 +247,8 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
           ports:
-            - name: http
-              containerPort: 8080
+            - name: https
+              containerPort: 8443
               protocol: "TCP"
           readinessProbe:
             exec:
@@ -299,6 +300,9 @@ spec:
             - name: upstream-ca
               mountPath: "/etc/praxis/upstream-ca"
               readOnly: true
+            - name: listener-tls
+              mountPath: "/etc/praxis/listener-tls"
+              readOnly: true
             - name: credential-0
               mountPath: "/run/secrets/grid-credentials/grid-model-client-token"
               readOnly: true
@@ -327,10 +331,13 @@ spec:
         - name: grid-serving
           configMap:
             name: "grid-serving-grid-grid-gateway"
-            optional: true
+            optional: false
         - name: upstream-ca
           secret:
             secretName: "openshift-service-ca"
+        - name: listener-tls
+          secret:
+            secretName: "grid-gateway-listener-tls"
         - name: credential-0
           secret:
             secretName: "grid-model-client-token"
@@ -369,8 +376,15 @@ metadata:
   name: default-dsci
 spec:
   monitoring:
-    managementState: Removed
+    managementState: Managed
     namespace: opendatahub
+    metrics:
+      storage:
+        size: 20Gi
+    traces:
+      storage:
+        backend: pv
+        size: 10Gi
   applicationsNamespace: opendatahub
   trustedCABundle:
     managementState: Managed
@@ -402,7 +416,7 @@ spec:
       managementState: Removed
     dashboard:
       maasPortal:
-        managementState: Removed
+        managementState: Managed
       standard:
         managementState: Removed
     data:
@@ -460,6 +474,9 @@ metadata:
     security.opendatahub.io/authorino-tls-bootstrap: "true"
 spec:
   gatewayClassName: maas-gateway-class
+  infrastructure:
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: maas-default-gateway-service-tls
   listeners:
   - allowedRoutes:
       namespaces:
@@ -479,24 +496,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: "grid-ca"
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  ca:
-    secretName: "grid-ca-key"
-
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
@@ -527,22 +526,25 @@ spec:
   operatorLogLevel: Normal
 
 ---
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: cluster.open-cluster-management.io/v1beta2
-kind: ManagedClusterSetBinding
-metadata:
-  name: "default"
-  namespace: default
-spec:
-  clusterSet: "default"
-
----
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: openshift-cert-manager-operator
   namespace: cert-manager-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -565,12 +567,51 @@ spec:
     - openshift-lws-operator
 
 ---
+# Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-operators-redhat
+  namespace: openshift-operators-redhat
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: rhcl-operator
   namespace: kuadrant-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -591,531 +632,6 @@ spec:
   upgradeStrategy: Default
 
 ---
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: cluster.open-cluster-management.io/v1beta1
-kind: Placement
-metadata:
-  name: grid-bootstrap-membership-hub
-  namespace: default
-spec:
-  clusterSets: ["default"]
-  predicates:
-  - requiredClusterSelector:
-      labelSelector:
-        matchLabels:
-          name: "local-cluster"
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: cluster.open-cluster-management.io/v1beta1
-kind: Placement
-metadata:
-  name: grid-bootstrap-membership
-  namespace: default
-spec:
-  clusterSets: ["default"]
-  predicates:
-  - requiredClusterSelector:
-      labelSelector:
-        matchLabels:
-          "grid.praxis.fast/member": "true"
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: policy.open-cluster-management.io/v1
-kind: PlacementBinding
-metadata:
-  name: grid-bootstrap-membership-hub
-  namespace: default
-placementRef:
-  apiGroup: cluster.open-cluster-management.io
-  kind: Placement
-  name: grid-bootstrap-membership-hub
-subjects:
-- apiGroup: policy.open-cluster-management.io
-  kind: Policy
-  name: grid-bootstrap-membership-hub
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: policy.open-cluster-management.io/v1
-kind: PlacementBinding
-metadata:
-  name: grid-bootstrap-membership-identities
-  namespace: default
-placementRef:
-  apiGroup: cluster.open-cluster-management.io
-  kind: Placement
-  name: grid-bootstrap-membership
-subjects:
-- apiGroup: policy.open-cluster-management.io
-  kind: Policy
-  name: grid-bootstrap-membership-identities
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: policy.open-cluster-management.io/v1
-kind: PlacementBinding
-metadata:
-  name: grid-bootstrap-membership
-  namespace: default
-placementRef:
-  apiGroup: cluster.open-cluster-management.io
-  kind: Placement
-  name: grid-bootstrap-membership
-subjects:
-- apiGroup: policy.open-cluster-management.io
-  kind: Policy
-  name: grid-bootstrap-membership
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: policy.open-cluster-management.io/v1
-kind: Policy
-metadata:
-  name: grid-bootstrap-membership-hub
-  namespace: default
-  annotations:
-    policy.open-cluster-management.io/trigger-update: "9e13da720620b5377550978b51cf593e7b82d7135035d8209940d2a8ee9936ec"
-spec:
-  remediationAction: enforce
-  disabled: false
-  hubTemplateOptions:
-    serviceAccountName: grid-bootstrap-membership
-  policy-templates:
-  - objectDefinition:
-      apiVersion: policy.open-cluster-management.io/v1
-      kind: ConfigurationPolicy
-      metadata:
-        name: grid-bootstrap-membership-enrollment
-      spec:
-        remediationAction: enforce
-        severity: high
-        evaluationInterval:
-          compliant: watch
-          noncompliant: watch
-        # Withdraw observers and stop renewal after inventory removal. Existing
-        # shared resources (including the namespace and CA) are never pruned.
-        pruneObjectBehavior: DeleteIfCreated
-        object-templates-raw: |
-          {{hub $label := "grid.praxis.fast/member" hub}}
-          {{hub $labelValue := "true" hub}}
-          {{hub $clusterSet := "default" hub}}
-          {{hub $workName := "grid-site-observer" hub}}
-          {{hub $namespace := "default" hub}}
-          {{hub $secretPrefix := "grid-site-" hub}}
-          - complianceType: musthave
-            objectDefinition:
-              apiVersion: v1
-              kind: Namespace
-              metadata:
-                name: "default"
-          {{hub range $cluster := (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items hub}}
-          
-          {{hub if and (eq (index $cluster.metadata.labels $label) $labelValue) (or (eq $clusterSet "global") (eq (index $cluster.metadata.labels "cluster.open-cluster-management.io/clusterset") $clusterSet)) hub}}
-          {{hub $site := $cluster.metadata.name hub}}
-          {{hub $secret := printf "%s%s" $secretPrefix $site hub}}
-          - complianceType: musthave
-            objectDefinition:
-              apiVersion: cert-manager.io/v1
-              kind: Certificate
-              metadata:
-                name: "{{hub $secret hub}}"
-                namespace: "default"
-                labels:
-                  helm.sh/chart: HELM_CHART_VERSION_REDACTED
-                  app.kubernetes.io/name: grid-enrollment
-                  app.kubernetes.io/instance: release-test
-                  app.kubernetes.io/version: "v0.3.0-rc.3"
-                  app.kubernetes.io/managed-by: Helm
-              spec:
-                secretName: "{{hub $secret hub}}"
-                commonName: "{{hub $site hub}}"
-                subject:
-                  organizations: ["{{hub $site hub}}"]
-                uris: ["spiffe://grid.internal/site/{{hub $site hub}}"]
-                dnsNames:
-                  - '{{hub $site hub}}.grid.internal'
-                  - '{{hub $site hub}}-signals.grid.internal'
-                duration: "4320h"
-                renewBefore: "1440h"
-                privateKey:
-                  algorithm: ECDSA
-                  size: 256
-                  encoding: PKCS8
-                  rotationPolicy: Always
-                usages: [digital signature, client auth, server auth]
-                issuerRef:
-                  name: "grid-ca"
-                  kind: "Issuer"
-                  group: "cert-manager.io"
-          - complianceType: musthave
-            objectDefinition:
-              apiVersion: work.open-cluster-management.io/v1
-              kind: ManifestWork
-              metadata:
-                name: {{hub printf "%q" $workName hub}}
-                namespace: {{hub printf "%q" $site hub}}
-              spec:
-                deleteOption:
-                  propagationPolicy: Orphan
-                workload:
-                  manifests:
-                  - apiVersion: grid.praxis.fast/v1alpha1
-                    kind: GridSite
-                    metadata:
-                      name: {{hub printf "%q" $site hub}}
-                manifestConfigs:
-                - resourceIdentifier:
-                    group: grid.praxis.fast
-                    resource: gridsites
-                    name: {{hub printf "%q" $site hub}}
-                  updateStrategy:
-                    type: ReadOnly
-                  feedbackScrapeType: Watch
-                  feedbackRules:
-                  - type: JSONPaths
-                    jsonPaths:
-                    - {name: siteName, path: .metadata.name}
-                    - {name: networkName, path: .spec.gridNetworkRef}
-                    - {name: gatewayAddress, path: .spec.gatewayEndpoint.address}
-                    - {name: gatewayServerName, path: .spec.gatewayEndpoint.tls.serverName}
-                    - {name: signalsAddress, path: .spec.signalsEndpoint.address}
-                    - {name: signalsServerName, path: .spec.signalsEndpoint.serverName}
-                    - {name: region, path: .spec.region}
-                    - {name: zone, path: .spec.zone}
-                    - {name: sovereigntyZone, path: .spec.sovereigntyZone}
-          
-          {{hub end hub}}
-          {{hub end hub}}
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: policy.open-cluster-management.io/v1
-kind: Policy
-metadata:
-  name: grid-bootstrap-membership-identities
-  namespace: default
-spec:
-  remediationAction: enforce
-  disabled: false
-  policy-templates:
-  - objectDefinition:
-      apiVersion: policy.open-cluster-management.io/v1
-      kind: ConfigurationPolicy
-      metadata:
-        name: grid-bootstrap-membership-identities
-      spec:
-        remediationAction: enforce
-        severity: high
-        evaluationInterval:
-          compliant: watch
-          noncompliant: watch
-        # Retain delivered identities on removal; membership controls peer access.
-        pruneObjectBehavior: None
-        object-templates:
-        - complianceType: musthave
-          objectDefinition:
-            apiVersion: v1
-            kind: Namespace
-            metadata:
-              name: "grid-system"
-        - complianceType: musthave
-          objectDefinition:
-            apiVersion: v1
-            kind: Secret
-            type: kubernetes.io/tls
-            metadata:
-              name: "grid-site-identity"
-              namespace: "grid-system"
-              annotations:
-                cert-manager.io/certificate-name: '{{hub printf "%s%s" "grid-site-" .ManagedClusterName hub}}'
-            data:
-              tls.crt: '{{hub fromSecret "default" (printf "%s%s" "grid-site-" .ManagedClusterName) "tls.crt" hub}}'
-              tls.key: '{{hub fromSecret "default" (printf "%s%s" "grid-site-" .ManagedClusterName) "tls.key" hub}}'
-        - complianceType: musthave
-          objectDefinition:
-            apiVersion: v1
-            kind: Secret
-            type: Opaque
-            metadata:
-              name: "grid-ca"
-              namespace: "grid-system"
-            data:
-              ca.crt: '{{hub fromSecret "default" "grid-ca-key" "tls.crt" hub}}'
-
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: policy.open-cluster-management.io/v1
-kind: Policy
-metadata:
-  name: grid-bootstrap-membership
-  namespace: default
-  annotations:
-    # A denied lookup cannot watch its dependency; RBAC changes must retry it.
-    policy.open-cluster-management.io/trigger-update: "9e13da720620b5377550978b51cf593e7b82d7135035d8209940d2a8ee9936ec"
-spec:
-  remediationAction: enforce
-  disabled: false
-  hubTemplateOptions:
-    serviceAccountName: grid-bootstrap-membership
-  policy-templates:
-  - objectDefinition:
-      apiVersion: policy.open-cluster-management.io/v1
-      kind: ConfigurationPolicy
-      metadata:
-        name: grid-bootstrap-membership
-      spec:
-        remediationAction: enforce
-        severity: high
-        evaluationInterval:
-          compliant: watch
-          noncompliant: watch
-        # Withdraw peer records and observer permissions on membership removal.
-        # The local GridSite remains authoritative and is never copied back.
-        pruneObjectBehavior: DeleteAll
-        object-templates-raw: |
-          {{hub $network := "grid" hub}}
-          {{hub $label := "grid.praxis.fast/member" hub}}
-          {{hub $labelValue := "true" hub}}
-          {{hub $workName := "grid-site-observer" hub}}
-          {{hub $namespace := "grid-system" hub}}
-          {{hub $clusterSet := "default" hub}}
-          {{ range $name := (list "gridnetworks.grid.praxis.fast" "gridsites.grid.praxis.fast") }}
-          {{ $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" $name }}
-          {{ $established := false }}
-          {{ range $condition := $crd.status.conditions }}
-          {{ if and (eq $condition.type "Established") (eq $condition.status "True") }}
-          {{ $established = true }}
-          {{ end }}
-          {{ end }}
-          {{ if not $established }}{{ fail (printf "waiting for CRD %s to be Established" $name) }}{{ end }}
-          {{ end }}
-          {{hub $members := (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items hub}}
-          - complianceType: musthave
-            objectDefinition:
-              apiVersion: v1
-              kind: ConfigMap
-              metadata:
-                name: grid-operator-config
-                namespace: {{hub printf "%q" $namespace hub}}
-              data:
-                config.yaml: |
-                  version: 1
-                  site:
-                    name: {{hub printf "%q" .ManagedClusterName hub}}
-          - complianceType: musthave
-            objectDefinition:
-              apiVersion: rbac.authorization.k8s.io/v1
-              kind: ClusterRole
-              metadata:
-                name: {{hub printf "%q" (printf "%s-reader" $workName) hub}}
-                labels:
-                  open-cluster-management.io/aggregate-to-work: "true"
-              rules:
-              - apiGroups: [grid.praxis.fast]
-                resources: [gridsites]
-                verbs: [get, list, watch]
-          {{hub range $cluster := $members hub}}
-          {{hub if and (eq (index $cluster.metadata.labels $label) $labelValue) (or (eq $clusterSet "global") (eq (index $cluster.metadata.labels "cluster.open-cluster-management.io/clusterset") $clusterSet)) (ne $cluster.metadata.name $.ManagedClusterName) hub}}
-          {{hub $work := lookup "work.open-cluster-management.io/v1" "ManifestWork" $cluster.metadata.name $workName hub}}
-          {{hub range $manifest := $work.status.resourceStatus.manifests hub}}
-          {{hub $site := "" hub}}
-          {{hub $siteNetwork := "" hub}}
-          {{hub $gatewayAddress := "" hub}}
-          {{hub $gatewayServerName := "" hub}}
-          {{hub $signalsAddress := "" hub}}
-          {{hub $signalsServerName := "" hub}}
-          {{hub $region := "" hub}}
-          {{hub $zone := "" hub}}
-          {{hub $sovereigntyZone := "" hub}}
-          {{hub range $field := $manifest.statusFeedback.values hub}}
-          {{hub if eq $field.name "siteName" hub}}{{hub $site = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "networkName" hub}}{{hub $siteNetwork = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "gatewayAddress" hub}}{{hub $gatewayAddress = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "gatewayServerName" hub}}{{hub $gatewayServerName = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "signalsAddress" hub}}{{hub $signalsAddress = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "signalsServerName" hub}}{{hub $signalsServerName = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "region" hub}}{{hub $region = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "zone" hub}}{{hub $zone = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub if eq $field.name "sovereigntyZone" hub}}{{hub $sovereigntyZone = $field.fieldValue.string hub}}{{hub end hub}}
-          {{hub end hub}}
-          {{hub/* A member without a gateway still calls its peers, which admit only the sites they hold. */hub}}
-          {{hub if and (eq $site $cluster.metadata.name) (eq $siteNetwork $network) hub}}
-          - complianceType: mustonlyhave
-            metadataComplianceType: musthave
-            objectDefinition:
-              apiVersion: grid.praxis.fast/v1alpha1
-              kind: GridSite
-              metadata:
-                name: {{hub printf "%q" $site hub}}
-                labels:
-                  grid.praxis.fast/membership: declared
-                  grid.praxis.fast/auto-discovered: "false"
-              spec:
-                gridNetworkRef: {{hub printf "%q" $network hub}}
-                {{hub if ne $gatewayAddress "" hub}}
-                gatewayEndpoint:
-                  address: {{hub printf "%q" $gatewayAddress hub}}
-                  tls:
-                    mode: Mutual
-                    serverName: {{hub if ne $gatewayServerName "" hub}}{{hub printf "%q" $gatewayServerName hub}}{{hub else hub}}{{hub printf "%q" (printf "%s.grid.internal" $site) hub}}{{hub end hub}}
-                {{hub else hub}}
-                gatewayEndpoint: null
-                {{hub end hub}}
-                # Replace the peer spec to remove legacy aliases, including explicit nulls.
-                # Preserve controller-owned labels, annotations, and status.
-                trust: null
-                {{hub if or (ne $signalsAddress "") (ne $signalsServerName "") hub}}
-                signalsEndpoint:
-                  {{hub if ne $signalsAddress "" hub}}
-                  address: {{hub printf "%q" $signalsAddress hub}}
-                  {{hub else hub}}
-                  address: null
-                  {{hub end hub}}
-                  {{hub if ne $signalsServerName "" hub}}
-                  serverName: {{hub printf "%q" $signalsServerName hub}}
-                  {{hub else hub}}
-                  serverName: null
-                  {{hub end hub}}
-                {{hub else hub}}
-                signalsEndpoint: null
-                {{hub end hub}}
-                {{hub if ne $region "" hub}}
-                region: {{hub printf "%q" $region hub}}
-                {{hub else hub}}
-                region: null
-                {{hub end hub}}
-                {{hub if ne $zone "" hub}}
-                zone: {{hub printf "%q" $zone hub}}
-                {{hub else hub}}
-                zone: null
-                {{hub end hub}}
-                {{hub if ne $sovereigntyZone "" hub}}
-                sovereigntyZone: {{hub printf "%q" $sovereigntyZone hub}}
-                {{hub else hub}}
-                sovereigntyZone: null
-                {{hub end hub}}
-          {{hub end hub}}
-          {{hub end hub}}
-          {{hub end hub}}
-          {{hub end hub}}
-  - objectDefinition:
-      apiVersion: policy.open-cluster-management.io/v1
-      kind: ConfigurationPolicy
-      metadata:
-        name: grid-bootstrap-membership-network
-      spec:
-        remediationAction: enforce
-        severity: high
-        evaluationInterval:
-          compliant: watch
-          noncompliant: watch
-        # A membership removal must not delete the grid or reset its identity.
-        pruneObjectBehavior: None
-        object-templates-raw: |
-          {{hub $stateNamespace := "default" hub}}
-          {{hub $stateName := "grid-bootstrap-state" hub}}
-          {{hub $network := "grid" hub}}
-          {{hub $namespace := "grid-system" hub}}
-          {{hub $identity := "grid-site-identity" hub}}
-          {{hub $ca := "grid-ca" hub}}
-          {{hub $gateway := "grid-gateway" hub}}
-          {{ range $name := (list "gridnetworks.grid.praxis.fast" "gridsites.grid.praxis.fast") }}
-          {{ $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" $name }}
-          {{ $established := false }}
-          {{ range $condition := $crd.status.conditions }}
-          {{ if and (eq $condition.type "Established") (eq $condition.status "True") }}
-          {{ $established = true }}
-          {{ end }}
-          {{ end }}
-          {{ if not $established }}{{ fail (printf "waiting for CRD %s to be Established" $name) }}{{ end }}
-          {{ end }}
-          {{hub $state := lookup "v1" "ConfigMap" $stateNamespace $stateName hub}}
-          {{hub $id := index $state.data "gridId" hub}}
-          {{hub if not $id hub}}{{hub fail "waiting for bootstrap grid identity" hub}}{{hub end hub}}
-          {{hub if not $state.immutable hub}}{{hub fail (printf "bootstrap grid identity is not immutable; patch %s in place with {\"immutable\":true}" $stateName) hub}}{{hub end hub}}
-          {{ $namespace := {{hub printf "%q" $namespace hub}} }}
-          {{ $identity := {{hub printf "%q" $identity hub}} }}
-          {{ $ca := {{hub printf "%q" $ca hub}} }}
-          {{ if not (lookup "v1" "Secret" $namespace $identity).metadata.name }}
-          {{ fail "waiting for the enrolled site identity" }}{{ end }}
-          {{ if not (lookup "v1" "Secret" $namespace $ca).metadata.name }}
-          {{ fail "waiting for the grid trust bundle" }}{{ end }}
-          {{/* Adopting a different ID would move a status-only member or wedge a spec-set one. */}}
-          {{ $bootstrapId := {{hub printf "%q" $id hub}} }}
-          {{ $network := {{hub printf "%q" $network hub}} }}
-          {{/* All of them: a site runs one grid, and a differently named network would escape a by-name check. */}}
-          {{ range (lookup "grid.praxis.fast/v1alpha1" "GridNetwork" "" "").items }}
-          {{ if ne .metadata.name $network }}
-          {{ fail (printf "GridNetwork %s already exists on this site; enrollment manages only GridNetwork %s and will not add a second" .metadata.name $network) }}
-          {{ end }}
-          {{ $existingId := "" }}
-          {{ with .status }}{{ $existingId = default "" .gridId }}{{ end }}
-          {{ with .spec }}{{ $existingId = default $existingId .gridId }}{{ end }}
-          {{ if $existingId }}{{ if ne $existingId $bootstrapId }}
-          {{ fail (printf "existing grid ID %s differs from bootstrap state %s; delete and recreate %s with %s (immutable), or recreate this GridNetwork to join %s" $existingId $bootstrapId {{hub printf "%q" $stateName hub}} $existingId $bootstrapId) }}
-          {{ end }}{{ end }}
-          {{ end }}
-          - complianceType: musthave
-            objectDefinition:
-              apiVersion: grid.praxis.fast/v1alpha1
-              kind: GridNetwork
-              metadata:
-                name: {{hub printf "%q" $network hub}}
-              spec:
-                gridId: {{hub printf "%q" $id hub}}
-                membership:
-                  mode: Local
-                signalTransport:
-                  mode: poll
-                peerTrust:
-                  mode: spiffe
-                tls:
-                  siteSecretRef:
-                    name: {{hub printf "%q" $identity hub}}
-                    namespace: {{hub printf "%q" $namespace hub}}
-                  caSecretRef:
-                    name: {{hub printf "%q" $ca hub}}
-                    namespace: {{hub printf "%q" $namespace hub}}
-                {{hub if $gateway hub}}
-                consumerGateways:
-                - name: {{hub printf "%q" $gateway hub}}
-                  namespace: {{hub printf "%q" $namespace hub}}
-                  siteName: {{hub printf "%q" .ManagedClusterName hub}}
-                {{hub end hub}}
-
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: grid-provider-gateway
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.7.0"
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    haproxy.router.openshift.io/timeout: 300s
-spec:
-  host: "local-cluster.grid.internal"
-  to:
-    kind: Service
-    name: grid-provider-gateway
-    weight: 100
-  port:
-    targetPort: http
-  tls:
-    termination: passthrough
-    insecureEdgeTerminationPolicy: None
-  wildcardPolicy: None
-
-
----
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -1129,6 +645,24 @@ spec:
   channel: stable-v1
   installPlanApproval: Automatic
   name: openshift-cert-manager-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 
@@ -1149,6 +683,41 @@ spec:
   name: leader-worker-set
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: loki-operator
+  namespace: openshift-operators-redhat
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable-6.5
+  installPlanApproval: Automatic
+  name: loki-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: opentelemetry-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
@@ -1172,6 +741,24 @@ spec:
       value: 5s
 
 ---
+# Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: tempo-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -1191,140 +778,3 @@ spec:
     env:
     - name: DISABLE_DSC_CONFIG
       value: "true"
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: grid-bootstrap-ca-bootstrap
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation
-automountServiceAccountToken: false
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: grid-bootstrap-ca-bootstrap
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation
-rules:
-  - apiGroups: [""]
-    resources: [configmaps]
-    verbs: [create]
-  - apiGroups: [""]
-    resources: [configmaps]
-    resourceNames: ["grid-bootstrap-state"]
-    verbs: [get]
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: grid-bootstrap-ca-bootstrap
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: grid-bootstrap-ca-bootstrap
-subjects:
-  - kind: ServiceAccount
-    name: grid-bootstrap-ca-bootstrap
-    namespace: default
-
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: grid-bootstrap-ca-bootstrap
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/component: ca-bootstrap
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-5"
-    # Kept for its logs until the next hook run or its TTL.
-    helm.sh/hook-delete-policy: before-hook-creation
-spec:
-  ttlSecondsAfterFinished: 86400
-  backoffLimit: 2
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: grid-enrollment
-        app.kubernetes.io/instance: release-test
-    spec:
-      enableServiceLinks: false
-      restartPolicy: Never
-      serviceAccountName: grid-bootstrap-ca-bootstrap
-      automountServiceAccountToken: true
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749"
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            readOnlyRootFilesystem: true
-          command: ["enrollment", "bootstrap"]
-          env:
-            - name: RUST_LOG
-              value: "info"
-          args:
-            - "--namespace"
-            - "default"
-            - "--grid-id-config-map"
-            - "grid-bootstrap-state"
-            - "--skip-ca"
-          resources:
-            limits:
-              cpu: 500m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-
-

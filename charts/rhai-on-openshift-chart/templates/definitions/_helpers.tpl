@@ -56,20 +56,71 @@ Merge dependency OLM config with root-level OLM defaults
 
 {{/*
 =============================================================================
-Load the raw values from the selected profile. The profile name is arbitrary,
-but a non-default profile must have a matching bundled YAML file.
+Load and resolve values from the selected profile. The profile name is
+arbitrary, but a non-default profile must have a matching bundled YAML file.
+Profiles can inherit other bundled profiles with extends: [base, overlay].
 =============================================================================
 Arguments:
   - root context ($)
 */}}
 {{- define "rhoai-dependencies.profileFileValues" -}}
-{{- $profile := .Values.profile | default "default" -}}
+{{- $profileName := .Values.profile | default "default" -}}
+{{- include "rhoai-dependencies._profileValues" (dict
+  "root" .
+  "profile" $profileName
+  "seen" dict
+) -}}
+{{- end }}
+
+{{/*
+=============================================================================
+INTERNAL: Resolve one profile and its inheritance chain. Parent profiles merge
+left to right; the child's own values override its parents. The extends key is
+a profile directive and is not exposed as a chart value.
+=============================================================================
+Arguments:
+  - root: root context ($)
+  - profile: profile name
+  - seen: profile names already active on this inheritance branch
+*/}}
+{{- define "rhoai-dependencies._profileValues" -}}
+{{- $root := .root -}}
+{{- $profile := .profile -}}
+{{- $seen := deepCopy (.seen | default dict) -}}
+{{- if hasKey $seen $profile -}}
+{{- fail (printf "profile inheritance cycle detected at %s" $profile) -}}
+{{- end -}}
+{{- $_ := set $seen $profile true -}}
+{{- $rawValues := dict -}}
 {{- $profileFile := printf "profiles/%s.yaml" $profile -}}
-{{- $profileValues := .Files.Get $profileFile | fromYaml | default dict -}}
-{{- if and (not $profileValues) (ne $profile "default") -}}
+{{- $rawValues = $root.Files.Get $profileFile | fromYaml | default dict -}}
+{{- if and (not $rawValues) (ne $profile "default") -}}
 {{- fail (printf "profile %s does not match a bundled profiles/%s.yaml file" $profile $profile) -}}
 {{- end -}}
-{{- toYaml $profileValues -}}
+{{- $extends := index $rawValues "extends" | default list -}}
+{{- if not (kindIs "slice" $extends) -}}
+{{- fail (printf "profile %s extends must be a list of profile names" $profile) -}}
+{{- end -}}
+{{- $merged := dict -}}
+{{- range $parent := $extends -}}
+  {{- if not (kindIs "string" $parent) -}}
+  {{- fail (printf "profile %s extends must contain only profile names" $profile) -}}
+  {{- end -}}
+  {{- $parentValues := include "rhoai-dependencies._profileValues" (dict
+    "root" $root
+    "profile" $parent
+    "seen" $seen
+  ) | fromYaml | default dict -}}
+  {{- $_ := mergeOverwrite $merged $parentValues -}}
+{{- end -}}
+{{- $ownValues := dict -}}
+{{- range $key, $value := $rawValues -}}
+  {{- if ne $key "extends" -}}
+  {{- $_ := set $ownValues $key (deepCopy $value) -}}
+  {{- end -}}
+{{- end -}}
+{{- $_ := mergeOverwrite $merged $ownValues -}}
+{{- toYaml $merged -}}
 {{- end }}
 
 {{/*
@@ -110,7 +161,7 @@ Apply the selected profile to the current template's values.
 
 The effective precedence is:
   1. Explicit non-null user values
-  2. Values from profiles/<name>.yaml
+  2. Values from profiles/<name>.yaml and its extends chain
   3. Chart defaults from values.yaml
 
 Every root-chart template calls this helper before reading .Values. Helm

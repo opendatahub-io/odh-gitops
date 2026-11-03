@@ -28,6 +28,21 @@ dependencies:
         observability:
           enable: true
 
+services:
+  monitoring:
+    dsci:
+      managementState: Managed
+      # Minimal dev config: metrics need storage size; traces require a
+      # storage backend (pv = ephemeral-ish local dev storage, no S3 needed).
+      # ACM reads the collector's own prometheus exporter, so no extra exporter here.
+      metrics:
+        storage:
+          size: 20Gi
+      traces:
+        storage:
+          backend: pv
+          size: 10Gi
+
 components:
   aigateway:
     dependencies:
@@ -57,6 +72,10 @@ components:
             "publishMetrics": true
           }
       spec:
+        # A platform-issued serving cert on the https listener.
+        infrastructure:
+          annotations:
+            service.beta.openshift.io/serving-cert-secret-name: openshift-ai-inference-service-tls
         listeners:
           - name: http
             port: 80
@@ -75,6 +94,10 @@ components:
             port: 443
             # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
             protocol: HTTPS
+            tls:
+              mode: Terminate
+              certificateRefs:
+                - name: openshift-ai-inference-service-tls
             allowedRoutes:
               namespaces:
                 # AI project namespaces opt in with grid.opendatahub.io/allowed=true.
@@ -82,6 +105,9 @@ components:
                 selector:
                   matchLabels:
                     grid.opendatahub.io/allowed: "true"
+
+# Enrollment comes from grid-bootstrap on the hub, through ACM. The vendored
+# chart enables its own enrollment service unless this says otherwise.
 grid-enrollment:
   enabled: false
 
@@ -91,13 +117,8 @@ praxis-gateway:
   # Peers dial this directly, so the SNI stays <site>.grid.internal and matches the leaf.
   fullnameOverride: grid-provider-gateway
 
-  # TODO: Double check image injection
-  # A standalone release does not inherit the umbrella's pin. Keep this Grid
-  # v0.3.0-rc.3 digest aligned with the gateway image in values.yaml.
-  # image:
-  #   flavor: grid-gateway
-  #   repository: ghcr.io/praxis-proxy/grid-gateway
-  #   digest: sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+  image:
+    flavor: grid-gateway
 
   grid:
     networkName: grid
@@ -131,6 +152,7 @@ praxis-gateway:
   # Peers arrive through the router, so the Service needs no address of its own.
   service:
     type: ClusterIP
+
   # The router carries 443, so peers arrive there. The Route's host defaults to
   # <site>.grid.internal, the name on this site's leaf and the SNI a peer sends,
   # so passthrough reaches the listener with the client certificate intact.
@@ -140,16 +162,5 @@ praxis-gateway:
       termination: passthrough
     annotations:
       haproxy.router.openshift.io/timeout: 300s
-  networkPolicy:
-    # A peer arrives through the load balancer, and externalTrafficPolicy Cluster
-    # translates it to the address of the node that received it. The peer itself is
-    # authenticated by its certificate and SPIFFE id on the listener, not here.
-    from:
-      - podSelector:
-          matchLabels:
-            grid.opendatahub.io/gateway-client: "true"
-      - namespaceSelector:
-          matchLabels:
-            network.openshift.io/policy-group: ingress
-      - ipBlock:
-          cidr: 10.0.0.0/16
+
+  # networkPolicy.from is set per site by hub/04-provider-gateway-applicationset.yaml.

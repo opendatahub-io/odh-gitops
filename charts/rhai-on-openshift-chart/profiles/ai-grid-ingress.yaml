@@ -1,5 +1,5 @@
 # AI Grid profile - AI Grid multi-cluster routing only
-# Enables AIGateway with only aiGrid and its gateway/enrollment runtimes.
+# Enables AIGateway with only aiGrid and its gateway.
 
 argocd:
   enabled: true
@@ -20,7 +20,26 @@ dependencies:
         observability:
           enable: true
 
+services:
+  monitoring:
+    dsci:
+      managementState: Managed
+      # Minimal dev config: metrics need storage size; traces require a
+      # storage backend (pv = ephemeral-ish local dev storage, no S3 needed).
+      # ACM reads the collector's own prometheus exporter, so no extra exporter here.
+      metrics:
+        storage:
+          size: 20Gi
+      traces:
+        storage:
+          backend: pv
+          size: 10Gi
+
 components:
+  dashboard:
+    dsc:
+      maasPortal:
+        managementState: Managed
   aigateway:
     dependencies:
       certManager: true
@@ -35,6 +54,10 @@ components:
     modelsAsAService:
       gateway:
         spec:
+          # A platform-issued serving cert on the https listener.
+          infrastructure:
+            annotations:
+              service.beta.openshift.io/serving-cert-secret-name: maas-default-gateway-service-tls
           listeners:
             - name: http
               port: 80
@@ -59,6 +82,10 @@ components:
               port: 443
               # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
               protocol: HTTPS
+              tls:
+                mode: Terminate
+                certificateRefs:
+                  - name: maas-default-gateway-service-tls
               allowedRoutes:
                 namespaces:
                   # The following is an example of how to restrict the namespaces to the interested ones.
@@ -73,71 +100,60 @@ components:
                           - models-as-a-service
                           - redhat-ai-gateway-infra
 
+# Enrollment comes from grid-bootstrap on the hub, through ACM. The vendored
+# chart enables its own enrollment service unless this says otherwise.
+grid-enrollment:
+  enabled: false
+
 praxis-gateway:
+  enabled: true
   # The provider gateway of every site where models run: peers dial it over grid
   # mTLS, and it reaches the site's models through the RHOAI serving gateway.
   # Peers dial this directly, so the SNI stays <site>.grid.internal and matches the leaf.
   fullnameOverride: grid-provider-gateway
 
-  # TODO: Double check image injection
-  # A standalone release does not inherit the umbrella's pin. Keep this Grid
-  # v0.3.0-rc.3 digest aligned with the gateway image in values.yaml.
-  # image:
-  #   flavor: grid-gateway
-  #   repository: ghcr.io/praxis-proxy/grid-gateway
-  #   digest: sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+  image:
+    flavor: grid-gateway
 
   grid:
     networkName: grid
     # siteName comes from the ApplicationSet, one per cluster.
+
   praxisConfig:
     source: render
     render:
-      role: provider
-      # Peers are admitted from the operator's provider file, by grid identity.
-      peerTrust:
-        mode: spiffe
-      # No backends: the operator's provider file lists each local model with the
-      # dial that reaches it, read from the consumer gateway's serving ConfigMap.
+      # MaaS authenticates the caller.
+      auth:
+        mode: none
+      # No backends: the gateway dials what the operator derives from the
+      # InferenceProviders and GridSites of this site, through the serving
+      # ConfigMap's dial file. Local models are reached through the RHOAI
+      # serving gateway, so the EPP picks the pod.
       gridServing:
         enabled: true
         networkName: grid
+        # Explicit: the default follows fullnameOverride.
         gatewayRefName: grid-gateway
-  # The model-client token a local dial sends to the serving gateway; a peer's own
-  # token is dropped.
-  providerCredentials:
-    - secretName: grid-model-client-token
-  # The service CA (rhoai-prerequisites copies it into this Secret) verifies the
-  # serving gateway's cert on a local dial.
-  upstreamCA:
-    secretName: openshift-service-ca
-    key: ca.crt
   gridIdentity:
     tlsSecretName: grid-site-identity
     caSecretName: grid-ca
     mountPath: /etc/praxis/tls
-  # Peers arrive through the router, so the Service needs no address of its own.
+  listenerTls:
+    secretName: grid-gateway-listener-tls
+  # The model-client token a local dial sends to the serving gateway.
+  providerCredentials:
+    - secretName: grid-model-client-token
+  # The service CA verifies the serving gateway's cert on a local dial;
+  # remote hops carry the grid CA.
+  upstreamCA:
+    secretName: openshift-service-ca
+    key: ca.crt
+  port:
+    containerPort: 8443
   service:
-    type: ClusterIP
-  # The router carries 443, so peers arrive there. The Route's host defaults to
-  # <site>.grid.internal, the name on this site's leaf and the SNI a peer sends,
-  # so passthrough reaches the listener with the client certificate intact.
-  route:
     enabled: true
-    tls:
-      termination: passthrough
+    type: ClusterIP
+    # What inference.opendatahub.io/port already names.
+    port: 443
     annotations:
-      haproxy.router.openshift.io/timeout: 300s
-  networkPolicy:
-    # A peer arrives through the load balancer, and externalTrafficPolicy Cluster
-    # translates it to the address of the node that received it. The peer itself is
-    # authenticated by its certificate and SPIFFE id on the listener, not here.
-    from:
-      - podSelector:
-          matchLabels:
-            grid.opendatahub.io/gateway-client: "true"
-      - namespaceSelector:
-          matchLabels:
-            network.openshift.io/policy-group: ingress
-      - ipBlock:
-          cidr: 10.0.0.0/16
+      service.beta.openshift.io/serving-cert-secret-name: grid-gateway-listener-tls

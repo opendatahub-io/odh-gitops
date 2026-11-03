@@ -274,6 +274,13 @@ charts:
         setJsonFlags:
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
 
+      - name: ai-grid-combined-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-combined
+          - praxis-gateway.grid.siteName=local-cluster
+
       - name: ai-grid-external-identities
         setFlags:
           - skipCrdCheck=true
@@ -362,6 +369,7 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
+          - grid-enrollment.enabled=true
           - grid-enrollment.route.enabled=false
           - grid-enrollment.host=enrollment.example.com
 
