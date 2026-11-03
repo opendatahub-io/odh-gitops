@@ -698,6 +698,27 @@ charts:
           - credential.enabled=true
           - credential.token=snapshot-placeholder-token
 
+      - name: tenant-metrics
+        setFlags:
+          - metrics.enabled=false
+          - tenantMetrics.enabled=true
+          - tenantMetrics.image=registry.example.invalid/prom-label-proxy:testing
+          - tenantMetrics.hubRelay.image=registry.example.invalid/nginx:testing
+          - tenantMetrics.upstreamURL=https://thanos.example.test:443
+          - tenantMetrics.auth.issuerURL=https://issuer.example.test/realms/maas
+          - tenantMetrics.auth.clientID=perses-client
+          - tenantMetrics.auth.tenantAdminRole=admins
+
+      - name: tenant-metrics-reject-missing-auth
+        expectFail: true
+        expectMessage: "tenantMetrics.auth.issuerURL is required"
+        setFlags:
+          - metrics.enabled=false
+          - tenantMetrics.enabled=true
+          - tenantMetrics.image=registry.example.invalid/prom-label-proxy:testing
+          - tenantMetrics.hubRelay.image=registry.example.invalid/nginx:testing
+          - tenantMetrics.upstreamURL=https://thanos.example.test:443
+
       - name: reject-invalid-port
         expectFail: true
         expectMessage: "port"

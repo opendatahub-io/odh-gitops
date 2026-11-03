@@ -1,0 +1,77 @@
+{{ if .Values.tenantMetrics.enabled }}
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: ai-grid-tenant-perses
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ai-grid-tenant-perses
+  rules:
+    authentication:
+      maas-oidc:
+        jwt:
+          issuerUrl: {{ required "tenantMetrics.auth.issuerURL is required" .Values.tenantMetrics.auth.issuerURL | quote }}
+        credentials:
+          authorizationHeader:
+            prefix: Bearer
+    authorization:
+      tenant-metrics:
+        opa:
+          allValues: true
+          rego: |
+            default allow = false
+
+            # AI Grid identity contract: one organization per token, with flat claims.
+            organization = result {
+              org_id := object.get(input.auth.identity, "org_id", "")
+              is_string(org_id)
+              org_id != ""
+              roles := object.get(input.auth.identity, "roles", [])
+              is_array(roles)
+              result := {"org_id": org_id, "roles": roles}
+            } else = {"org_id": "", "roles": []}
+
+            # Client-provided tenant headers never become trusted input.
+            trusted_client {
+              object.get(input.context.request.http.headers, "x-maas-orgid", "") == ""
+              object.get(input.auth.identity, "azp", "") == {{ required "tenantMetrics.auth.clientID is required" .Values.tenantMetrics.auth.clientID | quote }}
+            }
+
+            allow = true {
+              trusted_client
+              input.context.request.http.method == "GET"
+              startswith(input.context.request.http.path, "/api")
+            }
+
+            tenant_datasource_path := "/proxy/projects/redhat-ods-monitoring/datasources/ai-grid-tenant-prometheus-datasource"
+
+            allow = true {
+              trusted_client
+              {"GET", "POST"}[input.context.request.http.method]
+              path := input.context.request.http.path
+              path == tenant_datasource_path
+              organization.org_id != ""
+              organization.roles[_] == {{ required "tenantMetrics.auth.tenantAdminRole is required" .Values.tenantMetrics.auth.tenantAdminRole | quote }}
+            }
+
+            allow = true {
+              trusted_client
+              {"GET", "POST"}[input.context.request.http.method]
+              startswith(input.context.request.http.path, concat("", [tenant_datasource_path, "/"]))
+              organization.org_id != ""
+              organization.roles[_] == {{ required "tenantMetrics.auth.tenantAdminRole is required" .Values.tenantMetrics.auth.tenantAdminRole | quote }}
+            }
+    response:
+      success:
+        headers:
+          x-maas-orgid:
+            when:
+              - predicate: 'request.path.startsWith("/proxy")'
+            plain:
+              expression: auth.authorization['tenant-metrics'].organization.org_id
+{{ end }}

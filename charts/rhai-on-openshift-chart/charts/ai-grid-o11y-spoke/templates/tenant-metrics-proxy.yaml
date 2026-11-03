@@ -1,0 +1,184 @@
+{{ if .Values.tenantMetrics.enabled }}
+{{- if ne .Values.collector.namespace "redhat-ods-monitoring" }}
+{{- fail "tenantMetrics requires collector.namespace=redhat-ods-monitoring" }}
+{{- end }}
+{{- $hubURL := required "tenantMetrics.upstreamURL is required when tenantMetrics.enabled=true" .Values.tenantMetrics.upstreamURL }}
+{{- $hub := urlParse $hubURL }}
+{{- if ne $hub.scheme "https" }}
+{{- fail "tenantMetrics.upstreamURL must use https" }}
+{{- end }}
+{{- if not $hub.host }}
+{{- fail "tenantMetrics.upstreamURL must include a host" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-grid-tenant-hub-relay
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-metrics-proxy
+data:
+  nginx.conf: |
+    worker_processes 1;
+    error_log /dev/stderr notice;
+    pid /tmp/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        access_log /dev/stdout;
+
+        server {
+            listen {{ .Values.tenantMetrics.hubRelay.port }};
+
+            location / {
+                proxy_pass {{ printf "%s://%s" $hub.scheme $hub.host }};
+                proxy_http_version 1.1;
+                proxy_set_header Host {{ $hub.host }};
+                proxy_set_header Authorization $http_authorization;
+                proxy_set_header x-maas-orgid $http_x_maas_orgid;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_ssl_server_name on;
+                proxy_ssl_name {{ $hub.hostname }};
+                proxy_ssl_verify on;
+                proxy_ssl_verify_depth {{ .Values.tenantMetrics.hubRelay.tlsVerifyDepth }};
+                proxy_ssl_trusted_certificate /etc/thanos-ca/ca.crt;
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-grid-tenant-prom-label-proxy
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-metrics-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+  template:
+    metadata:
+      annotations:
+        checksum/tenant-metrics: {{ .Values.tenantMetrics | toJson | sha256sum }}
+      labels:
+        app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+        app.kubernetes.io/component: tenant-metrics-proxy
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: prom-label-proxy
+          image: {{ required "tenantMetrics.image is required when tenantMetrics.enabled=true" .Values.tenantMetrics.image | quote }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - --insecure-listen-address=0.0.0.0:9091
+            - {{ printf "--upstream=http://127.0.0.1:%v" .Values.tenantMetrics.hubRelay.port | quote }}
+            - --label=organization_id
+            - --header-name=x-maas-orgid
+            - --error-on-replace
+            - --enable-label-apis
+          ports:
+            - name: http
+              containerPort: 9091
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: http
+          livenessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          env:
+            - name: SSL_CERT_DIR
+              value: /etc/thanos-ca:/etc/ssl/certs:/etc/pki/tls/certs
+          volumeMounts:
+            - name: thanos-ca
+              mountPath: /etc/thanos-ca
+              readOnly: true
+        - name: hub-relay
+          image: {{ required "tenantMetrics.hubRelay.image is required when tenantMetrics.enabled=true" .Values.tenantMetrics.hubRelay.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/libexec/s2i/run
+          ports:
+            - name: hub-relay
+              containerPort: {{ .Values.tenantMetrics.hubRelay.port }}
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: hub-relay-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: hub-relay-tmp
+              mountPath: /tmp
+            - name: hub-relay-tmp
+              mountPath: /var/cache/nginx
+            - name: thanos-ca
+              mountPath: /etc/thanos-ca
+              readOnly: true
+      volumes:
+        - name: hub-relay-config
+          configMap:
+            name: ai-grid-tenant-hub-relay
+        - name: hub-relay-tmp
+          emptyDir: {}
+        - name: thanos-ca
+          configMap:
+            name: {{ .Values.tenantMetrics.upstreamCAConfigMap | quote }}
+            items:
+              - key: {{ .Values.tenantMetrics.upstreamCAConfigMapKey | quote }}
+                path: ca.crt
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-grid-tenant-prom-label-proxy
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-metrics-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+  ports:
+    - name: http
+      port: 9091
+      targetPort: http
+      protocol: TCP
+{{ end }}

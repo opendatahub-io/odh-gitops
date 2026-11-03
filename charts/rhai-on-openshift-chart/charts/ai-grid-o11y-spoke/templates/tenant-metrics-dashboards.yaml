@@ -1,0 +1,5 @@
+{{ if .Values.tenantMetrics.enabled }}
+{{ .Files.Get "dashboards/tenant-metrics/perses-dashboard-tenant-cluster.yaml" }}
+---
+{{ .Files.Get "dashboards/tenant-metrics/perses-dashboard-tenant-models.yaml" }}
+{{ end }}

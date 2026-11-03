@@ -3,15 +3,15 @@
 **This one installs on a spoke.** Its sibling [ai-grid-o11y-hub](../ai-grid-o11y-hub) installs
 on the hub, including the ACM policy that configures spokes remotely.
 
-It has two independent halves, both about the one collector in `collector.namespace`, and
-each with its own toggle:
+It has three independently enabled parts on a spoke:
 
 | | |
 |---|---|
 | **metrics** | a `ScrapeConfig` and a `NetworkPolicy` that let ACM observability's metrics-collector agents federate RHOAI metrics off this cluster. `metrics.enabled`, on by default |
 | **usage logs** | the monitoring namespace and the hub credential the usage-log collector mounts, in place *before* that collector starts. `credential.enabled`, off by default |
+| **tenant metrics** | two Perses dashboards, one datasource, prom-label-proxy, a Perses HTTPRoute, and an AuthPolicy. `tenantMetrics.enabled`, off by default |
 
-They share nothing but the namespace, and either can run alone. A spoke in an ACM fleet that
+Each part can run alone. A spoke in an ACM fleet that
 only federates metrics leaves `credential.enabled` off and is never asked for a hub token. A
 spoke outside a fleet, installing this chart only to receive the usage-log credential, sets
 `metrics.enabled: false` — the `ScrapeConfig` goes to
@@ -54,6 +54,12 @@ a single `helm install`, with no second pass and no manual step between.
 | `NetworkPolicy` | `allow-acm-rhai-metrics` | metrics only, in `collector.namespace` |
 | `Namespace` | `redhat-ods-monitoring` | usage logs only; `collector.createNamespace`, carries `helm.sh/resource-policy: keep` |
 | `Secret` | `hub-usage-logs-auth` | usage logs only; key `token`, the hub writer token |
+| `PersesDashboard` | `dashboard-0-ai-grid-tenant-cluster-admin`, `dashboard-1-ai-grid-tenant-models-admin` | tenant metrics, in `redhat-ods-monitoring` |
+| `PersesDatasource` | `ai-grid-tenant-prometheus-datasource` | tenant metrics; Perses proxies to prom-label-proxy |
+| `Deployment`, `Service` | `ai-grid-tenant-prom-label-proxy` | tenant metrics; prom-label-proxy rewrites PromQL and its NGINX sidecar relays requests to the hub Route |
+| `NetworkPolicy` | `ai-grid-tenant-prom-label-proxy-ingress` | permits only managed Perses pods to reach the query proxy |
+| `Role`, `RoleBinding` | `ai-grid-tenant-perses-dashboards-reader` | permits the MaaS portal BFF to read only the two tenant dashboard definitions |
+| `HTTPRoute`, `AuthPolicy` | `ai-grid-tenant-perses` | attaches `/api` GET and `/proxy` GET/POST to `maas-default-gateway` |
 
 The namespace keeps `helm.sh/resource-policy: keep` because the operator puts everything it
 deploys there. A `helm uninstall` that deleted it would take the collector, and everything
@@ -76,6 +82,52 @@ namespace; the template requires both it and `collector.createNamespace`.
 It must also be false on OSD and ROSA where the namespace is managed elsewhere: GitOps writes
 to Red Hat managed namespaces are rejected, the same constraint `RHOAIENG-99507` addressed for
 the operator namespace.
+
+## Tenant metrics
+
+Set `tenantMetrics.enabled=true` on a RHOAI spoke and supply the prom-label-proxy and
+NGINX relay images, a hub Thanos query URL reachable from that spoke, and the MaaS OIDC
+issuer and client ID.
+The organization admin role defaults to `admins`. The proxy enforces the `organization_id`
+metric label using the
+per-request `x-maas-orgid` header. It does not authenticate callers itself. The Perses
+HTTPProxy forwards request headers to the proxy. The proxy sends its requests to an NGINX
+sidecar in the same Pod. That relay connects to `tenantMetrics.upstreamURL`, sets the hub
+Route hostname as the outgoing Host header, and preserves `Authorization` and
+`x-maas-orgid`. Its plain HTTP backend has no Perses client TLS or authentication settings,
+so no Perses datasource Secret is generated or referenced. By default, the relay mounts the
+RHOAI-managed `odh-trusted-ca-bundle` ConfigMap. Override
+`tenantMetrics.upstreamCAConfigMap` and `tenantMetrics.upstreamCAConfigMapKey` for a hub
+Route with a private CA.
+
+The route attaches to the existing MaaS Gateway. Its listener must permit routes from
+`redhat-ods-monitoring` through `allowedRoutes.namespaces`; the chart cannot change that
+existing Gateway. Because the route and Perses Service are in the same namespace, it needs
+no `ReferenceGrant`. No Hub resource is created by this feature.
+
+The dashboard-reader Role and RoleBinding are also in `redhat-ods-monitoring`. The
+Role grants `get` only on these two dashboards to the `odh-dashboard-maas` service
+account. Set `tenantMetrics.portalServiceAccountNamespace` to the namespace of that
+service account if `operator.rhoai.applicationsNamespace` is customized.
+
+The standalone AuthPolicy validates MaaS OIDC bearer tokens on the new route. It takes the
+organization ID from the flat `org_id` claim defined by the approved AI Grid identity
+contract and permits metric queries only when `roles` includes the configured admin role.
+The policy allows `/proxy` requests only for `ai-grid-tenant-prometheus-datasource`, so a
+caller cannot use this route to query the other datasources in the same Perses instance.
+It rejects client-supplied `x-maas-orgid`. Verify the credential, role, and `azp` claim
+presented to this direct Perses route before deploying it.
+
+**Embedded dashboard integration must be checked before opening a PR.** The approved MaaS
+consumer portal layout places portal requests behind the MaaS Gateway. Its companion AI
+Grid identity contract requires the Gateway to replace client-supplied `x-maas-orgid` with
+the verified `org_id` value on authenticated requests. If embedded `/perses/api` requests
+match that portal route, the Dashboard proxy can forward the header to Perses and this
+datasource can forward it to prom-label-proxy. This chart does not own the consumer portal
+route or policy. Verify the deployed route, per-request header forwarding, and isolation
+between organizations end to end. The current dashboard also hides names ending in
+`-admin` from users without cluster-wide metrics access; test tenant-admin visibility
+before a PR.
 
 ## The token
 

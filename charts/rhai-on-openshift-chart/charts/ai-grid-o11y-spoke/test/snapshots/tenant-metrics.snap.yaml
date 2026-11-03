@@ -1,0 +1,1428 @@
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-proxy-networkpolicy.yaml
+# prom-label-proxy does no authentication; only the managed Perses pod may call it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-grid-tenant-prom-label-proxy-ingress
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: data-science-perses
+              app.kubernetes.io/managed-by: perses-operator
+      ports:
+        - protocol: TCP
+          port: 9091
+
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-proxy.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-grid-tenant-hub-relay
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: tenant-metrics-proxy
+data:
+  nginx.conf: |
+    worker_processes 1;
+    error_log /dev/stderr notice;
+    pid /tmp/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        access_log /dev/stdout;
+
+        server {
+            listen 8081;
+
+            location / {
+                proxy_pass https://thanos.example.test:443;
+                proxy_http_version 1.1;
+                proxy_set_header Host thanos.example.test:443;
+                proxy_set_header Authorization $http_authorization;
+                proxy_set_header x-maas-orgid $http_x_maas_orgid;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_ssl_server_name on;
+                proxy_ssl_name thanos.example.test;
+                proxy_ssl_verify on;
+                proxy_ssl_verify_depth 2;
+                proxy_ssl_trusted_certificate /etc/thanos-ca/ca.crt;
+            }
+        }
+    }
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-dashboard-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-grid-tenant-perses-dashboards-reader
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [perses.dev]
+    resources: [persesdashboards]
+    resourceNames:
+      - dashboard-0-ai-grid-tenant-cluster-admin
+      - dashboard-1-ai-grid-tenant-models-admin
+    verbs: [get]
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-dashboard-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-grid-tenant-perses-dashboards-reader
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ai-grid-tenant-perses-dashboards-reader
+subjects:
+  - kind: ServiceAccount
+    name: odh-dashboard-maas
+    namespace: "redhat-ods-applications"
+
+
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-proxy.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-grid-tenant-prom-label-proxy
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: tenant-metrics-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+  ports:
+    - name: http
+      port: 9091
+      targetPort: http
+      protocol: TCP
+
+
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-proxy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-grid-tenant-prom-label-proxy
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: tenant-metrics-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+  template:
+    metadata:
+      annotations:
+        checksum/tenant-metrics: 704a13b029f241c1ef027f4c0f719a85983dcdf52092916f848133e8bddeeca0
+      labels:
+        app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+        app.kubernetes.io/component: tenant-metrics-proxy
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: prom-label-proxy
+          image: "registry.example.invalid/prom-label-proxy:testing"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --insecure-listen-address=0.0.0.0:9091
+            - "--upstream=http://127.0.0.1:8081"
+            - --label=organization_id
+            - --header-name=x-maas-orgid
+            - --error-on-replace
+            - --enable-label-apis
+          ports:
+            - name: http
+              containerPort: 9091
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: http
+          livenessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          env:
+            - name: SSL_CERT_DIR
+              value: /etc/thanos-ca:/etc/ssl/certs:/etc/pki/tls/certs
+          volumeMounts:
+            - name: thanos-ca
+              mountPath: /etc/thanos-ca
+              readOnly: true
+        - name: hub-relay
+          image: "registry.example.invalid/nginx:testing"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/libexec/s2i/run
+          ports:
+            - name: hub-relay
+              containerPort: 8081
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: hub-relay-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: hub-relay-tmp
+              mountPath: /tmp
+            - name: hub-relay-tmp
+              mountPath: /var/cache/nginx
+            - name: thanos-ca
+              mountPath: /etc/thanos-ca
+              readOnly: true
+      volumes:
+        - name: hub-relay-config
+          configMap:
+            name: ai-grid-tenant-hub-relay
+        - name: hub-relay-tmp
+          emptyDir: {}
+        - name: thanos-ca
+          configMap:
+            name: "odh-trusted-ca-bundle"
+            items:
+              - key: "ca-bundle.crt"
+                path: ca.crt
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-authpolicy.yaml
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: ai-grid-tenant-perses
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ai-grid-tenant-perses
+  rules:
+    authentication:
+      maas-oidc:
+        jwt:
+          issuerUrl: "https://issuer.example.test/realms/maas"
+        credentials:
+          authorizationHeader:
+            prefix: Bearer
+    authorization:
+      tenant-metrics:
+        opa:
+          allValues: true
+          rego: |
+            default allow = false
+
+            # AI Grid identity contract: one organization per token, with flat claims.
+            organization = result {
+              org_id := object.get(input.auth.identity, "org_id", "")
+              is_string(org_id)
+              org_id != ""
+              roles := object.get(input.auth.identity, "roles", [])
+              is_array(roles)
+              result := {"org_id": org_id, "roles": roles}
+            } else = {"org_id": "", "roles": []}
+
+            # Client-provided tenant headers never become trusted input.
+            trusted_client {
+              object.get(input.context.request.http.headers, "x-maas-orgid", "") == ""
+              object.get(input.auth.identity, "azp", "") == "perses-client"
+            }
+
+            allow = true {
+              trusted_client
+              input.context.request.http.method == "GET"
+              startswith(input.context.request.http.path, "/api")
+            }
+
+            tenant_datasource_path := "/proxy/projects/redhat-ods-monitoring/datasources/ai-grid-tenant-prometheus-datasource"
+
+            allow = true {
+              trusted_client
+              {"GET", "POST"}[input.context.request.http.method]
+              path := input.context.request.http.path
+              path == tenant_datasource_path
+              organization.org_id != ""
+              organization.roles[_] == "admins"
+            }
+
+            allow = true {
+              trusted_client
+              {"GET", "POST"}[input.context.request.http.method]
+              startswith(input.context.request.http.path, concat("", [tenant_datasource_path, "/"]))
+              organization.org_id != ""
+              organization.roles[_] == "admins"
+            }
+    response:
+      success:
+        headers:
+          x-maas-orgid:
+            when:
+              - predicate: 'request.path.startsWith("/proxy")'
+            plain:
+              expression: auth.authorization['tenant-metrics'].organization.org_id
+
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-httproute.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-grid-tenant-perses
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-tenant-metrics
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+spec:
+  parentRefs:
+    - name: "maas-default-gateway"
+      namespace: "openshift-ingress"
+      sectionName: "https"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+          method: GET
+        - path:
+            type: PathPrefix
+            value: /proxy
+          method: GET
+        - path:
+            type: PathPrefix
+            value: /proxy
+          method: POST
+      backendRefs:
+        - name: data-science-perses
+          port: 8080
+
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-dashboards.yaml
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  name: dashboard-0-ai-grid-tenant-cluster-admin
+  namespace: redhat-ods-monitoring
+spec:
+  config:
+    display:
+      name: Tenant cluster
+    duration: 1h
+    # Namespace variable - queries the cluster-scoped Prometheus datasource, can be overridden by NamespaceVariablesProvider
+    variables:
+      - kind: ListVariable
+        spec:
+          name: namespace
+          display:
+            name: Project
+            description: Filter by project
+          allowMultiple: true
+          allowAllValue: true
+          customAllValue: ".*"
+          defaultValue: "$__all"
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+                name: ai-grid-tenant-prometheus-datasource
+              labelName: namespace
+              matchers:
+                - kserve_vllm:num_requests_running
+      # Cluster details variables - set by ClusterDetailsVariablesProvider
+      - kind: TextVariable
+        spec:
+          name: CLUSTER_DETAILS_API_SERVER
+          display:
+            name: API server
+            hidden: true
+          value: "N/A"
+      - kind: TextVariable
+        spec:
+          name: CLUSTER_DETAILS_CHANNEL
+          display:
+            name: Channel
+            hidden: true
+          value: "N/A"
+      - kind: TextVariable
+        spec:
+          name: CLUSTER_DETAILS_OPENSHIFT_VERSION
+          display:
+            name: OpenShift version
+            hidden: true
+          value: "N/A"
+      - kind: TextVariable
+        spec:
+          name: CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER
+          display:
+            name: Infrastructure provider
+            hidden: true
+          value: "N/A"
+    panels:
+      # Overview Stats
+      systemHealth:
+        kind: Panel
+        spec:
+          display:
+            name: System health
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: mean
+              format:
+                unit: percent-decimal
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Healthy nodes / Total nodes
+                    query: count(max by (node) (kube_node_status_condition{condition="Ready",status="true"} == 1)) / count(max by (node) (kube_node_status_condition{condition="Ready",status="true"}))
+                    seriesNameFormat: System health
+      deployedModels:
+        kind: Panel
+        spec:
+          display:
+            name: Deployed models
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+                decimalPlaces: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Count unique models by model_name and namespace from vLLM metrics
+                    query: count(group(kserve_vllm:num_requests_running) by (model_name, namespace))
+                    seriesNameFormat: Deployed models
+      gpuUtilizationStat:
+        kind: Panel
+        spec:
+          display:
+            name: GPU utilization
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: mean
+              format:
+                unit: percent
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: avg(accelerator_gpu_utilization)
+                    seriesNameFormat: GPU usage
+      successRate:
+        kind: Panel
+        spec:
+          display:
+            name: Request success rate
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: mean
+              format:
+                unit: percent-decimal
+                decimalPlaces: 1
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Request success rate using kserve_vllm metrics
+                    query: (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace", finished_reason=~"length|stop"}[$__range])) / sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range]))) and (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range])) > 0)
+                    seriesNameFormat: Request success rate
+      # Cluster-wide usage - Area charts
+      gpuUtilizationArea:
+        kind: Panel
+        spec:
+          display:
+            name: GPU utilization
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              visual:
+                areaOpacity: 0.6
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: percent
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: avg(accelerator_gpu_utilization)
+                    seriesNameFormat: GPU usage
+      memoryUtilizationArea:
+        kind: Panel
+        spec:
+          display:
+            name: Memory allocated
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              visual:
+                areaOpacity: 0.6
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: percent-decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: sum(container_memory_working_set_bytes{container!="", image!=""}) / sum(node_memory_MemTotal_bytes)
+                    seriesNameFormat: Memory allocated
+      cpuUtilizationArea:
+        kind: Panel
+        spec:
+          display:
+            name: CPU utilization
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              visual:
+                areaOpacity: 0.6
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: percent-decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) / sum(kube_node_status_allocatable{resource="cpu"})
+                    seriesNameFormat: CPU usage
+      networkUtilizationArea:
+        kind: Panel
+        spec:
+          display:
+            name: Inbound traffic
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              visual:
+                areaOpacity: 0.6
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: bytes
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Network receive rate in bytes/second
+                    query: sum(rate(container_network_receive_bytes_total[$__rate_interval]))
+                    seriesNameFormat: Network
+      gpuUtilizationByProject:
+        kind: Panel
+        spec:
+          display:
+            name: GPU utilization
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 1
+                connectNulls: false
+                display: line
+                lineWidth: 0.25
+                stack: all
+              yAxis:
+                format:
+                  unit: percent
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: sum by (exported_namespace) (accelerator_gpu_utilization{exported_namespace=~"$namespace"}) / scalar(count(accelerator_gpu_utilization))
+                    seriesNameFormat: "{{exported_namespace}}"
+      cpuUtilizationByProject:
+        kind: Panel
+        spec:
+          display:
+            name: CPU utilization
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 1
+                connectNulls: false
+                display: line
+                lineWidth: 0.25
+                stack: all
+              yAxis:
+                format:
+                  unit: percent-decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # CPU usage by namespace as percentage of total cluster allocatable CPU
+                    query: sum by (namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"}) / scalar(sum(kube_node_status_allocatable{resource="cpu"}))
+                    seriesNameFormat: "{{namespace}}"
+      memoryUsageByProject:
+        kind: Panel
+        spec:
+          display:
+            name: Memory allocated
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 1
+                connectNulls: false
+                display: line
+                lineWidth: 0.25
+                stack: all
+              yAxis:
+                format:
+                  unit: percent-decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Memory allocated by namespace as percentage of total cluster memory
+                    query: sum by (namespace) (container_memory_working_set_bytes{namespace=~"$namespace", container!="", image!=""}) / scalar(sum(node_memory_MemTotal_bytes))
+                    seriesNameFormat: "{{namespace}}"
+      # Cluster Details - Static Markdown Panel
+      clusterDetails:
+        kind: Panel
+        spec:
+          display:
+            name: Cluster details
+          plugin:
+            kind: Markdown
+            spec:
+              text: |
+                <dl class="pf-v6-c-description-list pf-m-auto-column-widths pf-m-horizontal">
+                  <div class="pf-v6-c-description-list__group">
+                    <dt class="pf-v6-c-description-list__term">
+                      <span class="pf-v6-c-description-list__text">Provider</span>
+                    </dt>
+                    <dd class="pf-v6-c-description-list__description">
+                      <div class="pf-v6-c-description-list__text">${CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER}</div>
+                    </dd>
+                  </div>
+                  <div class="pf-v6-c-description-list__group">
+                    <dt class="pf-v6-c-description-list__term">
+                      <span class="pf-v6-c-description-list__text">OpenShift version</span>
+                    </dt>
+                    <dd class="pf-v6-c-description-list__description">
+                      <div class="pf-v6-c-description-list__text">${CLUSTER_DETAILS_OPENSHIFT_VERSION}</div>
+                    </dd>
+                  </div>
+                  <div class="pf-v6-c-description-list__group">
+                    <dt class="pf-v6-c-description-list__term">
+                      <span class="pf-v6-c-description-list__text">Channel</span>
+                    </dt>
+                    <dd class="pf-v6-c-description-list__description">
+                      <div class="pf-v6-c-description-list__text">${CLUSTER_DETAILS_CHANNEL}</div>
+                    </dd>
+                  </div>
+                  <div class="pf-v6-c-description-list__group">
+                    <dt class="pf-v6-c-description-list__term">
+                      <span class="pf-v6-c-description-list__text">API server</span>
+                    </dt>
+                    <dd class="pf-v6-c-description-list__description">
+                      <div class="pf-v6-c-description-list__text">${CLUSTER_DETAILS_API_SERVER}</div>
+                    </dd>
+                  </div>
+                </dl>
+    layouts:
+      # Overview Section - Stats Row
+      - kind: Grid
+        spec:
+          display:
+            title: Overview
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/systemHealth'
+            - x: 6
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/deployedModels'
+            - x: 12
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/gpuUtilizationStat'
+            - x: 18
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/successRate'
+      # Cluster-wide usage section
+      - kind: Grid
+        spec:
+          display:
+            title: Cluster resource overview
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/gpuUtilizationArea'
+            - x: 12
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/memoryUtilizationArea'
+            - x: 0
+              'y': 8
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/cpuUtilizationArea'
+            - x: 12
+              'y': 8
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/networkUtilizationArea'
+      # Project resource usage Section
+      - kind: Grid
+        spec:
+          display:
+            title: Project resource usage
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 8
+              height: 10
+              content:
+                '$ref': '#/spec/panels/gpuUtilizationByProject'
+            - x: 8
+              'y': 0
+              width: 8
+              height: 10
+              content:
+                '$ref': '#/spec/panels/cpuUtilizationByProject'
+            - x: 16
+              'y': 0
+              width: 8
+              height: 10
+              content:
+                '$ref': '#/spec/panels/memoryUsageByProject'
+      # Cluster Details Section
+      - kind: Grid
+        spec:
+          display:
+            title: Cluster details
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 24
+              height: 8
+              content:
+                '$ref': '#/spec/panels/clusterDetails'
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-dashboards.yaml
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  name: dashboard-1-ai-grid-tenant-models-admin
+  namespace: redhat-ods-monitoring
+spec:
+  config:
+    display:
+      name: Tenant models
+    duration: 1h
+    # Namespace variable - queries Prometheus by default, but can be overridden by NamespaceVariablesProvider
+    variables:
+      - kind: ListVariable
+        spec:
+          name: namespace
+          display:
+            name: Project
+            description: Filter by project
+          allowMultiple: true
+          allowAllValue: true
+          customAllValue: ".*"
+          defaultValue: "$__all"
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+                name: ai-grid-tenant-prometheus-datasource
+              labelName: namespace
+              matchers:
+                - kserve_vllm:num_requests_running
+      - kind: ListVariable
+        spec:
+          name: model_name
+          display:
+            name: Model deployment
+            description: Filter by model deployment
+          allowMultiple: true
+          allowAllValue: true
+          customAllValue: ".*"
+          defaultValue: "$__all"
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+                name: ai-grid-tenant-prometheus-datasource
+              labelName: model_name
+              matchers:
+                - kserve_vllm:num_requests_running{namespace=~"$namespace"}
+    panels:
+      # Model Deployments Table
+      modelDeploymentsTable:
+        kind: Panel
+        spec:
+          display:
+            name: Model deployments
+          plugin:
+            kind: Table
+            spec:
+              density: compact
+              pagination: true
+              transforms:
+                - kind: MergeSeries
+                  spec: {}
+              columnSettings:
+                - name: timestamp
+                  hide: true
+                - name: model_name
+                  header: Model deployment
+                  enableSorting: true
+                  sort: desc
+                - name: namespace
+                  header: Project
+                  enableSorting: true
+                - name: "value #1"
+                  hide: true
+                - name: "value #2"
+                  header: Total requests
+                  enableSorting: true
+                  format:
+                    unit: decimal
+                    decimalPlaces: 0
+                - name: "value #3"
+                  header: P90 E2E request latency
+                  enableSorting: true
+                  format:
+                    unit: seconds
+                - name: "value #4"
+                  header: Error rate
+                  enableSorting: true
+                  format:
+                    unit: percent-decimal
+                - name: "value #5"
+                  header: GPU utilization
+                  enableSorting: true
+                  format:
+                    unit: percent
+                - name: "value #6"
+                  header: CPU usage (cores)
+                  enableSorting: true
+                  format:
+                    unit: decimal
+                    decimalPlaces: 5
+                - name: "value #7"
+                  header: CPU quota utilization
+                  enableSorting: true
+                  format:
+                    unit: percent-decimal
+          queries:
+            # Query 1: Base model list from vLLM metrics (value hidden, just provides the rows)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: group by (model_name, namespace) (kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"})
+            # Query 2: Total requests - defaults to 0
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: sum by (model_name, namespace) (increase(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name"}[$__range])) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+            # Query 3: P90 E2E request latency - defaults to 0 (filter NaN with > -Inf)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: avg_over_time((histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf)[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+            # Query 4: Error rate
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: (sum by (model_name, namespace)(increase(kserve_vllm:request_success_total{finished_reason=~"error|abort", namespace=~"$namespace", model_name=~"$model_name"}[$__range])) / (sum by (model_name, namespace)(increase(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name"}[$__range])) > 0)) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+            # Query 5: GPU utilization %
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: avg_over_time((sum by (model_name, namespace) (label_replace(label_replace(accelerator_gpu_utilization{exported_namespace=~"$namespace"}, "namespace", "$1", "exported_namespace", "(.*)"), "pod", "$1", "exported_pod", "(.*)") * on(namespace, pod) group_left(model_name)(0 * max by (namespace, pod, model_name)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) + 1)) / scalar(count(accelerator_gpu_utilization)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+            # Query 6: CPU usage (cores) - absolute CPU consumed by model pods
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"} * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) + 1)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+            # Query 7: CPU quota utilization % - CPU as fraction of namespace ResourceQuota (empty when no quota configured)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"} * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) + 1)) / on(namespace) group_left() sum by (namespace) (kube_resourcequota{resource="cpu", type="hard", namespace=~"$namespace"}))[$__range:])
+      # Performance Metrics - Line Charts
+      requestQueueLength:
+        kind: Panel
+        spec:
+          display:
+            name: Request queue length
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Number of requests waiting in queue per model
+                    query: sum by (model_name, namespace) (kserve_vllm:num_requests_waiting{namespace=~"$namespace", model_name=~"$model_name"})
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
+      replicaCount:
+        kind: Panel
+        spec:
+          display:
+            name: Replica count
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Ready pods per model - count of pods with vLLM metrics
+                    query: count by (model_name, namespace) (group by (pod, model_name, namespace) (kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
+      requestLatency:
+        kind: Panel
+        spec:
+          display:
+            name: P90 E2E request latency
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # P90 end-to-end request latency
+                    query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
+      timeToFirstToken:
+        kind: Panel
+        spec:
+          display:
+            name: P90 Time to first token (TTFT)
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # P90 time to first token
+                    query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:time_to_first_token_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
+      tokenThroughput:
+        kind: Panel
+        spec:
+          display:
+            name: Token throughput (tokens/sec)
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Token throughput (prompt + generation tokens per second)
+                    query: sum by(model_name, namespace) (rate(kserve_vllm:prompt_tokens_total{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]) + rate(kserve_vllm:generation_tokens_total{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
+      requestSuccessRate:
+        kind: Panel
+        spec:
+          display:
+            name: Request success rate (requests/sec)
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    # Request success rate (successful requests per second)
+                    query: sum by (model_name, namespace) (rate(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name", finished_reason=~"length|stop"}[$__rate_interval]))
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
+      responseTimeDistribution:
+        kind: Panel
+        spec:
+          display:
+            name: Response time distribution
+          plugin:
+            kind: BarChart
+            spec:
+              calculation: last
+              sort: asc
+          queries:
+            # Simplified buckets
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="+Inf"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="30.0"}[$__range])))
+                    seriesNameFormat: "Degraded >30s"
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="30.0"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="5.0"}[$__range])))
+                    seriesNameFormat: "Slow 5-30s"
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="5.0"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="1.0"}[$__range])))
+                    seriesNameFormat: "Acceptable 1-5s"
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: ai-grid-tenant-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="1.0"}[$__range])))
+                    seriesNameFormat: "Fast <1s"
+    layouts:
+      # Model Deployments Table Section
+      - kind: Grid
+        spec:
+          display:
+            title: Model deployments
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 24
+              height: 9
+              content:
+                '$ref': '#/spec/panels/modelDeploymentsTable'
+      # Performance Metrics Section
+      - kind: Grid
+        spec:
+          display:
+            title: Performance metrics
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/requestQueueLength'
+            - x: 12
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/replicaCount'
+            - x: 0
+              'y': 8
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/requestLatency'
+            - x: 12
+              'y': 8
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/timeToFirstToken'
+            - x: 0
+              'y': 16
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/tokenThroughput'
+            - x: 12
+              'y': 16
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/requestSuccessRate'
+            - x: 0
+              'y': 24
+              width: 24
+              height: 8
+              content:
+                '$ref': '#/spec/panels/responseTimeDistribution'
+
+---
+# Source: ai-grid-o11y-spoke/templates/tenant-metrics-datasource.yaml
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  name: ai-grid-tenant-prometheus-datasource
+  namespace: redhat-ods-monitoring
+spec:
+  client:
+    tls:
+      enable: true
+      caCert:
+        type: file
+        certPath: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+      insecureSkipVerify: false
+  config:
+    default: false
+    display:
+      name: AI Grid tenant metrics
+      description: Organization-scoped hub Thanos queries
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        proxy:
+          kind: HTTPProxy
+          spec:
+            secret: ai-grid-tenant-prometheus-datasource-secret
+            url: http://ai-grid-tenant-prom-label-proxy.redhat-ods-monitoring.svc:9091

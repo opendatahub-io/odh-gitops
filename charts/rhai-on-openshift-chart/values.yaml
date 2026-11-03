@@ -788,3 +788,8 @@ ai-grid-o11y-spoke:
     # `collector.createNamespace` as well, and that defaults to false because most spokes
     # already have the namespace and Helm cannot adopt one it does not own.
     enabled: false
+  tenantMetrics:
+    # -- Tenant Perses dashboards and organization-scoped query proxy on a spoke.
+    # Set image and upstreamURL when enabling; the Gateway must accept routes
+    # from redhat-ods-monitoring.
+    enabled: false

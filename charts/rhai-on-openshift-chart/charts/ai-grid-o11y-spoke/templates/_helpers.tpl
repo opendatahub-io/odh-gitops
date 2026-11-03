@@ -34,3 +34,14 @@ credential Secret; restrict access to both namespaces accordingly.
 {{- define "ai-grid-o11y-spoke.token" -}}
 {{- .Values.credential.token | required "credential.token is required when ai-grid-o11y-spoke.credential.enabled is set: mint it on the hub with `oc create token <writer-sa> -n <o11y-namespace>` and pass it with --set-file ai-grid-o11y-spoke.credential.token=./token" -}}
 {{- end }}
+
+{{- define "ai-grid-o11y-spoke.tenantMetrics.labels" -}}
+helm.sh/chart: {{ include "ai-grid-o11y-spoke.chart" . }}
+app.kubernetes.io/name: ai-grid-tenant-metrics
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/part-of: ai-grid-observability
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,25 @@
+{{ if .Values.tenantMetrics.enabled }}
+# prom-label-proxy does no authentication; only the managed Perses pod may call it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-grid-tenant-prom-label-proxy-ingress
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: data-science-perses
+              app.kubernetes.io/managed-by: perses-operator
+      ports:
+        - protocol: TCP
+          port: 9091
+{{ end }}

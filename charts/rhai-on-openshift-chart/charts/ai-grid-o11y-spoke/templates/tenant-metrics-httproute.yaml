@@ -1,0 +1,37 @@
+{{ if .Values.tenantMetrics.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-grid-tenant-perses
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+{{- if .Values.tenantMetrics.gateway.hostname }}
+spec:
+  hostnames:
+    - {{ .Values.tenantMetrics.gateway.hostname | quote }}
+{{- else }}
+spec:
+{{- end }}
+  parentRefs:
+    - name: {{ .Values.tenantMetrics.gateway.name | quote }}
+      namespace: {{ .Values.tenantMetrics.gateway.namespace | quote }}
+      sectionName: {{ .Values.tenantMetrics.gateway.sectionName | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+          method: GET
+        - path:
+            type: PathPrefix
+            value: /proxy
+          method: GET
+        - path:
+            type: PathPrefix
+            value: /proxy
+          method: POST
+      backendRefs:
+        - name: data-science-perses
+          port: 8080
+{{ end }}
