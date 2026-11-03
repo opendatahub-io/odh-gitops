@@ -209,7 +209,7 @@ charts:
       - name: ai-grid-profile
         setFlags:
           - skipCrdCheck=true
-          - operator.type=odh
+          - operator.type=rhoai
           - profile=ai-grid-ingress
           - praxis-gateway.grid.siteName=local-cluster
         setJsonFlags:

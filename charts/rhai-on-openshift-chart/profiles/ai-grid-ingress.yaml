@@ -4,10 +4,13 @@
 argocd:
   enabled: true
 
+operator:
+  type: rhoai
+
 ai-grid-o11y-spoke:
   enabled: true
   collector:
-    namespace: opendatahub
+    namespace: redhat-ods-monitoring
 
 dependencies:
   rhcl:
