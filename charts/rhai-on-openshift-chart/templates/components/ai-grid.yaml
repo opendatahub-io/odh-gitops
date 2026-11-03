@@ -4,6 +4,9 @@
 {{- if include "rhoai-dependencies.aiGridRuntimeEnabled" (dict "root" $ "name" $name) -}}
 {{- with index $.Subcharts $name -}}
 {{- $_ := mergeOverwrite .Values (index $.Values $name) -}}
+{{- if and (eq $name "praxis-gateway") (include "rhoai-dependencies.aiGridMonitored" $) -}}
+{{- include "rhoai-dependencies.aiGridGatewayMonitoring" (dict "gateway" . "root" $) -}}
+{{- end -}}
 {{ include (printf "%s.rhoai.resources" $name) . }}
 {{- end -}}
 {{- end -}}

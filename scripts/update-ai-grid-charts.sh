@@ -58,6 +58,18 @@ git -C "$TMP_DIR/grid" archive "$SHA" deploy/crds | tar -x --strip-components=2 
 sed -i -E "s#\[\`praxis-proxy/grid\` at \`[0-9a-f]+\`\]\(https://github.com/praxis-proxy/grid/tree/[0-9a-f]+/deploy/crds\)#[\`praxis-proxy/grid\` at \`${SHA:0:7}\`](https://github.com/praxis-proxy/grid/tree/${SHA}/deploy/crds)#" "$CRDS/README.md"
 grep -q "tree/${SHA}/deploy/crds" "$CRDS/README.md" || { echo "CRD carry README names no commit link to update" >&2; exit 1; }
 
+# The routing dashboard reads gateway series by name; fail the bump that renames one.
+DASHBOARD="$PARENT/dashboards/ai-grid-routing.yaml"
+METRICS_SRC="crates/gateway/crates/ai-grid-filters/src/lib.rs"
+emitted=$(git -C "$TMP_DIR/grid" show "$SHA:$METRICS_SRC" | grep -oE '"grid_[a-z_]+"' | tr -d '"' | sort -u)
+[[ -n "$emitted" ]] || { echo "No grid metric names in $METRICS_SRC at $SHA" >&2; exit 1; }
+missing=$(comm -23 <(grep -oE 'grid_[a-z_]+' "$DASHBOARD" | sort -u) <(echo "$emitted"))
+if [[ -n "$missing" ]]; then
+  echo "$DASHBOARD reads series the gateway at $SHA does not emit:" >&2
+  echo "$missing" >&2
+  exit 1
+fi
+
 python3 "$ROOT/scripts/adapt-ai-grid-charts.py"
 # Preserve reviewed downstream hardening until it is carried upstream. Fail on
 # patch drift instead of silently dropping controls during a version bump.

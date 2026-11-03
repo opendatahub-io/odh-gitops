@@ -897,7 +897,7 @@ true
 {{- end }}
 
 {{/*
-=============================================================================
+======================================================================
 Resolve whether an AI Grid runtime subchart (grid-enrollment, praxis-gateway)
 renders. An explicit <name>.enabled value wins; unset uses the profile's
 <name>.enabled, then true. Helm loads the subchart unless enabled is false.
@@ -915,4 +915,26 @@ Arguments (passed as dict):
 {{- if $enabled -}}
 true
 {{- end -}}
+{{- end }}
+=======
+{{/* The chart deploys the grid gateway and the DSCI monitoring stack is on to scrape it. */}}
+{{- define "rhoai-dependencies.aiGridMonitored" -}}
+{{- $monitoring := include "rhoai-dependencies.effectiveServiceManagementState" (dict "state" .Values.services.monitoring.dsci.managementState "root" . "name" "monitoring") -}}
+{{- if and (include "rhoai-dependencies.aiGridManaged" .) (include "rhoai-dependencies.aiGridRuntimeEnabled" (dict "root" . "name" "praxis-gateway")) (eq $monitoring "Managed") -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/* Let the DSCI collector scrape the gateway: select its ServiceMonitor and admit its namespace. */}}
+{{- define "rhoai-dependencies.aiGridGatewayMonitoring" -}}
+{{- $metrics := .gateway.Values.metricsListener -}}
+{{- $namespace := (index .root.Values.operator .root.Values.operator.type).monitoringNamespace -}}
+{{- $from := $metrics.fromNamespaces | default (list "openshift-user-workload-monitoring") -}}
+{{- if not (has $namespace $from) -}}
+{{- $from = append $from $namespace -}}
+{{- end -}}
+{{- $_ := set $metrics "fromNamespaces" $from -}}
+{{- $labels := $metrics.serviceMonitor.labels | default dict -}}
+{{- $_ := set $labels "monitoring.opendatahub.io/scrape" "true" -}}
+{{- $_ := set $metrics.serviceMonitor "labels" $labels -}}
 {{- end }}
