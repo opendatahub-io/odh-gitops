@@ -1,6 +1,6 @@
 # grid-enrollment
 
-![Version: 0.2.2](https://img.shields.io/badge/Version-0.2.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.2.2](https://img.shields.io/badge/AppVersion-v0.2.2-informational?style=flat-square)
+![Version: 0.3.0-rc.3](https://img.shields.io/badge/Version-0.3.0--rc.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.3.0-rc.3](https://img.shields.io/badge/AppVersion-v0.3.0--rc.3-informational?style=flat-square)
 
 Grid enrollment service with self-provisioned Grid CA and Postgres
 
@@ -31,9 +31,19 @@ Kubernetes: `>=1.26.0-0`
 | enrollment | object | `{"affinity":{},"authz":"kube","certLifetimeSecs":"","csrRecord":{"enabled":true,"policy":{"enabled":true},"signerName":"grid.praxis.fast/site"},"enrollmentAdmins":{"subjects":[]},"gridAdminTokens":{"existingSecretRef":"","generate":true},"gridAdmins":{"serviceAccount":{"create":false,"name":"grid-admin"},"subjects":[]},"inviteSecrets":{"namespace":""},"listenAddr":"0.0.0.0:8443","nodeSelector":{},"podSecurityContext":{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"replicaCount":1,"resources":{"limits":{"cpu":1,"memory":"512Mi"},"requests":{"cpu":"100m","memory":"256Mi"}},"rotation":{"enabled":true},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true},"service":{"annotations":{},"loadBalancerIP":"","loadBalancerSourceRanges":[],"type":""},"serviceAccount":{"create":true,"name":""},"tokenAudience":"grid-enrollment","tolerations":[]}` | ---------------------------------------------------------------------------- |
 | enrollment.rotation.enabled | bool | `true` | Sites rotate their identity here with their current certificate over mutual TLS. A reencrypt Route drops that certificate, so the render refuses reencrypt while this is on. false refuses every rotation (503 rotation_disabled) for the whole grid; issued identities stay valid until they expire. |
 | enrollment.service.loadBalancerSourceRanges | list | `[]` | CIDRs allowed to reach the endpoint, for a LoadBalancer. Empty accepts every address the load balancer is reachable from, which for an internet-facing one is the internet. The endpoint holds the Grid CA and mints identities, so narrowing this is worth the bookkeeping even though a token is still required.  It has to cover every site for the life of the grid, not just while one joins: sites rotate their identity through this same endpoint while enrollment.rotation.enabled, and whoever mints or revokes tokens reaches it too. Sites arrive from the address they egress on, so on a cloud that is each site's NAT address, and a site whose NAT address changes drops off the list silently. Nothing fails at the time; the site stops rotating and its identity expires at enrollment.certLifetimeSecs, 180 days by default, so the mistake surfaces months later. Keep it in step with the grid's membership, or leave it empty and put the restriction in front of the endpoint. |
+| external | object | `{"certManager":{"ca":{"bootstrapIssuerName":"grid-root-selfsigned","certificateName":"grid-root-ca","commonName":"grid-root-ca","durationHours":87600,"mode":"Existing","renewBeforeHours":8760,"secretName":"grid-ca-key"},"certificate":{"durationHours":4320,"renewBeforeHours":1440},"enabled":false,"issuer":{"create":false,"group":"cert-manager.io","kind":"Issuer","name":"grid-ca"}},"delivery":{"caSecretName":"grid-ca","clusterSet":"default","createClusterSetBinding":true,"enabled":false,"identitySecretName":"grid-site-identity","includeLocalCluster":false,"namespace":""},"sites":{},"trustBundleSecretKey":"ca.crt","trustBundleSecretRef":""}` | External identities and optional cert-manager issuance, with managed-cluster delivery. |
+| external.certManager.ca.mode | string | `"Existing"` | Generate is only for a new grid; Existing never writes the CA Secret. |
+| external.certManager.enabled | bool | `false` | Optional integration; cert-manager must already be installed. |
+| external.certManager.issuer.create | bool | `false` | False references an existing issuer; true creates a namespaced CA Issuer. |
+| external.delivery.includeLocalCluster | bool | `false` | Permit delivery to the local cluster, using the same flow as other members. |
+| external.sites | object | `{}` | Site names mapped to secretName, optional dnsNames, and optional managed cluster. |
+| external.trustBundleSecretRef | string | `""` | Public trust bundle for externally supplied identities; never a signing key. |
 | fullnameOverride | string | `""` |  |
+| grid | object | `{"membership":{"source":"Swim"}}` | Grid-wide settings shared with the other grid charts. |
+| grid.membership.source | string | `"Swim"` | Where sites learn their members, Swim or Local, as the grid-operator chart's grid.membership.source. Local creates and delivers no SWIM key. |
+| gridIdentity | object | `{"configMapName":"grid-bootstrap-state","enabled":false}` | Persist grid identity once during bootstrap, separately from CA issuance. |
+| gridIdentity.configMapName | string | `"grid-bootstrap-state"` | Pre-create this ConfigMap with an existing grid's gridId to keep that ID. |
 | host | string | `""` | The enrollment name sites connect to. It joins the serving cert names and is the default route.host. |
-| hubSite | object | `{"caSecretName":"grid-ca","identitySecretName":"grid-site-identity","name":"","namespace":"","seedSecretName":"grid-reserved-seeds","swimKeySecretName":"grid-swim-key"}` | The hub's own site identity, issued by the bootstrap Job straight from the grid CA, so the hub never enrolls or needs an invite. It rotates like an enrolled site. Delete the Secret and upgrade to re-issue it. |
 | hubSite.caSecretName | string | `"grid-ca"` | Secret the grid CA is written to beside it. |
 | hubSite.identitySecretName | string | `"grid-site-identity"` | Secret the site identity is written to. |
 | hubSite.name | string | `""` | Hub site name. Empty disables it. Must not also be invited. |
@@ -46,14 +56,19 @@ Kubernetes: `>=1.26.0-0`
 | image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
 | initResources | object | `{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"32Mi"}}` | Resource budget for database readiness and TLS permission init containers. |
-| invitePolicy | object | `{"clusterSet":"default","enabled":false,"namespace":""}` | ACM Policy delivering each invited site its token, the CA bundle and the gossip key. The site names come from `invites`, so they are not restated here. |
+| invitePolicy | object | `{"clusterSet":"default","enabled":false,"namespace":""}` | Governance Policy delivering each invited site its token, the CA bundle and the gossip key. The site names come from `invites`, so they are not restated here. |
 | invitePolicy.clusterSet | string | `"default"` | ManagedClusterSet the sites belong to. The binding is named for it. |
-| invitePolicy.enabled | bool | `false` | Render the policy. Needs ACM on this cluster and the sites imported. |
+| invitePolicy.enabled | bool | `false` | Render the policy. Requires governance policy APIs on the hub and registered member clusters. |
 | invitePolicy.namespace | string | `""` | Namespace on each site that its operator reads the Secrets from. Required when the policy is enabled, with no default: the grid operator's namespace is grid or grid-system under a Helm install and odh-ai-grid or redhat-ai-grid under a platform install, which derives it from the applications namespace, so any default would deliver every Secret where nothing reads it on some install path. A platform namespace is refused. |
 | loadBalancerScope | string | `"internal"` | Reach of the enrollment load balancer on a cloud platform. `internal` keeps it on the cluster's private network, so sites need private connectivity between them. `external` makes it internet-facing. AWS sets the scope only when a load balancer is created: changing it means recreating the Service. |
 | log | object | `{"filter":"","level":"info"}` | Logging, rendered as RUST_LOG. |
 | log.filter | string | `""` | Full RUST_LOG directive, such as "info,enrollment=debug". When set, it replaces level. |
 | log.level | string | `"info"` | Level for every module: error, warn, info, debug, or trace. |
+| managedClusters | object | `{"clusterLabel":"grid.praxis.fast/member","clusterLabelValue":"true","clusterSet":"default","createClusterSetBinding":true,"enabled":false,"gatewayName":"grid-gateway","hubClusterName":"local-cluster","identitySecretPrefix":"grid-site-","networkName":"grid","workName":"grid-site-observer"}` | Bootstrap managed-cluster discovery, GridSite watches and peer distribution. Requires managed-cluster APIs and external mode. |
+| managedClusters.createClusterSetBinding | bool | `true` | Bootstrap creates one shared binding unless another release owns it. |
+| managedClusters.gatewayName | string | `"grid-gateway"` | Per-cluster gateway referenced by the enrolled GridNetwork; empty omits it. |
+| managedClusters.hubClusterName | string | `"local-cluster"` | The hub must be registered with the policy add-on so it can reconcile dynamically generated Certificates, observers and their RBAC. |
+| mode | string | `"service"` | Identity lifecycle backend: service runs the enrollment API and bootstrap; external consumes identity Secrets supplied by another issuer or PKI. |
 | nameOverride | string | `""` |  |
 | networkPolicy | object | `{"enabled":true,"from":[],"routerNamespaceSelector":{"matchLabels":{"network.openshift.io/policy-group":"ingress"}}}` | Restrict enrollment and database ingress. Add explicit clients for direct access. |
 | networkPolicy.from | list | `[]` | Additional NetworkPolicyPeer entries for the enrollment HTTPS listener. |

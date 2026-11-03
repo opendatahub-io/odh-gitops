@@ -2,10 +2,13 @@
 {{- include "praxis-gateway.normalize" . }}
 {{- if .Values.route.enabled }}
 {{- $termination := .Values.route.tls.termination }}
+{{- $providerFile := and (eq .Values.praxisConfig.source "render") (eq (.Values.praxisConfig.render.role | default "consumer") "provider") (.Values.praxisConfig.render.gridServing).enabled }}
+{{- /* Peers dial a provider by its site's grid name, the name its certificate carries. */}}
+{{- $host := .Values.route.host | default (ternary (printf "%s.grid.internal" (toString .Values.grid.siteName)) "" (and $providerFile (not (empty .Values.grid.siteName)))) }}
 {{- if not .Values.service.enabled }}
 {{- fail "route.enabled needs service.enabled: the Route targets the chart Service" }}
 {{- end }}
-{{- if not .Values.route.host }}
+{{- if not $host }}
 {{- fail "route.host is required when route.enabled is true: it must be a name on the gateway certificate" }}
 {{- end }}
 {{- if eq .Values.praxisConfig.source "operator" }}
@@ -42,7 +45,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  host: {{ .Values.route.host | quote }}
+  host: {{ $host | quote }}
   to:
     kind: Service
     name: {{ include "praxis-gateway.fullname" . }}

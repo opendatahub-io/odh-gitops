@@ -1,4 +1,5 @@
 {{- define "grid-enrollment.rhoai.enrollment/route.yaml" -}}
+{{- if eq .Values.mode "service" }}
 {{- include "grid-enrollment.normalize" . }}
 {{- include "grid-enrollment.validateRoute" . }}
 {{- if include "grid-enrollment.routeEnabled" . }}
@@ -51,6 +52,7 @@ spec:
     {{- end }}
     insecureEdgeTerminationPolicy: {{ .Values.route.tls.insecureEdgeTerminationPolicy | default "None" }}
   wildcardPolicy: None
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

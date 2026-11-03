@@ -1,0 +1,55 @@
+{{- define "grid-enrollment.rhoai.certs/cert-manager-ca.yaml" -}}
+{{- if and (eq .Values.mode "external") .Values.external.certManager.enabled }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- if and .Values.external.certManager.issuer.create (eq .Values.external.certManager.ca.mode "Generate") }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.external.certManager.ca.bootstrapIssuerName | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    {{- include "grid-enrollment.certManager.retain" . | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.external.certManager.ca.certificateName | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    {{- include "grid-enrollment.certManager.retain" . | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  isCA: true
+  commonName: {{ .Values.external.certManager.ca.commonName | quote }}
+  secretName: {{ .Values.external.certManager.ca.secretName | quote }}
+  duration: {{ printf "%dh" (int .Values.external.certManager.ca.durationHours) | quote }}
+  renewBefore: {{ printf "%dh" (int .Values.external.certManager.ca.renewBeforeHours) | quote }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    # Replacing the signing key would split the grid's trust domain.
+    rotationPolicy: Never
+  usages:
+    - cert sign
+    - crl sign
+  secretTemplate:
+    annotations:
+      {{- include "grid-enrollment.certManager.retain" . | nindent 6 }}
+  issuerRef:
+    name: {{ .Values.external.certManager.ca.bootstrapIssuerName | quote }}
+    kind: Issuer
+    group: cert-manager.io
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.certs/cert-manager-ca.yaml" . }}
+{{- end }}

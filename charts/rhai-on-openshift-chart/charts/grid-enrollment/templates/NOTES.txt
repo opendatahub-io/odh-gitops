@@ -1,4 +1,5 @@
 {{- define "grid-enrollment.rhoai.NOTES.txt" -}}
+{{- if eq .Values.mode "service" }}
 {{- include "grid-enrollment.normalize" . }}
 {{- $ns := .Release.Namespace -}}
 {{- $route := and (include "grid-enrollment.routeEnabled" .) .Values.route.host -}}
@@ -61,6 +62,17 @@ with an sslrootcert, or the service exits at startup. The chart cannot check thi
 Give the site the token and grid-ca.crt out of band. The CA signing key lives in a
 Secret, so enable etcd encryption at rest before production.
 Docs: https://github.com/praxis-proxy/grid/blob/main/docs/installation/enrollment.md
+{{- end }}
+{{- if eq .Values.mode "external" }}
+grid-enrollment consumes external site identities in namespace {{ .Release.Namespace }}.
+{{- if .Values.external.certManager.enabled }}
+Cert-manager issuer: {{ .Values.external.certManager.issuer.group }}/{{ .Values.external.certManager.issuer.kind }}/{{ .Values.external.certManager.issuer.name }}
+Inspect readiness with: kubectl -n {{ .Release.Namespace }} get issuers,certificates
+{{- else }}
+Supply each site's identity Secret and the public trust bundle through your PKI integration.
+{{- end }}
+This mode deploys no enrollment service, database, or invite Jobs.
+{{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}
 {{ include "grid-enrollment.rhoai.NOTES.txt" . }}

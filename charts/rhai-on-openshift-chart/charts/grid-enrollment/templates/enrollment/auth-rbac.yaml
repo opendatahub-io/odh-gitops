@@ -1,4 +1,5 @@
 {{- define "grid-enrollment.rhoai.enrollment/auth-rbac.yaml" -}}
+{{- if eq .Values.mode "service" }}
 {{- include "grid-enrollment.normalize" . }}
 {{- if eq .Values.enrollment.authz "kube" }}
 {{/*
@@ -23,6 +24,7 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "grid-enrollment.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

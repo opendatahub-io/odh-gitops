@@ -34,6 +34,8 @@ curl http://127.0.0.1:8080/
 # {"status": "ok", "server": "praxis"}
 ```
 
+`helm test praxis-gateway -n praxis` runs the chart's connectivity check.
+
 ## Configuring Praxis
 
 The chart mounts one Praxis configuration at `/etc/praxis/praxis.yaml`.
@@ -306,7 +308,8 @@ Praxis AI image; these values may advance independently.
 | `metricsListener.enabled` | bool or `auto` | `auto` | Serve `GET /metrics` over TLS on its own port and ClusterIP Service, for an in-cluster Prometheus. The admin listener refuses a non-loopback Host, so Prometheus cannot scrape it. Needs the grid-gateway image, `existingSecret`, `fromNamespaces`, and `networkPolicy.enabled`. The port answers only `/metrics` but has no authentication, so the NetworkPolicy is its access control, and that holds only where the CNI enforces NetworkPolicy. `auto` serves it for the grid-gateway image on OpenShift with `networkPolicy.enabled`, and fills each unset value from the platform: `existingSecret` is `<fullname>-metrics-tls`, requested from the service serving signer by an annotation on the metrics Service, `fromNamespaces` is `openshift-user-workload-monitoring`, and `serviceMonitor.caConfigMap` is `openshift-service-ca.crt`, key `service-ca.crt`. Elsewhere `auto` is off, since no cert source exists by default. On OpenShift without the NetworkPolicy it stays off and the install notes say so. |
 | `metricsListener.existingSecret` | string | `""` | Secret with `tls.crt` and `tls.key`. On OpenShift, request it with `metricsListener.service.annotations` `service.beta.openshift.io/serving-cert-secret-name`. The listener reloads the cert when the Secret changes. |
 | `metricsListener.fromNamespaces` | list | `[]` | Namespace names allowed to reach the metrics port, for example `openshift-user-workload-monitoring`. |
-| `metricsListener.serviceMonitor.enabled` | bool or `auto` | `auto` | Render a ServiceMonitor that verifies the cert against `caConfigMap` (for example `openshift-service-ca.crt`, key `service-ca.crt`) and renames Praxis's `cluster` label to `backend`, since ACM uses `cluster` for the managed cluster. `auto` renders it when the listener is on, `monitoring.coreos.com/v1` is served, and `caConfigMap.name` is set. |
+| `metricsListener.serviceMonitor.enabled` | bool or `auto` | `auto` | Render a ServiceMonitor that verifies the cert against `caConfigMap` (for example `openshift-service-ca.crt`, key `service-ca.crt`) and renames Praxis's `cluster` label to `backend`, reserving `cluster` for the managed cluster. `auto` renders it when the listener is on, `monitoring.coreos.com/v1` is served, and `caConfigMap.name` is set. |
+| `metricsListener.serviceMonitor.labels` | map | `{}` | Additional labels on the ServiceMonitor, for a collector that selects by label. |
 | `metricsListener.serviceMonitor.scrapeTimeout` | string | `""` | Scrape timeout. Unset leaves Prometheus's default of 10s, which Prometheus refuses when it exceeds the interval, so an interval under 10s needs this set to at most the interval. |
 | `upstreamCA.secretName` | string | `""` | CA bundle for backend TLS without a per-cluster CA. Empty disables the mount. Works with `render` and `byo`; BYO `praxis.yaml` must set `runtime.upstream_ca_file`. The bundle replaces system trust roots; include public and private roots when both are needed. Per-cluster CAs override this bundle. Not supported with `operator`. |
 | `listenerTls.secretName` | string | `""` | Server certificate Secret (`tls.crt`, `tls.key`) for listener TLS. Non-empty enables TLS and names the port `https`. Works with render consumers and `byo`; BYO `praxis.yaml` must reference `listenerTls.mountPath`. Render providers reject this setting and use `gridIdentity.tlsSecretName` for listener TLS. Not supported with `operator`. On OpenShift, annotate the Service with `service.beta.openshift.io/serving-cert-secret-name`. |
@@ -326,15 +329,16 @@ Praxis AI image; these values may advance independently.
 | `overlay.mountPath` | string | `/etc/praxis/routing` | Directory where BYO `praxis.yaml` reads `routing-overlay.json`. |
 | `overlay.sidecar.enabled` | bool | `true` | Run overlay-sync. False mounts the ConfigMap directly (slower kubelet updates, no validation, ServiceAccount, or Role). |
 | `overlay.sidecar.image.repository` | string | `grid-overlay-sync` | Overlay-sync image repository. Use a published or locally built image appropriate to the deployment. |
-| `overlay.sidecar.image.tag` | string | `v0.2.2` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
+| `overlay.sidecar.image.tag` | string | `v0.3.0-rc.3` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
 | `overlay.sidecar.image.pullPolicy` | string | `IfNotPresent` | Overlay-sync image pull policy. |
 | `overlay.sidecar.dataKey` | string | `routing-overlay.json` | Content-addressed envelope key in the overlay ConfigMap. |
 | `overlay.sidecar.resources` | object | small requests and limits | Resources for both the one-shot init container and continuous sidecar. |
-| `praxisConfig.render.gridServing.enabled` | bool | `false` | Mount the operator's serving config, set `GRID_SERVING_CONFIG`, and route with `grid_site_route`. Consumer role and `image.flavor: grid-gateway` only. Needs `gridIdentity.tlsSecretName`; its CA defaults to that Secret. |
+| `praxisConfig.render.gridServing.enabled` | bool | `false` | Mount the operator's serving config, set `GRID_SERVING_CONFIG`, and route with `grid_site_route`. On a provider, mount it optionally, set `GRID_PROVIDER_CONFIG` and serve peers with `grid_provider` (see [Providers from the provider file](#providers-from-the-provider-file)). Needs `image.flavor: grid-gateway` and `gridIdentity.tlsSecretName`; its CA defaults to that Secret. |
 | `praxisConfig.render.gridServing.networkName` | string | `""` | GridNetwork name, which with `gatewayRefName` names the operator's ConfigMap. |
 | `praxisConfig.render.gridServing.gatewayRefName` | string | release fullname | This gateway's name in the GridNetwork `gatewayRefs`. |
 | `praxisConfig.render.gridServing.configMapName` | string | `""` | Overrides `grid-serving-<networkName>-<gatewayRefName>`. Needed when that name passes 63 characters. |
 | `praxisConfig.render.gridServing.mountPath` | string | `/etc/praxis/grid-serving` | Mount directory for the ConfigMap. |
+| `praxisConfig.render.gridServing.backendCAs` | list | `[]` | CA bundles for the operator's `tls` dials, each `{secretName or configMapName, key}` (`key` defaults to `ca.crt`), mounted read-only at `/run/secrets/grid-backend-ca/<name>/<key>`, where a dial's `ca_path` points. One entry per Secret or ConfigMap. Needs `gridServing.enabled`, and refused with `mountReconciliation`, which mounts them itself. |
 | `praxisConfig.render.gridServing.siteRoute.availability` | object | `{}` | Site availability, rendered into the `grid_site_route` filter block with keys snake_case as the filter reads them (`shedding`, `smoothing`, `ceiling_half_life_ms`, `ceiling_floor`, `explore_floor`, `full_after_ms`, `room_after_ms`, `queue_full`). Every field defaults and `shedding` is the one switch. See `examples/gateway/grid-site-route.yaml`. |
 | `praxisConfig.render.gridServing.siteRoute.prefixAffinity` | object | `{}` | Prefix affinity tuning rendered as the filter's `prefix_affinity` (`enabled`, `threshold`, `exploration`, `capacity`, `ttl_secs`, `prefill_tokens_per_second`, `queued_request_seconds`, `tag_key_path`). Cache limits default to 16384 entries per backend cluster and a 600-second lifetime after confirmation; both require positive integers. |
 | `gridIdentity.tlsSecretName` | string | `""` | Secret with `tls.crt` and `tls.key`. Non-empty mounts the identity and makes implicit render transports use mTLS. |
@@ -345,7 +349,7 @@ Praxis AI image; these values may advance independently.
 | `health.liveness` | object | admin `/healthy`, else TCP on the listener port | Liveness probe, chosen the same way against `/healthy`. Set to null to disable. |
 | `health.adminProbeCommand` | list | `[]` | Command for the admin-listener probe; the URL is appended. Empty runs `/bin/sh` with `curl` or `wget`. |
 | `shutdownDelaySeconds` | int | `5` | Seconds a terminating pod keeps serving before Praxis gets SIGTERM, so Service endpoints drop it first and rollouts do not refuse requests. Runs the image's `sleep` as a preStop hook. `0` disables it, which an image without `sleep` (distroless or scratch) needs. |
-| `terminationGracePeriodSeconds` | int | `null` | Seconds Kubernetes gives a terminating pod before killing it. Empty means 30 plus `shutdownDelaySeconds`, so Praxis keeps its default 30 second drain after the delay. Raise it for a longer Praxis `shutdown_timeout_secs`. Must exceed `shutdownDelaySeconds`. |
+| `terminationGracePeriodSeconds` | int | `null` | Seconds Kubernetes gives a terminating pod before killing it. Empty means 30 plus `shutdownDelaySeconds`, so Praxis keeps its default 30 second drain after the delay. Raise it for a longer Praxis `shutdown_timeout_secs`. Must exceed `shutdownDelaySeconds`, and with `praxisConfig.source` operator, whose generated config drains for 30 seconds, must be at least 30 plus `shutdownDelaySeconds`. |
 | `resources` | object | `{}` | Container resource requests and limits. |
 | `nodeSelector` | object | `{}` | Node selector. |
 | `affinity` | object | `{}` | Pod affinity rules. |
@@ -621,6 +625,26 @@ relays every site the operator collects from. It routes
 each model to the least-loaded admitted site. The chosen candidate's cluster must
 name a `praxisConfig.render.backends` cluster, so give each backend the operator's
 candidate cluster (the provider's `clusterName`, else its name).
+
+With `praxisConfig.render.gridServing.enabled` and no `praxisConfig.render.backends`, the
+chart renders no clusters: every upstream comes from the operator's dial file beside the
+serving config. List the CAs those dials verify against in
+`praxisConfig.render.gridServing.backendCAs`, unless `mountReconciliation` mounts them.
+
+### Providers from the provider file
+
+On a combined site, a provider with `praxisConfig.render.gridServing.enabled` needs no
+backends or site list in values. It reads `provider.json` from the consumer gateway's
+serving ConfigMap, so set `gridServing.gatewayRefName` to that gateway's name (or
+`configMapName`). The operator lists there the enrolled sites admitted to reach this site
+and each local backend with its dial. The chart requires `peerTrust.mode: spiffe` and
+refuses `backends`, `spiffeIds`, `allowAnyGridSite` and `certDigests`. The listener
+requires a Grid-CA SVID with no list, and `grid_provider` checks the peer's organization
+against the file on every request, so a removed site is refused without a restart. The
+ConfigMap mount is optional: until the operator writes the file, every peer gets 403. A
+Route with no `route.host` takes `<grid.siteName>.grid.internal`. A credentialed local backend is
+served with its dial's own token: list its Secret in `providerCredentials`, which mounts it
+under `/run/secrets/grid-credentials`, and any token a peer sends is dropped.
 
 A `grid-gateway` built from the current source re-reads `serving-config.json`
 every five seconds after the kubelet updates the mounted ConfigMap. It applies

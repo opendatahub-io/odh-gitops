@@ -1,4 +1,5 @@
 {{- define "grid-enrollment.rhoai.certs/ca-bootstrap-policy.yaml" -}}
+{{- if eq .Values.mode "service" }}
 {{- include "grid-enrollment.normalize" . }}
 {{/* dig, not a field walk: an upgrade with --reuse-values carries no value for a key the release predates. */}}
 {{- if dig "bootstrap" "policy" "enabled" true .Values.ca }}
@@ -158,6 +159,7 @@ metadata:
 spec:
   policyName: {{ $invitePolicy }}
   validationActions: [Deny]
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}
