@@ -137,7 +137,10 @@ RHAI on XKS Helm chart for non-OLM installation on non-OpenShift Kubernetes serv
 | xks-gateway.gateway.oidc.clientSecretRef.name | string | `""` |  |
 | xks-gateway.gateway.oidc.issuerURL | string | `""` |  |
 | xks-gateway.gateway.oidc.oidcClientSecret | string | `""` |  |
+| xks-gateway.gateway.oidc.passAccessToken | bool | `false` |  |
+| xks-gateway.gateway.oidc.scope | string | `""` |  |
 | xks-gateway.gateway.oidc.secretNamespace | string | `""` |  |
+| xks-gateway.gateway.oidc.skipClaimsFromProfileURL | bool | `false` |  |
 | xks-gateway.gateway.providerCASecretName | string | `""` |  |
 | xks-gateway.gateway.subdomain | string | `""` |  |
 | xks-gateway.gateway.verifyProviderCertificate | bool | `true` |  |
