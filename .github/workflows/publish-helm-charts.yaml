@@ -83,7 +83,9 @@ jobs:
           for chart in charts/rhai-on-openshift-chart charts/rhai-on-xks-chart; do
             chart_name="$(basename "${chart}")"
             chart_version="$(bin/yq '.version' "${chart}/Chart.yaml")"
-            snapshot_version="${chart_version}-${SHORT_SHA}"
+            # SemVer prerelease identifiers sort numerically, so run and attempt
+            # provide a monotonic dev channel without reusing a mutable tag.
+            snapshot_version="${chart_version}-dev.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
 
             helm dependency build "${chart}"
             helm lint "${chart}"

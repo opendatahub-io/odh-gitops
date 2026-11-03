@@ -8,6 +8,9 @@
 argocd:
   enabled: true
 
+operator:
+  type: rhoai
+
 ai-grid-o11y-spoke:
   enabled: true
   collector:
