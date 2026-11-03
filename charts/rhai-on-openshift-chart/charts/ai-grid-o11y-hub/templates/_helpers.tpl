@@ -28,6 +28,17 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 {{- end }}
 
+{{- define "ai-grid-o11y-hub.tenantMetricsReader.labels" -}}
+helm.sh/chart: {{ include "ai-grid-o11y-hub.chart" . }}
+app.kubernetes.io/name: ai-grid-hub-metrics-reader
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/part-of: ai-grid-observability
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
+
 {{/*
 The LokiStack tenant, deliberately not a value.
 

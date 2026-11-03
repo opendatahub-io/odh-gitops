@@ -681,6 +681,20 @@ charts:
           - skipCrdCheck=true
           - dependencies.agentSandbox.enabled=true
 
+  rhai-on-openshift-chart/charts/ai-grid-o11y-hub:
+    snapshots:
+      - name: metrics-reader
+        setFlags:
+          - enabled=true
+          - lokiStack.enabled=false
+          - tenantMetricsReader.enabled=true
+      - name: metrics-reader-spoke-policy
+        setFlags:
+          - enabled=true
+          - lokiStack.enabled=false
+          - tenantMetricsReader.enabled=true
+          - tenantMetricsReader.spokePolicy.enabled=true
+
   rhai-on-openshift-chart/charts/ai-grid-o11y-spoke:
     snapshots:
       - name: default
@@ -699,19 +713,6 @@ charts:
           - credential.token=snapshot-placeholder-token
 
       - name: tenant-metrics
-        setFlags:
-          - metrics.enabled=false
-          - tenantMetrics.enabled=true
-          - tenantMetrics.image=registry.example.invalid/prom-label-proxy:testing
-          - tenantMetrics.hubRelay.image=registry.example.invalid/nginx:testing
-          - tenantMetrics.upstreamURL=https://thanos.example.test:443
-          - tenantMetrics.auth.issuerURL=https://issuer.example.test/realms/maas
-          - tenantMetrics.auth.clientID=perses-client
-          - tenantMetrics.auth.tenantAdminRole=admins
-
-      - name: tenant-metrics-reject-missing-auth
-        expectFail: true
-        expectMessage: "tenantMetrics.auth.issuerURL is required"
         setFlags:
           - metrics.enabled=false
           - tenantMetrics.enabled=true

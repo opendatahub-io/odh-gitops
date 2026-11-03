@@ -1,14 +1,13 @@
-# ai-grid-o11y-hub renders the hub side of AI Grid usage-log aggregation: a LokiStack that
-# spoke clusters write their MaaS usage records to, plus the identities that authorize the
-# write. It installs on the ACM hub and needs no RHOAI — only the Loki operator, which the
-# parent chart provides through `dependencies.loki`.
+# ai-grid-o11y-hub renders hub observability resources: usage-log aggregation and an
+# optional identity for spokes querying ACM metrics. It installs on the ACM hub and needs
+# no RHOAI. Only the usage-log store needs the Loki operator.
 #
 # Nothing here is created unless `enabled` is true.
 
 # -- Render this chart. The parent gates the subchart on the same key.
 enabled: false
 
-# -- Namespace holding the LokiStack, its storage Secret and the ingest identities.
+# -- Namespace holding the LokiStack, ingest identities and metrics reader identity.
 namespace: ai-grid-o11y
 
 # -- Create `namespace`. Set false when it is managed elsewhere.
@@ -17,11 +16,44 @@ createNamespace: true
 # -- Labels added to every object this chart renders.
 commonLabels: {}
 
+# -- Create the hub identity used by spoke Perses datasources to query ACM metrics.
+# Kubernetes populates its long-lived token Secret; the token is never put in chart values or Git.
+tenantMetricsReader:
+  # -- Create the ServiceAccount, token Secret, ClusterRole and ClusterRoleBinding. Off by default.
+  enabled: false
+  # -- Name of the Hub ServiceAccount token Secret. Kubernetes fills its `token` key.
+  tokenSecretName: ai-grid-hub-metrics-reader-token
+  spokePolicy:
+    # -- Deliver the Hub token to selected spokes with ACM. Off by default.
+    enabled: false
+    # -- ACM Policy name.
+    name: ai-grid-hub-metrics-reader-token
+    # -- Enforce creates and repairs the spoke Secret; inform only reports drift.
+    remediationAction: enforce
+    # -- Policy severity shown in ACM governance.
+    severity: medium
+    # -- Delete the spoke Secret if this policy is deleted, only when the policy created it.
+    pruneObjectBehavior: DeleteIfCreated
+    placement:
+      # -- Placement and PlacementBinding name.
+      name: ai-grid-tenant-metrics-spokes
+      # -- ManagedClusterSet selected by the Placement.
+      clusterSet: default
+      # -- Labels a managed cluster must carry to receive the token.
+      matchLabels:
+        ai-grid.redhat.com/maas: "true"
+      # -- Exclude the Hub's local-cluster from the Placement.
+      excludeLocalCluster: true
+    spoke:
+      # -- Namespace holding the relay's token Secret on each spoke.
+      monitoringNamespace: redhat-ods-monitoring
+      # -- Name of the token Secret created on each spoke.
+      tokenSecretName: ai-grid-hub-metrics-reader-token
+
 lokiStack:
   # -- Render the store: the LokiStack, its object storage and the ingest identities. Set
-  # false to render nothing but the spoke policy, for a hub that forwards to a
-  # LokiStack this chart did not create — the endpoint is only a string, so the store may
-  # live anywhere. Everything under `objectStorage` and `ingest` is skipped with it.
+  # false to skip the store, object storage and ingest identities while still
+  # allowing the spoke policy and metrics reader identity to be rendered.
   enabled: true
 
   # -- LokiStack name. It also prefixes the storage Secret, the ingest ClusterRoles and the

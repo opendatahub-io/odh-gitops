@@ -38,7 +38,8 @@ data:
                 proxy_pass {{ printf "%s://%s" $hub.scheme $hub.host }};
                 proxy_http_version 1.1;
                 proxy_set_header Host {{ $hub.host }};
-                proxy_set_header Authorization $http_authorization;
+                # The token is substituted from a mounted Secret by the init container.
+                proxy_set_header Authorization "Bearer __HUB_METRICS_TOKEN__";
                 proxy_set_header x-maas-orgid $http_x_maas_orgid;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                 proxy_set_header X-Forwarded-Proto $scheme;
@@ -73,6 +74,58 @@ spec:
         app.kubernetes.io/component: tenant-metrics-proxy
     spec:
       automountServiceAccountToken: false
+      initContainers:
+        - name: render-hub-relay-config
+          image: {{ required "tenantMetrics.hubRelay.image is required when tenantMetrics.enabled=true" .Values.tenantMetrics.hubRelay.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              umask 077
+              token=$(cat /etc/hub-metrics-token/token)
+              case "$token" in
+                ""|*[!A-Za-z0-9._~-]*) echo 'invalid hub metrics token' >&2; exit 1 ;;
+              esac
+              found=0
+              while IFS= read -r line || [ -n "$line" ]; do
+                case "$line" in
+                  *'__HUB_METRICS_TOKEN__'*)
+                    before=${line%%__HUB_METRICS_TOKEN__*}
+                    after=${line#*__HUB_METRICS_TOKEN__}
+                    printf '%s%s%s\n' "$before" "$token" "$after"
+                    found=$((found + 1))
+                    ;;
+                  *) printf '%s\n' "$line" ;;
+                esac
+              done < /etc/nginx-template/nginx.conf > /etc/nginx-rendered/nginx.conf
+              [ "$found" -eq 1 ] || { echo 'hub metrics token placeholder missing' >&2; exit 1; }
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: hub-relay-config
+              mountPath: /etc/nginx-template
+              readOnly: true
+            - name: hub-relay-rendered-config
+              mountPath: /etc/nginx-rendered
+            - name: hub-metrics-token
+              mountPath: /etc/hub-metrics-token
+              readOnly: true
       containers:
         - name: prom-label-proxy
           image: {{ required "tenantMetrics.image is required when tenantMetrics.enabled=true" .Values.tenantMetrics.image | quote }}
@@ -140,7 +193,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           volumeMounts:
-            - name: hub-relay-config
+            - name: hub-relay-rendered-config
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
               readOnly: true
@@ -155,6 +208,15 @@ spec:
         - name: hub-relay-config
           configMap:
             name: ai-grid-tenant-hub-relay
+        - name: hub-relay-rendered-config
+          emptyDir:
+            medium: Memory
+        - name: hub-metrics-token
+          secret:
+            secretName: {{ required "tenantMetrics.hubRelay.tokenSecretName is required" .Values.tenantMetrics.hubRelay.tokenSecretName | quote }}
+            items:
+              - key: token
+                path: token
         - name: hub-relay-tmp
           emptyDir: {}
         - name: thanos-ca

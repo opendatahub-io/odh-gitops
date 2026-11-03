@@ -1,0 +1,84 @@
+---
+# Source: ai-grid-o11y-hub/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "ai-grid-o11y"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-o11y-hub
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-usage-logs
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+
+---
+# Source: ai-grid-o11y-hub/templates/tenant-metrics-reader-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-grid-hub-metrics-reader
+  namespace: "ai-grid-o11y"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-hub-metrics-reader
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: ai-grid-o11y-hub/templates/tenant-metrics-reader-rbac.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "ai-grid-hub-metrics-reader-token"
+  namespace: "ai-grid-o11y"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-hub-metrics-reader
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/service-account.name: ai-grid-hub-metrics-reader
+type: kubernetes.io/service-account-token
+---
+# Source: ai-grid-o11y-hub/templates/tenant-metrics-reader-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ai-grid-hub-metrics-reader
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-hub-metrics-reader
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+rules:
+  # Required by the hub Route's OAuth proxy.
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get"]
+  # ACM metrics access for every namespace on every managed cluster.
+  - apiGroups: ["cluster.open-cluster-management.io"]
+    resources: ["managedclusters"]
+    verbs: ["metrics/*"]
+---
+# Source: ai-grid-o11y-hub/templates/tenant-metrics-reader-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ai-grid-hub-metrics-reader
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: ai-grid-hub-metrics-reader
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/part-of: ai-grid-observability
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ai-grid-hub-metrics-reader
+subjects:
+  - kind: ServiceAccount
+    name: ai-grid-hub-metrics-reader
+    namespace: "ai-grid-o11y"

@@ -5,13 +5,6 @@ metadata:
   name: ai-grid-tenant-prometheus-datasource
   namespace: redhat-ods-monitoring
 spec:
-  client:
-    tls:
-      enable: true
-      caCert:
-        type: file
-        certPath: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
-      insecureSkipVerify: false
   config:
     default: false
     display:
@@ -23,6 +16,5 @@ spec:
         proxy:
           kind: HTTPProxy
           spec:
-            secret: ai-grid-tenant-prometheus-datasource-secret
             url: http://ai-grid-tenant-prom-label-proxy.redhat-ods-monitoring.svc:9091
 {{ end }}

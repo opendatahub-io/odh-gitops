@@ -62,7 +62,8 @@ data:
                 proxy_pass https://thanos.example.test:443;
                 proxy_http_version 1.1;
                 proxy_set_header Host thanos.example.test:443;
-                proxy_set_header Authorization $http_authorization;
+                # The token is substituted from a mounted Secret by the init container.
+                proxy_set_header Authorization "Bearer __HUB_METRICS_TOKEN__";
                 proxy_set_header x-maas-orgid $http_x_maas_orgid;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                 proxy_set_header X-Forwarded-Proto $scheme;
@@ -164,12 +165,64 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/tenant-metrics: 704a13b029f241c1ef027f4c0f719a85983dcdf52092916f848133e8bddeeca0
+        checksum/tenant-metrics: 5a93822d8324b22c287b231b810011a67f5aa8ae97a3cca17902902b0444cc40
       labels:
         app.kubernetes.io/name: ai-grid-tenant-prom-label-proxy
         app.kubernetes.io/component: tenant-metrics-proxy
     spec:
       automountServiceAccountToken: false
+      initContainers:
+        - name: render-hub-relay-config
+          image: "registry.example.invalid/nginx:testing"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              umask 077
+              token=$(cat /etc/hub-metrics-token/token)
+              case "$token" in
+                ""|*[!A-Za-z0-9._~-]*) echo 'invalid hub metrics token' >&2; exit 1 ;;
+              esac
+              found=0
+              while IFS= read -r line || [ -n "$line" ]; do
+                case "$line" in
+                  *'__HUB_METRICS_TOKEN__'*)
+                    before=${line%%__HUB_METRICS_TOKEN__*}
+                    after=${line#*__HUB_METRICS_TOKEN__}
+                    printf '%s%s%s\n' "$before" "$token" "$after"
+                    found=$((found + 1))
+                    ;;
+                  *) printf '%s\n' "$line" ;;
+                esac
+              done < /etc/nginx-template/nginx.conf > /etc/nginx-rendered/nginx.conf
+              [ "$found" -eq 1 ] || { echo 'hub metrics token placeholder missing' >&2; exit 1; }
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: hub-relay-config
+              mountPath: /etc/nginx-template
+              readOnly: true
+            - name: hub-relay-rendered-config
+              mountPath: /etc/nginx-rendered
+            - name: hub-metrics-token
+              mountPath: /etc/hub-metrics-token
+              readOnly: true
       containers:
         - name: prom-label-proxy
           image: "registry.example.invalid/prom-label-proxy:testing"
@@ -237,7 +290,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           volumeMounts:
-            - name: hub-relay-config
+            - name: hub-relay-rendered-config
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
               readOnly: true
@@ -252,6 +305,15 @@ spec:
         - name: hub-relay-config
           configMap:
             name: ai-grid-tenant-hub-relay
+        - name: hub-relay-rendered-config
+          emptyDir:
+            medium: Memory
+        - name: hub-metrics-token
+          secret:
+            secretName: "ai-grid-hub-metrics-reader-token"
+            items:
+              - key: token
+                path: token
         - name: hub-relay-tmp
           emptyDir: {}
         - name: thanos-ca
@@ -260,124 +322,6 @@ spec:
             items:
               - key: "ca-bundle.crt"
                 path: ca.crt
----
-# Source: ai-grid-o11y-spoke/templates/tenant-metrics-authpolicy.yaml
-apiVersion: kuadrant.io/v1
-kind: AuthPolicy
-metadata:
-  name: ai-grid-tenant-perses
-  namespace: redhat-ods-monitoring
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: ai-grid-tenant-metrics
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/part-of: ai-grid-observability
-    app.kubernetes.io/managed-by: Helm
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: ai-grid-tenant-perses
-  rules:
-    authentication:
-      maas-oidc:
-        jwt:
-          issuerUrl: "https://issuer.example.test/realms/maas"
-        credentials:
-          authorizationHeader:
-            prefix: Bearer
-    authorization:
-      tenant-metrics:
-        opa:
-          allValues: true
-          rego: |
-            default allow = false
-
-            # AI Grid identity contract: one organization per token, with flat claims.
-            organization = result {
-              org_id := object.get(input.auth.identity, "org_id", "")
-              is_string(org_id)
-              org_id != ""
-              roles := object.get(input.auth.identity, "roles", [])
-              is_array(roles)
-              result := {"org_id": org_id, "roles": roles}
-            } else = {"org_id": "", "roles": []}
-
-            # Client-provided tenant headers never become trusted input.
-            trusted_client {
-              object.get(input.context.request.http.headers, "x-maas-orgid", "") == ""
-              object.get(input.auth.identity, "azp", "") == "perses-client"
-            }
-
-            allow = true {
-              trusted_client
-              input.context.request.http.method == "GET"
-              startswith(input.context.request.http.path, "/api")
-            }
-
-            tenant_datasource_path := "/proxy/projects/redhat-ods-monitoring/datasources/ai-grid-tenant-prometheus-datasource"
-
-            allow = true {
-              trusted_client
-              {"GET", "POST"}[input.context.request.http.method]
-              path := input.context.request.http.path
-              path == tenant_datasource_path
-              organization.org_id != ""
-              organization.roles[_] == "admins"
-            }
-
-            allow = true {
-              trusted_client
-              {"GET", "POST"}[input.context.request.http.method]
-              startswith(input.context.request.http.path, concat("", [tenant_datasource_path, "/"]))
-              organization.org_id != ""
-              organization.roles[_] == "admins"
-            }
-    response:
-      success:
-        headers:
-          x-maas-orgid:
-            when:
-              - predicate: 'request.path.startsWith("/proxy")'
-            plain:
-              expression: auth.authorization['tenant-metrics'].organization.org_id
-
----
-# Source: ai-grid-o11y-spoke/templates/tenant-metrics-httproute.yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: ai-grid-tenant-perses
-  namespace: redhat-ods-monitoring
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: ai-grid-tenant-metrics
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/part-of: ai-grid-observability
-    app.kubernetes.io/managed-by: Helm
-spec:
-  parentRefs:
-    - name: "maas-default-gateway"
-      namespace: "openshift-ingress"
-      sectionName: "https"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /api
-          method: GET
-        - path:
-            type: PathPrefix
-            value: /proxy
-          method: GET
-        - path:
-            type: PathPrefix
-            value: /proxy
-          method: POST
-      backendRefs:
-        - name: data-science-perses
-          port: 8080
-
 ---
 # Source: ai-grid-o11y-spoke/templates/tenant-metrics-dashboards.yaml
 apiVersion: perses.dev/v1alpha2
@@ -1406,13 +1350,6 @@ metadata:
   name: ai-grid-tenant-prometheus-datasource
   namespace: redhat-ods-monitoring
 spec:
-  client:
-    tls:
-      enable: true
-      caCert:
-        type: file
-        certPath: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
-      insecureSkipVerify: false
   config:
     default: false
     display:
@@ -1424,5 +1361,4 @@ spec:
         proxy:
           kind: HTTPProxy
           spec:
-            secret: ai-grid-tenant-prometheus-datasource-secret
             url: http://ai-grid-tenant-prom-label-proxy.redhat-ods-monitoring.svc:9091

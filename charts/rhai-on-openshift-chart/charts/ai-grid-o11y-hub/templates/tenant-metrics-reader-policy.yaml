@@ -1,0 +1,86 @@
+{{- if and .Values.enabled .Values.tenantMetricsReader.enabled .Values.tenantMetricsReader.spokePolicy.enabled }}
+{{- $reader := .Values.tenantMetricsReader }}
+{{- $policy := $reader.spokePolicy }}
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: {{ $policy.placement.clusterSet | quote }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.tenantMetricsReader.labels" . | nindent 4 }}
+spec:
+  clusterSet: {{ $policy.placement.clusterSet | quote }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: {{ $policy.placement.name | quote }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.tenantMetricsReader.labels" . | nindent 4 }}
+spec:
+  clusterSets:
+    - {{ $policy.placement.clusterSet | quote }}
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchExpressions:
+            {{- range $key, $value := $policy.placement.matchLabels }}
+            - key: {{ $key | quote }}
+              operator: In
+              values: [{{ $value | quote }}]
+            {{- end }}
+            {{- if $policy.placement.excludeLocalCluster }}
+            - key: local-cluster
+              operator: DoesNotExist
+            {{- end }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: {{ $policy.placement.name | quote }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.tenantMetricsReader.labels" . | nindent 4 }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: {{ $policy.placement.name | quote }}
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: {{ $policy.name | quote }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: {{ $policy.name | quote }}
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.tenantMetricsReader.labels" . | nindent 4 }}
+spec:
+  remediationAction: {{ $policy.remediationAction }}
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: {{ $policy.name | quote }}
+        spec:
+          remediationAction: {{ $policy.remediationAction }}
+          severity: {{ $policy.severity }}
+          pruneObjectBehavior: {{ $policy.pruneObjectBehavior }}
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: {{ $policy.spoke.tokenSecretName | quote }}
+                  namespace: {{ $policy.spoke.monitoringNamespace | quote }}
+                data:
+                  {{- /* fromSecret emits base64 data and ACM encrypts it in transit. */}}
+                  token: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $.Values.namespace $reader.tokenSecretName }}'
+{{- end }}

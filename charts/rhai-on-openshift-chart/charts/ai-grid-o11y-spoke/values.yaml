@@ -3,7 +3,8 @@
 #
 #   metrics        a ScrapeConfig and NetworkPolicy for ACM metric federation
 #   usage logs     the monitoring namespace and hub credential mounted by the collector
-#   tenant metrics Perses dashboards, query proxy, HTTPRoute, and AuthPolicy
+#   tenant metrics Perses dashboards and query proxy; Models-as-a-Service owns
+#                  the public route and MaaS authentication flow
 #
 # Neither configures the collector itself. Metrics exporters and
 # `services.monitoring.dsci.usageLogs` are both the parent chart's, which the platform
@@ -94,7 +95,8 @@ credential:
 # -- Tenant-scoped Perses metrics on a spoke. This reuses the RHOAI Perses instance
 # in redhat-ods-monitoring and does not create a new Perses CR.
 tenantMetrics:
-  # -- Render the dashboards, datasource, query proxy, HTTPRoute, AuthPolicy and dashboard-reader RBAC.
+  # -- Render the dashboards, datasource, query proxy, and dashboard-reader RBAC.
+  # Models-as-a-Service owns the public Perses route and MaaS authentication flow.
   enabled: false
   # -- Namespace containing the MaaS portal BFF service account. Must match
   # operator.rhoai.applicationsNamespace when installing through the parent chart.
@@ -109,6 +111,10 @@ tenantMetrics:
   hubRelay:
     # -- NGINX image used as the in-Pod relay to the hub Route. Required when tenant metrics are enabled.
     image: ""
+    # -- Existing spoke Secret containing the hub metrics reader token under key `token`.
+    # The hub's ACM policy creates it when tenantMetricsReader.spokePolicy is enabled.
+    # It is absent from chart values and Helm release history.
+    tokenSecretName: ai-grid-hub-metrics-reader-token
     # -- Local relay port. This is reachable only by the prom-label-proxy container.
     port: 8081
     # -- Maximum number of intermediate CAs accepted while verifying the hub Route certificate.
@@ -118,18 +124,3 @@ tenantMetrics:
   upstreamCAConfigMap: odh-trusted-ca-bundle
   # -- Key in upstreamCAConfigMap holding the PEM CA bundle.
   upstreamCAConfigMapKey: ca-bundle.crt
-  auth:
-    # -- OIDC issuer for the standalone Perses Gateway policy. This is the
-    # MaaS identity that carries the organization claim, not the Perses login.
-    issuerURL: ""
-    # -- Authorized OAuth client ID (the JWT azp claim).
-    clientID: ""
-    # -- Role name in the flat roles claim that may query metrics (admins in the AI Grid MVP).
-    tenantAdminRole: admins
-  gateway:
-    # -- Existing MaaS Gateway to attach the Perses route to.
-    name: maas-default-gateway
-    namespace: openshift-ingress
-    sectionName: https
-    # -- Optional hostname for the Perses route. Empty uses the Gateway listener.
-    hostname: ""

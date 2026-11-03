@@ -71,6 +71,22 @@ its age; treat the expiry as an operational commitment, not a default.
 
 lokiStack.enabled is false: no store, object storage or ingest identity was rendered.
 {{- end }}
+{{- if .Values.tenantMetricsReader.enabled }}
+
+The hub metrics reader identity is ai-grid-hub-metrics-reader in {{ .Values.namespace }}.
+Kubernetes populates the persistent ServiceAccount token Secret
+{{ .Values.tenantMetricsReader.tokenSecretName }}. It is never put in chart values, Helm
+release history, or Git.
+{{- if .Values.tenantMetricsReader.spokePolicy.enabled }}
+
+The metrics token Policy is on. It delivers that Secret to selected spokes as
+{{ .Values.tenantMetricsReader.spokePolicy.spoke.tokenSecretName }} in
+{{ .Values.tenantMetricsReader.spokePolicy.spoke.monitoringNamespace }}.
+{{- else }}
+
+Enable tenantMetricsReader.spokePolicy.enabled to deliver the token automatically with ACM.
+{{- end }}
+{{- end }}
 {{- if .Values.spokePolicy.enabled }}
 
 The spoke policy is on. Policy {{ .Values.spokePolicy.name }} targets managed clusters

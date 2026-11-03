@@ -60,37 +60,17 @@
           "type": "object",
           "properties": {
             "image": { "type": "string" },
+            "tokenSecretName": { "type": "string", "minLength": 1, "maxLength": 253 },
             "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
             "tlsVerifyDepth": { "type": "integer", "minimum": 1 }
           },
-          "required": ["image", "port", "tlsVerifyDepth"],
+          "required": ["image", "tokenSecretName", "port", "tlsVerifyDepth"],
           "additionalProperties": false
         },
         "upstreamCAConfigMap": { "type": "string", "minLength": 1 },
-        "upstreamCAConfigMapKey": { "type": "string", "minLength": 1 },
-        "auth": {
-          "type": "object",
-          "properties": {
-            "issuerURL": { "type": "string" },
-            "clientID": { "type": "string" },
-            "tenantAdminRole": { "type": "string" }
-          },
-          "required": ["issuerURL", "clientID", "tenantAdminRole"],
-          "additionalProperties": false
-        },
-        "gateway": {
-          "type": "object",
-          "properties": {
-            "name": { "type": "string", "minLength": 1 },
-            "namespace": { "type": "string", "minLength": 1 },
-            "sectionName": { "type": "string", "minLength": 1 },
-            "hostname": { "type": "string" }
-          },
-          "required": ["name", "namespace", "sectionName"],
-          "additionalProperties": false
-        }
+        "upstreamCAConfigMapKey": { "type": "string", "minLength": 1 }
       },
-      "required": ["enabled", "portalServiceAccountNamespace", "image", "upstreamURL", "hubRelay", "upstreamCAConfigMap", "upstreamCAConfigMapKey", "auth", "gateway"],
+      "required": ["enabled", "portalServiceAccountNamespace", "image", "upstreamURL", "hubRelay", "upstreamCAConfigMap", "upstreamCAConfigMapKey"],
       "additionalProperties": false
     }
   },

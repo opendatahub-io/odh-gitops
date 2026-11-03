@@ -9,7 +9,7 @@ It has three independently enabled parts on a spoke:
 |---|---|
 | **metrics** | a `ScrapeConfig` and a `NetworkPolicy` that let ACM observability's metrics-collector agents federate RHOAI metrics off this cluster. `metrics.enabled`, on by default |
 | **usage logs** | the monitoring namespace and the hub credential the usage-log collector mounts, in place *before* that collector starts. `credential.enabled`, off by default |
-| **tenant metrics** | two Perses dashboards, one datasource, prom-label-proxy, a Perses HTTPRoute, and an AuthPolicy. `tenantMetrics.enabled`, off by default |
+| **tenant metrics** | two Perses dashboards, one datasource, and prom-label-proxy. Models-as-a-Service owns the public Perses route and MaaS authentication flow. `tenantMetrics.enabled`, off by default |
 
 Each part can run alone. A spoke in an ACM fleet that
 only federates metrics leaves `credential.enabled` off and is never asked for a hub token. A
@@ -59,7 +59,6 @@ a single `helm install`, with no second pass and no manual step between.
 | `Deployment`, `Service` | `ai-grid-tenant-prom-label-proxy` | tenant metrics; prom-label-proxy rewrites PromQL and its NGINX sidecar relays requests to the hub Route |
 | `NetworkPolicy` | `ai-grid-tenant-prom-label-proxy-ingress` | permits only managed Perses pods to reach the query proxy |
 | `Role`, `RoleBinding` | `ai-grid-tenant-perses-dashboards-reader` | permits the MaaS portal BFF to read only the two tenant dashboard definitions |
-| `HTTPRoute`, `AuthPolicy` | `ai-grid-tenant-perses` | attaches `/api` GET and `/proxy` GET/POST to `maas-default-gateway` |
 
 The namespace keeps `helm.sh/resource-policy: keep` because the operator puts everything it
 deploys there. A `helm uninstall` that deleted it would take the collector, and everything
@@ -86,48 +85,40 @@ the operator namespace.
 ## Tenant metrics
 
 Set `tenantMetrics.enabled=true` on a RHOAI spoke and supply the prom-label-proxy and
-NGINX relay images, a hub Thanos query URL reachable from that spoke, and the MaaS OIDC
-issuer and client ID.
-The organization admin role defaults to `admins`. The proxy enforces the `organization_id`
-metric label using the
-per-request `x-maas-orgid` header. It does not authenticate callers itself. The Perses
-HTTPProxy forwards request headers to the proxy. The proxy sends its requests to an NGINX
-sidecar in the same Pod. That relay connects to `tenantMetrics.upstreamURL`, sets the hub
-Route hostname as the outgoing Host header, and preserves `Authorization` and
-`x-maas-orgid`. Its plain HTTP backend has no Perses client TLS or authentication settings,
-so no Perses datasource Secret is generated or referenced. By default, the relay mounts the
+NGINX relay images and a hub Thanos query URL reachable from that spoke. The proxy enforces
+the `organization_id` metric label using the per-request `x-maas-orgid` header. Perses sends
+queries to prom-label-proxy, which forwards the query and
+`x-maas-orgid` to an NGINX sidecar in the same Pod. The relay reads the hub ServiceAccount
+token from an existing Kubernetes Secret and sets `Authorization: Bearer <token>` on the request to
+`tenantMetrics.upstreamURL`, and preserves `x-maas-orgid`. Its plain HTTP backend needs no
+Perses datasource Secret or TLS client settings. By default, the relay mounts the
 RHOAI-managed `odh-trusted-ca-bundle` ConfigMap. Override
 `tenantMetrics.upstreamCAConfigMap` and `tenantMetrics.upstreamCAConfigMapKey` for a hub
 Route with a private CA.
 
-The route attaches to the existing MaaS Gateway. Its listener must permit routes from
-`redhat-ods-monitoring` through `allowedRoutes.namespaces`; the chart cannot change that
-existing Gateway. Because the route and Perses Service are in the same namespace, it needs
-no `ReferenceGrant`. No Hub resource is created by this feature.
+The relay replaces any inbound `Authorization` value immediately before calling the hub, so
+only its mounted ServiceAccount token reaches the rbac-query-proxy.
+
+Enable `ai-grid-o11y-hub.tenantMetricsReader.enabled` and
+`ai-grid-o11y-hub.tenantMetricsReader.spokePolicy.enabled` on the hub. The hub chart creates
+the ServiceAccount, persistent token Secret, RBAC, and ACM policy; ACM creates the matching
+Secret in the spoke's `redhat-ods-monitoring` namespace. The Secret name must match
+`tenantMetrics.hubRelay.tokenSecretName`. The token does not enter Git or Helm release
+history.
 
 The dashboard-reader Role and RoleBinding are also in `redhat-ods-monitoring`. The
 Role grants `get` only on these two dashboards to the `odh-dashboard-maas` service
 account. Set `tenantMetrics.portalServiceAccountNamespace` to the namespace of that
 service account if `operator.rhoai.applicationsNamespace` is customized.
 
-The standalone AuthPolicy validates MaaS OIDC bearer tokens on the new route. It takes the
-organization ID from the flat `org_id` claim defined by the approved AI Grid identity
-contract and permits metric queries only when `roles` includes the configured admin role.
-The policy allows `/proxy` requests only for `ai-grid-tenant-prometheus-datasource`, so a
-caller cannot use this route to query the other datasources in the same Perses instance.
-It rejects client-supplied `x-maas-orgid`. Verify the credential, role, and `azp` claim
-presented to this direct Perses route before deploying it.
-
-**Embedded dashboard integration must be checked before opening a PR.** The approved MaaS
-consumer portal layout places portal requests behind the MaaS Gateway. Its companion AI
-Grid identity contract requires the Gateway to replace client-supplied `x-maas-orgid` with
-the verified `org_id` value on authenticated requests. If embedded `/perses/api` requests
-match that portal route, the Dashboard proxy can forward the header to Perses and this
-datasource can forward it to prom-label-proxy. This chart does not own the consumer portal
-route or policy. Verify the deployed route, per-request header forwarding, and isolation
-between organizations end to end. The current dashboard also hides names ending in
-`-admin` from users without cluster-wide metrics access; test tenant-admin visibility
-before a PR.
+Models-as-a-Service owns the public route at `/maas-portal/perses`, its Gateway
+authorization, and the cross-namespace `ReferenceGrant` and NetworkPolicy needed to reach
+Perses. That authentication flow must reject client-supplied `x-maas-orgid`, inject the
+verified organization ID, and preserve it for both `/api` and `/proxy` requests. The route
+must forward those requests to Perses with their `/api` and `/proxy` prefixes intact. Verify
+the deployed route, per-request header forwarding, and isolation between organizations end
+to end. The current dashboard also hides names ending in `-admin` from users without
+cluster-wide metrics access; test tenant-admin visibility before a PR.
 
 ## The token
 
