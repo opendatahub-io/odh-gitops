@@ -1,0 +1,51 @@
+{{- if and .Values.enabled .Values.lokiStack.enabled }}
+{{- $ns := .Values.namespace }}
+{{- if and .Values.objectStorage.obc.create (include "ai-grid-o11y-hub.crdExists" (dict "crdName" "objectbucketclaims.objectbucket.io" "root" $)) }}
+{{- /* ODF publishes the bucket name in a ConfigMap and the credentials in a Secret, both
+       under key names the Loki operator does not read. Translating them is a read of live
+       cluster state, which a template cannot do; the chart README carries the command. */}}
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: {{ include "ai-grid-o11y-hub.obcName" . | quote }}
+  namespace: {{ $ns | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  generateBucketName: {{ .Values.objectStorage.obc.generateBucketName | default (include "ai-grid-o11y-hub.lokiStackName" .) | quote }}
+  storageClassName: {{ .Values.objectStorage.obc.storageClassName | quote }}
+{{- end }}
+{{- if .Values.objectStorage.secret.create }}
+{{- $s := .Values.objectStorage.secret }}
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{ include "ai-grid-o11y-hub.storageSecretName" . | quote }}
+  namespace: {{ $ns | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+stringData:
+  bucketnames: {{ $s.bucketNames | required "objectStorage.secret.bucketNames is required when objectStorage.secret.create is true" | quote }}
+  endpoint: {{ $s.endpoint | required "objectStorage.secret.endpoint is required when objectStorage.secret.create is true" | quote }}
+  access_key_id: {{ $s.accessKeyId | required "objectStorage.secret.accessKeyId is required when objectStorage.secret.create is true" | quote }}
+  access_key_secret: {{ $s.accessKeySecret | required "objectStorage.secret.accessKeySecret is required when objectStorage.secret.create is true" | quote }}
+  {{- with $s.region }}
+  region: {{ . | quote }}
+  {{- end }}
+{{- end }}
+{{- if .Values.objectStorage.serviceCA.enabled }}
+---
+{{- /* Populated by the service-CA operator, which is why it carries no data here. */}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.objectStorage.serviceCA.configMapName | quote }}
+  namespace: {{ $ns | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+{{- end }}
+{{- end }}

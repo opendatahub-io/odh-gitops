@@ -214,11 +214,6 @@ get_snapshot_expect_message() {
 redact_version() {
     local file="$1"
     "${SED}" -i.bak "s|helm\.sh\/chart\:.*|helm\.sh\/chart\: HELM_CHART_VERSION_REDACTED|" "${file}"
-    # Helm can emit whitespace-only lines around optional template blocks and
-    # extra blank lines at EOF. Normalize those so generated snapshots stay
-    # acceptable to `git diff --check`; non-empty block-scalar lines are unchanged.
-    "${SED}" -i.bak -E 's/^[[:space:]]+$//' "${file}"
-    "${SED}" -i.bak -e ':a' -e '/^[[:space:]]*$/{$d;N;ba}' "${file}"
     rm -f "${file}.bak"
 }
 

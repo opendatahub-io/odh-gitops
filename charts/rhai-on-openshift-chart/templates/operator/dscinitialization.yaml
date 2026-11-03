@@ -4,6 +4,27 @@ DSCInitialization configuration
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "dscinitializations.dscinitialization.opendatahub.io" "root" $) }}
 {{- $operatorType := .Values.operator.type -}}
 {{- $operatorConfig := index .Values.operator $operatorType -}}
+{{- /* When the ai-grid-o11y-spoke subchart renders its metrics half, ensure the
+     DSCInitialization monitoring spec exposes a prometheus/rhacm exporter on the spoke's
+     collector port. Preserve other user-supplied exporter options; the parent/spoke
+     connection is validated independently of CRD availability.
+
+     Gated on metrics.enabled as well as enabled: a spoke that takes this subchart only for
+     the usage-log credential has no ACM observability to scrape it, and an exporter bound
+     for a collector nothing scrapes is configuration it did not ask for. */ -}}
+{{- $dsci := deepCopy (.Values.services.monitoring.dsci | default dict) -}}
+{{- $spoke := index .Values "ai-grid-o11y-spoke" -}}
+{{- if and $spoke.enabled ($spoke.metrics | default dict).enabled }}
+{{-   $metrics := deepCopy (index $dsci "metrics" | default dict) -}}
+{{-   $exporters := deepCopy (index $metrics "exporters" | default dict) -}}
+{{-   $rhacm := deepCopy (index $exporters "prometheus/rhacm" | default dict) -}}
+{{-   if not $rhacm.endpoint }}
+{{-     $_ := set $rhacm "endpoint" (printf "0.0.0.0:%v" $spoke.collector.port) }}
+{{-   end }}
+{{-   $_ := set $exporters "prometheus/rhacm" $rhacm -}}
+{{-   $_ := set $metrics "exporters" $exporters -}}
+{{-   $_ := set $dsci "metrics" $metrics -}}
+{{- end }}
 apiVersion: dscinitialization.opendatahub.io/v2
 kind: DSCInitialization
 metadata:
@@ -14,7 +35,7 @@ spec:
   monitoring:
     managementState: {{ include "rhoai-dependencies.effectiveServiceManagementState" (dict "state" .Values.services.monitoring.dsci.managementState "root" $ "name" "monitoring") }}
     namespace: {{ $operatorConfig.monitoringNamespace }}
-    {{- range $key, $value := .Values.services.monitoring.dsci }}
+    {{- range $key, $value := $dsci }}
     {{- if and (ne $key "managementState") (not (empty $value)) }}
     {{ $key }}:
       {{- $value | toYaml | nindent 6 }}

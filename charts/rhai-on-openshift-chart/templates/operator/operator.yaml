@@ -9,7 +9,11 @@ Installs either Open Data Hub or Red Hat OpenShift AI operator via OLM
 {{- $defaultEnv := list (dict "name" "DISABLE_DSC_CONFIG" "value" "true") -}}
 {{- $userEnv := (($operatorConfig.olm).config).env | default list -}}
 {{- $config := dict "env" (concat $defaultEnv $userEnv) -}}
-{{ include "rhoai-dependencies.operator.olm" (dict "name" $operatorConfig.olm.name "namespace" $operatorConfig.olm.namespace "channel" $operatorConfig.olm.channel "source" $operatorConfig.olm.source "config" $config "root" $) }}
+{{- $createNamespace := true -}}
+{{- if hasKey $operatorConfig.olm "createNamespace" -}}
+{{- $createNamespace = $operatorConfig.olm.createNamespace -}}
+{{- end -}}
+{{ include "rhoai-dependencies.operator.olm" (dict "name" $operatorConfig.olm.name "namespace" $operatorConfig.olm.namespace "channel" $operatorConfig.olm.channel "source" $operatorConfig.olm.source "createNamespace" $createNamespace "config" $config "root" $) }}
 {{- end }}
 {{- end }}
 

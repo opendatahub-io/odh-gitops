@@ -42,7 +42,7 @@ spec:
             - -c
             - |
               set -euo pipefail
-              {{- include "rhai-on-xks-chart.crApplyCommands" . | trimPrefix "\n" | nindent 14 }}
+              {{- include "rhai-on-xks-chart.indentBlock" (include "rhai-on-xks-chart.crApplyCommands" . | trimPrefix "\n") }}
               echo "Done."
 {{- end }}
 {{- end }}

@@ -1,0 +1,57 @@
+{{- if .Values.enabled }}
+ai-grid-o11y-spoke installed.
+{{- if .Values.credential.enabled }}
+Namespace {{ .Values.collector.namespace }} holds Secret {{ .Values.credential.secretName }},
+which the usage-log collector mounts.
+
+This chart does NOT configure forwarding. Set it on the parent chart, and make sure
+credentialSecret names the Secret above:
+
+  services:
+    monitoring:
+      dsci:
+        managementState: Managed
+        usageLogs:
+          credentialSecret: {{ .Values.credential.secretName }}
+          attributes:
+            cluster_name: <this cluster>
+            cluster_id: <this cluster's id>
+          exporters:
+            otlphttp/hub:
+              endpoint: https://<hub-route>/api/logs/v1/infrastructure/otlp
+
+No storage: a spoke that forwards to a hub keeps no usage-log store of its own, so omitting it
+deploys no LokiStack. Add storage only on a cluster meant to keep a local copy as well.
+
+managementState must be Managed. It is null by default, which resolves to Removed, and then
+nothing above is read and no collector is deployed.
+
+Omit the endpoint's /v1/logs suffix: the collector's otlphttp exporter appends it, and a
+doubled suffix 404s every record while reporting nothing else.
+
+Once the collector is up, the remote exporter should count every inference and never fail:
+
+  oc port-forward -n {{ .Values.collector.namespace }} svc/data-science-usage-logs-collector-monitoring 8888
+  curl -s localhost:8888/metrics | grep -E 'otelcol_exporter_(sent|send_failed)_log_records'
+
+A forwarding-only spoke has one exporter, otlphttp/hub. A cluster that also keeps a local store
+has two, and both should count every record. There are two collector replicas, so a single
+request lands on one of them; check both.
+
+The token expires. Nothing rotates it and no object reports its age — the collector re-reads
+the mounted file, so replacing this Secret is enough, but the schedule is yours.
+{{- else }}
+credential.enabled is false, so this release delivers no hub token and creates no namespace for
+one. That is the metrics-only shape: the ScrapeConfig and NetworkPolicy above are all of it.
+
+To deliver the hub credential as well, set credential.enabled and pass the token:
+  --set credential.enabled=true
+  --set-file credential.token="$TOKEN_FILE"
+
+These keys apply to a standalone chart install. Through the parent chart, prefix them
+with ai-grid-o11y-spoke. and also set ai-grid-o11y-spoke.enabled=true. TOKEN_FILE must
+point to a private file holding the hub writer token.
+{{- end }}
+{{- else }}
+ai-grid-o11y-spoke rendered nothing: enabled is false.
+{{- end }}

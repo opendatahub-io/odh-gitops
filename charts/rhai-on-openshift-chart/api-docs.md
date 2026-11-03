@@ -18,8 +18,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | ai-grid-o11y-hub | object | `{"enabled":false}` | AI Grid observability hub subchart |
-| ai-grid-o11y-spoke | object | `{"enabled":false}` | AI Grid observability spoke subchart |
-| argocd | object | `{"enabled":false}` | Enable Argo CD-specific resources, including partial server-side-apply patches |
+| ai-grid-o11y-spoke | object | `{"collector":{"namespace":"redhat-ods-monitoring","port":8890},"credential":{"enabled":false},"enabled":false}` | AI Grid observability spoke subchart Two independent halves, both about the collector in `collector.namespace`. Metrics federation requires active monitoring and ACM observability. It adds a prometheus/rhacm exporter at `0.0.0.0:<collector.port>`; existing endpoint overrides must match. Other user-supplied exporter options are preserved. Usage-log credential delivery is off until `credential.enabled`, and pairs with `services.monitoring.dsci.usageLogs` below. |
+| ai-grid-o11y-spoke.collector.namespace | string | `"redhat-ods-monitoring"` | Must match `operator.<type>.monitoringNamespace`; use `opendatahub` for default ODH installations. |
+| ai-grid-o11y-spoke.collector.port | int | `8890` | Port used by the exporter, scrape target and NetworkPolicy. |
+| ai-grid-o11y-spoke.credential.enabled | bool | `false` | Deliver the hub usage-log credential. Requires `credential.token`, passed with `--set-file` and never committed — note Helm stores supplied values in the release's own Secret, so that keeps the token out of git, not out of the cluster. It does **not** create `collector.namespace` on its own: the namespace template needs `collector.createNamespace` as well, and that defaults to false because most spokes already have the namespace and Helm cannot adopt one it does not own. |
 | components.aiHub | object | `{"defaults":{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"instancesNamespace":null,"managementState":null}}` | AI Hub component (Model Registry; replaces modelregistry from DSC v2) |
 | components.aiHub.defaults | object | `{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.aiHub.dependencies | object | `{}` | Dependencies required by AI Hub |
@@ -126,7 +128,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.jobSet.config.spec | object | `{"logLevel":"Normal","operatorLogLevel":"Normal"}` | JobSetOperator CR spec (user can add any fields supported by the CR) |
 | dependencies.jobSet.dependencies | object | `{"certManager":true}` | Dependencies required by job-set |
 | dependencies.jobSet.enabled | string | `"auto"` | Enable job-set: auto (if needed), true (always), false (never) |
-| dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.4","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
+| dependencies.kueue | object | `{"config":{"spec":{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable-v1.5","name":"kueue-operator","namespace":"openshift-kueue-operator"}}` | Kueue operator |
 | dependencies.kueue.config.spec | object | `{"config":{"integrations":{"frameworks":["Deployment","Pod","PyTorchJob","RayCluster","RayJob","StatefulSet","TrainJob"]}},"managementState":"Managed"}` | Kueue CR spec (user can add any fields) |
 | dependencies.kueue.dependencies | object | `{"certManager":true}` | Dependencies required by kueue |
 | dependencies.kueue.enabled | string | `"auto"` | Enable kueue: auto (if needed), true (always), false (never) |
@@ -158,8 +160,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.tempo | object | `{"dependencies":{"opentelemetry":true},"enabled":"auto","olm":{"channel":"stable","name":"tempo-product","namespace":"openshift-tempo-operator"}}` | Tempo operator |
 | dependencies.tempo.dependencies | object | `{"opentelemetry":true}` | Dependencies required by tempo |
 | dependencies.tempo.enabled | string | `"auto"` | Enable tempo: auto (if needed), true (always), false (never) |
-| global | object | `{"relatedImages":[]}` | Values shared by the optional AI Grid subcharts. |
+| global | object | `{"relatedImages":[],"skipCrdCheck":false}` | Values shared by the optional AI Grid subcharts. |
 | global.relatedImages | list | `[]` | Full image references using the XKS name/value convention. See README.md for supported names. |
+| global.skipCrdCheck | bool | `false` | Mirror of `skipCrdCheck` for subcharts, which cannot read the parent's root values. Set both when rendering without a cluster, as the snapshot scenarios do. |
 | grid-enrollment | object | `{"enabled":true,"fullnameOverride":"grid-enrollment"}` | AI Grid enrollment service |
 | grid-enrollment.enabled | bool | `true` | Include enrollment when AIGateway and aiGrid are Managed. False uses an externally managed service. |
 | grid-enrollment.fullnameOverride | string | `"grid-enrollment"` | Stable resource names, independent of the release name |
@@ -168,8 +171,8 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
 | olm.sourceNamespace | string | `"openshift-marketplace"` | Namespace of the catalog source |
 | operator.enabled | bool | `true` | Enable operator installation |
-| operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
-| operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
+| operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","createNamespace":true,"name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
+| operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","createNamespace":true,"name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
 | praxis-gateway | object | `{"enabled":true,"fullnameOverride":"grid-gateway","image":{"flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.2.2"}}` | AI Grid gateway (Praxis) |
 | praxis-gateway.enabled | bool | `true` | Include the gateway when AIGateway and aiGrid are Managed. False uses an externally managed gateway. |

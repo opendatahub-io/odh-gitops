@@ -260,6 +260,10 @@
     "global": {
       "type": "object",
       "properties": {
+        "skipCrdCheck": {
+          "type": "boolean",
+          "description": "Mirror of skipCrdCheck for subcharts, which cannot read the parent's root values. Forces CRD presence checks true so a render is reproducible without a cluster."
+        },
         "relatedImages": {
           "type": "array",
           "description": "Full image overrides shared by AI Grid subcharts (name/value entries).",
@@ -292,7 +296,12 @@
     },
     "ai-grid-o11y-spoke": {
       "type": "object",
-      "description": "Values for the ai-grid-o11y-spoke subchart. Schema is intentionally permissive; see the subchart's own values for available options.",
+      "description": "Values for the ai-grid-o11y-spoke subchart. Collector settings are validated by the subchart schema and must match the parent monitoring configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
       "additionalProperties": true
     }
   },
@@ -337,6 +346,10 @@
             "namespace": {
               "type": "string",
               "description": "Namespace where the operator will be installed"
+            },
+            "createNamespace": {
+              "type": "boolean",
+              "description": "Whether Helm should create the operator namespace. Set to false if the namespace already exists."
             },
             "source": {
               "type": "string",

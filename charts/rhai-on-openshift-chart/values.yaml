@@ -23,6 +23,9 @@ profile: default
 global:
   # -- Full image references using the XKS name/value convention. See README.md for supported names.
   relatedImages: []
+  # -- Mirror of `skipCrdCheck` for subcharts, which cannot read the parent's root values. Set
+  # both when rendering without a cluster, as the snapshot scenarios do.
+  skipCrdCheck: false
 
 # =============================================================================
 # OLM - Settings for OLM operator subscriptions
@@ -55,6 +58,7 @@ operator:
 
     olm:
       channel: fast-3
+      createNamespace: true
       name: opendatahub-operator
       namespace: opendatahub-operator-system
       source: community-operators
@@ -72,6 +76,7 @@ operator:
 
     olm:
       channel: beta
+      createNamespace: true
       name: rhods-operator
       namespace: redhat-ods-operator
       source: redhat-operators
@@ -555,7 +560,7 @@ dependencies:
     dependencies:
       certManager: true
     olm:
-      channel: stable-v1.4
+      channel: stable-v1.5
       name: kueue-operator
       namespace: openshift-kueue-operator
     config:
@@ -737,5 +742,24 @@ ai-grid-o11y-hub:
   enabled: false
 
 # -- AI Grid observability spoke subchart
+# Two independent halves, both about the collector in `collector.namespace`.
+# Metrics federation requires active monitoring and ACM observability. It adds a
+# prometheus/rhacm exporter at `0.0.0.0:<collector.port>`; existing endpoint overrides must
+# match. Other user-supplied exporter options are preserved.
+# Usage-log credential delivery is off until `credential.enabled`, and pairs with
+# `services.monitoring.dsci.usageLogs` below.
 ai-grid-o11y-spoke:
   enabled: false
+  collector:
+    # -- Must match `operator.<type>.monitoringNamespace`; use `opendatahub` for default ODH installations.
+    namespace: redhat-ods-monitoring
+    # -- Port used by the exporter, scrape target and NetworkPolicy.
+    port: 8890
+  credential:
+    # -- Deliver the hub usage-log credential. Requires `credential.token`, passed with
+    # `--set-file` and never committed — note Helm stores supplied values in the release's own
+    # Secret, so that keeps the token out of git, not out of the cluster.
+    # It does **not** create `collector.namespace` on its own: the namespace template needs
+    # `collector.createNamespace` as well, and that defaults to false because most spokes
+    # already have the namespace and Helm cannot adopt one it does not own.
+    enabled: false

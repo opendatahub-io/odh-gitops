@@ -1,0 +1,132 @@
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: helm-ocp420-pr{{ pull_request_number }}
+  labels:
+    appstudio.openshift.io/application: odh-gitops
+    appstudio.openshift.io/component: helm-chart-validation-ocp-420
+    pipelines.appstudio.openshift.io/type: test
+  annotations:
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request" &&
+      files.all.exists(file, file.startsWith('charts/rhai-on-openshift-chart/'))
+    pipelinesascode.tekton.dev/on-comment: "^/validate-helm-chart"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+spec:
+  pipelineRef:
+    resolver: git
+    params:
+      - name: url
+        value: "{{source_url}}"
+      - name: revision
+        value: "{{revision}}"
+      - name: pathInRepo
+        value: .tekton/pipelines/cluster-validation-pipeline.yaml
+  params:
+    - name: git-url
+      value: "{{source_url}}"
+    - name: revision
+      value: "{{revision}}"
+    - name: ocp-version
+      value: "4.20"
+    - name: validation-type
+      value: "helm"
+    - name: olm-catalog-image
+      value: "quay.io/opendatahub/opendatahub-operator-catalog:latest"
+    - name: olm-channel
+      value: "fast"
+    - name: operator-type
+      value: "odh"
+    - name: instance-type
+      value: "m5.2xlarge"
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-helm-chart-validation-ocp-420
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: helm-ocp421-pr{{ pull_request_number }}
+  labels:
+    appstudio.openshift.io/application: odh-gitops
+    appstudio.openshift.io/component: helm-chart-validation-ocp-421
+    pipelines.appstudio.openshift.io/type: test
+  annotations:
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request" &&
+      files.all.exists(file, file.startsWith('charts/rhai-on-openshift-chart/'))
+    pipelinesascode.tekton.dev/on-comment: "^/validate-helm-chart"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+spec:
+  pipelineRef:
+    resolver: git
+    params:
+      - name: url
+        value: "{{source_url}}"
+      - name: revision
+        value: "{{revision}}"
+      - name: pathInRepo
+        value: .tekton/pipelines/cluster-validation-pipeline.yaml
+  params:
+    - name: git-url
+      value: "{{source_url}}"
+    - name: revision
+      value: "{{revision}}"
+    - name: ocp-version
+      value: "4.21"
+    - name: validation-type
+      value: "helm"
+    - name: olm-catalog-image
+      value: "quay.io/opendatahub/opendatahub-operator-catalog:latest"
+    - name: olm-channel
+      value: "fast"
+    - name: operator-type
+      value: "odh"
+    - name: instance-type
+      value: "m5.2xlarge"
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-helm-chart-validation-ocp-421
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: helm-ocp422-pr{{ pull_request_number }}
+  labels:
+    appstudio.openshift.io/application: odh-gitops
+    appstudio.openshift.io/component: helm-chart-validation-ocp-422
+    pipelines.appstudio.openshift.io/type: test
+  annotations:
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request" &&
+      files.all.exists(file, file.startsWith('charts/rhai-on-openshift-chart/'))
+    pipelinesascode.tekton.dev/on-comment: "^/validate-helm-chart"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+spec:
+  pipelineRef:
+    resolver: git
+    params:
+      - name: url
+        value: "{{source_url}}"
+      - name: revision
+        value: "{{revision}}"
+      - name: pathInRepo
+        value: .tekton/pipelines/cluster-validation-pipeline.yaml
+  params:
+    - name: git-url
+      value: "{{source_url}}"
+    - name: revision
+      value: "{{revision}}"
+    - name: ocp-version
+      value: "4.22"
+    - name: validation-type
+      value: "helm"
+    - name: olm-catalog-image
+      value: "quay.io/opendatahub/opendatahub-operator-catalog:latest"
+    - name: olm-channel
+      value: "fast"
+    - name: operator-type
+      value: "odh"
+    - name: instance-type
+      value: "m5.2xlarge"
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-helm-chart-validation-ocp-422

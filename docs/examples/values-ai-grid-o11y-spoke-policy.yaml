@@ -1,0 +1,60 @@
+# =============================================================================
+# AI Grid usage-log aggregation: the spoke policy
+#
+# The second step on the ACM hub, applied alongside values-ai-grid-o11y-hub.yaml
+# once the LokiStack is Ready and its Route host is known. Renders ACM resources
+# and does not install ACM; the spokes must already be imported as
+# ManagedClusters.
+#
+# Before this delivers anything, two things must exist that no chart can create:
+#   - Secret usage-logs-hub-credential in ai-grid-policies, key "token", holding
+#     a token minted for the writer ServiceAccount
+#   - the label ai-grid.redhat.com/maas=true on each spoke's ManagedCluster
+#
+# Usage (same release as step one; keep both -f files):
+#   helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+#     -f docs/examples/values-ai-grid-o11y-hub.yaml \
+#     -f docs/examples/values-ai-grid-o11y-spoke-policy.yaml \
+#     -n rhoai-gitops --create-namespace
+# =============================================================================
+
+ai-grid-o11y-hub:
+  spokePolicy:
+    enabled: true
+
+    # This policy delivers two things: the credential Secret, and the usageLogs
+    # patch on each spoke's DSCInitialization. A fleet whose spokes are installed
+    # by GitOps already carries the second one in its own chart values, with the
+    # per-cluster attributes supplied by an ApplicationSet; patching the DSCI from
+    # here as well would leave Argo CD's selfHeal and this policy as two writers on
+    # one object. Set deliverConfiguration: false there and the policy delivers the
+    # token alone — the endpoint below is then neither required nor read.
+    #   deliverConfiguration: false
+
+    # The LokiStack Route host plus the tenant path. No /v1/logs: the collector's
+    # otlphttp exporter appends it, and a doubled suffix 404s every record. Read
+    # the host rather than composing it — the domain may carry an
+    # infrastructure-specific prefix:
+    #   oc get route usage-logs -n ai-grid-o11y -o jsonpath='{.spec.host}'
+    endpoint: https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure/otlp
+    credentialSecretName: usage-logs-hub-credential
+
+    placement:
+      clusterSet: default
+      # "Runs MaaS", not "is in the grid": a grid cluster without MaaS would be
+      # permanently NonCompliant.
+      matchLabels:
+        ai-grid.redhat.com/maas: "true"
+      excludeLocalCluster: true
+
+    spoke:
+      # redhat-ods-monitoring for RHOAI, opendatahub for ODH.
+      monitoringNamespace: redhat-ods-monitoring
+      credentialSecretName: hub-usage-logs-auth
+      # Resolved per cluster by ACM, not by Helm.
+      attributes:
+        cluster_name: '{{hub .ManagedClusterName hub}}'
+        cluster_id: '{{ (lookup "cluster.open-cluster-management.io/v1alpha1" "ClusterClaim" "" "id.k8s.io").spec.value }}'
+
+    # inform previews a rollout without changing anything on the spokes.
+    remediationAction: enforce

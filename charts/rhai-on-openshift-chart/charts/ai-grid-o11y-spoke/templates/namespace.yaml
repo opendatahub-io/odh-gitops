@@ -1,0 +1,13 @@
+{{- if and .Values.credential.enabled .Values.collector.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.collector.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-spoke.labels" . | nindent 4 }}
+  annotations:
+    {{- /* The operator uses this namespace for everything it deploys, so a `helm uninstall`
+           that deleted it would take the collector, the spoke's own LokiStack and its
+           storage with it. Keep is not optional here. */}}
+    helm.sh/resource-policy: keep
+{{- end }}

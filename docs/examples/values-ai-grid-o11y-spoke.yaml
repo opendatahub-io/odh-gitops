@@ -1,0 +1,94 @@
+# =============================================================================
+# AI Grid usage-log aggregation: a spoke
+#
+# Applied to a MaaS spoke cluster, not the hub. Two parts:
+#
+#   ai-grid-o11y-spoke       the monitoring namespace and the hub credential,
+#                            which Helm orders ahead of the DSCInitialization so
+#                            the collector never starts without its token
+#   services.monitoring.dsci the forwarding configuration itself, which the
+#                            platform operator passes to odh-observability
+#
+# The token is NOT in this file and must not be committed. Pass it separately:
+#
+#   helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+#     -f docs/examples/values-ai-grid-o11y-spoke.yaml \
+#     --set-file ai-grid-o11y-spoke.credential.token="$TOKEN_FILE" \
+#     -n rhoai-gitops --create-namespace
+#
+# Mint that token on the hub:
+#   TOKEN_FILE=$(mktemp)
+#   oc create token usage-logs-writer -n ai-grid-o11y --duration=8760h > "$TOKEN_FILE"
+# Delete the private file after the install: rm -- "$TOKEN_FILE"
+#
+# A spoke in an ACM fleet needs nothing at all under
+# services.monitoring.dsci.usageLogs: the hub's spokePolicy delivers the whole
+# stanza. This file is for a spoke outside ACM, or one being configured directly.
+#
+# This file covers usage logs only. A real spoke also runs MaaS, which has its
+# own required values -- add values-maas-profile.yaml or your own MaaS values
+# alongside this one.
+# =============================================================================
+
+# The namespaces below are RHOAI's. The parent chart fails the render when
+# ai-grid-o11y-spoke.collector.namespace and operator.<type>.monitoringNamespace disagree,
+# and the default type is odh, whose namespace is `opendatahub`.
+operator:
+  type: rhoai
+
+ai-grid-o11y-spoke:
+  enabled: true
+  collector:
+    # Must match operator.<type>.monitoringNamespace; the parent chart fails the render if
+    # they disagree.
+    namespace: redhat-ods-monitoring
+    # The chart defaults this to false, because most spokes already have the namespace and
+    # Helm cannot adopt it. This example is the direct path, which may run before the operator
+    # has reconciled the DSCInitialization -- and then the namespace has to come from here or
+    # there is nowhere to put the credential. Set it back to false on a spoke where RHOAI
+    # already created it, or the upgrade fails with `invalid ownership metadata`.
+    createNamespace: true
+  metrics:
+    # This example is a spoke outside an ACM fleet, so there is no
+    # open-cluster-management-observability namespace to put a ScrapeConfig in. A spoke in a
+    # fleet that federates its metrics leaves this on.
+    enabled: false
+  credential:
+    # Deliver the hub credential. Off by default, because a spoke that only federates
+    # metrics through this chart needs no hub token.
+    enabled: true
+    secretName: hub-usage-logs-auth
+    # token supplied with --set-file, never here
+
+services:
+  monitoring:
+    dependencies:
+      # A forwarding spoke creates no LokiStack, so the Loki operator has nothing to
+      # reconcile. The chart defaults this to true for clusters that keep a local store.
+      loki: false
+    dsci:
+      # Required, and not a formality: the chart leaves this null, which resolves to
+      # `Removed` without a profile that sets it -- and then odh-observability deploys no
+      # collector at all and every value below is inert. The render still succeeds, so the
+      # only symptom is a spoke that quietly forwards nothing.
+      managementState: Managed
+      usageLogs:
+        # No storage. A spoke forwards its records to the hub and keeps no
+        # usage-log store of its own, so omitting storage deploys no LokiStack --
+        # and with it no object-storage bucket and no seven-key Secret to build
+        # by hand. Set storage only on a cluster that is also meant to keep a
+        # local copy, which nothing on a spoke reads.
+        #
+        # Must match ai-grid-o11y-spoke.credential.secretName above.
+        credentialSecret: hub-usage-logs-auth
+        # How the hub tells this spoke's records apart. In an ACM fleet the hub's policy
+        # fills these per cluster; set them by hand only for a spoke outside one:
+        #   cluster_name  any stable name for the spoke
+        #   cluster_id    oc get clusterversion version -o jsonpath='{.spec.clusterID}'
+        attributes:
+          cluster_name: my-spoke
+          cluster_id: 00000000-0000-0000-0000-000000000000
+        exporters:
+          otlphttp/hub:
+            # No /v1/logs: the otlphttp exporter appends it.
+            endpoint: https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure/otlp

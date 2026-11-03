@@ -3630,7 +3630,7 @@ spec:
             - name: RHAI_APPLICATIONS_NAMESPACE
               value: "redhat-ods-applications"
             - name: RHAI_VERSION
-              value: "3.5.0"
+              value: "3.6.0"
             - name: ODH_PLATFORM_TYPE
               value: XKS
             - name: RHAI_CA_SECRET_NAME
@@ -4287,6 +4287,8 @@ spec:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/managed-by: Helm
               spec:
+                aiGrid:
+                  managementState: Removed
                 batchGateway:
                   managementState: Managed
                 modelsAsAService:
@@ -4510,7 +4512,6 @@ spec:
               EOF
               echo "Gateway CR 'inference-gateway' created successfully."
 
-
 ---
 # Source: rhai-on-xks-chart/templates/hooks/pre-delete-crs-job.yaml
 apiVersion: batch/v1
@@ -4569,7 +4570,6 @@ spec:
               kubectl delete kserve default-kserve --ignore-not-found --timeout=300s
               echo "Deleting Platform CR 'default'..."
               kubectl delete platform default --ignore-not-found --timeout=300s
-
               echo "Deleting AzureKubernetesEngine CR 'default-azurekubernetesengine'..."
               kubectl delete azurekubernetesengine default-azurekubernetesengine --ignore-not-found --timeout=300s
               echo "Done."

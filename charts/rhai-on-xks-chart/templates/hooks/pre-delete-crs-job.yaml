@@ -56,9 +56,9 @@ spec:
             - -c
             - |
               set -euo pipefail
-              {{- include "rhai-on-xks-chart.componentDeleteCommands" . | trimPrefix "\n" | nindent 14 }}
-              {{- include "rhai-on-xks-chart.moduleDeleteCommands" . | nindent 14 }}
-              {{- include "rhai-on-xks-chart.providerKEDeleteCommands" . | nindent 14 }}
+              {{- include "rhai-on-xks-chart.indentBlock" (include "rhai-on-xks-chart.componentDeleteCommands" . | trimPrefix "\n") }}
+              {{- include "rhai-on-xks-chart.indentBlock" (include "rhai-on-xks-chart.moduleDeleteCommands" .) }}
+              {{- include "rhai-on-xks-chart.indentBlock" (include "rhai-on-xks-chart.providerKEDeleteCommands" .) }}
 
               {{- if $.Values.uninstall.cleanupNamespaces }}
               {{- range $ns := $depNamespaces }}

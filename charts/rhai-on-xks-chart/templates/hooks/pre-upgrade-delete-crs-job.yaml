@@ -102,7 +102,7 @@ spec:
             - -c
             - |
               set -euo pipefail
-              {{- include "rhai-on-xks-chart.disabledComponentDeleteCommands" . | trimPrefix "\n" | nindent 14 }}
+              {{- include "rhai-on-xks-chart.indentBlock" (include "rhai-on-xks-chart.disabledComponentDeleteCommands" . | trimPrefix "\n") }}
               echo "Disabled component cleanup complete."
 {{- end }}
-{{- end }}
+{{- end -}}

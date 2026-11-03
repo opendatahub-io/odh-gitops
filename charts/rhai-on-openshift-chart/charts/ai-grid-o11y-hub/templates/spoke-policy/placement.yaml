@@ -1,0 +1,44 @@
+{{- if and .Values.enabled .Values.spokePolicy.enabled }}
+{{- $d := .Values.spokePolicy }}
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: {{ $d.placement.name | quote }}
+  namespace: {{ $d.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  clusterSets:
+    - {{ $d.placement.clusterSet | quote }}
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchExpressions:
+            {{- range $key, $value := $d.placement.matchLabels }}
+            - key: {{ $key | quote }}
+              operator: In
+              values: [{{ $value | quote }}]
+            {{- end }}
+            {{- if $d.placement.excludeLocalCluster }}
+            {{- /* The hub carries no MaaS, so a policy targeting it would be permanently
+                   NonCompliant there. */}}
+            - key: local-cluster
+              operator: DoesNotExist
+            {{- end }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: {{ $d.placement.name | quote }}
+  namespace: {{ $d.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: {{ $d.placement.name | quote }}
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: {{ $d.name | quote }}
+{{- end }}
