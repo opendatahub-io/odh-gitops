@@ -318,6 +318,9 @@ xks-gateway:
         name: ""
         key: client-secret
       secretNamespace: ""
+      scope: ""
+      passAccessToken: false
+      skipClaimsFromProfileURL: false
     cookie:
       expire: "24h"
       refresh: "1h"
