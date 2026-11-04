@@ -229,11 +229,7 @@ spec:
               fi
 
               if [ "${VALIDATION_TYPE}" = "helm" ]; then
-                # Install helm if not available
-                if ! command -v helm &> /dev/null; then
-                  echo "Installing Helm..."
-                  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
-                fi
+                # helm-install-verify installs the helm version pinned in the Makefile (see `make helm`)
 
                 # Install the chart (first run - operators only)
                 echo ""
