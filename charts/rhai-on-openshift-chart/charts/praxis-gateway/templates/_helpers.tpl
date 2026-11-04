@@ -565,12 +565,7 @@ The gridServing block the selected source reads, as YAML: render's, operator's, 
 {{/* Service annotations, the platform's merged under the Service's own. Only a LoadBalancer gets the platform's. */}}
 {{- define "praxis-gateway.serviceAnnotations" -}}
 {{- $svc := .Values.service -}}
-{{- $own := dict -}}
-{{- range $key, $value := ($svc.annotations | default dict) -}}
-{{- if $value -}}
-{{- $_ := set $own $key $value -}}
-{{- end -}}
-{{- end -}}
+{{- $own := $svc.annotations | default dict -}}
 {{- $platform := dict -}}
 {{- $cloud := .Values.platform | default "" -}}
 {{- $internal := eq (.Values.loadBalancerScope | default "internal") "internal" -}}
@@ -850,6 +845,13 @@ chart's own {fullname}-config for render and inline.
 {{- else -}}
 {{- printf "%s-config" (include "praxis-gateway.fullname" .) -}}
 {{- end -}}
+{{- end }}
+
+{{/*
+"true" when more than one replica runs.
+*/}}
+{{- define "praxis-gateway.ha" -}}
+{{- if gt (int .Values.replicaCount) 1 }}true{{ end }}
 {{- end }}
 
 {{/* Full image references injected by downstream payloads. */}}

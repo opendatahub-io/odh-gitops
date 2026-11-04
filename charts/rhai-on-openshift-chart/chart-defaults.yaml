@@ -473,7 +473,7 @@ grid-enrollment:
     createClusterSetBinding: true
     enabled: false
     gatewayName: grid-gateway
-    hubClusterName: local-cluster
+    hubClusterName: ""
     identitySecretPrefix: grid-site-
     networkName: grid
     workName: grid-site-observer
@@ -622,7 +622,7 @@ praxis-gateway:
       image:
         pullPolicy: IfNotPresent
         repository: ghcr.io/praxis-proxy/grid-overlay-sync
-        tag: v0.3.0-rc.3
+        tag: v0.3.0-rc.4
       resources:
         limits:
           cpu: 50m
@@ -700,6 +700,9 @@ praxis-gateway:
         siteRoute:
           availability: {}
           prefixAffinity: {}
+          sovereignty:
+            header: ""
+            mode: enforce
       model: ""
       peerTrust:
         allowAnyGridSite: false
@@ -716,6 +719,8 @@ praxis-gateway:
         - /v1/completions
         - /v1/models
         - /v1/embeddings
+        - /v1/messages
+        - /v1/responses
       role: consumer
       telemetry:
         enabled: false
@@ -849,7 +854,7 @@ praxis-provider-gateway:
       image:
         pullPolicy: IfNotPresent
         repository: ghcr.io/praxis-proxy/grid-overlay-sync
-        tag: v0.3.0-rc.3
+        tag: v0.3.0-rc.4
       resources:
         limits:
           cpu: 50m
@@ -927,6 +932,9 @@ praxis-provider-gateway:
         siteRoute:
           availability: {}
           prefixAffinity: {}
+          sovereignty:
+            header: ""
+            mode: enforce
       model: ""
       peerTrust:
         allowAnyGridSite: false
@@ -943,6 +951,8 @@ praxis-provider-gateway:
         - /v1/completions
         - /v1/models
         - /v1/embeddings
+        - /v1/messages
+        - /v1/responses
       role: consumer
       telemetry:
         enabled: false
