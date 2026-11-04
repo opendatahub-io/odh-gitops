@@ -241,7 +241,7 @@ Praxis AI image; these values may advance independently.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `replicaCount` | int | `1` | Gateway replicas. |
+| `replicaCount` | int | `1` | Gateway replicas. Above 1 the Deployment rolls with one surge pod and none unavailable, spreads across nodes, and gets a PodDisruptionBudget. At 1 the render is unchanged. |
 | `image.repository` | string | `ghcr.io/praxis-proxy/ai` | Image repository. |
 | `image.tag` | string | `0.7.0` | Image tag (ignored when `image.digest` is set). |
 | `image.digest` | string | `""` | Immutable digest (sha256:...). When set, tag is ignored. |
@@ -286,7 +286,7 @@ Praxis AI image; these values may advance independently.
 | `praxisConfig.render.peerTrust.spiffeId` | string | `""` | SPIFFE mode: an allowed SPIFFE ID. `spiffeIds` takes more. The render needs one unless `allowAnyGridSite`. |
 | `praxisConfig.render.peerTrust.spiffeIds` | list | `[]` | SPIFFE mode: every allowed peer. The handshake admits exactly these through `trusted_spiffe_ids`, and the filter chain names the same sites in an unconditional `peer_identity_trust`. A site certificate carries its site name in both the SPIFFE path segment and the subject organization, so one list drives both and a narrower per-candidate check can only take sites away from what is already admitted. |
 | `praxisConfig.render.peerTrust.allowAnyGridSite` | bool | `false` | SPIFFE mode with no IDs: accept any enrolled site. It cannot be set beside `spiffeIds`. |
-| `praxisConfig.render.provider.allowedPaths` | list | chat, completions, models, embeddings | Exact paths a provider forwards, GET and POST only. Other paths get a 404, other methods a 405. |
+| `praxisConfig.render.provider.allowedPaths` | list | chat, completions, models, embeddings, messages, responses | Exact paths a provider forwards, GET and POST only. Other paths get a 404, other methods a 405. |
 | `grid.networkName` | string | `""` | GridNetwork name for overlay-sidecar scope validation. Required when the sidecar is on. |
 | `grid.siteName` | string | `""` | This gateway's site name. Required for render and when the overlay sidecar is on. A consumer scores locality with it; a provider returns it in `X-Grid-Provider-Site`. |
 | `praxisConfig.render.auth.mode` | string | **required** for a render consumer | `api-key` validates a consumer caller's key and needs an image that registers `identity/api-key` (praxis-policy 0.4 or later); provider role rejects it because providers authenticate peers by Grid identity. The render refuses it on the legacy `ai:0.4.0` image (by effective reference; a digest pin of that same image is not detected). `none` renders no policy filter, for use only behind an authenticating front. |
@@ -329,7 +329,7 @@ Praxis AI image; these values may advance independently.
 | `overlay.mountPath` | string | `/etc/praxis/routing` | Directory where BYO `praxis.yaml` reads `routing-overlay.json`. |
 | `overlay.sidecar.enabled` | bool | `true` | Run overlay-sync. False mounts the ConfigMap directly (slower kubelet updates, no validation, ServiceAccount, or Role). |
 | `overlay.sidecar.image.repository` | string | `grid-overlay-sync` | Overlay-sync image repository. Use a published or locally built image appropriate to the deployment. |
-| `overlay.sidecar.image.tag` | string | `v0.3.0-rc.3` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
+| `overlay.sidecar.image.tag` | string | `v0.3.0-rc.4` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
 | `overlay.sidecar.image.pullPolicy` | string | `IfNotPresent` | Overlay-sync image pull policy. |
 | `overlay.sidecar.dataKey` | string | `routing-overlay.json` | Content-addressed envelope key in the overlay ConfigMap. |
 | `overlay.sidecar.resources` | object | small requests and limits | Resources for both the one-shot init container and continuous sidecar. |
@@ -339,6 +339,7 @@ Praxis AI image; these values may advance independently.
 | `praxisConfig.render.gridServing.configMapName` | string | `""` | Overrides `grid-serving-<networkName>-<gatewayRefName>`. Needed when that name passes 63 characters. |
 | `praxisConfig.render.gridServing.mountPath` | string | `/etc/praxis/grid-serving` | Mount directory for the ConfigMap. |
 | `praxisConfig.render.gridServing.backendCAs` | list | `[]` | CA bundles for the operator's `tls` dials, each `{secretName or configMapName, key}` (`key` defaults to `ca.crt`), mounted read-only at `/run/secrets/grid-backend-ca/<name>/<key>`, where a dial's `ca_path` points. One entry per Secret or ConfigMap. Needs `gridServing.enabled`, and refused with `mountReconciliation`, which mounts them itself. |
+| `praxisConfig.render.gridServing.siteRoute.sovereignty` | object | `{header: "", mode: enforce}` | Sovereignty fence. `header` names the zones a request may be served in: one zone, or a comma-separated list in one header line, matched case-insensitively against each `GridSite` `sovereigntyZone`. Empty is no fence. In `enforce` mode a request naming no valid zone gets 400, and one whose model no site in its zones serves gets 403. In `audit` mode nothing is refused, and each would-be refusal is logged and counted in `grid_route_fenced_total`. Whatever sets the header must replace, never append to, a caller's copy. |
 | `praxisConfig.render.gridServing.siteRoute.availability` | object | `{}` | Site availability, rendered into the `grid_site_route` filter block with keys snake_case as the filter reads them (`shedding`, `smoothing`, `ceiling_half_life_ms`, `ceiling_floor`, `explore_floor`, `full_after_ms`, `room_after_ms`, `queue_full`). Every field defaults and `shedding` is the one switch. See `examples/gateway/grid-site-route.yaml`. |
 | `praxisConfig.render.gridServing.siteRoute.prefixAffinity` | object | `{}` | Prefix affinity tuning rendered as the filter's `prefix_affinity` (`enabled`, `threshold`, `exploration`, `capacity`, `ttl_secs`, `prefill_tokens_per_second`, `queued_request_seconds`, `tag_key_path`). Cache limits default to 16384 entries per backend cluster and a 600-second lifetime after confirmation; both require positive integers. |
 | `gridIdentity.tlsSecretName` | string | `""` | Secret with `tls.crt` and `tls.key`. Non-empty mounts the identity and makes implicit render transports use mTLS. |
@@ -354,7 +355,7 @@ Praxis AI image; these values may advance independently.
 | `nodeSelector` | object | `{}` | Node selector. |
 | `affinity` | object | `{}` | Pod affinity rules. |
 | `tolerations` | list | `[]` | Pod tolerations. |
-| `topologySpreadConstraints` | list | `[]` | Topology spread constraints. |
+| `topologySpreadConstraints` | list | `[]` | Topology spread constraints. Listing any replaces the default spread above one replica. |
 | `priorityClassName` | string | `""` | Pod priority class. |
 
 ## Metrics
@@ -365,8 +366,9 @@ The metrics listener serves the Praxis registry, including the grid gateway's ow
 |--------|--------|---------|
 | `grid_route_decisions_total` | `site`, `reason` | Requests `grid_site_route` decided. `site` is a site name from the serving config, or empty for a refusal. No label comes from the request. |
 | `grid_route_site_score` | `site`, `cluster` | The queue depth the last route order used for each candidate, lower first. `inf` when unmeasured, `NaN` when excluded or demoted, or when the pair left the topology. |
+| `grid_route_site_score_unavailable` | `site`, `cluster`, `reason` | One-hot reason an otherwise routable load-publishing site has no queue score: `absent`, `stale`, or `unreadable`. Metric names are not labels. |
 
-`reason` is one of five values, and adding one is a deliberate change:
+`reason` is one of seven values, and adding one is a deliberate change:
 
 | `reason` | `site` | Response |
 |----------|--------|----------|
@@ -374,7 +376,11 @@ The metrics listener serves the Praxis registry, including the grid gateway's ow
 | `fallback` | chosen site | Sent to a demoted site because no healthy one was left. |
 | `not_ready` | empty | 503: every candidate was excluded. |
 | `no_route` | empty | 503: an admitted candidate had no route from this gateway. |
-| `bad_request` | empty | 400 or 404: no model, or a model no candidate serves. |
+| `bad_request` | empty | 400 or 404: no model, a model no candidate serves, or no valid sovereignty zone under a fence. |
+| `shed` | empty | 429: every healthy site serving the model was past full. |
+| `fenced` | empty | 403: no site serving the model lies in the request's sovereignty zones. |
+
+`grid_route_fenced_total{cause, enforced}` counts the requests the sovereignty fence refused (`enforced="true"`) or, in `audit` mode, would have refused (`enforced="false"`). `cause` is `zone_required` (no valid zone in one header line), `outside_zones` (no site in the zones serves the model, or an audited pick lay outside them), or `earlier_route` (another filter chose the cluster).
 
 ## Security
 
@@ -400,6 +406,25 @@ directory read-only.
 
 These sections describe settings that matter only for particular setups.
 
+### More than one replica
+
+Set `replicaCount` above 1 and the chart renders what a safe rollout, node drain
+and pod loss need, with no other setting:
+
+- A RollingUpdate strategy with `maxSurge` 1 and `maxUnavailable` 0, so a new
+  pod is ready before an old one drains.
+- A topology spread across `kubernetes.io/hostname` that the scheduler prefers
+  but does not require, so a lone node still schedules every pod. List your
+  own `topologySpreadConstraints` to replace it.
+- A PodDisruptionBudget with `minAvailable` 1, so a node drain always leaves
+  one pod serving.
+
+The Service keeps its type and address, which peers depend on. The preStop
+delay and `terminationGracePeriodSeconds` are the same at any replica count:
+each pod keeps serving for `shutdownDelaySeconds` while the endpoints drop it,
+then Praxis drains in-flight requests. At `replicaCount` 1 the render is
+unchanged.
+
 ### Edge gateway
 
 An edge gateway is the entry point for clients outside the cluster. A typical
@@ -408,13 +433,6 @@ terminates TLS in Praxis:
 
 ```yaml
 replicaCount: 2
-topologySpreadConstraints:
-  - maxSkew: 1
-    topologyKey: kubernetes.io/hostname
-    whenUnsatisfiable: ScheduleAnyway
-    labelSelector:
-      matchLabels:
-        app.kubernetes.io/name: praxis-gateway
 service:
   type: LoadBalancer
 listenerTls:

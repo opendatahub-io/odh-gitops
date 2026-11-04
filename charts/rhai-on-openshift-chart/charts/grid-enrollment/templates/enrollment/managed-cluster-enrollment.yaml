@@ -18,7 +18,11 @@ spec:
   - requiredClusterSelector:
       labelSelector:
         matchLabels:
+          {{- if $cfg.hubClusterName }}
           name: {{ $cfg.hubClusterName | quote }}
+          {{- else }}
+          local-cluster: "true"
+          {{- end }}
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding

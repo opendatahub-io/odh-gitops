@@ -3,8 +3,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "praxisConfig",
-    "resources"
+    "praxisConfig"
   ],
   "properties": {
     "enabled": {
@@ -898,6 +897,21 @@
                   "additionalProperties": false,
                   "description": "grid_site_route tuning, rendered into its filter block with the keys the filter reads.",
                   "properties": {
+                    "sovereignty": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Sovereignty fence. Empty header is no fence.",
+                      "properties": {
+                        "header": {
+                          "type": "string",
+                          "pattern": "^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)?$"
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": ["enforce", "audit"]
+                        }
+                      }
+                    },
                     "availability": {
                       "type": "object",
                       "additionalProperties": false,
@@ -1125,7 +1139,7 @@
     "replicaCount": {
       "type": "integer",
       "minimum": 1,
-      "description": "Number of gateway replicas."
+      "description": "Number of gateway replicas. Above 1 the Deployment rolls with a surge pod and none unavailable, spreads across nodes, and gets a PodDisruptionBudget."
     },
     "image": {
       "type": "object",
@@ -1378,7 +1392,8 @@
         "protocol": {
           "type": "string",
           "enum": [
-            "TCP"
+            "TCP",
+            "UDP"
           ],
           "description": "Port protocol."
         }
@@ -1458,10 +1473,6 @@
             "type": "string"
           },
           "description": "Route annotations."
-        },
-        "externalTls": {
-          "type": "boolean",
-          "description": "Attest that a BYO praxis.yaml serves TLS on the Service port with a certificate valid for route.host."
         },
         "tls": {
           "type": "object",
@@ -1679,7 +1690,7 @@
       "description": "Seconds Kubernetes gives a terminating pod before killing it. Null: 30 plus shutdownDelaySeconds."
     },
     "resources": {
-      "$ref": "#/definitions/resourceBudget",
+      "type": "object",
       "description": "Container resource requests and limits."
     },
     "nodeSelector": {
@@ -1705,64 +1716,11 @@
       "items": {
         "type": "object"
       },
-      "description": "Topology spread constraints."
+      "description": "Topology spread constraints. Listing any replaces the default spread above one replica."
     },
     "priorityClassName": {
       "type": "string",
       "description": "Priority class for the gateway pod."
-    }
-  },
-  "definitions": {
-    "resourceBudget": {
-      "type": "object",
-      "required": [
-        "requests",
-        "limits"
-      ],
-      "properties": {
-        "requests": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        },
-        "limits": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        }
-      }
     }
   }
 }

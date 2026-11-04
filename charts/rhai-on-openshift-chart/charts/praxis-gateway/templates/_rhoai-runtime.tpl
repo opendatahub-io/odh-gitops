@@ -20,6 +20,11 @@
 ---
 {{ $resource }}
 {{ end }}
+{{- $resource := include "praxis-gateway.rhoai.poddisruptionbudget.yaml" . | trim -}}
+{{- if $resource }}
+---
+{{ $resource }}
+{{ end }}
 {{- $resource := include "praxis-gateway.rhoai.role-mount-reconciliation.yaml" . | trim -}}
 {{- if $resource }}
 ---

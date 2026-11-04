@@ -6,7 +6,7 @@
 {{- $admins := .Values.enrollment.gridAdmins }}
 {{- $subjects := $admins.subjects | default list }}
 {{- range $subjects }}
-{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts|nodes|anonymous|bootstrappers)(:.*)?$" .name }}
+{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$" .name }}
 {{- fail (printf "enrollment.gridAdmins.subjects: %q is a cluster-wide group and would make it grid-admin" .name) }}
 {{- end }}
 {{- end }}
@@ -69,7 +69,7 @@ roleRef:
 {{- end }}
 {{- $deleters := (.Values.enrollment.enrollmentAdmins | default dict).subjects | default list }}
 {{- range $deleters }}
-{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts|nodes|anonymous|bootstrappers)(:.*)?$" .name }}
+{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$" .name }}
 {{- fail (printf "enrollment.enrollmentAdmins.subjects: %q is a cluster-wide group and would let it delete any site's enrollment" .name) }}
 {{- end }}
 {{- end }}

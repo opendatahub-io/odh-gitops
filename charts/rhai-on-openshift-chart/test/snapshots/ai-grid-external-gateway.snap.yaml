@@ -8,7 +8,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
@@ -28,69 +28,6 @@ metadata:
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: grid-enrollment
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: grid-enrollment
-      app.kubernetes.io/instance: release-test
-      app.kubernetes.io/component: enrollment
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        # The release's invite Job calls enrollment over HTTPS.
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: grid-enrollment
-              app.kubernetes.io/instance: release-test
-              app.kubernetes.io/component: invite
-      ports:
-        - port: 8443
-          protocol: TCP
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: grid-enrollment-db
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: grid-enrollment
-      app.kubernetes.io/instance: release-test
-      app.kubernetes.io/component: db
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: grid-enrollment
-              app.kubernetes.io/instance: release-test
-              app.kubernetes.io/component: enrollment
-      ports:
-        - port: 5432
-          protocol: TCP
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -100,7 +37,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: enrollment
 
@@ -116,7 +53,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 data:
   # Included at the end of postgresql.conf by the sclorg image (postgresql-cfg/).
@@ -136,7 +73,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   accessModes: ["ReadWriteOnce"]
@@ -154,12 +91,12 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["certificates.k8s.io"]
     resources: ["certificatesigningrequests"]
-    verbs: ["create"]
+    verbs: ["create", "delete"]
   - apiGroups: ["certificates.k8s.io"]
     resources: ["certificatesigningrequests/status"]
     verbs: ["patch"]
@@ -178,7 +115,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["certificates.k8s.io"]
@@ -199,7 +136,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["grid.praxis.fast"]
@@ -219,7 +156,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -241,7 +178,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -262,7 +199,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -284,7 +221,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -306,7 +243,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["grid.praxis.fast"]
@@ -329,7 +266,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: ["grid.praxis.fast"]
@@ -348,7 +285,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: [""]
@@ -366,7 +303,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -376,7 +313,6 @@ subjects:
   - kind: ServiceAccount
     name: grid-enrollment
     namespace: default
-
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
@@ -389,7 +325,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
@@ -412,7 +348,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: enrollment
 spec:
@@ -438,7 +374,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -468,18 +404,6 @@ spec:
         - name: db-tls-perms
           image: "quay.io/sclorg/postgresql-16-c9s:20260923"
           imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          resources:
-            limits:
-              cpu: 200m
-              memory: 128Mi
-            requests:
-              cpu: 10m
-              memory: 32Mi
           command:
             - sh
             - -c
@@ -494,11 +418,6 @@ spec:
         - name: postgres
           image: "quay.io/sclorg/postgresql-16-c9s:20260923"
           imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
           ports:
             - name: postgres
               containerPort: 5432
@@ -518,13 +437,6 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:
-            # sclorg writes passwd and generated config under HOME at startup.
-            - name: db-home
-              mountPath: /var/lib/pgsql
-            - name: db-tmp
-              mountPath: /tmp
-            - name: db-run
-              mountPath: /var/run/postgresql
             - name: data
               mountPath: /var/lib/pgsql/data
             - name: db-tls
@@ -533,20 +445,7 @@ spec:
             - name: db-ssl-config
               mountPath: /opt/app-root/src/postgresql-cfg
               readOnly: true
-          resources:
-            limits:
-              cpu: 1
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 256Mi
       volumes:
-        - name: db-home
-          emptyDir: {}
-        - name: db-tmp
-          emptyDir: {}
-        - name: db-run
-          emptyDir: {}
         - name: data
           persistentVolumeClaim:
             claimName: grid-enrollment-db
@@ -571,7 +470,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -597,13 +496,6 @@ spec:
         # The service applies its schema on first connect, so it only needs the
         # DB reachable. External DBs are assumed already up.
         - name: wait-for-db
-          resources:
-            limits:
-              cpu: 200m
-              memory: 128Mi
-            requests:
-              cpu: 10m
-              memory: 32Mi
           image: "quay.io/sclorg/postgresql-16-c9s:20260923"
           imagePullPolicy: IfNotPresent
           securityContext:
@@ -618,7 +510,7 @@ spec:
             - "until pg_isready -h grid-enrollment-db -p 5432; do echo 'waiting for db'; sleep 2; done"
       containers:
         - name: enrollment
-          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.3.0-rc.3"
+          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.3.0-rc.4"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -691,13 +583,6 @@ spec:
             - name: grid-ca-bundle
               mountPath: /etc/grid-ca-bundle
               readOnly: true
-          resources:
-            limits:
-              cpu: 1
-              memory: 512Mi
-            requests:
-              cpu: 100m
-              memory: 256Mi
       volumes:
         # Signing key + cert. This is the only pod that mounts grid-ca-key.
         - name: grid-ca
@@ -843,7 +728,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   failurePolicy: Fail
@@ -871,7 +756,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   failurePolicy: Fail
@@ -879,13 +764,13 @@ spec:
     resourceRules:
       - apiGroups: ["certificates.k8s.io"]
         apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
         resources: ["certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status"]
   matchConditions:
     - name: grid-enrollment-service
       expression: "request.userInfo.username == \"system:serviceaccount:default:grid-enrollment\""
   validations:
-    - expression: "object.spec.signerName == \"grid.praxis.fast/site\""
+    - expression: "(object != null ? object : oldObject).spec.signerName == \"grid.praxis.fast/site\""
       message: "the grid enrollment service may only touch requests under its own signer name"
       reason: Forbidden
 
@@ -899,7 +784,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   policyName: grid-enrollment-default-csr-record
@@ -915,7 +800,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   policyName: grid-enrollment-default-csr-record-confine
@@ -931,7 +816,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -950,7 +835,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -997,7 +882,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -1024,7 +909,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: ca-bootstrap
   annotations:
@@ -1051,7 +936,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.3.0-rc.3"
+          image: "ghcr.io/praxis-proxy/grid-enrollment:v0.3.0-rc.4"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -1094,13 +979,6 @@ spec:
             - "grid-enrollment-db.default.svc"
             - "--db-deployment"
             - "grid-enrollment-db"
-          resources:
-            limits:
-              cpu: 500m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
 
 
 ---
@@ -1113,7 +991,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -1149,7 +1027,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -1185,7 +1063,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -1205,7 +1083,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.3"
+    app.kubernetes.io/version: "v0.3.0-rc.4"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
