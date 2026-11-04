@@ -1,15 +1,11 @@
-profile: ai-grid
+profile: ai-grid-ingress
 praxis-gateway:
   grid:
     networkName: grid-network
     siteName: hub
   overlay:
-    configMapName: grid-routing
     sidecar:
       enabled: true
-  praxisConfig:
-    byo:
-      configMapName: grid-gateway-config
 grid-enrollment:
   route:
     enabled: false

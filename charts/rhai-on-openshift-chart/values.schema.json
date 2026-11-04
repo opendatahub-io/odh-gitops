@@ -21,13 +21,25 @@
       "default": false,
       "description": "Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD or when running helm multiple times."
     },
+    "argocd": {
+      "type": "object",
+      "description": "Argo CD installation configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Argo CD-specific resources, including partial server-side-apply patches"
+        }
+      },
+      "additionalProperties": false
+    },
     "grid-enrollment": {
       "type": "object",
       "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/grid-enrollment for its values.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": true
+          "description": "Unset uses the profile default, then true. False uses an externally managed service."
         }
       }
     },
@@ -37,15 +49,25 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": true
+          "description": "Unset uses the profile default, then true. False uses an externally managed service."
+        }
+      }
+    },
+    "praxis-provider-gateway": {
+      "type": "object",
+      "description": "AI Grid provider runtime for inference sites, rendered only when a profile enables it. See charts/praxis-gateway for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Unset uses the profile default, then false. Inference profiles enable it."
         }
       }
     },
     "profile": {
       "type": "string",
-      "enum": ["default", "maas", "ai-grid", "rhaii"],
+      "minLength": 1,
       "default": "default",
-      "description": "Deploy profile that sets default component managementStates. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid' enables AIGateway with only the aiGrid sub-component. 'rhaii' enables only KServe for inference/model serving. Explicit managementState values override the profile."
+      "description": "Deploy profile matching a bundled profiles/<name>.yaml file. Profile values can provide defaults for any chart or vendored-subchart value, and profile files can inherit bundled profiles with extends. Explicit non-null user values override the profile chain. 'default' keeps all components Removed. 'maas' enables AIGateway with modelsAsAService + KServe for MaaS deployments. 'ai-grid-ingress' enables MaaS and the Grid consumer gateway. 'ai-grid-inference' enables KServe and the Grid provider gateway. 'ai-grid-combined' enables MaaS, KServe, and both Grid gateways. 'rhaii' enables only KServe."
     },
     "olm": {
       "type": "object",
@@ -523,6 +545,39 @@
             "argoWorkflowsControllers": {
               "type": "object",
               "description": "Argo Workflows Controllers configuration",
+              "properties": {
+                "managementState": {
+                  "$ref": "#/definitions/defaultManagementState"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaults": {
+          "$ref": "#/definitions/operatorTypeDefaults"
+        }
+      },
+      "required": ["dsc"],
+      "additionalProperties": false
+    },
+    "dashboardComponent": {
+      "type": "object",
+      "description": "Dashboard component configuration",
+      "properties": {
+        "dependencies": {
+          "$ref": "#/definitions/componentDeps"
+        },
+        "dsc": {
+          "type": "object",
+          "description": "DSC configuration for Dashboard",
+          "properties": {
+            "managementState": {
+              "$ref": "#/definitions/defaultManagementState"
+            },
+            "maasPortal": {
+              "type": "object",
+              "description": "MaaS Consumer Portal sub-component",
               "properties": {
                 "managementState": {
                   "$ref": "#/definitions/defaultManagementState"
@@ -1034,6 +1089,33 @@
               "default": false,
               "description": "Enable Authorino TLS configuration"
             },
+            "authorinoServiceCaTrust": {
+              "type": "boolean",
+              "default": false,
+              "description": "Trust the OpenShift Service CA in Authorino while retaining platform CA trust"
+            },
+            "authorinoTrustedCA": {
+              "type": "object",
+              "description": "Mount additional CA ConfigMaps into Authorino",
+              "properties": {
+                "volumeName": {
+                  "type": "string",
+                  "description": "Name of the projected volume that mounts the CA ConfigMaps"
+                },
+                "mountPath": {
+                  "type": "string",
+                  "description": "Directory where the CA ConfigMaps are mounted"
+                },
+                "configMaps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "CA ConfigMaps mounted into Authorino"
+                }
+              },
+              "additionalProperties": false
+            },
             "spec": {
               "type": "object",
               "description": "Kuadrant CR spec fields - user can add any fields",
@@ -1128,9 +1210,40 @@
           },
           "required": ["enabled", "name", "host", "gatewayParametersName", "servingCertSecretName"],
           "additionalProperties": false
+        },
+        "gridModelClient": {
+          "$ref": "#/definitions/gridModelClientConfig"
         }
       },
       "required": ["create", "name", "namespace", "spec"],
+      "additionalProperties": false
+    },
+    "gridModelClientConfig": {
+      "type": "object",
+      "description": "Grid model-client identity used by the KServe model controller",
+      "properties": {
+        "create": {
+          "$ref": "#/definitions/triStateEnabled",
+          "default": "auto",
+          "description": "Create the Grid model-client identity: auto (when KServe and AI Grid are Managed), true (always), false (never)"
+        },
+        "namespace": {
+          "type": "string",
+          "default": "redhat-ai-grid",
+          "description": "Namespace that owns the Grid model-client identity"
+        },
+        "serviceAccountName": {
+          "type": "string",
+          "default": "grid-model-client",
+          "description": "ServiceAccount used by the KServe model controller"
+        },
+        "tokenSecretName": {
+          "type": "string",
+          "default": "grid-model-client-token",
+          "description": "Secret that stores the ServiceAccount token"
+        }
+      },
+      "required": ["create", "namespace", "serviceAccountName", "tokenSecretName"],
       "additionalProperties": false
     },
     "gatewayClassConfig": {

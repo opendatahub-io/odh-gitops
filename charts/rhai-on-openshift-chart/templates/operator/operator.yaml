@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- /*
 ODH/RHOAI Operator Installation
 Installs either Open Data Hub or Red Hat OpenShift AI operator via OLM

@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $dep := .Values.dependencies.nfd -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "nfd" "dependency" $dep "root" $) -}}
 {{- if eq $shouldInstall "true" }}

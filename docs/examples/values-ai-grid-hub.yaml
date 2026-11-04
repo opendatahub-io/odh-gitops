@@ -1,7 +1,7 @@
 # Requires an operator payload containing opendatahub-operator PR 4186 and
 # ai-gateway-operator PR 195. Install the Grid operator/CRDs through the DSC;
 # Helm owns only the gateway and enrollment workloads below.
-profile: ai-grid
+profile: ai-grid-ingress
 praxis-gateway:
   praxisConfig:
     byo:
