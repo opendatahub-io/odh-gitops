@@ -12,9 +12,6 @@ keywords:
   - rhaii
   - rhai
 dependencies:
-  - name: grid-enrollment
-    version: "0.3.0-rc.4"
-    condition: grid-enrollment.enabled
   - name: praxis-gateway
     version: "0.3.0-rc.4"
     condition: praxis-gateway.enabled

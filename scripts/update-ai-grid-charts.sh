@@ -13,7 +13,7 @@ set -euo pipefail
 REF="${1:?usage: $0 <git-ref>}"
 GRID_REPO="${GRID_REPO:-https://github.com/praxis-proxy/grid.git}"
 YQ="${YQ:-yq}"
-CHARTS=(grid-enrollment praxis-gateway)
+CHARTS=(praxis-gateway)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PARENT="$ROOT/charts/rhai-on-openshift-chart"
