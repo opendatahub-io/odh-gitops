@@ -9,7 +9,7 @@ same lifecycle: bootstrap, enroll, and decommission.
 ## Bootstrap
 
 A management-only hub can host bootstrap and enrollment policies without local
-Grid workloads. The hub policy targets `managedClusters.hubClusterName`;
+Grid workloads. The hub policy targets the cluster labelled `local-cluster=true`, or `managedClusters.hubClusterName` when set;
 grid membership uses the separate member-label selector. Leave that label off
 the hub to enroll only spokes. If the hub also hosts Grid workloads, select it
 as a member and it receives the same identity and GridNetwork as any other
@@ -225,7 +225,6 @@ managedClusters:
   clusterSet: default
   clusterLabel: grid.praxis.fast/member
   clusterLabelValue: 'true'
-  hubClusterName: local-cluster
 external:
   delivery:
     namespace: grid-system
@@ -253,7 +252,10 @@ Each member owns its local GridSite, including its public gateway and signals
 endpoints. An observer watches changes and returns only selected public spec
 fields. The hub distributes remote records to the other selected members and
 supplies `grid-operator-config` with their site name. It never copies a record
-back to its source or replicates health/status. The Local operator then polls
+back to its source or replicates health/status. A member with no gateway, such as
+a consumer-only site, is still distributed with `gatewayEndpoint: null`: peers
+admit it as a caller and never dial it, and poll it only if it declares a
+signals endpoint. The Local operator then polls
 the peer's provider catalog and signals; no InferenceProvider copies or SWIM
 key distribution are needed.
 

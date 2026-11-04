@@ -104,15 +104,10 @@ Container image reference.
 Defaults the tag to the chart appVersion when no digest or tag is set.
 */}}
 {{- define "praxis-gateway.image" -}}
-{{- $image := include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE") -}}
-{{- if $image -}}
-{{- $image -}}
-{{- else -}}
 {{- if .Values.image.digest }}
 {{- printf "%s@%s" .Values.image.repository .Values.image.digest }}
 {{- else }}
 {{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
-{{- end }}
 {{- end }}
 {{- end }}
 
@@ -121,12 +116,7 @@ Overlay-sync image reference.
 Defaults the tag to the chart appVersion when empty.
 */}}
 {{- define "praxis-gateway.overlaySyncImage" -}}
-{{- $image := include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE") -}}
-{{- if $image -}}
-{{- $image -}}
-{{- else -}}
 {{- printf "%s:%s" .Values.overlay.sidecar.image.repository (default .Chart.AppVersion .Values.overlay.sidecar.image.tag) }}
-{{- end }}
 {{- end }}
 
 {{/*
@@ -169,11 +159,6 @@ Validate praxisConfig: the source, and that each source gets only the settings i
 {{- $validateCA := $auth.validateCA | default dict }}
 {{- $gridServing := $render.gridServing | default dict }}
 {{- $telemetry := $render.telemetry | default dict }}
-{{- with $telemetry.otlpEndpoint }}
-{{- if not (hasPrefix "https://" .) }}
-{{- fail "praxisConfig.render.telemetry.otlpEndpoint must use https://; plaintext telemetry can expose credentials" }}
-{{- end }}
-{{- end }}
 {{- if $telemetry.enabled }}
 {{- if ne .Values.image.flavor "grid-gateway" }}
 {{- fail "praxisConfig.render.telemetry.enabled needs image.flavor grid-gateway, whose Grid gateway build includes the OTLP and AI routing span features" }}
@@ -349,8 +334,7 @@ runAsGroup does not provide one. Emits "true" or nothing.
 {{- define "praxis-gateway.applyImageUser" -}}
 {{- $psc := .Values.podSecurityContext | default dict -}}
 {{- $e := toString (.Values.imageUser | default dict).enabled -}}
-{{- $override := include "praxis-gateway.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE") -}}
-{{- $auto := and (eq $e "auto") (not $override) (include "praxis-gateway.officialImageUser" .) (not (include "praxis-gateway.openshift" .)) -}}
+{{- $auto := and (eq $e "auto") (include "praxis-gateway.officialImageUser" .) (not (include "praxis-gateway.openshift" .)) -}}
 {{- if and (not (hasKey $psc "runAsUser")) (or (eq $e "true") $auto) -}}
 true
 {{- end -}}
@@ -847,11 +831,9 @@ chart's own {fullname}-config for render and inline.
 {{- end -}}
 {{- end }}
 
-{{/* Full image references injected by downstream payloads; shared with sibling charts. */}}
-{{- define "praxis-gateway.relatedImage" -}}
-{{- range (.root.Values.global | default dict).relatedImages -}}
-{{- if eq .name $.name -}}
-{{- required (printf "%s requires a nonempty value" $.name) .value -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
+{{/*
+"true" when more than one replica runs.
+*/}}
+{{- define "praxis-gateway.ha" -}}
+{{- if gt (int .Values.replicaCount) 1 }}true{{ end }}
+{{- end }}

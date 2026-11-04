@@ -91,7 +91,7 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           {{- /* First, and the only filter that picks an upstream: the gateway refuses to start otherwise. */}}
           - filter: grid_provider
             allowed_paths:
-              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings")) }}
+              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings" "/v1/messages" "/v1/responses")) }}
               - {{ . | quote }}
               {{- end }}
           {{- with ($cfg.peerTrust).rateLimit }}
@@ -135,7 +135,7 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           # Exact paths: a traversal or a longer path never matches, so it gets a 404.
           - filter: router
             routes:
-              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings")) }}
+              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings" "/v1/messages" "/v1/responses")) }}
               - path: {{ . | quote }}
                 cluster: {{ (first $cfg.backends).cluster | quote }}
               {{- end }}
@@ -170,6 +170,13 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
               {{- else }} []
               {{- end }}
             {{- with ($.Values.praxisConfig.render.gridServing).siteRoute }}
+            {{- with .sovereignty }}
+            {{- if .header }}
+            sovereignty:
+              header: {{ .header | quote }}
+              mode: {{ .mode | default "enforce" }}
+            {{- end }}
+            {{- end }}
             {{- with .availability }}
             availability:
               {{- toYaml . | nindent 14 }}

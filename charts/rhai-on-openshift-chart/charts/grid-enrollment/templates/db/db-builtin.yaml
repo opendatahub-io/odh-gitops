@@ -102,13 +102,6 @@ spec:
         - name: db-tls-perms
           image: {{ include "grid-enrollment.dbImage" . | quote }}
           imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          resources:
-            {{- toYaml .Values.initResources | nindent 12 }}
           command:
             - sh
             - -c
@@ -124,11 +117,6 @@ spec:
         - name: postgres
           image: {{ include "grid-enrollment.dbImage" . | quote }}
           imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
           ports:
             - name: postgres
               containerPort: 5432
@@ -148,13 +136,6 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:
-            # sclorg writes passwd and generated config under HOME at startup.
-            - name: db-home
-              mountPath: /var/lib/pgsql
-            - name: db-tmp
-              mountPath: /tmp
-            - name: db-run
-              mountPath: /var/run/postgresql
             - name: data
               mountPath: /var/lib/pgsql/data
             {{- if $tls }}
@@ -170,12 +151,6 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
-        - name: db-home
-          emptyDir: {}
-        - name: db-tmp
-          emptyDir: {}
-        - name: db-run
-          emptyDir: {}
         - name: data
           persistentVolumeClaim:
             claimName: {{ $dbName }}

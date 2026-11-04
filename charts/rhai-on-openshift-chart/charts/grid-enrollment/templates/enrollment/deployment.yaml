@@ -32,8 +32,6 @@ spec:
         # The service applies its schema on first connect, so it only needs the
         # DB reachable. External DBs are assumed already up.
         - name: wait-for-db
-          resources:
-            {{- toYaml .Values.initResources | nindent 12 }}
           image: {{ include "grid-enrollment.dbImage" . | quote }}
           imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
           securityContext:

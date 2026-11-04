@@ -14,9 +14,6 @@
 {{- if eq .Values.praxisConfig.source "operator" }}
 {{- fail "route is not supported with praxisConfig.source operator: the operator's praxis.yaml listens on plaintext HTTP, and a Route here passes TLS through or re-encrypts to it. Expose the Service through an ingress that terminates TLS" }}
 {{- end }}
-{{- if and (eq .Values.praxisConfig.source "byo") (not (or .Values.route.externalTls .Values.listenerTls.secretName)) }}
-{{- fail "route needs TLS at the gateway: inline/external config requires route.externalTls=true and a TLS listener on the Service port" }}
-{{- end }}
 {{- if eq .Values.praxisConfig.source "render" }}
 {{- $provider := eq (.Values.praxisConfig.render.role | default "consumer") "provider" }}
 {{- if not (or $provider .Values.listenerTls.secretName) }}

@@ -358,7 +358,7 @@
               "minimum": 0
             },
             "resources": {
-              "$ref": "#/definitions/resourceBudget"
+              "type": "object"
             },
             "policy": {
               "description": "ValidatingAdmissionPolicy confining the bootstrap to the Secret names this chart renders.",
@@ -371,10 +371,7 @@
               "additionalProperties": false
             }
           },
-          "additionalProperties": false,
-          "required": [
-            "resources"
-          ]
+          "additionalProperties": false
         }
       },
       "required": [
@@ -599,7 +596,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "$ref": "#/definitions/resourceBudget"
+          "type": "object"
         },
         "podSecurityContext": {
           "type": "object"
@@ -649,10 +646,7 @@
           }
         }
       },
-      "additionalProperties": false,
-      "required": [
-        "resources"
-      ]
+      "additionalProperties": false
     },
     "db": {
       "type": "object",
@@ -688,7 +682,7 @@
               }
             },
             "resources": {
-              "$ref": "#/definitions/resourceBudget"
+              "type": "object"
             },
             "auth": {
               "type": "object",
@@ -717,10 +711,7 @@
               "additionalProperties": false
             }
           },
-          "additionalProperties": false,
-          "required": [
-            "resources"
-          ]
+          "additionalProperties": false
         },
         "external": {
           "type": "object",
@@ -1015,36 +1006,14 @@
         },
         "hubClusterName": {
           "type": "string",
-          "minLength": 1,
           "maxLength": 63,
-          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$"
         },
         "identitySecretPrefix": {
           "type": "string",
           "minLength": 1,
           "maxLength": 30,
           "pattern": "^[a-z0-9][a-z0-9-]*-$"
-        }
-      }
-    },
-    "initResources": {
-      "$ref": "#/definitions/resourceBudget"
-    },
-    "networkPolicy": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "from": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "routerNamespaceSelector": {
-          "type": "object"
         }
       }
     }
@@ -1054,61 +1023,7 @@
     "ca",
     "serving",
     "enrollment",
-    "db",
-    "initResources"
+    "db"
   ],
-  "additionalProperties": false,
-  "definitions": {
-    "resourceBudget": {
-      "type": "object",
-      "required": [
-        "requests",
-        "limits"
-      ],
-      "properties": {
-        "requests": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        },
-        "limits": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
+  "additionalProperties": false
 }

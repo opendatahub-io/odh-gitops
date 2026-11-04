@@ -18,9 +18,10 @@ creators and accidents; a principal that can act as the service account, by
 impersonation, a minted token or exec into the pod, is the service.
 
 The second confines the service account to its own signer name on every write
-it can make, so a compromised service cannot file, approve or complete
+it can make, so a compromised service cannot file, approve, complete or delete
 requests under any other signer. spec is immutable, so on an update
-object.spec is the stored value.
+object.spec is the stored value; on a delete, object is null and the signer
+is read from oldObject.
 */}}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
@@ -66,13 +67,13 @@ spec:
     resourceRules:
       - apiGroups: ["certificates.k8s.io"]
         apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
         resources: ["certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status"]
   matchConditions:
     - name: grid-enrollment-service
       expression: {{ printf "request.userInfo.username == %q" $sa | quote }}
   validations:
-    - expression: {{ printf "object.spec.signerName == %q" $signer | quote }}
+    - expression: {{ printf "(object != null ? object : oldObject).spec.signerName == %q" $signer | quote }}
       message: "the grid enrollment service may only touch requests under its own signer name"
       reason: Forbidden
 ---

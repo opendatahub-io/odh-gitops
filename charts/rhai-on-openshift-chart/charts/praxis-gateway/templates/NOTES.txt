@@ -20,6 +20,9 @@ Send a request through the gateway:
   kubectl -n {{ .Release.Namespace }} port-forward service/{{ $fullname }} 8080:{{ .Values.service.port }}
   curl {{ if eq $scheme "https" }}-k {{ end }}{{ $scheme }}://127.0.0.1:8080/
 
+Run the chart's connectivity test:
+
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
 {{- end }}
 {{- if eq $configSource "operator" }}
 
