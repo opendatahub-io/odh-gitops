@@ -1098,6 +1098,10 @@
               "type": "object",
               "description": "Mount additional CA ConfigMaps into Authorino",
               "properties": {
+                "volumeName": {
+                  "type": "string",
+                  "description": "Name of the projected volume that mounts the CA ConfigMaps"
+                },
                 "mountPath": {
                   "type": "string",
                   "description": "Directory where the CA ConfigMaps are mounted"

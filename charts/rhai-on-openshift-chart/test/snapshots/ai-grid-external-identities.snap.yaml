@@ -365,11 +365,11 @@ spec:
             - name: SSL_CERT_DIR
               value: /etc/pki/tls/certs:/etc/ssl/certs
           volumeMounts:
-            - name: authorino-trusted-ca
+            - name: trusted-ca-bundle
               mountPath: /etc/pki/tls/certs
               readOnly: true
       volumes:
-        - name: authorino-trusted-ca
+        - name: trusted-ca-bundle
           projected:
             sources:
               - configMap:

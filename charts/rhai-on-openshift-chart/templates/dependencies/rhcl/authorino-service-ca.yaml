@@ -25,13 +25,13 @@ spec:
               value: {{ with $dep.config.authorinoTrustedCA }}{{ printf "%s:/etc/ssl/certs" .mountPath }}{{ else }}/etc/ssl/certs{{ end }}
           {{- with $dep.config.authorinoTrustedCA }}
           volumeMounts:
-            - name: authorino-trusted-ca
+            - name: {{ .volumeName | default "authorino-trusted-ca" }}
               mountPath: {{ .mountPath }}
               readOnly: true
           {{- end }}
       {{- with $dep.config.authorinoTrustedCA }}
       volumes:
-        - name: authorino-trusted-ca
+        - name: {{ .volumeName | default "authorino-trusted-ca" }}
           projected:
             sources:
               {{- range .configMaps }}

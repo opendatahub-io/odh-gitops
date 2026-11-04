@@ -22,6 +22,7 @@ dependencies:
     config:
       authorinoServiceCaTrust: true
       authorinoTrustedCA:
+        volumeName: trusted-ca-bundle
         mountPath: /etc/pki/tls/certs
         configMaps:
           - odh-trusted-ca-bundle
