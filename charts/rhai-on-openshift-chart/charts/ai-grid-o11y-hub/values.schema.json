@@ -214,8 +214,19 @@
         },
         "endpoint": {
           "type": "string",
-          "pattern": "^(https://.*)?$",
-          "description": "HTTPS ingest endpoint with a hostname and the exact /api/logs/v1/infrastructure/otlp path, without a query or fragment. Empty is allowed for deliverConfiguration: false."
+          "pattern": "^(https://.*|\\{\\{hub .*hub\\}\\}.*|)$",
+          "description": "HTTPS ingest endpoint with a hostname and the exact /api/logs/v1/infrastructure/otlp path, without a query or fragment. May instead be an ACM hub template, resolved on the hub at delivery time, which is how a GitOps consumer avoids committing a cluster's Route host; a lookup in that template also needs hubTemplateOptions.serviceAccountName. Empty is allowed for deliverConfiguration: false."
+        },
+        "hubTemplateOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "spec.hubTemplateOptions on the Policy. Names the ServiceAccount ACM resolves this policy's hub templates as, which is required when a template reads beyond the policy's own namespace and the target ManagedCluster. ACM 2.12 and later.",
+          "properties": {
+            "serviceAccountName": {
+              "type": "string",
+              "description": "ServiceAccount in the policy's namespace. Applies to every template in the policy, so it needs get on the credential Secret as well as on whatever the lookup reads, plus list and watch on both kinds."
+            }
+          }
         },
         "credentialSecretName": {
           "type": "string",

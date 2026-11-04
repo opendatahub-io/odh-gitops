@@ -470,6 +470,61 @@ charts:
         expectFail: true
         expectMessage: "without a query or fragment"
 
+      # An ACM hub template, which is how a GitOps consumer supplies the endpoint
+      # without committing a cluster's Route host. Not parsed at render time, so
+      # the structural checks are skipped and only the tenant and the /v1/logs
+      # suffix are still enforced on the template text.
+      - name: ai-grid-o11y-hub-spoke-policy-hub-template-endpoint
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=usage-logs-endpoint-templating
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp\" (index (lookup \"route.openshift.io/v1\" \"Route\" \"ai-grid-o11y\" \"usage-logs\").status.ingress 0).host hub}}"'
+
+      # A lookup reads beyond the policy's own namespace, which ACM refuses unless
+      # the policy names a ServiceAccount to resolve templates as. Caught at render
+      # time rather than surfacing later as a NonCompliant policy.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-template-lookup-without-sa
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp\" (index (lookup \"route.openshift.io/v1\" \"Route\" \"ai-grid-o11y\" \"usage-logs\").status.ingress 0).host hub}}"'
+        expectFail: true
+        expectMessage: "hubTemplateOptions.serviceAccountName"
+
+      # The exporter appends /v1/logs, and a template can smuggle it in anywhere
+      # rather than only as a suffix.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-template-v1-logs
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp/v1/logs\" .X hub}}"'
+        expectFail: true
+        expectMessage: "must not contain /v1/logs"
+
+      # A template carrying https:// in one branch and http:// in another satisfies
+      # the https:// requirement and still resolves to plaintext. The text cannot
+      # prove what a template produces, but a literal http:// in it is never right.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-template-plaintext-branch
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub if .X hub}}https://hub.example.test/api/logs/v1/infrastructure/otlp{{hub else hub}}http://hub.example.test/api/logs/v1/infrastructure/otlp{{hub end hub}}"'
+        expectFail: true
+        expectMessage: "must not contain a literal http://"
+
       - name: ai-grid-o11y-spoke-acm
         valuesFiles:
           - docs/examples/values-ai-grid-o11y-spoke-acm.yaml
