@@ -30,6 +30,14 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- if include "praxis-gateway.ha" . }}
+  {{- /* Every replica serves, so a surge pod is ready before an old one drains. */}}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  {{- end }}
   selector:
     matchLabels:
       {{- include "praxis-gateway.selectorLabels" . | nindent 6 }}
@@ -491,6 +499,17 @@ spec:
       {{- with .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
+      {{- else }}
+      {{- if include "praxis-gateway.ha" . }}
+      {{- /* Preferred, so a single node still schedules every replica. */}}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "praxis-gateway.selectorLabels" . | nindent 14 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . | quote }}

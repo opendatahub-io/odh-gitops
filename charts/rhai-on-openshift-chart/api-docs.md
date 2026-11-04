@@ -10,9 +10,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |------------|------|---------|
 |  | ai-grid-o11y-hub | 0.1.0 |
 |  | ai-grid-o11y-spoke | 0.1.0 |
-|  | grid-enrollment | 0.3.0-rc.3 |
-|  | praxis-gateway | 0.3.0-rc.3 |
-|  | praxis-provider-gateway(praxis-gateway) | 0.3.0-rc.3 |
+|  | grid-enrollment | 0.3.0-rc.4 |
+|  | praxis-gateway | 0.3.0-rc.4 |
+|  | praxis-provider-gateway(praxis-gateway) | 0.3.0-rc.4 |
 
 ## Values
 

@@ -1,5 +1,8 @@
-# -- Number of gateway replicas.
+# -- Number of gateway replicas. Above 1 the Deployment rolls one surge pod at a time with
+# none unavailable, prefers a spread across nodes, and gets a PodDisruptionBudget with
+# minAvailable 1. At 1 the render is unchanged.
 replicaCount: 1
+
 
 # -- Gateway container image settings.
 image:
@@ -240,6 +243,8 @@ praxisConfig:
         - /v1/completions
         - /v1/models
         - /v1/embeddings
+        - /v1/messages
+        - /v1/responses
     # -- Model advertised on the routing candidates. A consumer without
     # praxisConfig.render.gridServing needs it.
     model: ""
@@ -346,6 +351,14 @@ praxisConfig:
       # -- Tuning for the grid_site_route filter block: availability and prefixAffinity, keys as
       # the filter reads them. Fields and defaults in examples/gateway/grid-site-route.yaml.
       siteRoute:
+        # -- Sovereignty fence. `header` names the zones a request may be served in, one
+        # zone or a comma-separated list; empty is no fence. Only sites whose GridSite
+        # sovereigntyZone is listed serve it. `mode` enforce refuses the rest; audit
+        # routes as if unfenced and logs and counts what it would refuse. Whatever sets
+        # the header must replace, never append to, a caller's copy.
+        sovereignty:
+          header: ""
+          mode: enforce
         # -- Site availability. Every field defaults; `shedding` is the one switch.
         availability: {}
         # -- Prefix affinity. Cache limits: capacity (16384 entries per backend cluster),
@@ -508,7 +521,7 @@ overlay:
       repository: ghcr.io/praxis-proxy/grid-overlay-sync
       # -- Image tag. Empty uses the chart appVersion, which is the praxis version,
       # not a grid-overlay-sync tag, so keep this set.
-      tag: "v0.3.0-rc.3"
+      tag: "v0.3.0-rc.4"
       # -- Image pull policy.
       pullPolicy: IfNotPresent
     # -- ConfigMap data key containing the overlay envelope.
@@ -594,7 +607,7 @@ nodeSelector: {}
 affinity: {}
 # -- Pod tolerations.
 tolerations: []
-# -- Topology spread constraints.
+# -- Topology spread constraints. Listing any replaces the default spread above one replica.
 topologySpreadConstraints: []
 # -- Priority class for the gateway pod.
 priorityClassName: ""

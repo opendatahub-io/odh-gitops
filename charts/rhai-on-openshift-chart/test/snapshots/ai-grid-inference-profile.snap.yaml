@@ -218,6 +218,8 @@ data:
               - "/v1/completions"
               - "/v1/models"
               - "/v1/embeddings"
+              - "/v1/messages"
+              - "/v1/responses"
           - filter: headers
             response_set:
               - name: X-Grid-Provider-Site
@@ -274,7 +276,7 @@ spec:
         app.kubernetes.io/instance: release-test
         app.kubernetes.io/name: praxis-provider-gateway
       annotations:
-        checksum/config: b2fddc91f84c5bcacead20b19255fd945efa2830b7968f71a273d757645cb0c5
+        checksum/config: 313f42c7d1e01b162035dfcd4bfd0fe227e430e8889ee239bd1f800375442a7e
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false

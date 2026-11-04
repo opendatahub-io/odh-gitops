@@ -1,6 +1,6 @@
 # grid-enrollment
 
-![Version: 0.3.0-rc.3](https://img.shields.io/badge/Version-0.3.0--rc.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.3.0-rc.3](https://img.shields.io/badge/AppVersion-v0.3.0--rc.3-informational?style=flat-square)
+![Version: 0.3.0-rc.4](https://img.shields.io/badge/Version-0.3.0--rc.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.3.0-rc.4](https://img.shields.io/badge/AppVersion-v0.3.0--rc.4-informational?style=flat-square)
 
 Grid enrollment service with self-provisioned Grid CA and Postgres
 
@@ -64,10 +64,10 @@ Kubernetes: `>=1.26.0-0`
 | log | object | `{"filter":"","level":"info"}` | Logging, rendered as RUST_LOG. |
 | log.filter | string | `""` | Full RUST_LOG directive, such as "info,enrollment=debug". When set, it replaces level. |
 | log.level | string | `"info"` | Level for every module: error, warn, info, debug, or trace. |
-| managedClusters | object | `{"clusterLabel":"grid.praxis.fast/member","clusterLabelValue":"true","clusterSet":"default","createClusterSetBinding":true,"enabled":false,"gatewayName":"grid-gateway","hubClusterName":"local-cluster","identitySecretPrefix":"grid-site-","networkName":"grid","workName":"grid-site-observer"}` | Bootstrap managed-cluster discovery, GridSite watches and peer distribution. Requires managed-cluster APIs and external mode. |
+| managedClusters | object | `{"clusterLabel":"grid.praxis.fast/member","clusterLabelValue":"true","clusterSet":"default","createClusterSetBinding":true,"enabled":false,"gatewayName":"grid-gateway","hubClusterName":"","identitySecretPrefix":"grid-site-","networkName":"grid","workName":"grid-site-observer"}` | Bootstrap managed-cluster discovery, GridSite watches and peer distribution. Requires managed-cluster APIs and external mode. |
 | managedClusters.createClusterSetBinding | bool | `true` | Bootstrap creates one shared binding unless another release owns it. |
 | managedClusters.gatewayName | string | `"grid-gateway"` | Per-cluster gateway referenced by the enrolled GridNetwork; empty omits it. |
-| managedClusters.hubClusterName | string | `"local-cluster"` | The hub must be registered with the policy add-on so it can reconcile dynamically generated Certificates, observers and their RBAC. |
+| managedClusters.hubClusterName | string | `""` | The hub must be registered with the policy add-on so it can reconcile dynamically generated Certificates, observers and their RBAC. Empty selects it by the hub's local-cluster=true label, which follows a renamed hub. A name selects that ManagedCluster instead. |
 | mode | string | `"service"` | Identity lifecycle backend: service runs the enrollment API and bootstrap; external consumes identity Secrets supplied by another issuer or PKI. |
 | nameOverride | string | `""` |  |
 | networkPolicy | object | `{"enabled":true,"from":[],"routerNamespaceSelector":{"matchLabels":{"network.openshift.io/policy-group":"ingress"}}}` | Restrict enrollment and database ingress. Add explicit clients for direct access. |
