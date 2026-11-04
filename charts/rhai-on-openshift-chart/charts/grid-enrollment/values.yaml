@@ -135,13 +135,7 @@ ca:
     keySecretRef: ""
   bootstrap:
     # The `enrollment bootstrap` subcommand runs as the pre-install Job.
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 256Mi
+    resources: {}
     # Seconds a finished bootstrap Job is kept for its logs. Null keeps it until the next hook.
     ttlSecondsAfterFinished: 86400
     policy:
@@ -304,13 +298,7 @@ enrollment:
     loadBalancerSourceRanges: []
     # Service annotations, merged over the platform's.
     annotations: {}
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 1
-      memory: 512Mi
+  resources: {}
   podSecurityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -339,13 +327,7 @@ db:
     # The PVC holds every site record. A GitOps install annotates it so its tool never prunes
     # or deletes it, e.g. argocd.argoproj.io/sync-options: Prune=false,Delete=false.
     pvcAnnotations: {}
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 1
-        memory: 1Gi
+    resources: {}
     auth:
       database: enrollment
       username: enrollment
@@ -428,18 +410,3 @@ hubSite:
   # rotate. Bootstrap signs it with the CA key and the service applies only what verifies.
   # A Secret, so replaying an old seed needs the Secret access that already reads the CA key.
   seedSecretName: grid-reserved-seeds
-
-# -- Resource budget for database readiness and TLS permission init containers.
-initResources:
-  requests: {cpu: 10m, memory: 32Mi}
-  limits: {cpu: 200m, memory: 128Mi}
-
-# -- Restrict enrollment and database ingress. Add explicit clients for direct access.
-networkPolicy:
-  enabled: true
-  # -- Additional NetworkPolicyPeer entries for the enrollment HTTPS listener.
-  from: []
-  # -- Router namespaces allowed when the enrollment Route is enabled.
-  routerNamespaceSelector:
-    matchLabels:
-      network.openshift.io/policy-group: ingress

@@ -358,7 +358,7 @@
               "minimum": 0
             },
             "resources": {
-              "$ref": "#/definitions/resourceBudget"
+              "type": "object"
             },
             "policy": {
               "description": "ValidatingAdmissionPolicy confining the bootstrap to the Secret names this chart renders.",
@@ -371,10 +371,7 @@
               "additionalProperties": false
             }
           },
-          "additionalProperties": false,
-          "required": [
-            "resources"
-          ]
+          "additionalProperties": false
         }
       },
       "required": [
@@ -599,7 +596,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "$ref": "#/definitions/resourceBudget"
+          "type": "object"
         },
         "podSecurityContext": {
           "type": "object"
@@ -649,10 +646,7 @@
           }
         }
       },
-      "additionalProperties": false,
-      "required": [
-        "resources"
-      ]
+      "additionalProperties": false
     },
     "db": {
       "type": "object",
@@ -688,7 +682,7 @@
               }
             },
             "resources": {
-              "$ref": "#/definitions/resourceBudget"
+              "type": "object"
             },
             "auth": {
               "type": "object",
@@ -717,10 +711,7 @@
               "additionalProperties": false
             }
           },
-          "additionalProperties": false,
-          "required": [
-            "resources"
-          ]
+          "additionalProperties": false
         },
         "external": {
           "type": "object",
@@ -847,20 +838,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "membership": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "source": {
-              "type": "string",
-              "enum": [
-                "Swim",
-                "Local"
-              ],
-              "description": "Where sites learn their members, Swim or Local. Local creates and delivers no SWIM key."
-            }
-          }
-        }
+        "membership": { "type": "object", "additionalProperties": false, "properties": { "source": { "type": "string", "enum": ["Swim", "Local"], "description": "Where sites learn their members, Swim or Local. Local creates and delivers no SWIM key." } } }
       }
     },
     "hubSite": {
@@ -1038,25 +1016,6 @@
           "pattern": "^[a-z0-9][a-z0-9-]*-$"
         }
       }
-    },
-    "initResources": {},
-    "networkPolicy": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "from": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "routerNamespaceSelector": {
-          "type": "object"
-        }
-      }
     }
   },
   "required": [
@@ -1064,61 +1023,7 @@
     "ca",
     "serving",
     "enrollment",
-    "db",
-    "initResources"
+    "db"
   ],
-  "additionalProperties": false,
-  "definitions": {
-    "resourceBudget": {
-      "type": "object",
-      "required": [
-        "requests",
-        "limits"
-      ],
-      "properties": {
-        "requests": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        },
-        "limits": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
+  "additionalProperties": false
 }

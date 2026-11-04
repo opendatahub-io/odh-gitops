@@ -209,15 +209,10 @@ the user provides; with neither, the pod would mount a Secret that does not exis
 Enrollment image: repository@digest when image.digest is set, else repository:tag.
 */}}
 {{- define "grid-enrollment.image" -}}
-{{- $image := include "grid-enrollment.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE") -}}
-{{- if $image -}}
-{{- $image -}}
-{{- else -}}
 {{- if .Values.image.digest }}
 {{- printf "%s@%s" .Values.image.repository .Values.image.digest }}
 {{- else }}
 {{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
-{{- end }}
 {{- end }}
 {{- end }}
 
@@ -225,15 +220,10 @@ Enrollment image: repository@digest when image.digest is set, else repository:ta
 Builtin Postgres image, pinned by imageDigest when set.
 */}}
 {{- define "grid-enrollment.dbImage" -}}
-{{- $image := include "grid-enrollment.relatedImage" (dict "root" . "name" "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE") -}}
-{{- if $image -}}
-{{- $image -}}
-{{- else -}}
 {{- if .Values.db.builtin.imageDigest }}
 {{- printf "%s@%s" .Values.db.builtin.image .Values.db.builtin.imageDigest }}
 {{- else }}
 {{- .Values.db.builtin.image }}
-{{- end }}
 {{- end }}
 {{- end }}
 
@@ -404,12 +394,3 @@ explicit runAsUser wins, so an override still decides.
 {{- if not (hasKey $ctx "runAsUser") }}{{- $_ := set $ctx "runAsUser" 65534 -}}{{- end }}
 {{- toYaml $ctx -}}
 {{- end }}
-
-{{/* Full image references injected by downstream payloads. */}}
-{{- define "grid-enrollment.relatedImage" -}}
-{{- range (.root.Values.global | default dict).relatedImages -}}
-{{- if eq .name $.name -}}
-{{- required (printf "%s requires a nonempty value" $.name) .value -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
