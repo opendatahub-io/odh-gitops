@@ -51,9 +51,6 @@ for chart in "${CHARTS[@]}"; do
 done
 
 python3 "$ROOT/scripts/adapt-ai-grid-charts.py"
-# Preserve reviewed downstream hardening until it is carried upstream. Fail on
-# patch drift instead of silently dropping controls during a version bump.
-git -C "$ROOT" apply "$ROOT/scripts/ai-grid-hardening.patch"
 python3 "$ROOT/scripts/adapt-ai-grid-charts.py"
 helm dependency update --skip-refresh "$PARENT"
 
