@@ -37,6 +37,23 @@ if [[ "$REF" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "${REF,,}" != "$SHA" ]]; then
 fi
 echo "Resolved $REF to $SHA"
 
+# Grid hubs install grid-enrollment standalone as grid-bootstrap (mode external), so keep only
+# what that mode renders and drop the enrollment service, its database and invites.
+trim_enrollment_service() {
+  local dir="$1"
+  rm -rf "$dir/templates/db" "$dir/templates/NOTES.txt" "$dir/templates/certs/ca-bootstrap-policy.yaml"
+  local f
+  for f in auth-rbac csr-record-policy csr-record-rbac deployment grid-admin-rbac invite-job \
+    invite-namespace invite-policy route service site-invite-rbac; do
+    rm -f "$dir/templates/enrollment/$f.yaml"
+  done
+  cat > "$dir/templates/external-only.yaml" <<'EOF'
+{{- if ne .Values.mode "external" }}
+{{- fail "this vendored grid-enrollment supports only mode external; the enrollment service is not shipped" }}
+{{- end }}
+EOF
+}
+
 for chart in "${CHARTS[@]}"; do
   rm -rf "${DEPS_DIR:?}/$chart"
   mkdir -p "$DEPS_DIR/$chart"
@@ -44,6 +61,10 @@ for chart in "${CHARTS[@]}"; do
 
   # Test-only files are not shipped in the vendored production charts.
   rm -rf "${DEPS_DIR:?}/$chart/tests" "${DEPS_DIR:?}/$chart/templates/tests"
+
+  if [[ "$chart" == grid-enrollment ]]; then
+    trim_enrollment_service "$DEPS_DIR/$chart"
+  fi
 
   version=$("$YQ" '.version' "$DEPS_DIR/$chart/Chart.yaml")
   "$YQ" -i "(.dependencies[] | select(.name == \"$chart\") | .version) = \"$version\"" "$PARENT/Chart.yaml"

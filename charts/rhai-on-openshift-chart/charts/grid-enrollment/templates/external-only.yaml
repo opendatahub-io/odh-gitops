@@ -1,0 +1,8 @@
+{{- define "grid-enrollment.rhoai.external-only.yaml" -}}
+{{- if ne .Values.mode "external" }}
+{{- fail "this vendored grid-enrollment supports only mode external; the enrollment service is not shipped" }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.external-only.yaml" . }}
+{{- end }}

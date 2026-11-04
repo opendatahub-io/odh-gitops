@@ -35,11 +35,11 @@
     },
     "grid-enrollment": {
       "type": "object",
-      "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/grid-enrollment for its values.",
+      "description": "AI Grid identity bootstrap, installed standalone on Grid hubs as grid-bootstrap. See charts/grid-enrollment for its values.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Unset uses the profile default, then true. False uses an externally managed service."
+          "description": "Render it as a subchart. Keep false; the chart ships no enrollment service."
         }
       }
     },
