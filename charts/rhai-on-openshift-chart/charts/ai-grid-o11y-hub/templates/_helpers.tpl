@@ -85,6 +85,51 @@ matters, so it is read once and supplied.
 */}}
 {{- define "ai-grid-o11y-hub.spokeEndpoint" -}}
 {{- $e := .Values.spokePolicy.endpoint | required "spokePolicy.endpoint is required: the LokiStack Route host plus /api/logs/v1/infrastructure/otlp" -}}
+{{- if contains "{{hub" $e -}}
+{{- /*
+An ACM hub template, resolved on the hub when the policy is delivered rather
+than here. That is how a GitOps consumer supplies this value without committing
+a cluster's Route host: the hub knows its own Route, Argo CD's repo-server does
+not, and `helm lookup` is useless under Argo because the repo-server renders
+without cluster access.
+
+    endpoint: '{{hub printf "https://%s/api/logs/v1/infrastructure/otlp"
+      (index (lookup "route.openshift.io/v1" "Route" "ai-grid-o11y" "usage-logs").status.ingress 0).host hub}}'
+
+There is no URL to parse at render time, so the structural checks below cannot
+run. What still means something is applied to the template text itself: the
+tenant, which appears literally in the format string; the /v1/logs suffix the
+exporter appends; and the scheme, where https:// must appear and a literal
+http:// must not.
+
+The scheme checks bound the text, not the result. A template is a program, and
+only ACM resolves it -- on the hub, at delivery time -- so no check here can
+prove what it produces. What they do catch is a plaintext endpoint someone
+actually wrote, including one hidden in a branch the format string never takes.
+*/ -}}
+{{- if contains "/v1/logs" $e -}}
+{{- fail (printf "spokePolicy.endpoint must not contain /v1/logs; the otlphttp exporter appends it (got %q)" $e) -}}
+{{- end -}}
+{{- if not (contains "https://" $e) -}}
+{{- fail (printf "spokePolicy.endpoint must produce an https:// URL: the policy ships this to every selected spoke, and each one sends the fleet writer token and its usage records to it (got %q)" $e) -}}
+{{- end -}}
+{{- if contains "http://" $e -}}
+{{- fail (printf "spokePolicy.endpoint must not contain a literal http:// anywhere, even in a branch that looks unreachable: a template resolving to plaintext sends the fleet writer token and every usage record unencrypted. Interpolate only the Route host into an https:// format string (got %q)" $e) -}}
+{{- end -}}
+{{- if not (contains (printf "/api/logs/v1/%s/" (include "ai-grid-o11y-hub.tenant" .)) $e) -}}
+{{- fail (printf "spokePolicy.endpoint must address the %s tenant: records sent to another tenant are accepted and then unreadable (got %q)" (include "ai-grid-o11y-hub.tenant" .) $e) -}}
+{{- end -}}
+{{- /*
+A `lookup` in a hub template reads beyond the policy's own namespace, which ACM
+refuses unless the policy names a ServiceAccount to run templates as. Catching
+it here turns a delivery-time template error -- which surfaces only as a
+NonCompliant policy -- into a render-time message.
+*/ -}}
+{{- $sa := (.Values.spokePolicy.hubTemplateOptions | default dict).serviceAccountName | default "" -}}
+{{- if and (contains "lookup" $e) (not $sa) -}}
+{{- fail "spokePolicy.endpoint uses `lookup`, which ACM allows only when spokePolicy.hubTemplateOptions.serviceAccountName names a ServiceAccount that can read what it looks up (ACM 2.12 and later). Grant that ServiceAccount get on the object, plus list and watch on its kind." -}}
+{{- end -}}
+{{- else -}}
 {{- if hasSuffix "/v1/logs" $e -}}
 {{- fail (printf "spokePolicy.endpoint must not end in /v1/logs; the otlphttp exporter appends it (got %q)" $e) -}}
 {{- end -}}
@@ -101,6 +146,7 @@ matters, so it is read once and supplied.
 {{- $path := printf "/api/logs/v1/%s/otlp" (include "ai-grid-o11y-hub.tenant" .) -}}
 {{- if or (ne $url.path $path) $url.query $url.fragment (hasSuffix "?" $e) (hasSuffix "#" $e) -}}
 {{- fail (printf "spokePolicy.endpoint must use the exact ingest base path %s without a query or fragment (got %q)" $path $e) -}}
+{{- end -}}
 {{- end -}}
 {{- $e -}}
 {{- end }}

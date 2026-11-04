@@ -21,6 +21,16 @@ metadata:
 spec:
   remediationAction: {{ $d.remediationAction }}
   disabled: false
+  {{- with ($d.hubTemplateOptions | default dict).serviceAccountName }}
+  {{- /* ACM resolves hub templates with the propagator's own access, limited to
+         this policy's namespace and the target ManagedCluster. A template that
+         reads anything else -- a Route, for instance, to discover the ingest
+         endpoint -- needs a ServiceAccount named here (ACM 2.12 and later).
+         It applies to EVERY template in this policy, including the credential's
+         fromSecret, so it must be able to read that Secret too. */}}
+  hubTemplateOptions:
+    serviceAccountName: {{ . | quote }}
+  {{- end }}
   policy-templates:
     - objectDefinition:
         apiVersion: policy.open-cluster-management.io/v1
