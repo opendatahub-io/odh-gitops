@@ -15,6 +15,13 @@ charts:
       - name: default
         # No additional flags for default
 
+      - name: missing-profile
+        expectFail: true
+        expectMessage: "profile missing-profile does not match a bundled profiles/missing-profile.yaml file"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=missing-profile
+
       - name: skip-crd-check-odh
         setFlags:
           - skipCrdCheck=true
@@ -41,6 +48,13 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - tags.install-with-helm-dependencies=true
+
+      - name: kserve-grid-model-client
+        setFlags:
+          - skipCrdCheck=true
+          - components.aigateway.dsc.managementState=Managed
+          - components.aigateway.dsc.aiGrid.managementState=Managed
+          - components.kserve.dsc.managementState=Managed
 
       - name: inference-only
         setFlags:
@@ -161,6 +175,37 @@ charts:
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
 
+      - name: argocd-authorino-service-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+
+      - name: argocd-authorino-trusted-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+          - dependencies.rhcl.config.authorinoTrustedCA.volumeName=trusted-ca-bundle
+          - dependencies.rhcl.config.authorinoTrustedCA.mountPath=/etc/pki/tls/certs
+          - dependencies.rhcl.config.authorinoTrustedCA.configMaps[0]=custom-ca
+
+      - name: argocd-authorino-service-ca-disabled
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=false
+
+      - name: argocd-kuadrant-auth-timeout
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+          - dependencies.rhcl.olm.config.env[0].name=AUTH_SERVICE_TIMEOUT
+          - dependencies.rhcl.olm.config.env[0].value=1s
+
       - name: maas-profile
         setFlags:
           - skipCrdCheck=true
@@ -174,8 +219,9 @@ charts:
       - name: ai-grid-profile
         setFlags:
           - skipCrdCheck=true
-          - operator.type=odh
-          - profile=ai-grid
+          - operator.type=rhoai
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
         setJsonFlags:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
@@ -183,13 +229,15 @@ charts:
       - name: ai-grid-removed
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - components.aigateway.dsc.aiGrid.managementState=Removed
 
       - name: ai-grid-parent-removed
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - components.aigateway.dsc.managementState=Removed
 
       - name: ai-grid-manual
@@ -201,26 +249,102 @@ charts:
       - name: ai-grid-external-runtimes
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.enabled=false
           - praxis-gateway.enabled=false
 
       - name: ai-grid-external-gateway
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - praxis-gateway.enabled=false
 
       - name: ai-grid-external-enrollment
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.enabled=false
+          - praxis-gateway.grid.siteName=local-cluster
+
+      - name: ai-grid-inference-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
+
+      # An explicit runtime toggle remains available even when the profile enables it
+      - name: ai-grid-inference-with-gateway
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.enabled=true
+          - praxis-provider-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
+
+      - name: ai-grid-combined-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-combined
+          - praxis-gateway.grid.siteName=local-cluster
+          - praxis-provider-gateway.grid.siteName=local-cluster
+
+      - name: ai-grid-external-identities
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.sites.site-a.secretName=provided-site-a
+          - grid-enrollment.external.sites.site-a.cluster=managed-a
+          - grid-enrollment.external.trustBundleSecretRef=provided-trust
+          - grid-enrollment.external.delivery.enabled=true
+          - grid-enrollment.external.delivery.namespace=grid-system
+
+      - name: ai-grid-existing-ca
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+
+      - name: ai-grid-managed-clusters
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.fullnameOverride=grid-bootstrap
+          - grid-enrollment.mode=external
+          - grid-enrollment.gridIdentity.enabled=true
+          - grid-enrollment.grid.membership.source=Local
+          - grid-enrollment.managedClusters.enabled=true
+          - grid-enrollment.external.delivery.namespace=grid-system
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+
+      - name: ai-grid-generated-ca
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+          - grid-enrollment.external.certManager.ca.mode=Generate
+          - grid-enrollment.external.sites.site-a.secretName=site-a-identity
 
       - name: ai-grid-invites
         setFlags:
           - skipCrdCheck=true
-          - profile=ai-grid
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.enrollment.authz=kube
           - grid-enrollment.invites.site-a.network=grid
 
@@ -232,10 +356,10 @@ charts:
 
       - name: ai-grid-hub
         setFlags:
-          - profile=ai-grid
+          - profile=ai-grid-ingress
           - grid-enrollment.route.enabled=false
           - skipCrdCheck=true
-          - praxis-gateway.praxisConfig.byo.configMapName=grid-gateway-config
+          - praxis-gateway.grid.siteName=local-cluster
           - grid-enrollment.enrollment.authz=kube
           - grid-enrollment.enrollment.serviceAccount.create=true
           - grid-enrollment.db.type=external

@@ -315,11 +315,12 @@ CI pipeline for cluster validation.
 #### Step 5: Update Documentation
 
 1. Update `charts/rhai-on-openshift-chart/README.md` with component information
-2. Run `make helm-docs` to regenerate `charts/rhai-on-openshift-chart/api-docs.md`
+2. Run `make chart-defaults` to regenerate `charts/rhai-on-openshift-chart/chart-defaults.yaml`
+3. Run `make helm-docs` to regenerate `charts/rhai-on-openshift-chart/api-docs.md`
 
 ### Adding a New Deploy Profile
 
-Profiles are preconfigured deployment types defined as YAML files in `charts/rhai-on-openshift-chart/profiles/`. Each file mirrors the `values.yaml` structure and contains only the overrides for that profile.
+Profiles are preconfigured deployment types defined as YAML files in `charts/rhai-on-openshift-chart/profiles/`. Each file mirrors the `values.yaml` structure and can provide defaults for any root-chart or vendored-subchart value.
 
 #### Step 1: Create the Profile File
 
@@ -340,20 +341,13 @@ services:
       managementState: Managed
 ```
 
-Only include the components/services you want to change from the default (`Removed`). Dependencies are auto-resolved based on active components.
+Only include the values you want to change from the chart defaults. Maps merge recursively; arrays and scalars replace the corresponding default. Dependencies are auto-resolved based on active components.
+Profile values sit below explicit user values and above chart defaults. `chart-defaults.yaml` captures Helm's coalesced defaults so the loader can preserve user overrides; regenerate it with `make chart-defaults` whenever `values.yaml` or a vendored subchart's defaults change.
 
-#### Step 2: Update JSON Schema
+The `profile` value accepts any bundled profile name. Rendering fails if `profiles/<name>.yaml` does not exist, so a typo cannot silently fall back to the default profile.
+Profiles can inherit other bundled profiles with `extends: [base, overlay]`. Parent profiles merge left to right, the child's own values override its parents, and explicit user values override the complete profile chain. Inheritance uses the normal value merge rules: maps merge recursively, while arrays and scalars replace. Inheritance cycles and missing or malformed parents fail rendering.
 
-Add your profile name to the `profile` enum in `charts/rhai-on-openshift-chart/values.schema.json`:
-
-```json
-"profile": {
-  "enum": ["default", "rhaii", "my-profile"],
-  ...
-}
-```
-
-#### Step 3: Add Snapshot Test
+#### Step 2: Add Snapshot Test
 
 Add a snapshot entry in `scripts/snapshot-config.yaml`:
 
@@ -364,12 +358,12 @@ Add a snapshot entry in `scripts/snapshot-config.yaml`:
     - profile=my-profile
 ```
 
-#### Step 4: Update Documentation
+#### Step 3: Update Documentation
 
 1. Add the profile to the Deploy Profiles table in `charts/rhai-on-openshift-chart/README.md`
 2. Run `make helm-docs` to regenerate `charts/rhai-on-openshift-chart/api-docs.md`
 
-#### Step 5: Generate and Test Snapshots
+#### Step 4: Generate and Test Snapshots
 
 ```bash
 make chart-snapshots CHART_NAME=rhai-on-openshift-chart

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Vendor the AI Grid charts from praxis-proxy/grid as unpacked subcharts of
 # rhai-on-openshift-chart, so installs need no `helm dependency build`, and
-# refresh the dependency versions, docs and snapshots.
+# refresh the dependency versions, docs, and snapshots.
 # This overwrites the vendored charts: review `git diff` for local edits it drops.
 # Usage: ./scripts/update-ai-grid-charts.sh <git-ref>
 # Examples:
@@ -50,6 +50,7 @@ for chart in "${CHARTS[@]}"; do
   echo "  $chart $version"
 done
 
+python3 "$ROOT/scripts/adapt-ai-grid-charts.py"
 python3 "$ROOT/scripts/adapt-ai-grid-charts.py"
 helm dependency update --skip-refresh "$PARENT"
 
