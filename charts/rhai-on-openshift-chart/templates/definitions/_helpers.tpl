@@ -462,6 +462,26 @@ true
 {{- end }}
 
 {{/*
+=============================================================================
+ Render the trusted CA volumes field consumed by the Authorino CR
+=============================================================================
+ Arguments (passed as dict):
+   - trustedCA: dependencies.rhcl.config.authorinoTrustedCA
+ */}}
+{{- define "rhoai-dependencies.authorinoTrustedCAVolumes" -}}
+{{- with . -}}
+defaultMode: 420
+items:
+  - name: {{ .volumeName | default "authorino-trusted-ca" }}
+    mountPath: {{ .mountPath }}
+    configMaps:
+{{- range .configMaps }}
+      - {{ . }}
+{{- end }}
+{{- end -}}
+{{- end }}
+
+{{/*
  =============================================================================
  Check whether a deprecated DSC v2 values key is meaningfully set (any
  translatable field non-nil, non-empty). Used by validation, normalization

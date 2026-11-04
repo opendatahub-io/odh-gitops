@@ -4,6 +4,11 @@
 {{- if eq $shouldInstall "true" }}
 {{- if and $dep.config $dep.config.tlsEnabled }}
 {{- if include "rhoai-dependencies.crdExists" (dict "crdName" "authorinos.operator.authorino.kuadrant.io" "root" $) }}
+{{- $authorinoSpec := $dep.config.authorinoSpec | default dict | deepCopy }}
+{{- with $dep.config.authorinoTrustedCA }}
+{{- $volumes := include "rhoai-dependencies.authorinoTrustedCAVolumes" . | fromYaml }}
+{{- $_ := set $authorinoSpec "volumes" $volumes }}
+{{- end }}
 apiVersion: operator.authorino.kuadrant.io/v1beta1
 kind: Authorino
 metadata:
@@ -11,7 +16,7 @@ metadata:
   namespace: {{ $dep.olm.namespace }}
   labels:
     {{- include "rhoai-dependencies.labels" . | nindent 4 }}
-{{- with $dep.config.authorinoSpec }}
+{{- with $authorinoSpec }}
 spec:
   {{- toYaml . | nindent 2 }}
 {{- end }}

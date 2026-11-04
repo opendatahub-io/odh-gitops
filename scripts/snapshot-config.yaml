@@ -182,6 +182,16 @@ charts:
           - profile=maas
           - dependencies.rhcl.config.authorinoServiceCaTrust=true
 
+      - name: argocd-authorino-trusted-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+          - dependencies.rhcl.config.authorinoTrustedCA.volumeName=trusted-ca-bundle
+          - dependencies.rhcl.config.authorinoTrustedCA.mountPath=/etc/pki/tls/certs
+          - dependencies.rhcl.config.authorinoTrustedCA.configMaps[0]=custom-ca
+
       - name: argocd-authorino-service-ca-disabled
         setFlags:
           - skipCrdCheck=true

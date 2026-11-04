@@ -39,5 +39,23 @@ spec:
                   name: {{ . }}
               {{- end }}
       {{- end }}
+{{- with $dep.config.authorinoTrustedCA }}
+{{- if not $dep.config.tlsEnabled }}
+{{- if include "rhoai-dependencies.crdExists" (dict "crdName" "authorinos.operator.authorino.kuadrant.io" "root" $) }}
+---
+apiVersion: operator.authorino.kuadrant.io/v1beta1
+kind: Authorino
+metadata:
+  name: authorino
+  namespace: {{ $dep.olm.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  volumes:
+{{- include "rhoai-dependencies.authorinoTrustedCAVolumes" . | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
