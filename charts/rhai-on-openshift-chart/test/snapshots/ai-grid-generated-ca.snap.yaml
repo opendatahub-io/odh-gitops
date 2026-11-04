@@ -360,6 +360,83 @@ spec:
           - openshift-service-ca.crt
 
 ---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "grid-root-ca"
+  namespace: "default"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  isCA: true
+  commonName: "grid-root-ca"
+  secretName: "grid-ca-key"
+  duration: "87600h"
+  renewBefore: "8760h"
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    # Replacing the signing key would split the grid's trust domain.
+    rotationPolicy: Never
+  usages:
+    - cert sign
+    - crl sign
+  secretTemplate:
+    annotations:
+      helm.sh/resource-policy: keep
+      argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  issuerRef:
+    name: "grid-root-selfsigned"
+    kind: Issuer
+    group: cert-manager.io
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "site-a-identity"
+  namespace: "default"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretName: "site-a-identity"
+  commonName: "site-a"
+  subject:
+    organizations: ["site-a"]
+  uris: ["spiffe://grid.internal/site/site-a"]
+  dnsNames:
+    - site-a.grid.internal
+  duration: "4320h"
+  renewBefore: "1440h"
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages: [digital signature, client auth, server auth]
+  issuerRef:
+    name: "grid-ca"
+    kind: "Issuer"
+    group: "cert-manager.io"
+
+
+---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
 kind: DSCInitialization
@@ -490,6 +567,44 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "grid-root-selfsigned"
+  namespace: "default"
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  selfSigned: {}
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "grid-ca"
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ca:
+    secretName: "grid-ca-key"
+
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml

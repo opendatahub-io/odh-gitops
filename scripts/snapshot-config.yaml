@@ -296,6 +296,7 @@ charts:
 
       - name: ai-grid-external-identities
         setFlags:
+          - grid-enrollment.enabled=true
           - skipCrdCheck=true
           - profile=ai-grid-ingress
           - praxis-gateway.grid.siteName=local-cluster
@@ -308,6 +309,7 @@ charts:
 
       - name: ai-grid-existing-ca
         setFlags:
+          - grid-enrollment.enabled=true
           - skipCrdCheck=true
           - profile=ai-grid-ingress
           - praxis-gateway.grid.siteName=local-cluster
@@ -317,6 +319,7 @@ charts:
 
       - name: ai-grid-managed-clusters
         setFlags:
+          - grid-enrollment.enabled=true
           - skipCrdCheck=true
           - profile=ai-grid-ingress
           - praxis-gateway.grid.siteName=local-cluster
@@ -331,6 +334,7 @@ charts:
 
       - name: ai-grid-generated-ca
         setFlags:
+          - grid-enrollment.enabled=true
           - skipCrdCheck=true
           - profile=ai-grid-ingress
           - praxis-gateway.grid.siteName=local-cluster
@@ -339,14 +343,6 @@ charts:
           - grid-enrollment.external.certManager.issuer.create=true
           - grid-enrollment.external.certManager.ca.mode=Generate
           - grid-enrollment.external.sites.site-a.secretName=site-a-identity
-
-      - name: ai-grid-invites
-        setFlags:
-          - skipCrdCheck=true
-          - profile=ai-grid-ingress
-          - praxis-gateway.grid.siteName=local-cluster
-          - grid-enrollment.enrollment.authz=kube
-          - grid-enrollment.invites.site-a.network=grid
 
       - name: ai-grid-related-images
         valuesFiles:
@@ -357,13 +353,8 @@ charts:
       - name: ai-grid-hub
         setFlags:
           - profile=ai-grid-ingress
-          - grid-enrollment.route.enabled=false
           - skipCrdCheck=true
           - praxis-gateway.grid.siteName=local-cluster
-          - grid-enrollment.enrollment.authz=kube
-          - grid-enrollment.enrollment.serviceAccount.create=true
-          - grid-enrollment.db.type=external
-          - grid-enrollment.db.external.connectionUrlSecretRef=maas-db-config
 
       - name: ai-grid-o11y-hub
         valuesFiles:

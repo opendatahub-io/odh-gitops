@@ -520,6 +520,16 @@ spec:
   operatorLogLevel: Normal
 
 ---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: "default"  
+  namespace: "default"
+spec:
+  clusterSet: "default"
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -624,6 +634,89 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: grid-identity-site-a
+  namespace: "default"
+spec:
+  clusterSets: ["default"]
+  predicates:
+  - requiredClusterSelector:
+      labelSelector:
+        matchExpressions:
+        - {key: name, operator: In, values: ["managed-a"]}
+        - {key: local-cluster, operator: DoesNotExist}
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: grid-identity-site-a
+  namespace: "default"
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: grid-identity-site-a
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: grid-identity-site-a
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: grid-identity-site-a
+  namespace: "default"
+  annotations:
+    policy.open-cluster-management.io/standards: AI Grid
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: grid-identity-site-a
+      spec:
+        remediationAction: enforce
+        severity: medium
+        object-templates:
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: "grid-system"
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: kubernetes.io/tls
+            metadata:
+              name: "grid-site-identity"
+              namespace: "grid-system"
+            data:
+              tls.crt: '{{hub fromSecret "default" "provided-site-a" "tls.crt" hub}}'
+              tls.key: '{{hub fromSecret "default" "provided-site-a" "tls.key" hub}}'
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Secret
+            type: Opaque
+            metadata:
+              name: "grid-ca"
+              namespace: "grid-system"
+            data:
+              ca.crt: '{{hub fromSecret "default" "provided-trust" "ca.crt" hub}}'
+
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
