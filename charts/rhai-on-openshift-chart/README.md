@@ -921,6 +921,8 @@ The Authorino CR does not expose an environment-variable field, so the chart can
 
 `dependencies.rhcl.config.authorinoServiceCaTrust` defaults to `false`; enable it explicitly when Authorino must trust the OpenShift Service CA. Setting it back to `false` removes `SSL_CERT_FILE` and resets `SSL_CERT_DIR` to `/etc/ssl/certs`. The patch uses `Prune=false` and `Delete=false`, so the operator-managed Deployment remains if RHCL is later removed. The patch is not rendered for direct Helm installs because a partial Deployment manifest is not valid as a standalone Helm-managed resource.
 
+When `dependencies.rhcl.config.authorinoTrustedCA` is configured, the chart renders the same volume in the Authorino CR and owns its `volumes` field. If `tlsEnabled` is false, Argo CD applies a partial CR patch with the same server-side-apply safety options as the Deployment patch. If `tlsEnabled` is true, the full Authorino CR rendered by the chart includes the trusted CA volume.
+
 Go loads trusted roots when Authorino starts. After the OpenShift Service CA rotates, restart Authorino with `kubectl rollout restart deployment/authorino -n kuadrant-system`.
 
 On a fresh installation, the Authorino operator may not have created `Deployment/authorino` before Argo CD applies the wave-10 patch. Configure the retry policy shown in the example Application so Argo CD retries the same revision after the Deployment exists.

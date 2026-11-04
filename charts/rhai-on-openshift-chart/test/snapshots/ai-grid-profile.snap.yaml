@@ -98,37 +98,6 @@ metadata:
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: grid-gateway
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.7.0"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: praxis-gateway
-      app.kubernetes.io/instance: release-test
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              grid.opendatahub.io/gateway-client: "true"
-        - namespaceSelector:
-            matchLabels:
-              network.openshift.io/policy-group: ingress
-      ports:
-        - port: 8443
-          protocol: TCP
-
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -229,7 +198,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:af591eb9d62f07b6341d4db749786b59abedc9269c4b56b3d33ae5b050c7654c
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -280,13 +249,6 @@ spec:
             preStop:
               exec:
                 command: ["sleep", "5"]
-          resources:
-            limits:
-              cpu: 2
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 128Mi
           volumeMounts:
             - name: config
               mountPath: /etc/praxis
@@ -376,6 +338,26 @@ spec:
                   name: odh-trusted-ca-bundle
               - configMap:
                   name: openshift-service-ca.crt
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
+apiVersion: operator.authorino.kuadrant.io/v1beta1
+kind: Authorino
+metadata:
+  name: authorino
+  namespace: kuadrant-system
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  volumes:
+    defaultMode: 420
+    items:
+      - name: trusted-ca-bundle
+        mountPath: /etc/pki/tls/certs
+        configMaps:
+          - odh-trusted-ca-bundle
+          - openshift-service-ca.crt
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml

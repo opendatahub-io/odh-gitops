@@ -64,101 +64,6 @@ metadata:
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: grid-enrollment
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: grid-enrollment
-      app.kubernetes.io/instance: release-test
-      app.kubernetes.io/component: enrollment
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        # The release's invite Job calls enrollment over HTTPS.
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: grid-enrollment
-              app.kubernetes.io/instance: release-test
-              app.kubernetes.io/component: invite
-      ports:
-        - port: 8443
-          protocol: TCP
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: grid-enrollment-db
-  namespace: default
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: grid-enrollment
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: grid-enrollment
-      app.kubernetes.io/instance: release-test
-      app.kubernetes.io/component: db
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: grid-enrollment
-              app.kubernetes.io/instance: release-test
-              app.kubernetes.io/component: enrollment
-      ports:
-        - port: 5432
-          protocol: TCP
-
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: grid-gateway
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/name: praxis-gateway
-    app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "0.7.0"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: praxis-gateway
-      app.kubernetes.io/instance: release-test
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              grid.opendatahub.io/gateway-client: "true"
-        - namespaceSelector:
-            matchLabels:
-              network.openshift.io/policy-group: ingress
-      ports:
-        - port: 8080
-          protocol: TCP
-
-
----
-# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -599,18 +504,6 @@ spec:
         - name: db-tls-perms
           image: "quay.io/sclorg/postgresql-16-c9s:20260923"
           imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          resources:
-            limits:
-              cpu: 200m
-              memory: 128Mi
-            requests:
-              cpu: 10m
-              memory: 32Mi
           command:
             - sh
             - -c
@@ -625,11 +518,6 @@ spec:
         - name: postgres
           image: "quay.io/sclorg/postgresql-16-c9s:20260923"
           imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
           ports:
             - name: postgres
               containerPort: 5432
@@ -649,13 +537,6 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:
-            # sclorg writes passwd and generated config under HOME at startup.
-            - name: db-home
-              mountPath: /var/lib/pgsql
-            - name: db-tmp
-              mountPath: /tmp
-            - name: db-run
-              mountPath: /var/run/postgresql
             - name: data
               mountPath: /var/lib/pgsql/data
             - name: db-tls
@@ -664,20 +545,7 @@ spec:
             - name: db-ssl-config
               mountPath: /opt/app-root/src/postgresql-cfg
               readOnly: true
-          resources:
-            limits:
-              cpu: 1
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 256Mi
       volumes:
-        - name: db-home
-          emptyDir: {}
-        - name: db-tmp
-          emptyDir: {}
-        - name: db-run
-          emptyDir: {}
         - name: data
           persistentVolumeClaim:
             claimName: grid-enrollment-db
@@ -728,13 +596,6 @@ spec:
         # The service applies its schema on first connect, so it only needs the
         # DB reachable. External DBs are assumed already up.
         - name: wait-for-db
-          resources:
-            limits:
-              cpu: 200m
-              memory: 128Mi
-            requests:
-              cpu: 10m
-              memory: 32Mi
           image: "quay.io/sclorg/postgresql-16-c9s:20260923"
           imagePullPolicy: IfNotPresent
           securityContext:
@@ -749,7 +610,7 @@ spec:
             - "until pg_isready -h grid-enrollment-db -p 5432; do echo 'waiting for db'; sleep 2; done"
       containers:
         - name: enrollment
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749"
+          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -822,13 +683,6 @@ spec:
             - name: grid-ca-bundle
               mountPath: /etc/grid-ca-bundle
               readOnly: true
-          resources:
-            limits:
-              cpu: 1
-              memory: 512Mi
-            requests:
-              cpu: 100m
-              memory: 256Mi
       volumes:
         # Signing key + cert. This is the only pod that mounts grid-ca-key.
         - name: grid-ca
@@ -878,7 +732,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:af591eb9d62f07b6341d4db749786b59abedc9269c4b56b3d33ae5b050c7654c
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -926,13 +780,6 @@ spec:
             preStop:
               exec:
                 command: ["sleep", "5"]
-          resources:
-            limits:
-              cpu: 2
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 128Mi
           volumeMounts:
             - name: config
               mountPath: /etc/praxis
@@ -1404,7 +1251,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749"
+          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -1447,13 +1294,6 @@ spec:
             - "grid-enrollment-db.default.svc"
             - "--db-deployment"
             - "grid-enrollment-db"
-          resources:
-            limits:
-              cpu: 500m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
 
 
 ---

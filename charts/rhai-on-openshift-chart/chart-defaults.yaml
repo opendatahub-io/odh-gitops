@@ -301,13 +301,7 @@ grid-enrollment:
     bootstrap:
       policy:
         enabled: true
-      resources:
-        limits:
-          cpu: 500m
-          memory: 256Mi
-        requests:
-          cpu: 100m
-          memory: 128Mi
+      resources: {}
       ttlSecondsAfterFinished: 86400
     bundleSecretName: grid-ca-bundle
     commonName: grid-ca
@@ -328,13 +322,7 @@ grid-enrollment:
       imageDigest: ""
       pullPolicy: IfNotPresent
       pvcAnnotations: {}
-      resources:
-        limits:
-          cpu: 1
-          memory: 1Gi
-        requests:
-          cpu: 100m
-          memory: 256Mi
+      resources: {}
       storage: 8Gi
       tls:
         servingSecretName: grid-db-serving-tls
@@ -372,13 +360,7 @@ grid-enrollment:
       seccompProfile:
         type: RuntimeDefault
     replicaCount: 1
-    resources:
-      limits:
-        cpu: 1
-        memory: 512Mi
-      requests:
-        cpu: 100m
-        memory: 256Mi
+    resources: {}
     rotation:
       enabled: true
     securityContext:
@@ -446,18 +428,11 @@ grid-enrollment:
     seedSecretName: grid-reserved-seeds
     swimKeySecretName: grid-swim-key
   image:
-    digest: sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749
+    digest: sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d
     pullPolicy: IfNotPresent
     repository: ghcr.io/praxis-proxy/grid-enrollment
     tag: ""
   imagePullSecrets: []
-  initResources:
-    limits:
-      cpu: 200m
-      memory: 128Mi
-    requests:
-      cpu: 10m
-      memory: 32Mi
   invitePolicy:
     clusterSet: default
     enabled: false
@@ -479,12 +454,6 @@ grid-enrollment:
     workName: grid-site-observer
   mode: service
   nameOverride: ""
-  networkPolicy:
-    enabled: true
-    from: []
-    routerNamespaceSelector:
-      matchLabels:
-        network.openshift.io/policy-group: ingress
   platform: ""
   route:
     annotations: {}
@@ -558,11 +527,11 @@ praxis-gateway:
       periodSeconds: 5
       tcpSocket: {}
   image:
-    digest: sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
+    digest: sha256:af591eb9d62f07b6341d4db749786b59abedc9269c4b56b3d33ae5b050c7654c
     flavor: grid-gateway
     pullPolicy: IfNotPresent
     repository: ghcr.io/praxis-proxy/grid-gateway
-    tag: v0.3.0-rc.3
+    tag: v0.3.0-rc.4
   imagePullSecrets: []
   imageUser:
     enabled: auto
@@ -604,14 +573,8 @@ praxis-gateway:
     releaseHelmMounts: false
   nameOverride: ""
   networkPolicy:
-    enabled: true
-    from:
-    - podSelector:
-        matchLabels:
-          grid.opendatahub.io/gateway-client: "true"
-    - namespaceSelector:
-        matchLabels:
-          network.openshift.io/policy-group: ingress
+    enabled: false
+    from: []
   nodeSelector: {}
   overlay:
     configMapName: ""
@@ -732,17 +695,10 @@ praxis-gateway:
   priorityClassName: ""
   providerCredentials: []
   replicaCount: 1
-  resources:
-    limits:
-      cpu: 2
-      memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 128Mi
+  resources: {}
   route:
     annotations: {}
     enabled: false
-    externalTls: false
     host: ""
     tls:
       destinationCACertificate: ""
@@ -836,14 +792,8 @@ praxis-provider-gateway:
     releaseHelmMounts: false
   nameOverride: ""
   networkPolicy:
-    enabled: true
-    from:
-    - podSelector:
-        matchLabels:
-          grid.opendatahub.io/gateway-client: "true"
-    - namespaceSelector:
-        matchLabels:
-          network.openshift.io/policy-group: ingress
+    enabled: false
+    from: []
   nodeSelector: {}
   overlay:
     configMapName: ""
@@ -964,17 +914,10 @@ praxis-provider-gateway:
   priorityClassName: ""
   providerCredentials: []
   replicaCount: 1
-  resources:
-    limits:
-      cpu: 2
-      memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 128Mi
+  resources: {}
   route:
     annotations: {}
     enabled: false
-    externalTls: false
     host: ""
     tls:
       destinationCACertificate: ""

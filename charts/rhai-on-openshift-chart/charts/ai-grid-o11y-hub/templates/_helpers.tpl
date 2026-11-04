@@ -99,7 +99,7 @@ matters, so it is read once and supplied.
 {{- fail "spokePolicy.endpoint must include a hostname" -}}
 {{- end -}}
 {{- $path := printf "/api/logs/v1/%s/otlp" (include "ai-grid-o11y-hub.tenant" .) -}}
-{{- if or (ne $url.path $path) $url.query $url.fragment -}}
+{{- if or (ne $url.path $path) $url.query $url.fragment (hasSuffix "?" $e) (hasSuffix "#" $e) -}}
 {{- fail (printf "spokePolicy.endpoint must use the exact ingest base path %s without a query or fragment (got %q)" $path $e) -}}
 {{- end -}}
 {{- $e -}}

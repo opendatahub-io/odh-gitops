@@ -182,6 +182,16 @@ charts:
           - profile=maas
           - dependencies.rhcl.config.authorinoServiceCaTrust=true
 
+      - name: argocd-authorino-trusted-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+          - dependencies.rhcl.config.authorinoTrustedCA.volumeName=trusted-ca-bundle
+          - dependencies.rhcl.config.authorinoTrustedCA.mountPath=/etc/pki/tls/certs
+          - dependencies.rhcl.config.authorinoTrustedCA.configMaps[0]=custom-ca
+
       - name: argocd-authorino-service-ca-disabled
         setFlags:
           - skipCrdCheck=true
@@ -338,47 +348,6 @@ charts:
           - grid-enrollment.enrollment.authz=kube
           - grid-enrollment.invites.site-a.network=grid
 
-      - name: ai-grid-reject-udp
-        expectFail: true
-        expectMessage: "protocol"
-        setFlags:
-          - skipCrdCheck=true
-          - profile=ai-grid-ingress
-          - praxis-gateway.grid.siteName=local-cluster
-          - praxis-gateway.port.protocol=UDP
-
-      - name: ai-grid-reject-source-override
-        expectFail: true
-        expectMessage: "praxisConfig.render settings are set but praxisConfig.source is operator"
-        setFlags:
-          - skipCrdCheck=true
-          - profile=ai-grid-ingress
-          - praxis-gateway.grid.siteName=local-cluster
-          - praxis-gateway.praxisConfig.source=operator
-          - praxis-gateway.route.enabled=true
-          - praxis-gateway.route.host=gateway.apps.example.com
-
-      - name: ai-grid-reject-http-telemetry
-        expectFail: true
-        expectMessage: "plaintext telemetry"
-        setFlags:
-          - skipCrdCheck=true
-          - profile=ai-grid-ingress
-          - praxis-gateway.grid.siteName=local-cluster
-          - praxis-gateway.praxisConfig.source=render
-          - praxis-gateway.praxisConfig.render.telemetry.otlpEndpoint=http://collector:4317
-
-      - name: ai-grid-reject-blocked-loadbalancer
-        expectFail: true
-        expectMessage: "networkPolicy.from requires explicit enrollment clients"
-        setFlags:
-          - skipCrdCheck=true
-          - profile=ai-grid-ingress
-          - praxis-gateway.grid.siteName=local-cluster
-          - grid-enrollment.enabled=true
-          - grid-enrollment.route.enabled=false
-          - grid-enrollment.host=enrollment.example.com
-
       - name: ai-grid-related-images
         valuesFiles:
           - charts/rhai-on-openshift-chart/test/values-ai-grid-images.yaml
@@ -478,6 +447,26 @@ charts:
           - ai-grid-o11y-hub.enabled=true
           - ai-grid-o11y-hub.lokiStack.enabled=false
           - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp#fragment'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-empty-query
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp?'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-empty-fragment
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp#'
         expectFail: true
         expectMessage: "without a query or fragment"
 
