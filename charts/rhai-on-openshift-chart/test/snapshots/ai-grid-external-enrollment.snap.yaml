@@ -265,9 +265,6 @@ spec:
             - name: listener-tls
               mountPath: "/etc/praxis/listener-tls"
               readOnly: true
-            - name: credential-0
-              mountPath: "/run/secrets/grid-credentials/grid-model-client-token"
-              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -300,10 +297,6 @@ spec:
         - name: listener-tls
           secret:
             secretName: "grid-gateway-listener-tls"
-        - name: credential-0
-          secret:
-            secretName: "grid-model-client-token"
-            optional: false
 
 
 ---

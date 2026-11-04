@@ -7,3 +7,7 @@ extends:
 ai-grid-o11y-spoke:
   collector:
     namespace: redhat-ods-monitoring
+praxis-gateway:
+  # The model-client token a local dial sends to the serving gateway.
+  providerCredentials:
+    - secretName: grid-model-client-token
