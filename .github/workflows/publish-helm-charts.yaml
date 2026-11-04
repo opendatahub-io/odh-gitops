@@ -1,0 +1,117 @@
+name: Publish Helm Charts
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '.github/workflows/publish-helm-charts.yaml'
+      - 'charts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  CHART_REPOSITORY: ${{ github.repository }}
+  ORAS_VERSION: v1.2.0
+
+concurrency:
+  group: publish-helm-charts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish charts to GitHub Packages
+    runs-on: ubuntu-latest
+    if: github.repository == 'opendatahub-io/odh-gitops'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.24'
+
+      - name: Install publishing tools
+        run: |
+          set -euo pipefail
+          make yq
+          mkdir -p "${RUNNER_TEMP}/bin"
+          GOBIN="${RUNNER_TEMP}/bin" go install oras.land/oras/cmd/oras@${ORAS_VERSION}
+
+      - name: Resolve chart tags
+        id: tags
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA::7}"
+          branch_tag="${GITHUB_REF_NAME//\//-}"
+          branch_tag="$(printf '%s' "${branch_tag}" | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
+          if [[ ! "${branch_tag}" =~ ^[A-Za-z0-9_] ]]; then
+            branch_tag="branch-${branch_tag}"
+          fi
+          branch_tag="${branch_tag:0:128}"
+
+          echo "short-sha=${short_sha}" >> "${GITHUB_OUTPUT}"
+          echo "branch-tag=${branch_tag}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved chart tags: ${short_sha}, ${branch_tag}"
+
+      - name: Log in to GitHub Packages
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${REGISTRY_TOKEN}" | helm registry login "${REGISTRY}" --username "${REGISTRY_USER}" --password-stdin
+          printf '%s' "${REGISTRY_TOKEN}" | "${RUNNER_TEMP}/bin/oras" login "${REGISTRY}" --username "${REGISTRY_USER}" --password-stdin
+
+      - name: Build and push charts
+        env:
+          SHORT_SHA: ${{ steps.tags.outputs.short-sha }}
+          BRANCH_TAG: ${{ steps.tags.outputs.branch-tag }}
+        run: |
+          set -euo pipefail
+          retry() {
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              if "$@"; then
+                return 0
+              fi
+              if [[ "${attempt}" -eq 5 ]]; then
+                echo "Command failed after ${attempt} attempts: $*" >&2
+                return 1
+              fi
+              echo "Attempt ${attempt} failed; retrying in $((attempt * 2)) seconds: $*" >&2
+              sleep "$((attempt * 2))"
+            done
+          }
+
+          package_dir="${RUNNER_TEMP}/helm-packages"
+          mkdir -p "${package_dir}"
+
+          for chart in charts/rhai-on-openshift-chart charts/rhai-on-xks-chart; do
+            chart_name="$(basename "${chart}")"
+            chart_version="$(bin/yq '.version' "${chart}/Chart.yaml")"
+            # SemVer prerelease identifiers sort numerically, so run and attempt
+            # provide a monotonic dev channel without reusing a mutable tag.
+            snapshot_version="${chart_version}-dev.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+
+            helm dependency build "${chart}"
+            helm lint "${chart}"
+            package_path="$(
+              helm package "${chart}" --destination "${package_dir}" --version "${snapshot_version}" |
+                sed 's/^Successfully packaged chart and saved it to: //'
+            )"
+
+            chart_repository="${REGISTRY}/${CHART_REPOSITORY}/${chart_name}"
+            retry helm push "${package_path}" "oci://${REGISTRY}/${CHART_REPOSITORY}"
+            retry "${RUNNER_TEMP}/bin/oras" tag "${chart_repository}:${snapshot_version}" "${SHORT_SHA}" "${BRANCH_TAG}"
+
+            echo "Published ${chart_name} as ${SHORT_SHA}, ${BRANCH_TAG}, and ${snapshot_version}"
+          done

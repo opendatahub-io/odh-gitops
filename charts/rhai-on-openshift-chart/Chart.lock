@@ -5,11 +5,14 @@ dependencies:
 - name: praxis-gateway
   repository: ""
   version: 0.3.0-rc.4
+- name: praxis-gateway
+  repository: ""
+  version: 0.3.0-rc.4
 - name: ai-grid-o11y-hub
   repository: ""
   version: 0.1.0
 - name: ai-grid-o11y-spoke
   repository: ""
   version: 0.1.0
-digest: sha256:e9e8cc3f798dccce7ac2515fa247dc5bdaf897305de91912edd2f3c0923775cd
-generated: "2026-11-03T23:56:47.937420961-05:00"
+digest: sha256:362ed01c8f431be0b18a6c6311e4d18a0f59a905890a915834ee8a3d930b3f57
+generated: "2026-11-04T12:40:28.667367789+01:00"

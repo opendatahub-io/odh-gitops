@@ -1,0 +1,634 @@
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/db/db-builtin.yaml
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/db/db-builtin.yaml
+@@ -102,6 +102,13 @@
+         - name: db-tls-perms
+           image: {{ include "grid-enrollment.dbImage" . | quote }}
+           imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
++          securityContext:
++            allowPrivilegeEscalation: false
++            readOnlyRootFilesystem: true
++            capabilities:
++              drop: ["ALL"]
++          resources:
++            {{- toYaml .Values.initResources | nindent 12 }}
+           command:
+             - sh
+             - -c
+@@ -117,6 +124,11 @@
+         - name: postgres
+           image: {{ include "grid-enrollment.dbImage" . | quote }}
+           imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
++          securityContext:
++            allowPrivilegeEscalation: false
++            readOnlyRootFilesystem: true
++            capabilities:
++              drop: ["ALL"]
+           ports:
+             - name: postgres
+               containerPort: 5432
+@@ -136,6 +148,13 @@
+             initialDelaySeconds: 5
+             periodSeconds: 10
+           volumeMounts:
++            # sclorg writes passwd and generated config under HOME at startup.
++            - name: db-home
++              mountPath: /var/lib/pgsql
++            - name: db-tmp
++              mountPath: /tmp
++            - name: db-run
++              mountPath: /var/run/postgresql
+             - name: data
+               mountPath: /var/lib/pgsql/data
+             {{- if $tls }}
+@@ -151,6 +170,12 @@
+             {{- toYaml . | nindent 12 }}
+           {{- end }}
+       volumes:
++        - name: db-home
++          emptyDir: {}
++        - name: db-tmp
++          emptyDir: {}
++        - name: db-run
++          emptyDir: {}
+         - name: data
+           persistentVolumeClaim:
+             claimName: {{ $dbName }}
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/deployment.yaml
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/deployment.yaml
+@@ -32,6 +32,8 @@
+         # The service applies its schema on first connect, so it only needs the
+         # DB reachable. External DBs are assumed already up.
+         - name: wait-for-db
++          resources:
++            {{- toYaml .Values.initResources | nindent 12 }}
+           image: {{ include "grid-enrollment.dbImage" . | quote }}
+           imagePullPolicy: {{ .Values.db.builtin.pullPolicy }}
+           securityContext:
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/grid-admin-rbac.yaml
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/grid-admin-rbac.yaml
+@@ -6,7 +6,7 @@
+ {{- $admins := .Values.enrollment.gridAdmins }}
+ {{- $subjects := $admins.subjects | default list }}
+ {{- range $subjects }}
+-{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$" .name }}
++{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts|nodes|anonymous|bootstrappers)(:.*)?$" .name }}
+ {{- fail (printf "enrollment.gridAdmins.subjects: %q is a cluster-wide group and would make it grid-admin" .name) }}
+ {{- end }}
+ {{- end }}
+@@ -69,7 +69,7 @@
+ {{- end }}
+ {{- $deleters := (.Values.enrollment.enrollmentAdmins | default dict).subjects | default list }}
+ {{- range $deleters }}
+-{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts)(:.*)?$" .name }}
++{{- if regexMatch "^system:(masters|authenticated|unauthenticated|serviceaccounts|nodes|anonymous|bootstrappers)(:.*)?$" .name }}
+ {{- fail (printf "enrollment.enrollmentAdmins.subjects: %q is a cluster-wide group and would let it delete any site's enrollment" .name) }}
+ {{- end }}
+ {{- end }}
+--- /dev/null
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/enrollment/invite-admission.yaml
+@@ -0,0 +1,57 @@
++{{- define "grid-enrollment.rhoai.enrollment/invite-admission.yaml" -}}
++{{- if eq .Values.mode "service" }}
++{{- include "grid-enrollment.normalize" . }}
++{{- if .Values.invites }}
++{{- $fullname := include "grid-enrollment.fullname" . }}
++{{- $sa := printf "%s-invite" ($fullname | trunc 56 | trimSuffix "-") }}
++{{- $name := printf "%s-%s-invite-secrets" $fullname .Release.Namespace }}
++{{- $names := list }}
++{{- range .Values.invites }}
++{{- $names = append $names (printf "grid-invite-%s" .siteName) }}
++{{- end }}
++apiVersion: admissionregistration.k8s.io/v1
++kind: ValidatingAdmissionPolicy
++metadata:
++  name: {{ $name }}
++  labels:
++    {{- include "grid-enrollment.labels" . | nindent 4 }}
++spec:
++  failurePolicy: Fail
++  matchConstraints:
++    resourceRules:
++      - apiGroups: [""]
++        apiVersions: ["v1"]
++        operations: ["CREATE", "UPDATE"]
++        resources: ["secrets"]
++  matchConditions:
++    - name: invite-service-account
++      expression: {{ printf "request.userInfo.username == %q" (printf "system:serviceaccount:%s:%s" .Release.Namespace $sa) | quote }}
++  validations:
++    - expression: {{ printf "object.metadata.namespace == %q && object.metadata.name in %s" .Release.Namespace (toJson $names) | quote }}
++      message: "the invite Job may only write its configured invite Secrets"
++      reason: Forbidden
++    - expression: "!has(object.type) || object.type == '' || object.type == 'Opaque'"
++      message: "invite Secrets must be Opaque; ServiceAccount tokens are forbidden"
++      reason: Forbidden
++    - expression: >-
++        !has(object.metadata.annotations) ||
++        (!('kubernetes.io/service-account.name' in object.metadata.annotations) &&
++         !('kubernetes.io/service-account.uid' in object.metadata.annotations))
++      message: "invite Secrets cannot request ServiceAccount tokens"
++      reason: Forbidden
++---
++apiVersion: admissionregistration.k8s.io/v1
++kind: ValidatingAdmissionPolicyBinding
++metadata:
++  name: {{ $name }}
++  labels:
++    {{- include "grid-enrollment.labels" . | nindent 4 }}
++spec:
++  policyName: {{ $name }}
++  validationActions: [Deny]
++{{- end }}
++{{- end }}
++{{- end }}
++{{- if .Chart.IsRoot }}
++{{ include "grid-enrollment.rhoai.enrollment/invite-admission.yaml" . }}
++{{- end }}
+--- /dev/null
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/templates/networkpolicy.yaml
+@@ -0,0 +1,67 @@
++{{- define "grid-enrollment.rhoai.networkpolicy.yaml" -}}
++{{- if eq .Values.mode "service" }}
++{{- include "grid-enrollment.normalize" . }}
++{{- $v := .Values }}
++{{- if and $v.networkPolicy.enabled (has $v.enrollment.service.type (list "LoadBalancer" "NodePort")) (not (include "grid-enrollment.routeEnabled" .)) (not $v.networkPolicy.from) }}
++{{- fail "networkPolicy.from requires explicit enrollment clients for LoadBalancer or NodePort without a Route" }}
++{{- end }}
++{{- if .Values.networkPolicy.enabled }}
++apiVersion: networking.k8s.io/v1
++kind: NetworkPolicy
++metadata:
++  name: {{ include "grid-enrollment.fullname" . }}
++  namespace: {{ .Release.Namespace }}
++  labels:
++    {{- include "grid-enrollment.labels" . | nindent 4 }}
++spec:
++  podSelector:
++    matchLabels:
++      {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 6 }}
++  policyTypes: [Ingress]
++  ingress:
++    - from:
++        # The release's invite Job calls enrollment over HTTPS.
++        - podSelector:
++            matchLabels:
++              {{- include "grid-enrollment.selectorLabels" . | nindent 14 }}
++              app.kubernetes.io/component: invite
++        {{- if include "grid-enrollment.routeEnabled" . }}
++        - namespaceSelector:
++            {{- toYaml .Values.networkPolicy.routerNamespaceSelector | nindent 12 }}
++        {{- end }}
++        {{- with .Values.networkPolicy.from }}
++        {{- toYaml . | nindent 8 }}
++        {{- end }}
++      ports:
++        - port: {{ include "grid-enrollment.listenPort" . }}
++          protocol: TCP
++{{- if eq .Values.db.type "builtin" }}
++---
++apiVersion: networking.k8s.io/v1
++kind: NetworkPolicy
++metadata:
++  name: {{ include "grid-enrollment.dbHost" . }}
++  namespace: {{ .Release.Namespace }}
++  labels:
++    {{- include "grid-enrollment.labels" . | nindent 4 }}
++spec:
++  podSelector:
++    matchLabels:
++      {{- include "grid-enrollment.selectorLabels" . | nindent 6 }}
++      app.kubernetes.io/component: db
++  policyTypes: [Ingress]
++  ingress:
++    - from:
++        - podSelector:
++            matchLabels:
++              {{- include "grid-enrollment.enrollmentSelectorLabels" . | nindent 14 }}
++      ports:
++        - port: 5432
++          protocol: TCP
++{{- end }}
++{{- end }}
++{{- end }}
++{{- end }}
++{{- if .Chart.IsRoot }}
++{{ include "grid-enrollment.rhoai.networkpolicy.yaml" . }}
++{{- end }}
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/values.schema.json
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/values.schema.json
+@@ -337,7 +337,7 @@
+               "minimum": 0
+             },
+             "resources": {
+-              "type": "object"
++              "$ref": "#/definitions/resourceBudget"
+             },
+             "policy": {
+               "description": "ValidatingAdmissionPolicy confining the bootstrap to the Secret names this chart renders.",
+@@ -350,7 +350,10 @@
+               "additionalProperties": false
+             }
+           },
+-          "additionalProperties": false
++          "additionalProperties": false,
++          "required": [
++            "resources"
++          ]
+         }
+       },
+       "required": [
+@@ -575,7 +578,7 @@
+           "additionalProperties": false
+         },
+         "resources": {
+-          "type": "object"
++          "$ref": "#/definitions/resourceBudget"
+         },
+         "podSecurityContext": {
+           "type": "object"
+@@ -625,7 +628,10 @@
+           }
+         }
+       },
+-      "additionalProperties": false
++      "additionalProperties": false,
++      "required": [
++        "resources"
++      ]
+     },
+     "db": {
+       "type": "object",
+@@ -661,7 +667,7 @@
+               }
+             },
+             "resources": {
+-              "type": "object"
++              "$ref": "#/definitions/resourceBudget"
+             },
+             "auth": {
+               "type": "object",
+@@ -690,7 +696,10 @@
+               "additionalProperties": false
+             }
+           },
+-          "additionalProperties": false
++          "additionalProperties": false,
++          "required": [
++            "resources"
++          ]
+         },
+         "external": {
+           "type": "object",
+@@ -817,7 +826,20 @@
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+-        "membership": { "type": "object", "additionalProperties": false, "properties": { "source": { "type": "string", "enum": ["Swim", "Local"], "description": "Where sites learn their members, Swim or Local. Local creates and delivers no SWIM key." } } }
++        "membership": {
++          "type": "object",
++          "additionalProperties": false,
++          "properties": {
++            "source": {
++              "type": "string",
++              "enum": [
++                "Swim",
++                "Local"
++              ],
++              "description": "Where sites learn their members, Swim or Local. Local creates and delivers no SWIM key."
++            }
++          }
++        }
+       }
+     },
+     "hubSite": {
+@@ -991,6 +1013,25 @@
+           "pattern": "^[a-z0-9][a-z0-9-]*-$"
+         }
+       }
++    },
++    "initResources": {},
++    "networkPolicy": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "enabled": {
++          "type": "boolean"
++        },
++        "from": {
++          "type": "array",
++          "items": {
++            "type": "object"
++          }
++        },
++        "routerNamespaceSelector": {
++          "type": "object"
++        }
++      }
+     }
+   },
+   "required": [
+@@ -998,7 +1039,61 @@
+     "ca",
+     "serving",
+     "enrollment",
+-    "db"
++    "db",
++    "initResources"
+   ],
+-  "additionalProperties": false
++  "additionalProperties": false,
++  "definitions": {
++    "resourceBudget": {
++      "type": "object",
++      "required": [
++        "requests",
++        "limits"
++      ],
++      "properties": {
++        "requests": {
++          "type": "object",
++          "required": [
++            "cpu",
++            "memory"
++          ],
++          "properties": {
++            "cpu": {
++              "type": [
++                "string",
++                "number"
++              ]
++            },
++            "memory": {
++              "type": [
++                "string",
++                "number"
++              ]
++            }
++          }
++        },
++        "limits": {
++          "type": "object",
++          "required": [
++            "cpu",
++            "memory"
++          ],
++          "properties": {
++            "cpu": {
++              "type": [
++                "string",
++                "number"
++              ]
++            },
++            "memory": {
++              "type": [
++                "string",
++                "number"
++              ]
++            }
++          }
++        }
++      }
++    }
++  }
+ }
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/values.yaml
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/values.yaml
+@@ -288,7 +288,13 @@
+     loadBalancerSourceRanges: []
+     # Service annotations, merged over the platform's.
+     annotations: {}
+-  resources: {}
++  resources:
++    requests:
++      cpu: 100m
++      memory: 256Mi
++    limits:
++      cpu: 1
++      memory: 512Mi
+   podSecurityContext:
+     runAsNonRoot: true
+     seccompProfile:
+@@ -317,7 +323,13 @@
+     # The PVC holds every site record. A GitOps install annotates it so its tool never prunes
+     # or deletes it, e.g. argocd.argoproj.io/sync-options: Prune=false,Delete=false.
+     pvcAnnotations: {}
+-    resources: {}
++    resources:
++      requests:
++        cpu: 100m
++        memory: 256Mi
++      limits:
++        cpu: 1
++        memory: 1Gi
+     auth:
+       database: enrollment
+       username: enrollment
+@@ -400,3 +412,18 @@
+   # rotate. Bootstrap signs it with the CA key and the service applies only what verifies.
+   # A Secret, so replaying an old seed needs the Secret access that already reads the CA key.
+   seedSecretName: grid-reserved-seeds
++
++# -- Resource budget for database readiness and TLS permission init containers.
++initResources:
++  requests: {cpu: 10m, memory: 32Mi}
++  limits: {cpu: 200m, memory: 128Mi}
++
++# -- Restrict enrollment and database ingress. Add explicit clients for direct access.
++networkPolicy:
++  enabled: true
++  # -- Additional NetworkPolicyPeer entries for the enrollment HTTPS listener.
++  from: []
++  # -- Router namespaces allowed when the enrollment Route is enabled.
++  routerNamespaceSelector:
++    matchLabels:
++      network.openshift.io/policy-group: ingress
+--- a/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/_helpers.tpl
++++ b/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/_helpers.tpl
+@@ -169,6 +169,11 @@
+ {{- $validateCA := $auth.validateCA | default dict }}
+ {{- $gridServing := $render.gridServing | default dict }}
+ {{- $telemetry := $render.telemetry | default dict }}
++{{- with $telemetry.otlpEndpoint }}
++{{- if not (hasPrefix "https://" .) }}
++{{- fail "praxisConfig.render.telemetry.otlpEndpoint must use https://; plaintext telemetry can expose credentials" }}
++{{- end }}
++{{- end }}
+ {{- if $telemetry.enabled }}
+ {{- if ne .Values.image.flavor "grid-gateway" }}
+ {{- fail "praxisConfig.render.telemetry.enabled needs image.flavor grid-gateway, whose Grid gateway build includes the OTLP and AI routing span features" }}
+--- a/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/route.yaml
++++ b/charts/rhai-on-openshift-chart/charts/praxis-gateway/templates/route.yaml
+@@ -10,6 +10,9 @@
+ {{- end }}
+ {{- if eq .Values.praxisConfig.source "operator" }}
+ {{- fail "route is not supported with praxisConfig.source operator: the operator's praxis.yaml listens on plaintext HTTP, and a Route here passes TLS through or re-encrypts to it. Expose the Service through an ingress that terminates TLS" }}
++{{- end }}
++{{- if and (eq .Values.praxisConfig.source "byo") (not (or .Values.route.externalTls .Values.listenerTls.secretName)) }}
++{{- fail "route needs TLS at the gateway: inline/external config requires route.externalTls=true and a TLS listener on the Service port" }}
+ {{- end }}
+ {{- if eq .Values.praxisConfig.source "render" }}
+ {{- $provider := eq (.Values.praxisConfig.render.role | default "consumer") "provider" }}
+--- a/charts/rhai-on-openshift-chart/charts/praxis-gateway/values.schema.json
++++ b/charts/rhai-on-openshift-chart/charts/praxis-gateway/values.schema.json
+@@ -3,7 +3,8 @@
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+-    "praxisConfig"
++    "praxisConfig",
++    "resources"
+   ],
+   "properties": {
+     "enabled": {
+@@ -1263,8 +1264,7 @@
+         "protocol": {
+           "type": "string",
+           "enum": [
+-            "TCP",
+-            "UDP"
++            "TCP"
+           ],
+           "description": "Port protocol."
+         }
+@@ -1362,6 +1362,10 @@
+               "description": "PEM CA that signed the gateway certificate, for reencrypt."
+             }
+           }
++        },
++        "externalTls": {
++          "type": "boolean",
++          "description": "Attest that a BYO praxis.yaml serves TLS on the Service port with a certificate valid for route.host."
+         }
+       }
+     },
+@@ -1561,7 +1565,7 @@
+       "description": "Seconds Kubernetes gives a terminating pod before killing it. Null: 30 plus shutdownDelaySeconds."
+     },
+     "resources": {
+-      "type": "object",
++      "$ref": "#/definitions/resourceBudget",
+       "description": "Container resource requests and limits."
+     },
+     "nodeSelector": {
+@@ -1593,5 +1597,58 @@
+       "type": "string",
+       "description": "Priority class for the gateway pod."
+     }
++  },
++  "definitions": {
++    "resourceBudget": {
++      "type": "object",
++      "required": [
++        "requests",
++        "limits"
++      ],
++      "properties": {
++        "requests": {
++          "type": "object",
++          "required": [
++            "cpu",
++            "memory"
++          ],
++          "properties": {
++            "cpu": {
++              "type": [
++                "string",
++                "number"
++              ]
++            },
++            "memory": {
++              "type": [
++                "string",
++                "number"
++              ]
++            }
++          }
++        },
++        "limits": {
++          "type": "object",
++          "required": [
++            "cpu",
++            "memory"
++          ],
++          "properties": {
++            "cpu": {
++              "type": [
++                "string",
++                "number"
++              ]
++            },
++            "memory": {
++              "type": [
++                "string",
++                "number"
++              ]
++            }
++          }
++        }
++      }
++    }
+   }
+ }
+--- a/charts/rhai-on-openshift-chart/charts/praxis-gateway/values.yaml
++++ b/charts/rhai-on-openshift-chart/charts/praxis-gateway/values.yaml
+@@ -391,11 +391,17 @@
+ # a LoadBalancer with externalTrafficPolicy Cluster can SNAT clients to node IPs.
+ networkPolicy:
+   # -- Render the NetworkPolicy.
+-  enabled: false
++  enabled: true
+   # -- NetworkPolicyPeer entries allowed to reach the listener. Required when enabled.
+   # {podSelector: {}} admits every pod in this namespace. An empty namespaceSelector and an
+   # ipBlock of 0.0.0.0/0 or ::/0 admit everyone and fail the render.
+-  from: []
++  from:
++    - podSelector:
++        matchLabels:
++          grid.opendatahub.io/gateway-client: "true"
++    - namespaceSelector:
++        matchLabels:
++          network.openshift.io/policy-group: ingress
+   # - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress}}
+   #   podSelector: {matchLabels: {app: authenticating-front}}
+ 
+@@ -461,6 +467,8 @@
+ 
+ # -- OpenShift Route to the Service, for a stable HTTPS name. The gateway terminates TLS.
+ route:
++  # -- Attest that a BYO praxis.yaml serves TLS on the Service port with a cert for route.host.
++  externalTls: false
+   # -- Render the Route. Needs the route.openshift.io/v1 API.
+   enabled: false
+   # -- External hostname, a name on the gateway certificate. Required when enabled.
+@@ -565,7 +573,13 @@
+ terminationGracePeriodSeconds: null
+ 
+ # -- Container resource requests and limits.
+-resources: {}
++resources:
++  requests:
++    cpu: 100m
++    memory: 128Mi
++  limits:
++    cpu: 2
++    memory: 1Gi
+ # -- Node selector for pod scheduling.
+ nodeSelector: {}
+ # -- Pod affinity rules.
+--- a/charts/rhai-on-openshift-chart/charts/grid-enrollment/values.yaml
++++ b/charts/rhai-on-openshift-chart/charts/grid-enrollment/values.yaml
+@@ -125,7 +125,13 @@
+     keySecretRef: ""
+   bootstrap:
+     # The `enrollment bootstrap` subcommand runs as the pre-install Job.
+-    resources: {}
++    resources:
++      requests:
++        cpu: 100m
++        memory: 128Mi
++      limits:
++        cpu: 500m
++        memory: 256Mi
+     # Seconds a finished bootstrap Job is kept for its logs. Null keeps it until the next hook.
+     ttlSecondsAfterFinished: 86400
+     policy:

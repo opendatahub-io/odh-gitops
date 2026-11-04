@@ -217,8 +217,8 @@ redact_version() {
     rm -f "${file}.bak"
 }
 
-# Helm versions differ in blank lines between rendered resources. Ignore those
-# only when the YAML data is unchanged; blank lines in block scalars can matter.
+# Helm versions differ in empty or indented blank lines between resources. Ignore
+# those only when the YAML data is unchanged; blank lines in block scalars matter.
 # Keep the text comparison so changes to comments are still detected.
 snapshots_match() {
     local actual="$1"
@@ -227,7 +227,7 @@ snapshots_match() {
     if diff -q "${actual}" "${expected}" > /dev/null 2>&1; then
         return 0
     fi
-    if ! diff -B -q "${actual}" "${expected}" > /dev/null 2>&1; then
+    if ! diff -I '^[[:space:]]*$' -q "${actual}" "${expected}" > /dev/null 2>&1; then
         return 1
     fi
 

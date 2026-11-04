@@ -12,6 +12,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |  | ai-grid-o11y-spoke | 0.1.0 |
 |  | grid-enrollment | 0.3.0-rc.4 |
 |  | praxis-gateway | 0.3.0-rc.4 |
+|  | praxis-provider-gateway(praxis-gateway) | 0.3.0-rc.4 |
 
 ## Values
 
@@ -22,6 +23,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | ai-grid-o11y-spoke.collector.namespace | string | `"redhat-ods-monitoring"` | Must match `operator.<type>.monitoringNamespace`; use `opendatahub` for default ODH installations. |
 | ai-grid-o11y-spoke.collector.port | int | `8890` | Port used by the exporter, scrape target and NetworkPolicy. |
 | ai-grid-o11y-spoke.credential.enabled | bool | `false` | Deliver the hub usage-log credential. Requires `credential.token`, passed with `--set-file` and never committed — note Helm stores supplied values in the release's own Secret, so that keeps the token out of git, not out of the cluster. It does **not** create `collector.namespace` on its own: the namespace template needs `collector.createNamespace` as well, and that defaults to false because most spokes already have the namespace and Helm cannot adopt one it does not own. |
+| argocd | object | `{"enabled":false}` | Enable Argo CD-specific resources, including partial server-side-apply patches |
 | components.aiHub | object | `{"defaults":{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}},"dependencies":{},"dsc":{"instancesNamespace":null,"managementState":null}}` | AI Hub component (Model Registry; replaces modelregistry from DSC v2) |
 | components.aiHub.defaults | object | `{"odh":{"instancesNamespace":"odh-model-registry"},"rhoai":{"instancesNamespace":"rhoai-model-registries"}}` | Operator-type-specific defaults for dsc fields |
 | components.aiHub.dependencies | object | `{}` | Dependencies required by AI Hub |
@@ -53,7 +55,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.data.dsc | object | `{"dataRegistry":{"managementState":null},"featureStore":{"managementState":null}}` | DSC configuration for Data |
 | components.data.dsc.dataRegistry.managementState | string | `nil` | Management state for Data Registry. Null uses profile default. |
 | components.data.dsc.featureStore.managementState | string | `nil` | Management state for Feature Store. Null uses profile default. |
-| components.kserve | object | `{"dependencies":{"certManager":true,"customMetricsAutoscaler":false,"jobSet":null,"leaderWorkerSet":false,"rhcl":true},"dsc":{"managementState":null,"modelExpress":{"managementState":null},"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless"},"gateway":{"create":"auto","labels":{"istio.io/rev":"openshift-gateway"},"name":"openshift-ai-inference","namespace":"openshift-ingress","spec":{"gatewayClassName":"openshift-ai-inference","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"openshift-ai-inference","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}` | KServe model serving component |
+| components.kserve | object | `{"dependencies":{"certManager":true,"customMetricsAutoscaler":false,"jobSet":null,"leaderWorkerSet":false,"rhcl":true},"dsc":{"managementState":null,"modelExpress":{"managementState":null},"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless"},"gateway":{"create":"auto","gridModelClient":{"create":"auto","namespace":"redhat-ai-grid","serviceAccountName":"grid-model-client","tokenSecretName":"grid-model-client-token"},"labels":{"istio.io/rev":"openshift-gateway"},"name":"openshift-ai-inference","namespace":"openshift-ingress","spec":{"gatewayClassName":"openshift-ai-inference","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}},"gatewayClass":{"create":"auto","name":"openshift-ai-inference","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}}` | KServe model serving component |
 | components.kserve.dependencies | object | `{"certManager":true,"customMetricsAutoscaler":false,"jobSet":null,"leaderWorkerSet":false,"rhcl":true}` | Dependencies required by KServe (set to false to disable) |
 | components.kserve.dependencies.jobSet | string | `nil` | JobSet dependency. Null uses profile default (true for default, false for rhaii). |
 | components.kserve.dsc | object | `{"managementState":null,"modelExpress":{"managementState":null},"nim":{"managementState":null},"rawDeploymentServiceConfig":"Headless"}` | DSC configuration for KServe |
@@ -63,8 +65,13 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | components.kserve.dsc.nim | object | `{"managementState":null}` | Enables NVIDIA NIM integration |
 | components.kserve.dsc.nim.managementState | string | `nil` | Management state for NIM. Null uses profile default. |
 | components.kserve.dsc.rawDeploymentServiceConfig | string | `"Headless"` | Raw deployment service config for KServe (Headless or Headed) |
-| components.kserve.gateway | object | `{"create":"auto","labels":{"istio.io/rev":"openshift-gateway"},"name":"openshift-ai-inference","namespace":"openshift-ingress","spec":{"gatewayClassName":"openshift-ai-inference","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}}` | Gateway configuration for KServe inference. |
+| components.kserve.gateway | object | `{"create":"auto","gridModelClient":{"create":"auto","namespace":"redhat-ai-grid","serviceAccountName":"grid-model-client","tokenSecretName":"grid-model-client-token"},"labels":{"istio.io/rev":"openshift-gateway"},"name":"openshift-ai-inference","namespace":"openshift-ingress","spec":{"gatewayClassName":"openshift-ai-inference","listeners":[{"allowedRoutes":{"namespaces":null},"name":"https","port":443,"protocol":"HTTPS"}]}}` | Gateway configuration for KServe inference. |
 | components.kserve.gateway.create | string | `"auto"` | Flag to create the Gateway (auto, true, false). If auto, it will be created if KServe is Managed. |
+| components.kserve.gateway.gridModelClient | object | `{"create":"auto","namespace":"redhat-ai-grid","serviceAccountName":"grid-model-client","tokenSecretName":"grid-model-client-token"}` | Grid identity used by the KServe model controller to call Grid providers. |
+| components.kserve.gateway.gridModelClient.create | string | `"auto"` | Create the Grid model-client identity: auto (when KServe and AI Grid are Managed), true (always), false (never). |
+| components.kserve.gateway.gridModelClient.namespace | string | `"redhat-ai-grid"` | Namespace that owns the Grid model-client identity. |
+| components.kserve.gateway.gridModelClient.serviceAccountName | string | `"grid-model-client"` | ServiceAccount used by the KServe model controller. |
+| components.kserve.gateway.gridModelClient.tokenSecretName | string | `"grid-model-client-token"` | Secret that stores the ServiceAccount token. |
 | components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces | string | `nil` | REQUIRED: set `from` to Selector (recommended) or Same. Template will fail if not set. When using Selector, the specified labels must be applied to each target namespace. |
 | components.kserve.gatewayClass | object | `{"create":"auto","name":"openshift-ai-inference","spec":{"controllerName":"openshift.io/gateway-controller/v1"}}` | GatewayClass configuration for KServe inference |
 | components.kserve.gatewayClass.create | string | `"auto"` | Create the GatewayClass: auto (if KServe is Managed), true (always), false (never) |
@@ -150,8 +157,10 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | dependencies.opentelemetry | object | `{"dependencies":{},"enabled":"auto","olm":{"channel":"stable","name":"opentelemetry-product","namespace":"openshift-opentelemetry-operator"}}` | OpenTelemetry operator |
 | dependencies.opentelemetry.dependencies | object | `{}` | Dependencies required by opentelemetry |
 | dependencies.opentelemetry.enabled | string | `"auto"` | Enable opentelemetry: auto (if needed), true (always), false (never) |
-| dependencies.rhcl | object | `{"config":{"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl | object | `{"config":{"authorinoServiceCaTrust":false,"authorinoSpec":{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1},"authorinoTrustedCA":{},"spec":{},"tlsEnabled":false},"dependencies":{"certManager":true},"enabled":"auto","olm":{"channel":"stable","name":"rhcl-operator","namespace":"kuadrant-system"}}` | RHCL (Kuadrant) operator |
+| dependencies.rhcl.config.authorinoServiceCaTrust | bool | `false` | Trust the OpenShift Service CA in Authorino while retaining platform CA trust |
 | dependencies.rhcl.config.authorinoSpec | object | `{"clusterWide":true,"listener":{"tls":{"certSecretRef":{"name":"authorino-server-cert"},"enabled":true}},"oidcServer":{"tls":{"enabled":false}},"replicas":1}` | Authorino CR spec (only created if tlsEnabled: true) |
+| dependencies.rhcl.config.authorinoTrustedCA | object | `{}` | Mount additional CA ConfigMaps into Authorino, such as the cluster trust bundle |
 | dependencies.rhcl.config.spec | object | `{}` | Kuadrant CR spec (user can add any fields) |
 | dependencies.rhcl.config.tlsEnabled | bool | `false` | Enable Authorino TLS configuration |
 | dependencies.rhcl.dependencies | object | `{"certManager":true}` | Dependencies required by rhcl |
@@ -162,9 +171,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | global | object | `{"relatedImages":[],"skipCrdCheck":false}` | Values shared by the optional AI Grid subcharts. |
 | global.relatedImages | list | `[]` | Full image references using the XKS name/value convention. See README.md for supported names. |
 | global.skipCrdCheck | bool | `false` | Mirror of `skipCrdCheck` for subcharts, which cannot read the parent's root values. Set both when rendering without a cluster, as the snapshot scenarios do. |
-| grid-enrollment | object | `{"enabled":true,"fullnameOverride":"grid-enrollment"}` | AI Grid enrollment service |
-| grid-enrollment.enabled | bool | `true` | Include enrollment when AIGateway and aiGrid are Managed. False uses an externally managed service. |
+| grid-enrollment | object | `{"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749"}}` | AI Grid enrollment service |
 | grid-enrollment.fullnameOverride | string | `"grid-enrollment"` | Stable resource names, independent of the release name |
+| grid-enrollment.image.digest | string | `"sha256:cdb9c6f5d9ccca8f87920a19db6ba3b38faea3f0dc4153bacd3e34a00c0ab749"` | Grid v0.3.0-rc.3. The platform's related image replaces it downstream. |
 | labels | object | `{}` | Common labels applied to all resources |
 | olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
 | olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
@@ -173,11 +182,11 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","createNamespace":true,"name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","createNamespace":true,"name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
-| praxis-gateway | object | `{"enabled":true,"fullnameOverride":"grid-gateway","image":{"flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.3.0-rc.3"}}` | AI Grid gateway (Praxis) |
-| praxis-gateway.enabled | bool | `true` | Include the gateway when AIGateway and aiGrid are Managed. False uses an externally managed gateway. |
+| praxis-gateway | object | `{"fullnameOverride":"grid-gateway","image":{"digest":"sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.3.0-rc.3"}}` | AI Grid gateway (Praxis) |
 | praxis-gateway.fullnameOverride | string | `"grid-gateway"` | Stable resource names, independent of the release name |
 | praxis-gateway.image.repository | string | `"ghcr.io/praxis-proxy/grid-gateway"` | Use the Grid gateway build, which includes Grid routing filters. |
-| profile | string | `"default"` | Deploy profile: sets default managementState for components and services. Options: default (all Removed), rhaii (inference), maas, ai-grid (Grid operator and CRDs) Explicit managementState values override the profile. |
+| praxis-provider-gateway | object | `{}` | AI Grid provider gateway for inference sites; a profile alias of praxis-gateway |
+| profile | string | `"default"` | Deploy profile: provides defaults for any chart or vendored-subchart value. Options: default (all Removed), rhaii (inference), maas, ai-grid-ingress (Grid ingress), ai-grid-inference (AI Grid inference site: KServe and the Grid operator, no MaaS or Grid runtimes) Explicit non-null user values override the profile. |
 | services.monitoring | object | `{"dependencies":{"certManager":true,"clusterObservability":true,"loki":true,"opentelemetry":true,"tempo":true},"dsci":{"alerting":{},"logs":{},"managementState":null,"metrics":{},"traces":{},"usageLogs":{}}}` | Monitoring service configuration |
 | services.monitoring.dsci.managementState | string | `nil` | Management state for monitoring. Null uses profile default or Removed. |
 | skipCrdCheck | bool | `false` | Skip CRD existence check - render all CRs regardless. Set to true for ArgoCD. |

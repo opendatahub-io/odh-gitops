@@ -229,7 +229,9 @@ Profiles provide preconfigured deployment types that set the right `managementSt
 | `default` | All components Removed (manual configuration) | None | None |
 | `rhaii` | RHAII inference/model-serving stack | kserve | certManager, leaderWorkerSet, rhcl |
 | `maas` | Models as a Service platform | aigateway (with `modelsAsAService`), kserve | certManager, rhcl |
-| `ai-grid` | AI Grid multi-cluster routing | aigateway (aiGrid) | None |
+| `ai-grid-ingress` | AI Grid ingress site with MaaS, the `grid-gateway` consumer, and the observability spoke | aigateway (`modelsAsAService`, `aiGrid`) | certManager, leaderWorkerSet, rhcl |
+| `ai-grid-inference` | AI Grid inference site with the `grid-provider-gateway` provider: serves models to the grid, no MaaS | aigateway (aiGrid), kserve | certManager, rhcl, nfd, nvidiaGPUOperator |
+| `ai-grid-combined` | AI Grid site with MaaS, local model serving, and both Grid gateways | aigateway (`modelsAsAService`, `aiGrid`), kserve | certManager, leaderWorkerSet, rhcl, nfd, nvidiaGPUOperator |
 
 With ordinary chart defaults, the `maas` profile installs `certManager` and `rhcl` (through `kserve`) but not
 `leaderWorkerSet` — `aigateway`'s `null` dependency default for it is not activated. Enable it explicitly
@@ -237,26 +239,34 @@ with `--set components.aigateway.dependencies.leaderWorkerSet=true`. The profile
 listener configuration for both `aigateway` and `kserve` before it renders — see
 [Enable Models as Service](#enable-models-as-service) and [KServe Gateway](#kserve-gateway).
 
-Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
+Profiles are defined as YAML files in the [`profiles/`](profiles/) directory. A profile can inherit bundled profiles with `extends: [base, overlay]`; parents merge left to right, the child's own values override its parents, and explicit user values override the whole profile chain. Inheritance uses the normal value merge rules: maps merge recursively, while arrays and scalars replace. See the [Contributing guide](../../CONTRIBUTING.md#adding-a-new-deploy-profile) for how to add new profiles.
 
 ### AI Grid
 
 AI Grid is opt-in. The default profile leaves it disabled and omits `aiGrid` for compatibility
-with payloads that do not yet expose the field. `--set profile=ai-grid` explicitly sets AIGateway
-and its `aiGrid` sub-component to `Managed`; other sub-components remain `Removed`.
+with payloads that do not yet expose the field. `--set profile=ai-grid-ingress` explicitly sets
+AIGateway, `modelsAsAService`, and `aiGrid` to `Managed`.
 An explicit `components.aigateway.dsc.aiGrid.managementState=Removed` overrides the profile.
 
 The AI Gateway operator owns the Grid operator and its CRDs (ai-gateway-operator PR #148).
 This chart does not install a second Grid operator. The profile requires an operator payload
 containing opendatahub-operator PR #4186; chart version `3.6.0` alone does not guarantee that payload.
 
-The profile also enables the Helm-managed gateway and enrollment workloads. Both runtime
-`enabled` flags default to `true`, but resources render only when the effective AIGateway
-and `aiGrid` management states are both `Managed`. Thus the default profile installs neither.
+The profile also enables the Helm-managed gateway and enrollment workloads. Runtime `enabled`
+flags default to `true` for the MaaS consumer and enrollment runtimes and `false` for the
+Grid provider gateway alias, but resources render only when the effective AIGateway and
+`aiGrid` management states are both `Managed`. Thus the default profile installs none of them.
 Setting either state to `Removed` suppresses both runtimes on the next Helm upgrade or GitOps
 sync with pruning enabled, even if their `enabled` flags remain `true`. Editing the live DSC
 alone does not update a Helm release.
 Set an individual runtime's `enabled: false` to supply that service externally.
+
+`--set profile=ai-grid-inference` configures an inference site: a cluster that serves models to
+the grid but runs no MaaS and no portal. It sets KServe and AIGateway with only `aiGrid` to
+`Managed`, leaves `modelsAsAService` and the dashboard `Removed`, and enables the Grid provider
+gateway. Enrollment runs on the grid hub, and the gateway in front of MaaS runs on ingress sites.
+Tenants reach the site's models through another cluster's MaaS gateway. A runtime's `enabled` is
+unset by default, so the profile decides; an explicit `enabled: true` or `false` overrides it.
 
 Use [`values-ai-grid-hub.yaml`](../../docs/examples/values-ai-grid-hub.yaml) to configure a
 hub's hostname, gateway ConfigMap and database Secret. The profile defaults render the upstream
@@ -327,10 +337,13 @@ when testing a custom payload, rather than setting a Helm-managed operator image
 
 ### How profiles work
 
-- When `profile` is set, it provides default `managementState` values for components that are not explicitly configured
-- **Explicit values always win**: setting `--set components.kserve.dsc.managementState=Removed` overrides the profile
+- When `profile` is set, its YAML file is deep-merged into the chart values as a defaults layer
+- **Explicit user values win**: setting `--set components.kserve.dsc.managementState=Removed` overrides the profile
 - Profile `default` preserves the standard behavior — all components are `Removed` unless you enable them manually
-- Profiles also control component dependency defaults (e.g., `rhaii` disables `jobSet` for kserve since it's not needed for inference-only deployments)
+- Profiles can set any chart or vendored-subchart value, including component dependency defaults and AI Grid runtime values
+- Maps merge recursively; arrays and scalars from a profile replace the corresponding chart default
+- `chart-defaults.yaml` records Helm's complete coalesced default layer. Regenerate it with `make chart-defaults` after changing `values.yaml` or vendored subchart defaults; chart tests reject a stale file
+- Helm does not retain value provenance. An explicit user value identical to a chart default is indistinguishable from that default and therefore cannot override a profile default
 
 ### Example: RHAII deployment
 
@@ -582,6 +595,36 @@ components:
 # will be auto-installed because kserve is Managed
 ```
 
+### Example: Enable the Grid model-client identity
+
+```yaml
+# values.yaml
+components:
+  kserve:
+    dsc:
+      managementState: Managed
+    gateway:
+      annotations:
+        grid.opendatahub.io/serving: >-
+          {
+            "networkName": "grid",
+            "namespace": "redhat-ai-grid",
+            "serviceAccount": "grid-model-client",
+            "tokenSecret": "grid-model-client-token",
+            "publishMetrics": true
+          }
+  aigateway:
+    dsc:
+      managementState: Managed
+      aiGrid:
+        managementState: Managed
+```
+
+When `components.kserve.gateway.gridModelClient.create` is `auto` (the default),
+the ServiceAccount and token Secret are created because KServe and AI Grid are
+Managed. Keep the annotation's Grid identity fields synchronized with the values
+under `components.kserve.gateway.gridModelClient`.
+
 ### Example: Skip a dependency you already have
 
 ```yaml
@@ -704,7 +747,7 @@ dependencies:
 ### Global Settings
 
 ```yaml
-# Deployment profile: default (all Removed), rhaii, maas
+# Deployment profile: default (all Removed), rhaii, maas, ai-grid-ingress, ai-grid-inference, ai-grid-combined
 # Explicit managementState values override the profile.
 profile: default
 
@@ -835,6 +878,8 @@ spec:
     helm:
       values: |
         skipCrdCheck: true
+        argocd:
+          enabled: true
         components:
           kserve:
             dsc:
@@ -846,11 +891,17 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 20s
+        factor: 2
+        maxDuration: 5m
     syncOptions:
       - SkipDryRunOnMissingResource=true
 ```
 
-ArgoCD automatically retries failed resources, so after operators install their CRDs, subsequent syncs will successfully apply the CRs.
+With the retry policy above, ArgoCD retries failed resources, so after operators install their CRDs, subsequent syncs will successfully apply the CRs.
 
 ### Enable Authorino TLS in ArgoCD
 
@@ -863,6 +914,20 @@ kubectl annotate svc/authorino-authorino-authorization \
 ```
 
 Once the secret is created, set `dependencies.rhcl.config.tlsEnabled` to `true` in the ArgoCD application values.
+
+### Trust the OpenShift Service CA in Authorino
+
+The Authorino CR does not expose an environment-variable field, so the chart cannot configure its CA environment through `authorinoSpec`. Instead, when both `argocd.enabled` and `dependencies.rhcl.config.authorinoServiceCaTrust` are enabled, it emits a partial Deployment patch intended for Argo CD server-side apply. The patch sets `SSL_CERT_FILE` to the Service CA certificate and `SSL_CERT_DIR` to the platform CA directory.
+
+`dependencies.rhcl.config.authorinoServiceCaTrust` defaults to `false`; enable it explicitly when Authorino must trust the OpenShift Service CA. Setting it back to `false` removes `SSL_CERT_FILE` and resets `SSL_CERT_DIR` to `/etc/ssl/certs`. The patch uses `Prune=false` and `Delete=false`, so the operator-managed Deployment remains if RHCL is later removed. The patch is not rendered for direct Helm installs because a partial Deployment manifest is not valid as a standalone Helm-managed resource.
+
+Go loads trusted roots when Authorino starts. After the OpenShift Service CA rotates, restart Authorino with `kubectl rollout restart deployment/authorino -n kuadrant-system`.
+
+On a fresh installation, the Authorino operator may not have created `Deployment/authorino` before Argo CD applies the wave-10 patch. Configure the retry policy shown in the example Application so Argo CD retries the same revision after the Deployment exists.
+
+### Tune the Kuadrant auth-service timeout
+
+Kuadrant configures its Wasm auth call with a `200ms` timeout by default. For cross-cluster OIDC providers or other higher-latency authorization chains, set `AUTH_SERVICE_TIMEOUT` through `dependencies.rhcl.olm.config.env`. OLM owns the operator Deployment and will preserve the variable when it reconciles the Subscription.
 
 ## Troubleshooting
 
