@@ -128,6 +128,8 @@ praxis-provider-gateway:
 
   image:
     flavor: grid-gateway
+    repository: ghcr.io/praxis-proxy/grid-gateway
+    digest: sha256:0010bc2167b5b0e13c533d6c789092566dd5f764661626b0e4dd05d37b94849b
 
   grid:
     networkName: grid
