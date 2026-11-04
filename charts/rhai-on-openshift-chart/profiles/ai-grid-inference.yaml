@@ -111,10 +111,7 @@ components:
                   matchLabels:
                     grid.opendatahub.io/allowed: "true"
 
-# Enrollment comes from grid-bootstrap on the hub, through ACM. The vendored
-# chart enables its own enrollment service unless this says otherwise.
-grid-enrollment:
-  enabled: false
+# Enrollment comes from grid-bootstrap on the hub, through ACM.
 
 praxis-gateway:
   enabled: false

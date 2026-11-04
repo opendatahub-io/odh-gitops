@@ -48,7 +48,6 @@ for name in ("grid-enrollment", "praxis-gateway"):
 for name, helpers in {
     "grid-enrollment": {
         "image": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE",
-        "dbImage": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE",
     },
     "praxis-gateway": {
         "image": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE",
