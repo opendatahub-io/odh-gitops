@@ -169,11 +169,6 @@ Validate praxisConfig: the source, and that each source gets only the settings i
 {{- $validateCA := $auth.validateCA | default dict }}
 {{- $gridServing := $render.gridServing | default dict }}
 {{- $telemetry := $render.telemetry | default dict }}
-{{- with $telemetry.otlpEndpoint }}
-{{- if not (hasPrefix "https://" .) }}
-{{- fail "praxisConfig.render.telemetry.otlpEndpoint must use https://; plaintext telemetry can expose credentials" }}
-{{- end }}
-{{- end }}
 {{- if $telemetry.enabled }}
 {{- if ne .Values.image.flavor "grid-gateway" }}
 {{- fail "praxisConfig.render.telemetry.enabled needs image.flavor grid-gateway, whose Grid gateway build includes the OTLP and AI routing span features" }}

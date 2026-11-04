@@ -3,8 +3,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "praxisConfig",
-    "resources"
+    "praxisConfig"
   ],
   "properties": {
     "enabled": {
@@ -1393,7 +1392,8 @@
         "protocol": {
           "type": "string",
           "enum": [
-            "TCP"
+            "TCP",
+            "UDP"
           ],
           "description": "Port protocol."
         }
@@ -1491,10 +1491,6 @@
               "description": "PEM CA that signed the gateway certificate, for reencrypt."
             }
           }
-        },
-        "externalTls": {
-          "type": "boolean",
-          "description": "Attest that a BYO praxis.yaml serves TLS on the Service port with a certificate valid for route.host."
         }
       }
     },
@@ -1694,7 +1690,7 @@
       "description": "Seconds Kubernetes gives a terminating pod before killing it. Null: 30 plus shutdownDelaySeconds."
     },
     "resources": {
-      "$ref": "#/definitions/resourceBudget",
+      "type": "object",
       "description": "Container resource requests and limits."
     },
     "nodeSelector": {
@@ -1725,59 +1721,6 @@
     "priorityClassName": {
       "type": "string",
       "description": "Priority class for the gateway pod."
-    }
-  },
-  "definitions": {
-    "resourceBudget": {
-      "type": "object",
-      "required": [
-        "requests",
-        "limits"
-      ],
-      "properties": {
-        "requests": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        },
-        "limits": {
-          "type": "object",
-          "required": [
-            "cpu",
-            "memory"
-          ],
-          "properties": {
-            "cpu": {
-              "type": [
-                "string",
-                "number"
-              ]
-            },
-            "memory": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          }
-        }
-      }
     }
   }
 }

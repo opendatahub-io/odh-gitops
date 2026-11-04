@@ -410,17 +410,11 @@ port:
 # a LoadBalancer with externalTrafficPolicy Cluster can SNAT clients to node IPs.
 networkPolicy:
   # -- Render the NetworkPolicy.
-  enabled: true
+  enabled: false
   # -- NetworkPolicyPeer entries allowed to reach the listener. Required when enabled.
   # {podSelector: {}} admits every pod in this namespace. An empty namespaceSelector and an
   # ipBlock of 0.0.0.0/0 or ::/0 admit everyone and fail the render.
-  from:
-    - podSelector:
-        matchLabels:
-          grid.opendatahub.io/gateway-client: "true"
-    - namespaceSelector:
-        matchLabels:
-          network.openshift.io/policy-group: ingress
+  from: []
   # - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress}}
   #   podSelector: {matchLabels: {app: authenticating-front}}
 
@@ -488,8 +482,6 @@ loadBalancerScope: internal
 
 # -- OpenShift Route to the Service, for a stable HTTPS name. The gateway terminates TLS.
 route:
-  # -- Attest that a BYO praxis.yaml serves TLS on the Service port with a cert for route.host.
-  externalTls: false
   # -- Render the Route. Needs the route.openshift.io/v1 API.
   enabled: false
   # -- External hostname, a name on the gateway certificate. Required when enabled.
@@ -594,13 +586,7 @@ shutdownDelaySeconds: 5
 terminationGracePeriodSeconds: null
 
 # -- Container resource requests and limits.
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 2
-    memory: 1Gi
+resources: {}
 # -- Node selector for pod scheduling.
 nodeSelector: {}
 # -- Pod affinity rules.
