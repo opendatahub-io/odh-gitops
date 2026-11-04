@@ -918,7 +918,7 @@ true
 
 {{/*
 =============================================================================
-Resolve whether an AI Grid runtime subchart (grid-enrollment, praxis-gateway,
+Resolve whether an AI Grid runtime subchart (praxis-gateway,
 praxis-provider-gateway) renders. An explicit <name>.enabled value wins; unset
 uses the profile's <name>.enabled. The default is true except for the provider
 gateway alias, which only inference profiles enable.
