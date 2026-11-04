@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-for name in ("praxis-gateway",):
+for name in ("grid-enrollment", "praxis-gateway"):
     templates = ROOT / "charts/rhai-on-openshift-chart/charts" / name / "templates"
     includes = []
     for path in sorted(templates.rglob("*")):
@@ -46,6 +46,10 @@ for name in ("praxis-gateway",):
 # Keep payload image overrides reproducible when charts are re-vendored. These
 # downstream helpers consume full image references from the parent operator.
 for name, helpers in {
+    "grid-enrollment": {
+        "image": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE",
+        "dbImage": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE",
+    },
     "praxis-gateway": {
         "image": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE",
         "overlaySyncImage": "RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE",

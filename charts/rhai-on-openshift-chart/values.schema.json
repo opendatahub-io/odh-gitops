@@ -33,6 +33,16 @@
       },
       "additionalProperties": false
     },
+    "grid-enrollment": {
+      "type": "object",
+      "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/grid-enrollment for its values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Unset uses the profile default, then true. False uses an externally managed service."
+        }
+      }
+    },
     "praxis-gateway": {
       "type": "object",
       "description": "AI Grid runtime, rendered only when AIGateway and aiGrid are Managed. See charts/praxis-gateway for its values.",

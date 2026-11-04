@@ -1,0 +1,209 @@
+{{- define "grid-enrollment.rhoai.certs/ca-bootstrap-rbac.yaml" -}}
+{{- if or (eq .Values.mode "service") .Values.gridIdentity.enabled }}
+{{- include "grid-enrollment.normalize" . }}
+{{- if include "grid-enrollment.bootstrapRuns" . }}
+{{- $ca := ne (include "grid-enrollment.caProvided" .) "true" }}
+{{/*
+RBAC for the bootstrap Job: it reads and writes the CA, bundle, serving, DB
+serving, and generated credentials Secrets in this namespace only. get+create
+cover generate-if-absent; update covers ca.forceRegenerate (replace-in-place, no
+absent window).
+
+Both the Job and these objects use `before-hook-creation` only. Helm 3.19 and
+later delete earlier successful hooks marked `hook-succeeded` when a later hook
+fails, so retaining them requires that policy. The Job's TTL removes it only
+when `ca.bootstrap.ttlSecondsAfterFinished` is configured; setting that value to
+null omits the TTL. These RBAC objects have no TTL and remain until the next
+hook run or manual cleanup.
+*/}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+automountServiceAccountToken: false
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+rules:
+  {{- if .Values.gridIdentity.enabled }}
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [{{ .Values.gridIdentity.configMapName | quote }}]
+    verbs: [get]
+  {{- end }}
+  {{- if eq .Values.mode "service" }}
+  # create cannot be resourceName-scoped (the object does not exist yet).
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  # get/update restricted to exactly the Secrets the bootstrap manages,
+  # so this SA cannot read any other Secret in the namespace.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      {{- if $ca }}
+      - {{ .Values.ca.keySecretName | quote }}
+      - {{ .Values.ca.bundleSecretName | quote }}
+      - {{ .Values.serving.secretName | quote }}
+      {{- if eq .Values.db.type "builtin" }}
+      - {{ .Values.db.builtin.tls.servingSecretName | quote }}
+      {{- end }}
+      {{- end }}
+      {{- if include "grid-enrollment.generatesDbCredentials" . }}
+      - {{ include "grid-enrollment.dbUrlSecret" . | quote }}
+      {{- end }}
+      {{- if include "grid-enrollment.generatesAdminTokens" . }}
+      - {{ include "grid-enrollment.adminTokensSecret" . | quote }}
+      {{- end }}
+    verbs: ["get", "update"]
+  {{- if .Values.hubSite.name }}
+  # The CA-signed seed registering the hub's key, applied server side. Secret create is
+  # granted above; get and patch reach only this Secret.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ .Values.hubSite.seedSecretName | quote }}
+    verbs: ["get", "patch"]
+  {{- end }}
+  {{- if and .Values.hubSite.name .Values.hubSite.swimKeySecretName }}
+  # The SWIM key is created once and only read back, never replaced.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ .Values.hubSite.swimKeySecretName | quote }}
+    verbs: ["get"]
+  {{- end }}
+  {{- if or (include "grid-enrollment.generatesDbCredentials" .) (include "grid-enrollment.generatesAdminTokens" .) }}
+  # patch marks the generated credentials so Argo CD never prunes them.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      {{- if include "grid-enrollment.generatesDbCredentials" . }}
+      - {{ include "grid-enrollment.dbUrlSecret" . | quote }}
+      {{- end }}
+      {{- if include "grid-enrollment.generatesAdminTokens" . }}
+      - {{ include "grid-enrollment.adminTokensSecret" . | quote }}
+      {{- end }}
+    verbs: ["patch"]
+  {{- end }}
+  {{- if and $ca (eq .Values.db.type "builtin") }}
+  # Read and roll the builtin Postgres, and nothing else, so it serves the
+  # certificate its Secret holds.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames:
+      - {{ include "grid-enrollment.dbHost" . | quote }}
+    verbs: ["get", "patch"]
+  {{- end }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.bootstrapServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- with .Values.hubSite.name }}
+{{- $name := printf "%s-hub-site" (include "grid-enrollment.bootstrapServiceAccountName" $) }}
+---
+{{- /* The hub identity is stored in the operator namespace. Kubernetes cannot limit Secret creation to one name,
+so this ServiceAccount can create any Secret there until the next hook run or manual cleanup. It already has the CA
+key, so this extra permission adds little additional risk. */}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.hubSite.namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ $.Values.hubSite.identitySecretName | quote }}
+      - {{ $.Values.hubSite.caSecretName | quote }}
+    verbs: ["get", "update"]
+  # Replacing an operator's placeholder identity changes its type, which only delete
+  # and create can do.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ $.Values.hubSite.identitySecretName | quote }}
+    verbs: ["delete"]
+  {{- with $.Values.hubSite.swimKeySecretName }}
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ . | quote }}
+    verbs: ["get"]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.hubSite.namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grid-enrollment.bootstrapServiceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.certs/ca-bootstrap-rbac.yaml" . }}
+{{- end }}

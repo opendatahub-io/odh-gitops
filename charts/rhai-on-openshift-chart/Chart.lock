@@ -1,4 +1,7 @@
 dependencies:
+- name: grid-enrollment
+  repository: ""
+  version: 0.3.0-rc.4
 - name: praxis-gateway
   repository: ""
   version: 0.3.0-rc.4
@@ -11,5 +14,5 @@ dependencies:
 - name: ai-grid-o11y-spoke
   repository: ""
   version: 0.1.0
-digest: sha256:1c7c47a219d06a58d5abc93151d1e72a40b1de9396e80c6ce70c5b4bbe281cb7
-generated: "2026-11-04T12:37:34.156606707-05:00"
+digest: sha256:362ed01c8f431be0b18a6c6311e4d18a0f59a905890a915834ee8a3d930b3f57
+generated: "2026-11-04T12:40:28.667367789+01:00"

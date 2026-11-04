@@ -296,6 +296,181 @@ dependencies:
 global:
   relatedImages: []
   skipCrdCheck: false
+grid-enrollment:
+  ca:
+    bootstrap:
+      policy:
+        enabled: true
+      resources: {}
+      ttlSecondsAfterFinished: 86400
+    bundleSecretName: grid-ca-bundle
+    commonName: grid-ca
+    confirmRotation: ""
+    forceRegenerate: false
+    keySecretName: grid-ca-key
+    method: builtin
+    provided:
+      keySecretRef: ""
+  commonLabels: {}
+  db:
+    builtin:
+      auth:
+        database: enrollment
+        existingSecretRef: ""
+        username: enrollment
+      image: quay.io/sclorg/postgresql-16-c9s:20260923
+      imageDigest: ""
+      pullPolicy: IfNotPresent
+      pvcAnnotations: {}
+      resources: {}
+      storage: 8Gi
+      tls:
+        servingSecretName: grid-db-serving-tls
+    external:
+      caConfigMapKey: ca.crt
+      caConfigMapName: ""
+      connectionUrlSecretKey: DB_CONNECTION_URL
+      connectionUrlSecretRef: ""
+    type: builtin
+  enrollment:
+    affinity: {}
+    authz: kube
+    certLifetimeSecs: ""
+    csrRecord:
+      enabled: true
+      policy:
+        enabled: true
+      signerName: grid.praxis.fast/site
+    enrollmentAdmins:
+      subjects: []
+    gridAdminTokens:
+      existingSecretRef: ""
+      generate: true
+    gridAdmins:
+      serviceAccount:
+        create: false
+        name: grid-admin
+      subjects: []
+    inviteSecrets:
+      namespace: ""
+    listenAddr: 0.0.0.0:8443
+    nodeSelector: {}
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    replicaCount: 1
+    resources: {}
+    rotation:
+      enabled: true
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+    service:
+      annotations: {}
+      loadBalancerIP: ""
+      loadBalancerSourceRanges: []
+      type: ""
+    serviceAccount:
+      create: true
+      name: ""
+    tokenAudience: grid-enrollment
+    tolerations: []
+  external:
+    certManager:
+      ca:
+        bootstrapIssuerName: grid-root-selfsigned
+        certificateName: grid-root-ca
+        commonName: grid-root-ca
+        durationHours: 87600
+        mode: Existing
+        renewBeforeHours: 8760
+        secretName: grid-ca-key
+      certificate:
+        durationHours: 4320
+        renewBeforeHours: 1440
+      enabled: false
+      issuer:
+        create: false
+        group: cert-manager.io
+        kind: Issuer
+        name: grid-ca
+    delivery:
+      caSecretName: grid-ca
+      clusterSet: default
+      createClusterSetBinding: true
+      enabled: false
+      identitySecretName: grid-site-identity
+      includeLocalCluster: false
+      namespace: ""
+    sites: {}
+    trustBundleSecretKey: ca.crt
+    trustBundleSecretRef: ""
+  fullnameOverride: grid-enrollment
+  global:
+    relatedImages: []
+    skipCrdCheck: false
+  grid:
+    membership:
+      source: Swim
+  gridIdentity:
+    configMapName: grid-bootstrap-state
+    enabled: false
+  host: ""
+  hubSite:
+    caSecretName: grid-ca
+    identitySecretName: grid-site-identity
+    name: ""
+    namespace: ""
+    seedSecretName: grid-reserved-seeds
+    swimKeySecretName: grid-swim-key
+  image:
+    digest: sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d
+    pullPolicy: IfNotPresent
+    repository: ghcr.io/praxis-proxy/grid-enrollment
+    tag: ""
+  imagePullSecrets: []
+  invitePolicy:
+    clusterSet: default
+    enabled: false
+    namespace: ""
+  loadBalancerScope: internal
+  log:
+    filter: ""
+    level: info
+  managedClusters:
+    clusterLabel: grid.praxis.fast/member
+    clusterLabelValue: "true"
+    clusterSet: default
+    createClusterSetBinding: true
+    enabled: false
+    gatewayName: grid-gateway
+    hubClusterName: ""
+    identitySecretPrefix: grid-site-
+    networkName: grid
+    workName: grid-site-observer
+  mode: service
+  nameOverride: ""
+  platform: ""
+  route:
+    annotations: {}
+    enabled: auto
+    host: ""
+    rateLimit:
+      concurrentTcp: 10
+      enabled: true
+      rateTcp: 20
+    tls:
+      destinationCACertificate: ""
+      insecureEdgeTerminationPolicy: None
+      termination: passthrough
+  serving:
+    existingSecretRef: ""
+    extraDnsNames: []
+    secretName: enrollment-serving-tls
 labels: {}
 olm:
   installPlanApproval: Automatic

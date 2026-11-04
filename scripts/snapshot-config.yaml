@@ -246,11 +246,25 @@ charts:
           - components.aigateway.dsc.managementState=Managed
           - components.aigateway.dsc.aiGrid.managementState=Managed
 
+      - name: ai-grid-external-runtimes
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - grid-enrollment.enabled=false
+          - praxis-gateway.enabled=false
+
       - name: ai-grid-external-gateway
         setFlags:
           - skipCrdCheck=true
           - profile=ai-grid-ingress
           - praxis-gateway.enabled=false
+
+      - name: ai-grid-external-enrollment
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - grid-enrollment.enabled=false
+          - praxis-gateway.grid.siteName=local-cluster
 
       - name: ai-grid-inference-profile
         setFlags:
@@ -280,6 +294,60 @@ charts:
           - praxis-gateway.grid.siteName=local-cluster
           - praxis-provider-gateway.grid.siteName=local-cluster
 
+      - name: ai-grid-external-identities
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.sites.site-a.secretName=provided-site-a
+          - grid-enrollment.external.sites.site-a.cluster=managed-a
+          - grid-enrollment.external.trustBundleSecretRef=provided-trust
+          - grid-enrollment.external.delivery.enabled=true
+          - grid-enrollment.external.delivery.namespace=grid-system
+
+      - name: ai-grid-existing-ca
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+
+      - name: ai-grid-managed-clusters
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.fullnameOverride=grid-bootstrap
+          - grid-enrollment.mode=external
+          - grid-enrollment.gridIdentity.enabled=true
+          - grid-enrollment.grid.membership.source=Local
+          - grid-enrollment.managedClusters.enabled=true
+          - grid-enrollment.external.delivery.namespace=grid-system
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+
+      - name: ai-grid-generated-ca
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+          - grid-enrollment.external.certManager.ca.mode=Generate
+          - grid-enrollment.external.sites.site-a.secretName=site-a-identity
+
+      - name: ai-grid-invites
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.enrollment.authz=kube
+          - grid-enrollment.invites.site-a.network=grid
+
       - name: ai-grid-related-images
         valuesFiles:
           - charts/rhai-on-openshift-chart/test/values-ai-grid-images.yaml
@@ -289,8 +357,13 @@ charts:
       - name: ai-grid-hub
         setFlags:
           - profile=ai-grid-ingress
+          - grid-enrollment.route.enabled=false
           - skipCrdCheck=true
           - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.enrollment.authz=kube
+          - grid-enrollment.enrollment.serviceAccount.create=true
+          - grid-enrollment.db.type=external
+          - grid-enrollment.db.external.connectionUrlSecretRef=maas-db-config
 
       - name: ai-grid-o11y-hub
         valuesFiles:

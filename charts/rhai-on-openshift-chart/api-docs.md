@@ -10,6 +10,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |------------|------|---------|
 |  | ai-grid-o11y-hub | 0.1.0 |
 |  | ai-grid-o11y-spoke | 0.1.0 |
+|  | grid-enrollment | 0.3.0-rc.4 |
 |  | praxis-gateway | 0.3.0-rc.4 |
 |  | praxis-provider-gateway(praxis-gateway) | 0.3.0-rc.4 |
 
@@ -170,6 +171,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | global | object | `{"relatedImages":[],"skipCrdCheck":false}` | Values shared by the optional AI Grid subcharts. |
 | global.relatedImages | list | `[]` | Full image references using the XKS name/value convention. See README.md for supported names. |
 | global.skipCrdCheck | bool | `false` | Mirror of `skipCrdCheck` for subcharts, which cannot read the parent's root values. Set both when rendering without a cluster, as the snapshot scenarios do. |
+| grid-enrollment | object | `{"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d"}}` | AI Grid enrollment service |
+| grid-enrollment.fullnameOverride | string | `"grid-enrollment"` | Stable resource names, independent of the release name |
+| grid-enrollment.image.digest | string | `"sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d"` | Grid v0.3.0-rc.4. The platform's related image replaces it downstream. |
 | labels | object | `{}` | Common labels applied to all resources |
 | olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
 | olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
