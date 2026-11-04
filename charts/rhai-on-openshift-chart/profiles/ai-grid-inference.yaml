@@ -113,6 +113,8 @@ components:
 
 # Enrollment comes from grid-bootstrap on the hub, through ACM. The vendored
 # chart enables its own enrollment service unless this says otherwise.
+grid-enrollment:
+  enabled: false
 
 praxis-gateway:
   enabled: false

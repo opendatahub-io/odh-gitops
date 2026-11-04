@@ -728,6 +728,18 @@ dependencies:
 # AI GRID - Managed runtime subcharts vendored from github.com/praxis-proxy/grid.
 # Values under each key pass through to the subchart; see charts/<name> in this chart.
 # =============================================================================
+# -- AI Grid enrollment service
+grid-enrollment:
+  # Include enrollment when AIGateway and aiGrid are Managed. False uses an externally managed service.
+  # Unset uses the profile default, then true (the ai-grid-inference profile sets false).
+  # Not set here, so that the profile can decide; an explicit true or false wins.
+  # enabled: true
+  # -- Stable resource names, independent of the release name
+  fullnameOverride: grid-enrollment
+  image:
+    # -- Grid v0.3.0-rc.4. The platform's related image replaces it downstream.
+    digest: sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d
+
 # -- AI Grid gateway (Praxis)
 praxis-gateway:
   # Include the gateway when AIGateway and aiGrid are Managed. False uses an externally managed gateway.

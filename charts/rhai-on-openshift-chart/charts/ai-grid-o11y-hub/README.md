@@ -24,7 +24,8 @@ shows the two CRs, because that flag forces the check true.
 
 The store needs the Loki operator and an S3-compatible endpoint, nothing else — no RHOAI and
 no `odh-observability`. The spoke policy needs ACM on
-this cluster and the spokes imported; it renders ACM resources and does not install ACM.
+this cluster and the spokes imported; it renders ACM resources and does not install ACM,
+following `grid-enrollment`.
 
 Disabled by default. `ai-grid-o11y-hub.enabled=true` turns it on.
 

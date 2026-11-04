@@ -1,0 +1,13 @@
+{{- define "grid-enrollment.rhoai.certs/site-certificates.yaml" -}}
+{{- if and (eq .Values.mode "external") .Values.external.certManager.enabled }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- $ext := .Values.external -}}
+{{- range $name, $site := $ext.sites }}
+---
+{{ include "grid-enrollment.siteCertificate" (dict "root" $ "name" $name "secretName" ($site.secretName | default (printf "grid-site-%s" $name)) "dnsNames" $site.dnsNames) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.certs/site-certificates.yaml" . }}
+{{- end }}

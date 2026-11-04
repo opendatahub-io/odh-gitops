@@ -1,0 +1,20 @@
+{{- define "grid-enrollment.rhoai.certs/cert-manager-issuer.yaml" -}}
+{{- if and (eq .Values.mode "external") .Values.external.certManager.enabled }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- if .Values.external.certManager.issuer.create }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.external.certManager.issuer.name | quote }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grid-enrollment.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ .Values.external.certManager.ca.secretName | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.certs/cert-manager-issuer.yaml" . }}
+{{- end }}
