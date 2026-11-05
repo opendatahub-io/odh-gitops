@@ -107,12 +107,7 @@ spec:
                    identity: the read credential is unrelated to the collector's write
                    path and must be deliverable without it (both halves above off).
 
-                   The split between stringData and data is deliberate and asymmetric
-                   with the writer Secret above only in appearance: the endpoint is a
-                   resolved-by-ACM template whose result is plain text, while fromSecret
-                   emits base64 $ocm_encrypted ciphertext that stringData would encode a
-                   second time -- the policy would stay Compliant while every consumer
-                   presented a corrupt token. */}}
+            */}}
             - complianceType: musthave
               objectDefinition:
                 apiVersion: v1
@@ -121,9 +116,8 @@ spec:
                 metadata:
                   name: {{ $read.secretName | quote }}
                   namespace: {{ $read.namespace | quote }}
-                stringData:
-                  {{ $read.endpointKey }}: {{ include "ai-grid-o11y-hub.spokeReadEndpoint" $ | quote }}
                 data:
                   {{ $read.tokenKey }}: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $read.credentialSecretName }}'
+                  {{ $read.endpointKey }}: {{ include "ai-grid-o11y-hub.spokeReadEndpoint" $ | b64enc | quote }}
             {{- end }}
 {{- end }}
