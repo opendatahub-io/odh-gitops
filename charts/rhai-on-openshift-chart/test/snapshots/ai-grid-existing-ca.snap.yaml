@@ -492,6 +492,24 @@ spec:
   controllerName: openshift.io/gateway-controller/v1
 
 ---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "grid-ca"
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: grid-enrollment
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ca:
+    secretName: "grid-ca-key"
+
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
 kind: Kuadrant

@@ -252,11 +252,11 @@ The AI Gateway operator owns the Grid operator and its CRDs (ai-gateway-operator
 This chart does not install a second Grid operator. The profile requires an operator payload
 containing opendatahub-operator PR #4186; chart version `3.6.0` alone does not guarantee that payload.
 
-The profile also enables the Helm-managed gateway and enrollment workloads. Runtime `enabled`
-flags default to `true` for the MaaS consumer and enrollment runtimes and `false` for the
+The profile also enables the Helm-managed gateway workload. Runtime `enabled`
+flags default to `true` for the MaaS consumer gateway and `false` for the
 Grid provider gateway alias, but resources render only when the effective AIGateway and
 `aiGrid` management states are both `Managed`. Thus the default profile installs none of them.
-Setting either state to `Removed` suppresses both runtimes on the next Helm upgrade or GitOps
+Setting either state to `Removed` suppresses the runtimes on the next Helm upgrade or GitOps
 sync with pruning enabled, even if their `enabled` flags remain `true`. Editing the live DSC
 alone does not update a Helm release.
 Set an individual runtime's `enabled: false` to supply that service externally.
@@ -269,13 +269,14 @@ Tenants reach the site's models through another cluster's MaaS gateway. A runtim
 unset by default, so the profile decides; an explicit `enabled: true` or `false` overrides it.
 
 Use [`values-ai-grid-hub.yaml`](../../docs/examples/values-ai-grid-hub.yaml) to configure a
-hub's hostname, gateway ConfigMap and database Secret. The profile defaults render the upstream
-gateway status endpoint and built-in enrollment database; configure routing before using it
-for inference. Use a database provisioned for enrollment; do not point it at the MaaS database
-without a separate database/schema arrangement. Removal does not delete externally supplied
-ConfigMaps, Secrets or databases, or resources retained by upstream Helm hooks/retention policies.
+hub's gateway ConfigMap. The profile defaults render the upstream gateway status endpoint;
+configure routing before using it for inference. Removal does not delete externally supplied
+ConfigMaps or Secrets, or resources retained by upstream Helm hooks/retention policies.
 
-The gateway/enrollment charts are version `0.2.0`, vendored from `praxis-proxy/grid@3359afdcddda926f3cdf986f5173f12b30b40aae`.
+The gateway and enrollment charts are version `0.3.0-rc.4`, vendored from `praxis-proxy/grid` tag `v0.3.0-rc.4`.
+The vendored grid-enrollment keeps only mode external, which Grid hubs install standalone as
+grid-bootstrap. The update script drops the enrollment service, its database and invites, and
+the parent keeps the subchart disabled.
 The parent defaults to the Grid gateway image, rather than the generic Praxis AI image.
 Refresh with `make update-ai-grid-charts GRID_REF=<tag-or-sha>`; this reapplies the downstream
 image/review patches and runtime template adapter, updates the dependency lock, and regenerates
@@ -285,13 +286,12 @@ relying on Helm dependency conditions to evaluate profile templates.
 
 Downstream builds can inject full image references through `global.relatedImages`, using the
 same `name`/`value` convention as the XKS chart. These overrides take precedence over subchart
-image repository/tag/digest settings and apply to both containers and bootstrap/invite Jobs.
+image repository/tag/digest settings and apply to both containers and the CA bootstrap Job.
 
 | Name | Image |
 |------|-------|
 | `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE` | Grid gateway |
-| `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE` | Enrollment service and Jobs |
-| `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_POSTGRES_IMAGE` | Optional built-in PostgreSQL and database initialization |
+| `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE` | Grid CA bootstrap Job |
 | `RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE` | Optional gateway overlay-sync containers |
 
 ```yaml
@@ -301,28 +301,18 @@ global:
       value: registry.example.com/rhai/grid-gateway@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ```
 
-The parent pins gateway, enrollment, PostgreSQL and Helm test images by digest. When
+The parent pins gateway, enrollment and Helm test images by digest. When
 changing an image repository/tag, also replace its digest (or use `global.relatedImages`).
 Downstream payloads should provide digest-qualified related images, including enrollment,
 whose image also runs the CA bootstrap Job. Subchart standalone image settings retain the
 upstream defaults; the parent supplies the release pins.
 
-Gateway, enrollment, bootstrap, invite and database containers have CPU/memory budgets.
-These are starting limits; size them for your workload. PostgreSQL uses a read-only root
-with writable home, temporary and socket directories plus its data PVC.
-
 Ingress policies are enabled by default. Gateway clients in the release namespace must
 have `grid.opendatahub.io/gateway-client: "true"`; the default also admits OpenShift router
 namespaces labelled `network.openshift.io/policy-group: ingress`. Replace
 `praxis-gateway.networkPolicy.from` with the actual inference clients for your topology.
-Enrollment admits its invite Job, and router namespaces when its Route is enabled;
-add direct clients under `grid-enrollment.networkPolicy.from`. Built-in PostgreSQL admits
-only this release's enrollment pods. A NetworkPolicy-capable CNI is required; node probes
+A NetworkPolicy-capable CNI is required; node probes
 are not blocked. Direct LoadBalancer deployments must configure their permitted sources.
-
-Invite Jobs require Kubernetes ValidatingAdmissionPolicy support (GA in Kubernetes 1.30).
-Their admission policy limits writes to configured Opaque invite Secrets and rejects
-ServiceAccount-token annotations, independently of optional ACM delivery policies.
 
 For an inline or external gateway config, a Route requires `route.externalTls: true` to
 attest that its listener actually serves TLS. Generated configs retain their TLS validation.
