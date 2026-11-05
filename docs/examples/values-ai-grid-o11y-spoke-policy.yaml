@@ -40,13 +40,13 @@ ai-grid-o11y-hub:
     credentialSecretName: usage-logs-hub-credential
 
     # A spoke-side consumer that queries this hub's store gets its credential
-    # from the same policy. Uncomment, mint the reader token into
-    # usage-logs-hub-read-credential (see the chart README's Credentials
-    # section), and set namespace/secretName to whatever the consumer expects.
-    # The endpoint is the same Route host without /otlp.
+    # from the same policy. Uncomment, and provision the reader Secret
+    # usage-logs-hub-read-credential with BOTH keys, token and endpoint (see
+    # the chart README's Credentials section) — the endpoint comes from that
+    # Secret, never from values here. Set namespace/secretName to whatever the
+    # consumer expects.
     #   readCredential:
     #     enabled: true
-    #     endpoint: https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure
 
     placement:
       clusterSet: default

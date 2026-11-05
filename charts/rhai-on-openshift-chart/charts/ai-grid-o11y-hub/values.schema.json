@@ -257,7 +257,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 253,
-              "description": "Name of the Secret in spokePolicy.namespace holding the reader token under key token. Not created by this chart; ACM reads it with fromSecret and ships $ocm_encrypted ciphertext."
+              "description": "Name of the Secret in spokePolicy.namespace holding the reader credential under keys token and endpoint. Not created by this chart; ACM reads both with fromSecret and ships $ocm_encrypted ciphertext."
             },
             "endpointKey": {
               "type": "string",
@@ -270,11 +270,6 @@
               "minLength": 1,
               "maxLength": 253,
               "description": "Key the reader token is written to on the spoke."
-            },
-            "endpoint": {
-              "type": "string",
-              "pattern": "^(https://.*|\\{\\{hub .*hub\\}\\}.*|)$",
-              "description": "HTTPS query endpoint with a hostname and the exact /api/logs/v1/infrastructure path, without /otlp, a query or a fragment. May instead be an ACM hub template, resolved on the hub at delivery time; a lookup in that template also needs hubTemplateOptions.serviceAccountName. Empty is allowed for enabled: false."
             }
           },
           "additionalProperties": false

@@ -152,56 +152,6 @@ NonCompliant policy -- into a render-time message.
 {{- end }}
 
 {{/*
-The query endpoint distributed to read-only consumers on spokes, validated rather than
-passed through. Same contract as `spokeEndpoint` above with two differences: the exact
-path is the tenant root without `/otlp`, and the mistake to catch is an endpoint copied
-from `spokePolicy.endpoint` — the ingest route 404s every query, and a consumer that
-follows a redirect or swallows the status looks simply empty.
-*/}}
-{{- define "ai-grid-o11y-hub.spokeReadEndpoint" -}}
-{{- $e := .Values.spokePolicy.readCredential.endpoint | required "spokePolicy.readCredential.endpoint is required: the LokiStack Route host plus /api/logs/v1/infrastructure, without /otlp" -}}
-{{- $tenantPath := printf "/api/logs/v1/%s" (include "ai-grid-o11y-hub.tenant" .) -}}
-{{- if contains "{{hub" $e -}}
-{{- /* An ACM hub template; see spokeEndpoint for why the checks below bound the
-       template text rather than the URL it produces. */ -}}
-{{- if contains "/otlp" $e -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must not contain /otlp: that is the ingest route, which answers every query with 404. The query endpoint is the tenant root %s (got %q)" $tenantPath $e) -}}
-{{- end -}}
-{{- if not (contains "https://" $e) -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must produce an https:// URL: the policy ships this to every selected spoke, and each consumer sends its reader token to it (got %q)" $e) -}}
-{{- end -}}
-{{- if contains "http://" $e -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must not contain a literal http:// anywhere, even in a branch that looks unreachable: a template resolving to plaintext sends the reader token unencrypted. Interpolate only the Route host into an https:// format string (got %q)" $e) -}}
-{{- end -}}
-{{- if not (contains $tenantPath $e) -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must address the %s tenant: queries against another tenant are rejected by the gateway (got %q)" (include "ai-grid-o11y-hub.tenant" .) $e) -}}
-{{- end -}}
-{{- $sa := (.Values.spokePolicy.hubTemplateOptions | default dict).serviceAccountName | default "" -}}
-{{- if and (contains "lookup" $e) (not $sa) -}}
-{{- fail "spokePolicy.readCredential.endpoint uses `lookup`, which ACM allows only when spokePolicy.hubTemplateOptions.serviceAccountName names a ServiceAccount that can read what it looks up (ACM 2.12 and later). Grant that ServiceAccount get on the object, plus list and watch on its kind." -}}
-{{- end -}}
-{{- else -}}
-{{- if hasSuffix "/otlp" $e -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must not end in /otlp: that is the ingest route, which answers every query with 404. The query endpoint is the tenant root %s (got %q)" $tenantPath $e) -}}
-{{- end -}}
-{{- if not (hasPrefix "https://" $e) -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must start with https://: the policy ships this to every selected spoke, and each consumer sends its reader token to it (got %q)" $e) -}}
-{{- end -}}
-{{- if not (contains $tenantPath $e) -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must address the %s tenant: queries against another tenant are rejected by the gateway (got %q)" (include "ai-grid-o11y-hub.tenant" .) $e) -}}
-{{- end -}}
-{{- $url := urlParse $e -}}
-{{- if not $url.hostname -}}
-{{- fail "spokePolicy.readCredential.endpoint must include a hostname" -}}
-{{- end -}}
-{{- if or (ne $url.path $tenantPath) $url.query $url.fragment (hasSuffix "?" $e) (hasSuffix "#" $e) -}}
-{{- fail (printf "spokePolicy.readCredential.endpoint must use the exact query base path %s without a query or fragment (got %q)" $tenantPath $e) -}}
-{{- end -}}
-{{- end -}}
-{{- $e -}}
-{{- end }}
-
-{{/*
 Whether a CRD is present, so a CR is skipped until its operator has installed it. The parent
 chart gates every dependency CR this way and tells the installer to re-run `helm upgrade` once
 the CRDs exist; the store does the same, because the release that creates the LokiStack is also
