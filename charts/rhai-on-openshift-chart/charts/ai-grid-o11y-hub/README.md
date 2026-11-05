@@ -67,7 +67,8 @@ for a hub that forwards to a LokiStack this chart did not create.
 | `Namespace` | `ai-grid-policies` | spoke policy only |
 | `ManagedClusterSetBinding` | `default` | spoke policy only; ACM matches it to the set by name |
 | `Placement` + `PlacementBinding` | `ai-grid-maas-spokes` | spoke policy only |
-| `Policy` | `ai-grid-maas-remote-usage-logs` | spoke policy only; one `ConfigurationPolicy`, two object templates |
+| `Policy` | `ai-grid-maas-remote-usage-logs` | spoke policy only; one `ConfigurationPolicy`, up to three object templates |
+| `Secret` (on each spoke) | `usage-logs-loki` | spoke policy only, with `readCredential.enabled`; in `readCredential.namespace` |
 
 ## The ingest contract
 
@@ -169,6 +170,43 @@ operational commitment this chart cannot make.
 `ingest.reader.create` adds a separate read-only identity (`get`, not `create`) for an
 unattended consumer such as Grafana or a billing job. It is off by default, since any hub
 user who already holds the grant can read.
+
+`spokePolicy.readCredential.enabled` delivers that identity's credential to a consumer on
+each selected spoke: a `Secret` in `readCredential.namespace` carrying the query endpoint
+under `readCredential.endpointKey` and the token under `readCredential.tokenKey`. Both
+values come from one hub Secret, `readCredential.credentialSecretName` in
+`spokePolicy.namespace`, which must carry two keys:
+
+| Key | Value |
+|---|---|
+| `token` | a token minted for the reader ServiceAccount |
+| `endpoint` | the query endpoint: the LokiStack Route host plus the tenant path, **without** `/otlp` |
+
+Neither key comes from Helm values. The token is not a declarative object, and the
+endpoint is the hub Route's host, which differs per fleet and cannot be rendered by the
+Argo CD repo-server. The chart therefore never sees the endpoint: the policy reads both
+keys with `fromSecret` and ships them as `$ocm_encrypted` ciphertext, so neither value
+appears in a managed cluster's manifest or in this chart's rendered output.
+
+The provisioning workflow is expected to discover the Route at runtime and write both
+keys in one step, validating the endpoint before it is written — https only, the exact
+tenant root, and no `/otlp` suffix — and rotating the token and refreshing the endpoint
+together — re-running it is rotation, and the policy re-resolves the Secret so each spoke
+picks up the new values. Minting the pair imperatively, with the endpoint derived from
+the Route rather than copied from `spokePolicy.endpoint`:
+
+```bash
+oc create secret generic usage-logs-hub-read-credential -n ai-grid-policies \
+  --from-literal=endpoint="https://$ROUTE/api/logs/v1/infrastructure" \
+  --from-literal=token="$TOKEN"
+```
+
+The query endpoint is the tenant root **without** `/otlp` — that segment is the ingest
+route, and a copy-paste from `spokePolicy.endpoint` answers every query with 404. The
+consumer appends the Loki API paths itself, such as `/loki/api/v1/query`. The read
+Secret travels on the same Policy and Placement as the write credential, so both halves
+reach the same spokes; the spoke namespace must already exist there, which it does once
+the consumer's own install has run.
 
 ## The spoke policy
 

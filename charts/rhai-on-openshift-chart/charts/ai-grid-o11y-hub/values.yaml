@@ -202,6 +202,38 @@ spokePolicy:
   # replicated in clear text.
   credentialSecretName: usage-logs-hub-credential
 
+  # Delivers a read-only credential to each selected spoke, for a consumer there
+  # that queries this hub's store: a Secret holding the query endpoint and a token
+  # minted for a reader identity. Nothing here turns the read path on — it only
+  # hands over what a spoke-side consumer needs to reach the store.
+  readCredential:
+    # -- Deliver the read credential Secret to each spoke. The spoke namespace below
+    # must exist there before the policy can create the Secret: `redhat-ai-gateway-infra`
+    # arrives with the spoke's own install, and until then the policy is NonCompliant
+    # there for the same reason the DSCInitialization patch is.
+    enabled: false
+
+    # -- Name of the Secret created on each spoke.
+    secretName: usage-logs-loki
+
+    # -- Namespace on each spoke the Secret is created in. Whatever consumes it there
+    # owns this name; the chart only writes into it.
+    namespace: redhat-ai-gateway-infra
+
+    # -- Name of the Secret in `spokePolicy.namespace` holding the reader credential.
+    # Not created by this chart, for the same reason the writer token's is not:
+    # a token is not a declarative object, and the endpoint is the hub Route's
+    # host, which differs per fleet. The Secret must carry two keys: `token`
+    # (the reader token) and `endpoint` (the query endpoint). ACM reads both
+    # with `fromSecret` and ships `$ocm_encrypted:` ciphertext.
+    credentialSecretName: usage-logs-hub-read-credential
+
+    # -- Key the query endpoint is written to on the spoke.
+    endpointKey: LOKI_READ_ENDPOINT
+
+    # -- Key the reader token is written to on the spoke.
+    tokenKey: LOKI_READ_TOKEN
+
   # -- `enforce` creates and repairs the delivered objects; `inform` only reports drift
   # without changing anything, which is the safe way to preview a rollout.
   remediationAction: enforce
