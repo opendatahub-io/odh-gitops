@@ -233,6 +233,52 @@
           "minLength": 1,
           "maxLength": 253
         },
+        "readCredential": {
+          "type": "object",
+          "description": "Delivers a read-only credential Secret to each selected spoke, for a spoke-side consumer that queries this hub's store.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Deliver the read credential Secret. The spoke namespace must exist there before the policy can create the Secret."
+            },
+            "secretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Name of the Secret created on each spoke."
+            },
+            "namespace": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "description": "Namespace on each spoke the Secret is created in. Whatever consumes it there owns this name."
+            },
+            "credentialSecretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Name of the Secret in spokePolicy.namespace holding the reader token under key token. Not created by this chart; ACM reads it with fromSecret and ships $ocm_encrypted ciphertext."
+            },
+            "endpointKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Key the query endpoint is written to on the spoke."
+            },
+            "tokenKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Key the reader token is written to on the spoke."
+            },
+            "endpoint": {
+              "type": "string",
+              "pattern": "^(https://.*|\\{\\{hub .*hub\\}\\}.*|)$",
+              "description": "HTTPS query endpoint with a hostname and the exact /api/logs/v1/infrastructure path, without /otlp, a query or a fragment. May instead be an ACM hub template, resolved on the hub at delivery time; a lookup in that template also needs hubTemplateOptions.serviceAccountName. Empty is allowed for enabled: false."
+            }
+          },
+          "additionalProperties": false
+        },
         "remediationAction": {
           "type": "string",
           "enum": [

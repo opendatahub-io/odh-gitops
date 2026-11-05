@@ -202,6 +202,51 @@ spokePolicy:
   # replicated in clear text.
   credentialSecretName: usage-logs-hub-credential
 
+  # Delivers a read-only credential to each selected spoke, for a consumer there
+  # that queries this hub's store: a Secret holding the query endpoint and a token
+  # minted for a reader identity. Nothing here turns the read path on — it only
+  # hands over what a spoke-side consumer needs to reach the store.
+  readCredential:
+    # -- Deliver the read credential Secret to each spoke. The spoke namespace below
+    # must exist there before the policy can create the Secret: `redhat-ai-gateway-infra`
+    # arrives with the spoke's own install, and until then the policy is NonCompliant
+    # there for the same reason the DSCInitialization patch is.
+    enabled: false
+
+    # -- Name of the Secret created on each spoke.
+    secretName: usage-logs-loki
+
+    # -- Namespace on each spoke the Secret is created in. Whatever consumes it there
+    # owns this name; the chart only writes into it.
+    namespace: redhat-ai-gateway-infra
+
+    # -- Name of the Secret in `spokePolicy.namespace` holding the reader token under key
+    # `token`. Not created by this chart, for the same reason the writer token's is not:
+    # a token is not a declarative object. ACM reads it with `fromSecret` and ships
+    # `$ocm_encrypted:` ciphertext.
+    credentialSecretName: usage-logs-hub-read-credential
+
+    # -- Key the query endpoint is written to on the spoke.
+    endpointKey: LOKI_READ_ENDPOINT
+
+    # -- Key the reader token is written to on the spoke.
+    tokenKey: LOKI_READ_TOKEN
+
+    # -- The query endpoint the spoke-side consumer reads from: the LokiStack Route host
+    # plus the tenant path, **without** `/otlp` — that segment is the ingest route, and a
+    # copy-paste from `spokePolicy.endpoint` sends queries to a 404. The consumer appends
+    # the Loki API paths itself, such as `/loki/api/v1/query`. Required when enabled, and
+    # subject to the same validation as `spokePolicy.endpoint`: https only, the exact
+    # tenant path, and no `/otlp` suffix.
+    #
+    # May be an **ACM hub template** resolved on the hub at delivery time, exactly as
+    # `spokePolicy.endpoint` may; a `lookup` in it additionally needs
+    # `hubTemplateOptions.serviceAccountName`.
+    #
+    #   endpoint: '{{hub printf "https://%s/api/logs/v1/infrastructure"
+    #     (index (lookup "route.openshift.io/v1" "Route" "ai-grid-o11y" "usage-logs").status.ingress 0).host hub}}'
+    endpoint: ""
+
   # -- `enforce` creates and repairs the delivered objects; `inform` only reports drift
   # without changing anything, which is the safe way to preview a rollout.
   remediationAction: enforce

@@ -67,7 +67,8 @@ for a hub that forwards to a LokiStack this chart did not create.
 | `Namespace` | `ai-grid-policies` | spoke policy only |
 | `ManagedClusterSetBinding` | `default` | spoke policy only; ACM matches it to the set by name |
 | `Placement` + `PlacementBinding` | `ai-grid-maas-spokes` | spoke policy only |
-| `Policy` | `ai-grid-maas-remote-usage-logs` | spoke policy only; one `ConfigurationPolicy`, two object templates |
+| `Policy` | `ai-grid-maas-remote-usage-logs` | spoke policy only; one `ConfigurationPolicy`, up to three object templates |
+| `Secret` (on each spoke) | `usage-logs-loki` | spoke policy only, with `readCredential.enabled`; in `readCredential.namespace` |
 
 ## The ingest contract
 
@@ -169,6 +170,24 @@ operational commitment this chart cannot make.
 `ingest.reader.create` adds a separate read-only identity (`get`, not `create`) for an
 unattended consumer such as Grafana or a billing job. It is off by default, since any hub
 user who already holds the grant can read.
+
+`spokePolicy.readCredential.enabled` delivers that identity's token to a consumer on each
+selected spoke: a `Secret` in `readCredential.namespace` carrying the query endpoint under
+`readCredential.endpointKey` and the token under `readCredential.tokenKey`. The token is
+minted the same imperative way, into `readCredential.credentialSecretName` in
+`spokePolicy.namespace`:
+
+```bash
+oc create secret generic usage-logs-hub-read-credential -n ai-grid-policies \
+  --from-file=token="$TOKEN_FILE"
+```
+
+The query endpoint is the LokiStack Route host plus the tenant path **without** `/otlp` —
+that segment is the ingest route, and a copy-paste from `spokePolicy.endpoint` answers
+every query with 404. The consumer appends the Loki API paths itself, such as
+`/loki/api/v1/query`. The read Secret travels on the same Policy and Placement as the write
+credential, so both halves reach the same spokes; the spoke namespace must already exist
+there, which it does once the consumer's own install has run.
 
 ## The spoke policy
 

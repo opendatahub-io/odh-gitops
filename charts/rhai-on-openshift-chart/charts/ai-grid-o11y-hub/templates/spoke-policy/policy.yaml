@@ -1,8 +1,9 @@
 {{- if and .Values.enabled .Values.spokePolicy.enabled }}
 {{- $d := .Values.spokePolicy }}
 {{- $spoke := $d.spoke }}
-{{- if not (or $d.deliverCredential $d.deliverConfiguration) }}
-{{- fail "spokePolicy needs deliverCredential and/or deliverConfiguration: with both false the ConfigurationPolicy would carry no object-templates" }}
+{{- $read := $d.readCredential | default dict }}
+{{- if not (or $d.deliverCredential $d.deliverConfiguration $read.enabled) }}
+{{- fail "spokePolicy needs deliverCredential and/or deliverConfiguration, or readCredential.enabled: with all off the ConfigurationPolicy would carry no object-templates" }}
 {{- end }}
 {{- if and $d.deliverConfiguration (eq $spoke.exporterName "otlphttp/loki") }}
 {{- fail "spokePolicy.spoke.exporterName may not be otlphttp/loki: that name is reserved for the spoke-local write and odh-observability rejects it" }}
@@ -100,5 +101,29 @@ spec:
                       exporters:
                         {{ $spoke.exporterName }}:
                           endpoint: {{ include "ai-grid-o11y-hub.spokeEndpoint" $ | quote }}
+            {{- end }}
+            {{- if $read.enabled }}
+            {{- /* A separate consumer on the spoke, in its own namespace, holding its own
+                   identity: the read credential is unrelated to the collector's write
+                   path and must be deliverable without it (both halves above off).
+
+                   The split between stringData and data is deliberate and asymmetric
+                   with the writer Secret above only in appearance: the endpoint is a
+                   resolved-by-ACM template whose result is plain text, while fromSecret
+                   emits base64 $ocm_encrypted ciphertext that stringData would encode a
+                   second time -- the policy would stay Compliant while every consumer
+                   presented a corrupt token. */}}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: {{ $read.secretName | quote }}
+                  namespace: {{ $read.namespace | quote }}
+                stringData:
+                  {{ $read.endpointKey }}: {{ include "ai-grid-o11y-hub.spokeReadEndpoint" $ | quote }}
+                data:
+                  {{ $read.tokenKey }}: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $read.credentialSecretName }}'
             {{- end }}
 {{- end }}

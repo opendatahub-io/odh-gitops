@@ -39,6 +39,15 @@ ai-grid-o11y-hub:
     endpoint: https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure/otlp
     credentialSecretName: usage-logs-hub-credential
 
+    # A spoke-side consumer that queries this hub's store gets its credential
+    # from the same policy. Uncomment, mint the reader token into
+    # usage-logs-hub-read-credential (see the chart README's Credentials
+    # section), and set namespace/secretName to whatever the consumer expects.
+    # The endpoint is the same Route host without /otlp.
+    #   readCredential:
+    #     enabled: true
+    #     endpoint: https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure
+
     placement:
       clusterSet: default
       # "Runs MaaS", not "is in the grid": a grid cluster without MaaS would be
