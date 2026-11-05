@@ -118,6 +118,6 @@ spec:
                   namespace: {{ $read.namespace | quote }}
                 data:
                   {{ $read.tokenKey }}: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $read.credentialSecretName }}'
-                  {{ $read.endpointKey }}: {{ include "ai-grid-o11y-hub.spokeReadEndpoint" $ | b64enc | quote }}
+                  {{ $read.endpointKey }}: '{{ printf "{{hub fromSecret %q %q \"endpoint\" hub}}" $d.namespace $read.credentialSecretName }}'
             {{- end }}
 {{- end }}
