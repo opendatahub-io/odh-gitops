@@ -389,6 +389,19 @@ charts:
           - ai-grid-o11y-hub.spokePolicy.deliverConfiguration=false
           - ai-grid-o11y-hub.spokePolicy.endpoint=
 
+      - name: ai-grid-o11y-hub-spoke-policy-read-credential
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          # The read credential alongside the write path: same policy, third
+          # object template, into the consumer's namespace on each spoke. The
+          # endpoint is not set here: it comes from the hub Secret's endpoint
+          # key, not from values.
+          - ai-grid-o11y-hub.spokePolicy.readCredential.enabled=true
+
       - name: ai-grid-o11y-hub-spoke-policy-reject-nothing-to-deliver
         valuesFiles:
           - docs/examples/values-ai-grid-o11y-hub.yaml
