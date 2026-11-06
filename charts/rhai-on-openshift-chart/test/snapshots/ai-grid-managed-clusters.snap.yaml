@@ -893,7 +893,7 @@ spec:
         kind: Panel
         spec:
           display:
-            name: Requests sent to unhealthy sites
+            name: Sent to unhealthy sites
             description: Share of requests this gateway sent to a site it had marked unhealthy, because no healthy site was left for that model. The request still gets served. Above zero means the grid is running
               a model on sites it would normally avoid.
           plugin:
@@ -1704,7 +1704,7 @@ spec:
                   datasource: *id001
                   seriesNameFormat: '{{site}} {{backend}}'
                   query: sum by (site, backend) (rate(grid_route_decisions_total{site=~"$site",backend=~"$backend",reason=~"routed|fallback",exported_namespace=~"$namespace"}[$__rate_interval])) / ignoring(site,
-                    backend) group_left sum(rate(grid_route_decisions_total{reason=~"routed|fallback",exported_namespace=~"$namespace"}[$__rate_interval]))
+                    backend) group_left() (sum(rate(grid_route_decisions_total{reason=~"routed|fallback",exported_namespace=~"$namespace"}[$__rate_interval])) > 0)
     layouts:
     - kind: Grid
       spec:
