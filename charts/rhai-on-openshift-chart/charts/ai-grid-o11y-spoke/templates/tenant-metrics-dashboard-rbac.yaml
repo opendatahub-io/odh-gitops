@@ -1,0 +1,32 @@
+{{ if .Values.tenantMetrics.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-grid-tenant-perses-dashboards-reader
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [perses.dev]
+    resources: [persesdashboards]
+    resourceNames:
+      - dashboard-0-ai-grid-tenant-cluster-admin
+      - dashboard-1-ai-grid-tenant-models-admin
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-grid-tenant-perses-dashboards-reader
+  namespace: redhat-ods-monitoring
+  labels:
+    {{- include "ai-grid-o11y-spoke.tenantMetrics.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ai-grid-tenant-perses-dashboards-reader
+subjects:
+  - kind: ServiceAccount
+    name: odh-dashboard-maas
+    namespace: {{ required "tenantMetrics.portalServiceAccountNamespace is required" .Values.tenantMetrics.portalServiceAccountNamespace | quote }}
+{{ end }}

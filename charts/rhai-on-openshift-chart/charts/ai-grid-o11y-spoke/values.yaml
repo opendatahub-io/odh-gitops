@@ -1,10 +1,10 @@
-# ai-grid-o11y-spoke is the spoke side of AI Grid observability, and it does two unrelated
-# jobs for the one collector in `collector.namespace`:
+# ai-grid-o11y-spoke is the spoke side of AI Grid observability. It has three
+# independent parts:
 #
-#   metrics      a ScrapeConfig and a NetworkPolicy that let the ACM observability
-#                metrics-collector agents federate RHOAI metrics off this cluster
-#   usage logs   the monitoring namespace and the hub credential the usage-log collector
-#                mounts, in place *before* that collector starts
+#   metrics        a ScrapeConfig and NetworkPolicy for ACM metric federation
+#   usage logs     the monitoring namespace and hub credential mounted by the collector
+#   tenant metrics Perses dashboards and query proxy; Models-as-a-Service owns
+#                  the public route and MaaS authentication flow
 #
 # Neither configures the collector itself. Metrics exporters and
 # `services.monitoring.dsci.usageLogs` are both the parent chart's, which the platform
@@ -51,10 +51,8 @@ collector:
   # is using.
   createNamespace: false
 
-# -- Labels added to the objects this chart's usage-log half renders: the credential `Secret`
-# and the monitoring `Namespace`. The metrics half (`ScrapeConfig`,
-# `NetworkPolicy allow-acm-rhai-metrics`) does not carry them, so that #215's rendered output
-# stays byte-identical.
+# -- Labels added to usage-log resources and tenant-metrics infrastructure.
+# The ACM federation resources keep their original labels.
 commonLabels: {}
 
 metrics:
@@ -93,3 +91,36 @@ credential:
   # Helm stores the supplied token in release history as well as the credential Secret.
   # Restrict access to the release namespace as strictly as the credential namespace.
   token: ""
+
+# -- Tenant-scoped Perses metrics on a spoke. This reuses the RHOAI Perses instance
+# in redhat-ods-monitoring and does not create a new Perses CR.
+tenantMetrics:
+  # -- Render the dashboards, datasource, query proxy, and dashboard-reader RBAC.
+  # Models-as-a-Service owns the public Perses route and MaaS authentication flow.
+  enabled: false
+  # -- Namespace containing the MaaS portal BFF service account. Must match
+  # operator.rhoai.applicationsNamespace when installing through the parent chart.
+  portalServiceAccountNamespace: redhat-ods-applications
+  # -- Fully qualified prom-label-proxy image. Supply the RHOAI operand image for
+  # the target release; required when enabled.
+  image: ""
+  # -- Reachable Thanos query URL on the hub. The hub/spoke network connection is
+  # provisioned separately. The in-Pod relay uses this URL to reach the hub and
+  # sets its hostname as the outgoing Host header. Required when enabled.
+  upstreamURL: ""
+  hubRelay:
+    # -- NGINX image used as the in-Pod relay to the hub Route. Required when tenant metrics are enabled.
+    image: ""
+    # -- Existing spoke Secret containing the hub metrics reader token under key `token`.
+    # The hub's ACM policy creates it when tenantMetricsReader.spokePolicy is enabled.
+    # It is absent from chart values and Helm release history.
+    tokenSecretName: ai-grid-hub-metrics-reader-token
+    # -- Local relay port. This is reachable only by the prom-label-proxy container.
+    port: 8081
+    # -- Maximum number of intermediate CAs accepted while verifying the hub Route certificate.
+    tlsVerifyDepth: 2
+  # -- ConfigMap in redhat-ods-monitoring containing PEM roots for the upstream
+  # HTTPS endpoint. The RHOAI-managed bundle trusts the hub Route certificate.
+  upstreamCAConfigMap: odh-trusted-ca-bundle
+  # -- Key in upstreamCAConfigMap holding the PEM CA bundle.
+  upstreamCAConfigMapKey: ca-bundle.crt

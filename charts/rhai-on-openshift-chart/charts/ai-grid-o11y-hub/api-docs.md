@@ -2,7 +2,7 @@
 
 ![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
 
-Central LokiStack on an ACM hub that AI Grid spokes write MaaS usage logs to, with the ACM policy that configures them
+AI Grid hub observability resources for usage logs, spoke policy, and ACM metrics reader identity
 
 ## Values
 
@@ -15,14 +15,14 @@ Central LokiStack on an ACM hub that AI Grid spokes write MaaS usage logs to, wi
 | ingest.reader.serviceAccountName | string | `""` | Reader ServiceAccount name. Defaults to `<lokiStack.name>-reader`. |
 | ingest.writer.create | bool | `true` | Create the writer ServiceAccount, ClusterRole and binding. This is the identity every spoke presents, so without it no spoke can write. |
 | ingest.writer.serviceAccountName | string | `""` | Writer ServiceAccount name. Defaults to `<lokiStack.name>-writer`. |
-| lokiStack.enabled | bool | `true` | Render the store: the LokiStack, its object storage and the ingest identities. Set false to render nothing but the spoke policy, for a hub that forwards to a LokiStack this chart did not create — the endpoint is only a string, so the store may live anywhere. Everything under `objectStorage` and `ingest` is skipped with it. |
+| lokiStack.enabled | bool | `true` | Render the store: the LokiStack, its object storage and the ingest identities. Set false to skip the store, object storage and ingest identities while still allowing the spoke policy and metrics reader identity to be rendered. |
 | lokiStack.limits | object | `{}` | `spec.limits`, passed through. Retention lives here and Loki keeps everything forever without it, e.g. `global: {retention: {days: 30}}`. The hub carries aggregated fleet volume, so this is a sizing decision the chart cannot make. |
 | lokiStack.name | string | `"usage-logs"` | LokiStack name. It also prefixes the storage Secret, the ingest ClusterRoles and the Route the Loki operator creates, so the ingest endpoint is `https://<name>-<namespace>.apps.<hub-domain>/api/logs/v1/infrastructure/otlp`. |
 | lokiStack.schemas | list | `[{"effectiveDate":"","version":"v13"}]` | Object storage schemas. `effectiveDate` must not be in the future at install time or the stack never becomes Ready, so it has no default and must be set. |
 | lokiStack.size | string | `"1x.extra-small"` | Loki t-shirt size. `1x.extra-small` requests 1 CPU and 5.25Gi per ingester across three ingesters and will not schedule on a small hub; `1x.demo` carries identical ingestion limits (4 MB/s sustained, 6 MB burst, 5 MB per stream) with a single ingester and no resource requests at all, but has no redundancy and is documented by Loki as demo-only. |
 | lokiStack.storageClassName | string | `"gp3-csi"` | StorageClass for the ingester, compactor and index-gateway volumes. Must be RWO. |
 | lokiStack.template | object | `{}` | `spec.template`, passed through, for per-component replicas, tolerations and node placement. |
-| namespace | string | `"ai-grid-o11y"` | Namespace holding the LokiStack, its storage Secret and the ingest identities. |
+| namespace | string | `"ai-grid-o11y"` | Namespace holding the LokiStack, ingest identities and metrics reader identity. |
 | objectStorage.obc.create | bool | `false` | Render an ObjectBucketClaim, for a hub with OpenShift Data Foundation. The claim's credentials are **not** copied into the storage Secret: ODF publishes them under different key names than Loki reads, and no controller translates them. See the chart README for the one command that does it. |
 | objectStorage.obc.generateBucketName | string | `""` | Bucket name prefix; ODF appends a unique suffix. |
 | objectStorage.obc.name | string | `""` | ObjectBucketClaim name. Defaults to `<lokiStack.name>-bucket`. |
@@ -66,4 +66,18 @@ Central LokiStack on an ACM hub that AI Grid spokes write MaaS usage logs to, wi
 | spokePolicy.spoke.exporterName | string | `"otlphttp/hub"` | Exporter name under `usageLogs.exporters`. `otlphttp/loki` is reserved for the spoke-local write and is rejected. |
 | spokePolicy.spoke.monitoringNamespace | string | `"redhat-ods-monitoring"` | Namespace on the spoke that the usage-log collector reads its credential from. This is the operator's monitoring namespace: `redhat-ods-monitoring` for RHOAI, `opendatahub` for ODH. |
 | spokePolicy.spoke.size | string | `""` | LokiStack t-shirt size for a spoke that also keeps a usage-log store of its own, set through the same patch. Unrelated to `lokiStack.size` here. A forwarding spoke has no such store and ignores it, so the empty default — which leaves the spoke's value alone — is what nearly every fleet wants. |
+| tenantMetricsReader | object | `{"enabled":false,"spokePolicy":{"enabled":false,"name":"ai-grid-hub-metrics-reader-token","placement":{"clusterSet":"default","excludeLocalCluster":true,"matchLabels":{"ai-grid.redhat.com/maas":"true"},"name":"ai-grid-tenant-metrics-spokes"},"pruneObjectBehavior":"DeleteIfCreated","remediationAction":"enforce","severity":"medium","spoke":{"monitoringNamespace":"redhat-ods-monitoring","tokenSecretName":"ai-grid-hub-metrics-reader-token"}},"tokenSecretName":"ai-grid-hub-metrics-reader-token"}` | Create the hub identity used by spoke Perses datasources to query ACM metrics. Kubernetes populates its long-lived token Secret; the token is never put in chart values or Git. |
+| tenantMetricsReader.enabled | bool | `false` | Create the ServiceAccount, token Secret, ClusterRole and ClusterRoleBinding. Off by default. |
+| tenantMetricsReader.spokePolicy.enabled | bool | `false` | Deliver the Hub token to selected spokes with ACM. Off by default. |
+| tenantMetricsReader.spokePolicy.name | string | `"ai-grid-hub-metrics-reader-token"` | ACM Policy name. |
+| tenantMetricsReader.spokePolicy.placement.clusterSet | string | `"default"` | ManagedClusterSet selected by the Placement. |
+| tenantMetricsReader.spokePolicy.placement.excludeLocalCluster | bool | `true` | Exclude the Hub's local-cluster from the Placement. |
+| tenantMetricsReader.spokePolicy.placement.matchLabels | object | `{"ai-grid.redhat.com/maas":"true"}` | Labels a managed cluster must carry to receive the token. |
+| tenantMetricsReader.spokePolicy.placement.name | string | `"ai-grid-tenant-metrics-spokes"` | Placement and PlacementBinding name. |
+| tenantMetricsReader.spokePolicy.pruneObjectBehavior | string | `"DeleteIfCreated"` | Delete the spoke Secret if this policy is deleted, only when the policy created it. |
+| tenantMetricsReader.spokePolicy.remediationAction | string | `"enforce"` | Enforce creates and repairs the spoke Secret; inform only reports drift. |
+| tenantMetricsReader.spokePolicy.severity | string | `"medium"` | Policy severity shown in ACM governance. |
+| tenantMetricsReader.spokePolicy.spoke.monitoringNamespace | string | `"redhat-ods-monitoring"` | Namespace holding the relay's token Secret on each spoke. |
+| tenantMetricsReader.spokePolicy.spoke.tokenSecretName | string | `"ai-grid-hub-metrics-reader-token"` | Name of the token Secret created on each spoke. |
+| tenantMetricsReader.tokenSecretName | string | `"ai-grid-hub-metrics-reader-token"` | Name of the Hub ServiceAccount token Secret. Kubernetes fills its `token` key. |
 

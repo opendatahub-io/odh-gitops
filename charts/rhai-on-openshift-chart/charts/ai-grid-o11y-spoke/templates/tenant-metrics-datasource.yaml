@@ -1,0 +1,20 @@
+{{ if .Values.tenantMetrics.enabled }}
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  name: ai-grid-tenant-prometheus-datasource
+  namespace: redhat-ods-monitoring
+spec:
+  config:
+    default: false
+    display:
+      name: AI Grid tenant metrics
+      description: Organization-scoped hub Thanos queries
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        proxy:
+          kind: HTTPProxy
+          spec:
+            url: http://ai-grid-tenant-prom-label-proxy.redhat-ods-monitoring.svc:9091
+{{ end }}

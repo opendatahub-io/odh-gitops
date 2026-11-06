@@ -1,14 +1,15 @@
 # ai-grid-o11y-hub
 
-The hub side of AI Grid usage-log aggregation, in two halves that install on the same
-cluster:
+The hub side of AI Grid observability, with three independent parts that install on the
+same cluster:
 
 | | |
 |---|---|
 | **the store** | a LokiStack that spoke clusters write their MaaS usage records to, plus the identities that authorize the write. `lokiStack.enabled`, on by default |
 | **the spoke policy** | one ACM `Placement` and one `Policy` that configure every MaaS spoke to forward here. `spokePolicy.enabled`, off by default |
+| **the metrics reader** | a ServiceAccount, persistent token Secret and ACM metrics RBAC for a spoke's Perses datasource. `tenantMetricsReader.enabled`, off by default |
 
-Both run on the hub. The spoke policy is *about* spokes but installs nowhere near one: a
+All three run on the hub. The spoke policy is *about* spokes but installs nowhere near one: a
 spoke in an ACM fleet receives its configuration through the policy and needs nothing
 installed on it.
 
@@ -18,8 +19,9 @@ credential there directly.
 
 The hub runs no OpenShift AI, so set `operator.enabled: false` on the parent chart. The
 `DSCInitialization` and `DataScienceCluster` then disappear too, since they are gated on their
-CRDs existing and nothing installs them on a hub — a fresh hub gets 13 objects: the Loki
-operator, this chart's store, and nothing else. A render with `--set skipCrdCheck=true` still
+CRDs existing and nothing installs them on a hub — a fresh hub with only the store gets 13
+objects: the Loki operator, this chart's store, and nothing else. A render with
+`--set skipCrdCheck=true` still
 shows the two CRs, because that flag forces the check true.
 
 The store needs the Loki operator and an S3-compatible endpoint, nothing else — no RHOAI and
@@ -49,8 +51,8 @@ prints the applicable wait commands. For a render without a cluster, where
 the second flag is what a subchart can see.
 
 `lokiStack.enabled` covers the whole store — the `LokiStack`, its object storage and the
-ingest identities. Leaving it true is the normal case; false renders only the spoke policy,
-for a hub that forwards to a LokiStack this chart did not create.
+ingest identities. Leaving it true is the normal case. With it false, the spoke policy and
+metrics reader identity can still render without a LokiStack.
 
 ## What it creates
 
@@ -63,6 +65,8 @@ for a hub that forwards to a LokiStack this chart did not create.
 | `LokiStack` | `usage-logs` | `tenants.mode: openshift-logging` |
 | `ServiceAccount` + `ClusterRole` + binding | `<stack>-writer`, `<stack>-infrastructure-writer` | the identity every spoke presents |
 | `ServiceAccount` + `ClusterRole` + binding | `<stack>-reader`, `<stack>-infrastructure-reader` | only with `ingest.reader.create` |
+| `ServiceAccount` + token `Secret` + `ClusterRole` + binding | `ai-grid-hub-metrics-reader` | only with `tenantMetricsReader.enabled`; `get` on namespaces and `metrics/*` on managedclusters |
+| `ManagedClusterSetBinding`, `Placement`, `PlacementBinding`, `Policy` | `ai-grid-tenant-metrics-spokes` | only with `tenantMetricsReader.spokePolicy.enabled`; delivers the token Secret to each selected spoke |
 | `Route` | `usage-logs` | created by the Loki operator, not by this chart |
 | `Namespace` | `ai-grid-policies` | spoke policy only |
 | `ManagedClusterSetBinding` | `default` | spoke policy only; ACM matches it to the set by name |
@@ -126,6 +130,34 @@ Set `objectStorage.serviceCA.enabled` when the endpoint is an in-cluster Service
 `spec.storage.tls` at it. An endpoint with a publicly trusted certificate needs neither.
 
 ## Credentials
+
+### Hub metrics reader
+
+Set `tenantMetricsReader.enabled=true` to create ServiceAccount
+`ai-grid-hub-metrics-reader` in `namespace`, plus a ClusterRole and ClusterRoleBinding of
+the same name. The ClusterRole grants only `get` on namespaces and `metrics/*` on
+`managedclusters.cluster.open-cluster-management.io`. This is fleet-wide metrics access;
+the spoke's `prom-label-proxy` must still constrain each query to its verified
+`organization_id`.
+
+The chart creates `tenantMetricsReader.tokenSecretName` with type
+`kubernetes.io/service-account-token` and the ServiceAccount annotation Kubernetes needs to
+populate its `token` key. The token is persistent and never appears in chart values, Helm
+release data, or Git.
+
+Set `tenantMetricsReader.spokePolicy.enabled=true` to deliver that token to the selected
+spokes as an `Opaque` Secret named by
+`tenantMetricsReader.spokePolicy.spoke.tokenSecretName`. ACM reads the Hub Secret with
+`fromSecret` and encrypts the value in transit. Its Policy, Placement, and
+ManagedClusterSetBinding live in the Hub namespace with the source Secret, so no manual
+cross-namespace copy is required.
+
+The persistent token does not rotate. Delete and recreate the Hub token Secret to rotate
+it; ACM then reconciles the replacement to the selected spokes. For a metrics-only hub
+installation, set `lokiStack.enabled=false`, `spokePolicy.enabled=false`, and
+`dependencies.loki.enabled=false` in the parent chart.
+
+### Usage logs
 
 The chart creates the writer identity. **It does not create a Secret containing the token,
 and no object it renders ever holds one** — a token is not a declarative object, so it is

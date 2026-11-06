@@ -1,6 +1,6 @@
 apiVersion: v2
 name: ai-grid-o11y-hub
-description: Central LokiStack on an ACM hub that AI Grid spokes write MaaS usage logs to, with the ACM policy that configures them
+description: AI Grid hub observability resources for usage logs, spoke policy, and ACM metrics reader identity
 type: application
 version: 0.1.0
 appVersion: "0.1.0"

@@ -3,15 +3,15 @@
 **This one installs on a spoke.** Its sibling [ai-grid-o11y-hub](../ai-grid-o11y-hub) installs
 on the hub, including the ACM policy that configures spokes remotely.
 
-It has two independent halves, both about the one collector in `collector.namespace`, and
-each with its own toggle:
+It has three independently enabled parts on a spoke:
 
 | | |
 |---|---|
 | **metrics** | a `ScrapeConfig` and a `NetworkPolicy` that let ACM observability's metrics-collector agents federate RHOAI metrics off this cluster. `metrics.enabled`, on by default |
 | **usage logs** | the monitoring namespace and the hub credential the usage-log collector mounts, in place *before* that collector starts. `credential.enabled`, off by default |
+| **tenant metrics** | two Perses dashboards, one datasource, and prom-label-proxy. Models-as-a-Service owns the public Perses route and MaaS authentication flow. `tenantMetrics.enabled`, off by default |
 
-They share nothing but the namespace, and either can run alone. A spoke in an ACM fleet that
+Each part can run alone. A spoke in an ACM fleet that
 only federates metrics leaves `credential.enabled` off and is never asked for a hub token. A
 spoke outside a fleet, installing this chart only to receive the usage-log credential, sets
 `metrics.enabled: false` — the `ScrapeConfig` goes to
@@ -54,6 +54,11 @@ a single `helm install`, with no second pass and no manual step between.
 | `NetworkPolicy` | `allow-acm-rhai-metrics` | metrics only, in `collector.namespace` |
 | `Namespace` | `redhat-ods-monitoring` | usage logs only; `collector.createNamespace`, carries `helm.sh/resource-policy: keep` |
 | `Secret` | `hub-usage-logs-auth` | usage logs only; key `token`, the hub writer token |
+| `PersesDashboard` | `dashboard-0-ai-grid-tenant-cluster-admin`, `dashboard-1-ai-grid-tenant-models-admin` | tenant metrics, in `redhat-ods-monitoring` |
+| `PersesDatasource` | `ai-grid-tenant-prometheus-datasource` | tenant metrics; Perses proxies to prom-label-proxy |
+| `Deployment`, `Service` | `ai-grid-tenant-prom-label-proxy` | tenant metrics; prom-label-proxy rewrites PromQL and its NGINX sidecar relays requests to the hub Route |
+| `NetworkPolicy` | `ai-grid-tenant-prom-label-proxy-ingress` | permits only managed Perses pods to reach the query proxy |
+| `Role`, `RoleBinding` | `ai-grid-tenant-perses-dashboards-reader` | permits the MaaS portal BFF to read only the two tenant dashboard definitions |
 
 The namespace keeps `helm.sh/resource-policy: keep` because the operator puts everything it
 deploys there. A `helm uninstall` that deleted it would take the collector, and everything
@@ -76,6 +81,44 @@ namespace; the template requires both it and `collector.createNamespace`.
 It must also be false on OSD and ROSA where the namespace is managed elsewhere: GitOps writes
 to Red Hat managed namespaces are rejected, the same constraint `RHOAIENG-99507` addressed for
 the operator namespace.
+
+## Tenant metrics
+
+Set `tenantMetrics.enabled=true` on a RHOAI spoke and supply the prom-label-proxy and
+NGINX relay images and a hub Thanos query URL reachable from that spoke. The proxy enforces
+the `organization_id` metric label using the per-request `x-maas-orgid` header. Perses sends
+queries to prom-label-proxy, which forwards the query and
+`x-maas-orgid` to an NGINX sidecar in the same Pod. The relay reads the hub ServiceAccount
+token from an existing Kubernetes Secret and sets `Authorization: Bearer <token>` on the request to
+`tenantMetrics.upstreamURL`, and preserves `x-maas-orgid`. Its plain HTTP backend needs no
+Perses datasource Secret or TLS client settings. By default, the relay mounts the
+RHOAI-managed `odh-trusted-ca-bundle` ConfigMap. Override
+`tenantMetrics.upstreamCAConfigMap` and `tenantMetrics.upstreamCAConfigMapKey` for a hub
+Route with a private CA.
+
+The relay replaces any inbound `Authorization` value immediately before calling the hub, so
+only its mounted ServiceAccount token reaches the rbac-query-proxy.
+
+Enable `ai-grid-o11y-hub.tenantMetricsReader.enabled` and
+`ai-grid-o11y-hub.tenantMetricsReader.spokePolicy.enabled` on the hub. The hub chart creates
+the ServiceAccount, persistent token Secret, RBAC, and ACM policy; ACM creates the matching
+Secret in the spoke's `redhat-ods-monitoring` namespace. The Secret name must match
+`tenantMetrics.hubRelay.tokenSecretName`. The token does not enter Git or Helm release
+history.
+
+The dashboard-reader Role and RoleBinding are also in `redhat-ods-monitoring`. The
+Role grants `get` only on these two dashboards to the `odh-dashboard-maas` service
+account. Set `tenantMetrics.portalServiceAccountNamespace` to the namespace of that
+service account if `operator.rhoai.applicationsNamespace` is customized.
+
+Models-as-a-Service owns the public route at `/maas-portal/perses`, its Gateway
+authorization, and the cross-namespace `ReferenceGrant` and NetworkPolicy needed to reach
+Perses. That authentication flow must reject client-supplied `x-maas-orgid`, inject the
+verified organization ID, and preserve it for both `/api` and `/proxy` requests. The route
+must forward those requests to Perses with their `/api` and `/proxy` prefixes intact. Verify
+the deployed route, per-request header forwarding, and isolation between organizations end
+to end. The current dashboard also hides names ending in `-admin` from users without
+cluster-wide metrics access; test tenant-admin visibility before a PR.
 
 ## The token
 

@@ -685,6 +685,20 @@ charts:
           - skipCrdCheck=true
           - dependencies.agentSandbox.enabled=true
 
+  rhai-on-openshift-chart/charts/ai-grid-o11y-hub:
+    snapshots:
+      - name: metrics-reader
+        setFlags:
+          - enabled=true
+          - lokiStack.enabled=false
+          - tenantMetricsReader.enabled=true
+      - name: metrics-reader-spoke-policy
+        setFlags:
+          - enabled=true
+          - lokiStack.enabled=false
+          - tenantMetricsReader.enabled=true
+          - tenantMetricsReader.spokePolicy.enabled=true
+
   rhai-on-openshift-chart/charts/ai-grid-o11y-spoke:
     snapshots:
       - name: default
@@ -701,6 +715,14 @@ charts:
           - metrics.enabled=false
           - credential.enabled=true
           - credential.token=snapshot-placeholder-token
+
+      - name: tenant-metrics
+        setFlags:
+          - metrics.enabled=false
+          - tenantMetrics.enabled=true
+          - tenantMetrics.image=registry.example.invalid/prom-label-proxy:testing
+          - tenantMetrics.hubRelay.image=registry.example.invalid/nginx:testing
+          - tenantMetrics.upstreamURL=https://thanos.example.test:443
 
       - name: reject-invalid-port
         expectFail: true

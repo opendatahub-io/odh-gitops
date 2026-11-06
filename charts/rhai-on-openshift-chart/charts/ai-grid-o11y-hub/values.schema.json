@@ -24,6 +24,80 @@
         "type": "string"
       }
     },
+    "tenantMetricsReader": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "tokenSecretName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "spokePolicy": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "remediationAction": {
+              "type": "string",
+              "enum": ["enforce", "inform"]
+            },
+            "severity": { "type": "string", "minLength": 1 },
+            "pruneObjectBehavior": {
+              "type": "string",
+              "enum": ["DeleteIfCreated", "DeleteAll", "None"]
+            },
+            "placement": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253
+                },
+                "clusterSet": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253
+                },
+                "matchLabels": {
+                  "type": "object",
+                  "additionalProperties": { "type": "string" }
+                },
+                "excludeLocalCluster": { "type": "boolean" }
+              },
+              "required": ["name", "clusterSet", "matchLabels", "excludeLocalCluster"],
+              "additionalProperties": false
+            },
+            "spoke": {
+              "type": "object",
+              "properties": {
+                "monitoringNamespace": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63
+                },
+                "tokenSecretName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253
+                }
+              },
+              "required": ["monitoringNamespace", "tokenSecretName"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["enabled", "name", "remediationAction", "severity", "pruneObjectBehavior", "placement", "spoke"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["enabled", "tokenSecretName", "spokePolicy"],
+      "additionalProperties": false
+    },
     "lokiStack": {
       "type": "object",
       "properties": {

@@ -43,6 +43,35 @@
         "token": { "type": "string" }
       },
       "additionalProperties": false
+    },
+    "tenantMetrics": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "portalServiceAccountNamespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "image": { "type": "string" },
+        "upstreamURL": { "type": "string" },
+        "hubRelay": {
+          "type": "object",
+          "properties": {
+            "image": { "type": "string" },
+            "tokenSecretName": { "type": "string", "minLength": 1, "maxLength": 253 },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "tlsVerifyDepth": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["image", "tokenSecretName", "port", "tlsVerifyDepth"],
+          "additionalProperties": false
+        },
+        "upstreamCAConfigMap": { "type": "string", "minLength": 1 },
+        "upstreamCAConfigMapKey": { "type": "string", "minLength": 1 }
+      },
+      "required": ["enabled", "portalServiceAccountNamespace", "image", "upstreamURL", "hubRelay", "upstreamCAConfigMap", "upstreamCAConfigMapKey"],
+      "additionalProperties": false
     }
   },
   "required": ["collector"],

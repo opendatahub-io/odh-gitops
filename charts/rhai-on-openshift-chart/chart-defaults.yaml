@@ -7,6 +7,8 @@ ai-grid-o11y-spoke:
   credential:
     enabled: false
   enabled: false
+  tenantMetrics:
+    enabled: false
 argocd:
   enabled: false
 components:
@@ -786,5 +788,3 @@ tags:
 trustedCABundle:
   customCABundle: ""
   managementState: Managed
-
-
