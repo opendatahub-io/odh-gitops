@@ -121,6 +121,43 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 
 ---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grid-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - port: 8443
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: ["redhat-ods-monitoring","openshift-user-workload-monitoring"]
+      ports:
+        - port: 9443
+          protocol: TCP
+
+
+---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/grid-model-client.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -239,6 +276,33 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
+  name: grid-gateway-metrics
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: gateway-metrics
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: grid-gateway-metrics-tls
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9443
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Service
+metadata:
   name: grid-gateway
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
@@ -329,6 +393,12 @@ spec:
           env:
             - name: GRID_SERVING_CONFIG
               value: "/etc/praxis/grid-serving/serving-config.json"
+            - name: GRID_METRICS_ADDR
+              value: "0.0.0.0:9443"
+            - name: GRID_METRICS_TLS_CERT
+              value: "/etc/praxis/metrics-tls/tls.crt"
+            - name: GRID_METRICS_TLS_KEY
+              value: "/etc/praxis/metrics-tls/tls.key"
           securityContext:
             runAsNonRoot: true
             runAsUser: 100
@@ -342,6 +412,9 @@ spec:
             - name: https
               containerPort: 8443
               protocol: "TCP"
+            - name: metrics
+              containerPort: 9443
+              protocol: TCP
           readinessProbe:
             exec:
               command:
@@ -388,6 +461,9 @@ spec:
             - name: listener-tls
               mountPath: "/etc/praxis/listener-tls"
               readOnly: true
+            - name: metrics-tls
+              mountPath: "/etc/praxis/metrics-tls"
+              readOnly: true
             - name: credential-0
               mountPath: "/run/secrets/grid-credentials/grid-model-client-token"
               readOnly: true
@@ -423,6 +499,9 @@ spec:
         - name: listener-tls
           secret:
             secretName: "grid-gateway-listener-tls"
+        - name: metrics-tls
+          secret:
+            secretName: "grid-gateway-metrics-tls"
         - name: credential-0
           secret:
             secretName: "grid-model-client-token"
@@ -989,6 +1068,45 @@ spec:
     termination: passthrough
     insecureEdgeTerminationPolicy: None
   wildcardPolicy: None
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grid-gateway-metrics
+  labels:
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/version: 0.7.0
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    monitoring.opendatahub.io/scrape: "true"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+      app.kubernetes.io/component: gateway-metrics
+  endpoints:
+    - port: metrics
+      scheme: https
+      path: /metrics
+      interval: 30s
+      tlsConfig:
+        serverName: grid-gateway-metrics.default.svc
+        ca:
+          configMap:
+            name: "openshift-service-ca.crt"
+            key: "service-ca.crt"
+      metricRelabelings:
+        # Reserve "cluster" for the managed cluster; Praxis uses it for the backend.
+        - sourceLabels: [cluster]
+          regex: "(.+)"
+          targetLabel: backend
+        - action: labeldrop
+          regex: cluster
 
 
 ---

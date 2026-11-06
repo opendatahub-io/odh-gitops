@@ -165,3 +165,28 @@ praxis-gateway:
     port: 443
     annotations:
       service.beta.openshift.io/serving-cert-secret-name: grid-gateway-listener-tls
+  # The gateway listener admits only the serving gateway's namespace, and the
+  # metrics port only the collectors. auto would leave both off under Argo CD.
+  networkPolicy:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            network.openshift.io/policy-group: ingress
+  # TLS metrics on 9443 for the platform collector, which selects the scrape label.
+  metricsListener:
+    enabled: true
+    existingSecret: grid-gateway-metrics-tls
+    fromNamespaces:
+      - redhat-ods-monitoring
+      - openshift-user-workload-monitoring
+    service:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: grid-gateway-metrics-tls
+    serviceMonitor:
+      enabled: true
+      caConfigMap:
+        name: openshift-service-ca.crt
+        key: service-ca.crt
+      labels:
+        monitoring.opendatahub.io/scrape: "true"
