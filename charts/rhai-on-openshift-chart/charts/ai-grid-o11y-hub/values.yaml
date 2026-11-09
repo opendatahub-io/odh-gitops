@@ -272,6 +272,14 @@ spokePolicy:
     matchLabels:
       ai-grid.redhat.com/maas: "true"
 
+    # -- Additional set-based requirements, appended to the selector built from
+    # `matchLabels`. Each entry is a ManagedCluster label selector requirement --
+    # `key`, `operator`, and `values` for `In`/`NotIn`. Use this where `matchLabels`
+    # cannot reach: it renders one single-value `In` per key, so a predicate over
+    # several values of one label has no form there. Entries are passed through
+    # verbatim and ANDed with everything else in the selector.
+    matchExpressions: []
+
     # -- Exclude the hub itself, which carries no MaaS, by requiring the `local-cluster`
     # label to be absent.
     excludeLocalCluster: true

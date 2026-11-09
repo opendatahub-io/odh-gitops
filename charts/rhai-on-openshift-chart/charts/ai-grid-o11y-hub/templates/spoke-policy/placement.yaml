@@ -19,6 +19,12 @@ spec:
               operator: In
               values: [{{ $value | quote }}]
             {{- end }}
+            {{- /* Set-based requirements, which matchLabels cannot express: it emits one
+                   single-value `In` per key, so a predicate over several values of one
+                   label -- a role, a tier -- has no form there. */}}
+            {{- with $d.placement.matchExpressions }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
             {{- if $d.placement.excludeLocalCluster }}
             {{- /* The hub carries no MaaS, so a policy targeting it would be permanently
                    NonCompliant there. */}}
