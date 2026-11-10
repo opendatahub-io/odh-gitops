@@ -322,9 +322,89 @@
             },
             "matchLabels": {
               "type": "object",
-              "minProperties": 1,
               "additionalProperties": {
                 "type": "string"
+              }
+            },
+            "matchExpressions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "In",
+                      "NotIn",
+                      "Exists",
+                      "DoesNotExist"
+                    ]
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "operator"
+                ],
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "operator": {
+                          "enum": [
+                            "In",
+                            "NotIn"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "operator"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "values"
+                      ],
+                      "properties": {
+                        "values": {
+                          "minItems": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "operator": {
+                          "enum": [
+                            "Exists",
+                            "DoesNotExist"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "operator"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "values": {
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  }
+                ]
               }
             },
             "excludeLocalCluster": {
