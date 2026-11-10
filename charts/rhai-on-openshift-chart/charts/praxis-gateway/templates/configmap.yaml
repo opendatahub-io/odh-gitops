@@ -8,7 +8,7 @@ metadata:
   labels:
     {{- include "praxis-gateway.labels" . | nindent 4 }}
 data:
-  {{- dict "praxis.yaml" (toString .Values.praxisConfig.byo.inline) | toYaml | nindent 2 }}
+  {{- dict "praxis.yaml" (include "praxis-gateway.byoInline" .) | toYaml | nindent 2 }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

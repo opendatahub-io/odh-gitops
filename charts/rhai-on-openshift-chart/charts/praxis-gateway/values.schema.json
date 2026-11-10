@@ -45,6 +45,10 @@
               "minLength": 1,
               "description": "Key within configMapName that holds praxis.yaml."
             },
+            "tpl": {
+              "type": "boolean",
+              "description": "Render inline with tpl against the chart's context."
+            },
             "inline": {
               "type": "string",
               "description": "Praxis configuration stored in a chart-managed ConfigMap when configMapName is empty."
@@ -81,7 +85,7 @@
                 "gatewayRefName": {
                   "type": "string",
                   "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-                  "description": "This gateway's name in GridNetwork gatewayRefs. Defaults to mountReconciliation.gatewayRef, then the release fullname."
+                  "description": "This gateway's name in GridNetwork consumerGateways. Defaults to mountReconciliation.gatewayRef, then the release fullname."
                 },
                 "configMapName": {
                   "type": "string",
@@ -252,6 +256,41 @@
             }
           ],
           "properties": {
+            "bodyLimits": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Praxis body size ceilings in bytes, rendered as body_limits when set. Unset keeps the Praxis defaults: 10 MiB request and response ceilings, 64 MiB buffered-body cap.",
+              "properties": {
+                "maxRequestBytes": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "description": "Request body ceiling; with gridServing the request limit is the smaller of this and maxBufferBytes."
+                },
+                "maxResponseBytes": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "description": "Response body ceiling."
+                },
+                "maxBufferBytes": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "description": "Cap on any body a filter buffers; raise it with a maxRequestBytes above 64 MiB. Needs image.flavor grid-gateway."
+                }
+              }
+            },
+            "runtime": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Praxis runtime settings rendered when set.",
+              "properties": {
+                "upstreamKeepalivePoolSize": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "maximum": 10000,
+                  "description": "Idle upstream connections kept per worker thread across every cluster; Praxis defaults to 64."
+                }
+              }
+            },
             "telemetry": {
               "type": "object",
               "additionalProperties": false,
@@ -830,7 +869,7 @@
                 "gatewayRefName": {
                   "type": "string",
                   "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-                  "description": "This gateway's name in GridNetwork gatewayRefs. Defaults to the release fullname."
+                  "description": "This gateway's name in GridNetwork consumerGateways. Defaults to the release fullname."
                 },
                 "configMapName": {
                   "type": "string",
@@ -1054,7 +1093,7 @@
     "metricsListener": {
       "type": "object",
       "additionalProperties": false,
-      "description": "TLS listener serving only GET /metrics.",
+      "description": "TLS listener serving only Kubernetes-authorized GET /metrics requests. NetworkPolicy is recommended to limit pods that can trigger authorization API reviews.",
       "properties": {
         "enabled": {
           "enum": [
@@ -1064,7 +1103,7 @@
             "false",
             "auto"
           ],
-          "description": "auto serves the listener for the grid-gateway image on OpenShift with networkPolicy.enabled and fills unset values from the platform. true needs each value set."
+          "description": "auto serves the listener for grid-gateway on OpenShift or when an existingSecret is supplied. OpenShift fills serving certificate and CA values from the platform."
         },
         "port": {
           "type": "integer",
@@ -1130,7 +1169,7 @@
               "additionalProperties": {
                 "type": "string"
               },
-              "description": "Additional labels on the ServiceMonitor, for a collector that selects by label."
+              "description": "Labels on the ServiceMonitor for collectors that select by label. OpenShift AI's observability collector uses monitoring.opendatahub.io/scrape: true."
             }
           }
         }
@@ -1312,6 +1351,10 @@
           "description": "Full RUST_LOG directive, such as info,praxis_filter=debug. When set, it replaces level."
         }
       }
+    },
+    "envTpl": {
+      "type": "boolean",
+      "description": "Render env with tpl against the chart's context."
     },
     "env": {
       "type": "array",
@@ -1566,7 +1609,7 @@
         "gatewayRef": {
           "type": "string",
           "pattern": "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$",
-          "description": "GridNetwork gatewayRefs name. Defaults to the Deployment name."
+          "description": "GridNetwork consumerGateways name. Defaults to the Deployment name."
         },
         "releaseHelmMounts": {
           "type": "boolean",
@@ -1721,6 +1764,17 @@
     "priorityClassName": {
       "type": "string",
       "description": "Priority class for the gateway pod."
+    },
+    "fips": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "FIPS mode for the gateway container.",
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "description": "Require startup validation of the kernel, system crypto policy, and OpenSSL FIPS provider. Needs a FIPS-safe Gateway build and a FIPS host."
+        }
+      }
     }
   }
 }

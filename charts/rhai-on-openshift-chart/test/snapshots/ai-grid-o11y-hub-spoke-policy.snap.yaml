@@ -11,7 +11,6 @@ metadata:
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: "0.1.0"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
 apiVersion: v1
@@ -25,7 +24,6 @@ metadata:
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: "0.1.0"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: v1
@@ -40,7 +38,6 @@ metadata:
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: "0.1.0"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: v1
@@ -55,7 +52,6 @@ metadata:
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: "0.1.0"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/object-storage.yaml
 apiVersion: v1
@@ -72,7 +68,6 @@ metadata:
     app.kubernetes.io/version: "0.1.0"
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -91,7 +86,6 @@ rules:
     resources: ["infrastructure"]
     resourceNames: ["logs"]
     verbs: ["create"]
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -110,7 +104,6 @@ rules:
     resources: ["infrastructure"]
     resourceNames: ["logs"]
     verbs: ["get"]
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -132,7 +125,6 @@ subjects:
   - kind: ServiceAccount
     name: "usage-logs-writer"
     namespace: "ai-grid-o11y"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/ingest-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -154,7 +146,6 @@ subjects:
   - kind: ServiceAccount
     name: "usage-logs-reader"
     namespace: "ai-grid-o11y"
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -172,7 +163,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -239,7 +229,6 @@ spec:
       workbenchNamespace: opendatahub
       workbenchesV2:
         managementState: Removed
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/lokistack.yaml
 apiVersion: loki.grafana.com/v1
@@ -280,7 +269,6 @@ spec:
           - name: service.name
       retention:
         days: 30
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
 apiVersion: cluster.open-cluster-management.io/v1beta2
@@ -297,7 +285,6 @@ metadata:
     app.kubernetes.io/version: "0.1.0"
 spec:
   clusterSet: "default"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/store/object-storage.yaml
 apiVersion: objectbucket.io/v1alpha1
@@ -315,7 +302,6 @@ metadata:
 spec:
   generateBucketName: "usage-logs"
   storageClassName: "openshift-storage.noobaa.io"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -328,7 +314,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/placement.yaml
 apiVersion: cluster.open-cluster-management.io/v1beta1
@@ -355,7 +340,6 @@ spec:
               values: ["true"]
             - key: local-cluster
               operator: DoesNotExist
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/placement.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -378,7 +362,6 @@ subjects:
   - apiGroup: policy.open-cluster-management.io
     kind: Policy
     name: "ai-grid-maas-remote-usage-logs"
-
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/policy.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -435,7 +418,6 @@ spec:
                       exporters:
                         otlphttp/hub:
                           endpoint: "https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure/otlp"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

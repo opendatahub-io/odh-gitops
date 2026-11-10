@@ -12,9 +12,29 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
 {{- $hasBatchSize := and (hasKey $telemetry "batchSize") (ne $telemetry.batchSize nil) }}
 {{- $hasTelemetryValues := or $telemetry.otlpEndpoint $hasSamplingRate $telemetry.serviceName $telemetry.serviceVersion $telemetry.environment $hasBatchInterval $hasBatchSize }}
   praxis.yaml: |
-    {{- with $.Values.upstreamCA.secretName }}
+    {{- $runtime := $cfg.runtime | default dict }}
+    {{- if or $.Values.upstreamCA.secretName $runtime.upstreamKeepalivePoolSize }}
     runtime:
+      {{- with $.Values.upstreamCA.secretName }}
       upstream_ca_file: {{ printf "%s/%s" $.Values.upstreamCA.mountPath ($.Values.upstreamCA.key | default "ca.crt") | quote }}
+      {{- end }}
+      {{- with $runtime.upstreamKeepalivePoolSize }}
+      upstream_keepalive_pool_size: {{ . | int64 }}
+      {{- end }}
+    {{- end }}
+    {{- with $cfg.bodyLimits }}
+    {{- if or .maxRequestBytes .maxResponseBytes .maxBufferBytes }}
+    body_limits:
+      {{- with .maxRequestBytes }}
+      max_request_bytes: {{ . | int64 }}
+      {{- end }}
+      {{- with .maxResponseBytes }}
+      max_response_bytes: {{ . | int64 }}
+      {{- end }}
+      {{- with .maxBufferBytes }}
+      max_buffer_bytes: {{ . | int64 }}
+      {{- end }}
+    {{- end }}
     {{- end }}
     {{- if $telemetry.enabled }}
     telemetry:
@@ -200,7 +220,7 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           - filter: load_balancer
             clusters:
               {{- range $i, $backend := $cfg.backends }}
-              {{- include "praxis-gateway.backendCluster" (dict "root" $ "i" $i "b" $backend) | trim | nindent 14 }}
+              {{- include "praxis-gateway.backendCluster" (dict "root" $ "i" $i "b" $backend "inline" true) | trim | nindent 14 }}
               {{- end }}
           {{- end }}
   {{- if $apiKey }}
@@ -298,6 +318,7 @@ load_balancer, which selects by the same name and endpoint order.
   {{- with $total }}
   total_connection_timeout_ms: {{ . }}
   {{- end }}
+  {{- if not (.inline | default false) }}
   health_check:
     {{- /* TLS backends default to a tcp probe. The active http probe is plaintext and cannot reach a TLS peer. A tcp connect works and still satisfies the present-health_check SSRF-skip guard. */}}
     {{- $hcType := $hc.type | default (ternary "http" "tcp" (eq $mode "plaintext")) }}
@@ -312,4 +333,5 @@ load_balancer, which selects by the same name and endpoint order.
     {{- /* Passive checks mark an endpoint that refuses or fails requests down within a few of them. */}}
     passive_unhealthy_threshold: {{ $hc.passiveUnhealthyThreshold | default 2 }}
     passive_healthy_threshold: {{ $hc.passiveHealthyThreshold | default 2 }}
+  {{- end }}
 {{- end }}

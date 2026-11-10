@@ -34,8 +34,14 @@ namespaces under Prerequisites, an install stands up a site ready to enroll.
 Batteries included. Off OpenShift no values are required:
 
 ```bash
-helm install grid charts/grid-enrollment --namespace grid-enroll --create-namespace
+helm install grid-enrollment charts/grid-enrollment --namespace grid-enrollment --create-namespace
 ```
+
+The enrollment Service takes the release fullname. A grid-operator hub with
+`enrollment.hub: true` dials `grid-enrollment` in namespace `grid-enrollment` by default,
+so the release and namespace above match it. Under another release or namespace, set the
+operator's `enrollment.hubService` to this release's fullname and
+`rbac.enrollmentNamespace` to its namespace.
 
 The default install generates the Grid CA, the endpoint serving cert, and the
 Postgres credentials through a pre-install hook, deploys Postgres, and runs the
@@ -57,7 +63,7 @@ rendered passthrough Route needs `route.host`, which the bootstrap adds to the
 serving cert SAN:
 
 ```bash
-helm install grid charts/grid-enrollment --namespace grid-enroll --create-namespace \
+helm install grid-enrollment charts/grid-enrollment --namespace grid-enrollment --create-namespace \
   --set route.host=enrollment.apps.<cluster-domain>
 ```
 
@@ -67,9 +73,9 @@ RBAC also remains after `helm uninstall`. This keeps it available for retries
 and avoids Helm 3.19 and later deleting earlier successful hooks when a later
 hook fails. If you uninstall the release and want to remove the privileged
 bootstrap identity, delete the `ServiceAccount`, `Role`, and `RoleBinding`
-named `<release>-grid-enrollment-ca-bootstrap` in the release namespace. When
-`hubSite.name` is set, delete the matching `-hub-site` `Role` and `RoleBinding`
-in the hub-site namespace on every uninstall, before deleting the release
+named `<fullname>-ca-bootstrap`, cut to 63 characters, in the release namespace.
+When `hubSite.name` is set, delete the `Role` and `RoleBinding` of that name with
+`-hub-site` appended in the hub-site namespace on every uninstall, before deleting the release
 namespace: they name the ServiceAccount only by namespace and name, so
 whoever creates that namespace again inherits their access. Retry a failed
 bootstrap with
@@ -201,11 +207,11 @@ the policies off, delete them by hand:
 
 ```
 kubectl delete validatingadmissionpolicybinding \
-  <release>-grid-enrollment-<namespace>-bootstrap-secrets \
-  <release>-grid-enrollment-<namespace>-invite-secrets
+  <fullname>-<namespace>-bootstrap-secrets \
+  <fullname>-<namespace>-invite-secrets
 kubectl delete validatingadmissionpolicy \
-  <release>-grid-enrollment-<namespace>-bootstrap-secrets \
-  <release>-grid-enrollment-<namespace>-invite-secrets
+  <fullname>-<namespace>-bootstrap-secrets \
+  <fullname>-<namespace>-invite-secrets
 ```
 
 The invite namespace outlives an uninstall too. Deleting it destroys every invite token

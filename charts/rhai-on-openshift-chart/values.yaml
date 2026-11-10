@@ -737,8 +737,8 @@ grid-enrollment:
   # -- Stable resource names, independent of the release name
   fullnameOverride: grid-enrollment
   image:
-    # -- Grid v0.3.0-rc.4. The platform's related image replaces it downstream.
-    digest: sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d
+    # -- Grid v0.3.0. The platform's related image replaces it downstream.
+    digest: sha256:c931a7e0daa66093233ed1fc807438d33dd61372eadc4bb8e93871be8ee46dbd
 
 # -- AI Grid gateway (Praxis)
 praxis-gateway:
@@ -751,8 +751,8 @@ praxis-gateway:
   image:
     # -- Use the Grid gateway build, which includes Grid routing filters.
     repository: ghcr.io/praxis-proxy/grid-gateway
-    tag: v0.3.0-rc.4
-    digest: sha256:af591eb9d62f07b6341d4db749786b59abedc9269c4b56b3d33ae5b050c7654c
+    tag: v0.3.0
+    digest: sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b
     flavor: grid-gateway
 
 # -- AI Grid provider gateway for inference sites; a profile alias of praxis-gateway
