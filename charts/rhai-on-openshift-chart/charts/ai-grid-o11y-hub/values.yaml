@@ -234,6 +234,20 @@ spokePolicy:
     # -- Key the reader token is written to on the spoke.
     tokenKey: LOKI_READ_TOKEN
 
+    # -- Key the hub store Route's CA bundle is written to on the spoke. The value
+    # is a hub template resolved on every Policy render: the Route's
+    # `spec.tls.caCertificate` when the Loki operator set one, otherwise the
+    # cluster's default ingress certificate (`default-ingress-cert` in
+    # `openshift-config-managed`). Delivered unconditionally -- no toggle -- because
+    # the consumer appends the bundle to the system trust pool, so a redundant CA
+    # is harmless on fleets whose Route certificate is publicly trusted. Both
+    # sources empty fails template resolution and the Policy reports NonCompliant
+    # rather than shipping a silently-absent key. The template reads the store
+    # Route (`lokiStack.name` in `redhat-ods-monitoring`, the operator's
+    # monitoring namespace) and the ConfigMap, so it needs
+    # `hubTemplateOptions.serviceAccountName` with grants for both.
+    caKey: LOKI_READ_CA
+
   # -- `enforce` creates and repairs the delivered objects; `inform` only reports drift
   # without changing anything, which is the safe way to preview a rollout.
   remediationAction: enforce

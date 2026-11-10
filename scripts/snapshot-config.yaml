@@ -399,8 +399,29 @@ charts:
           # The read credential alongside the write path: same policy, third
           # object template, into the consumer's namespace on each spoke. The
           # endpoint is not set here: it comes from the hub Secret's endpoint
-          # key, not from values.
+          # key, not from values. The templating ServiceAccount is set because
+          # the read credential now carries a CA hub template that reads the
+          # store Route and the default-ingress-cert ConfigMap, both beyond the
+          # policy's namespace.
           - ai-grid-o11y-hub.spokePolicy.readCredential.enabled=true
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=usage-logs-templating
+
+      # The read credential's CA template uses lookup and fromConfigMap, which
+      # ACM refuses unless the policy names a ServiceAccount to resolve
+      # templates as. Caught at render time rather than surfacing later as a
+      # NonCompliant policy.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-read-credential-without-sa
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          - ai-grid-o11y-hub.spokePolicy.deliverCredential=false
+          - ai-grid-o11y-hub.spokePolicy.deliverConfiguration=false
+          - ai-grid-o11y-hub.spokePolicy.readCredential.enabled=true
+        expectFail: true
+        expectMessage: "hubTemplateOptions.serviceAccountName"
 
       - name: ai-grid-o11y-hub-spoke-policy-reject-nothing-to-deliver
         valuesFiles:

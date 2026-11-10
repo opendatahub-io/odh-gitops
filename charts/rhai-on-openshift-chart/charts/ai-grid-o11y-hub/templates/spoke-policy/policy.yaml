@@ -103,6 +103,16 @@ spec:
                           endpoint: {{ include "ai-grid-o11y-hub.spokeEndpoint" $ | quote }}
             {{- end }}
             {{- if $read.enabled }}
+            {{- $routeName := include "ai-grid-o11y-hub.lokiStackName" . }}
+            {{- /* The store Route lives in the operator's monitoring namespace,
+                   redhat-ods-monitoring, wherever the LokiStack was rendered
+                   from: it is the Loki operator's, not this chart's, and the
+                   templating ServiceAccount's Route grant is there. */}}
+            {{- $routeNamespace := "redhat-ods-monitoring" }}
+            {{- $caSA := ($d.hubTemplateOptions | default dict).serviceAccountName | default "" }}
+            {{- if not $caSA }}
+            {{- fail "spokePolicy.readCredential.enabled ships a CA hub template that uses `lookup` and `fromConfigMap`, which ACM allows only when spokePolicy.hubTemplateOptions.serviceAccountName names a ServiceAccount that can read the store Route and the openshift-config-managed ConfigMaps (ACM 2.12 and later)" }}
+            {{- end }}
             {{- /* A separate consumer on the spoke, in its own namespace, holding its own
                    identity: the read credential is unrelated to the collector's write
                    path and must be deliverable without it (both halves above off).
@@ -119,5 +129,18 @@ spec:
                 data:
                   {{ $read.tokenKey }}: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $read.credentialSecretName }}'
                   {{ $read.endpointKey }}: '{{ printf "{{hub fromSecret %q %q \"endpoint\" hub}}" $d.namespace $read.credentialSecretName }}'
+                  {{- /* The CA bundle the spoke's read consumer needs to trust the store
+                         Route's certificate. Re-resolved on every Policy render, so CA
+                         rotation needs no Job change and no re-mint: the Route's
+                         spec.tls.caCertificate when the operator set one, otherwise the
+                         cluster's default ingress certificate from openshift-config-managed.
+                         The `default` form is eager -- fromConfigMap evaluates even when the
+                         Route CA wins -- accepted because that ConfigMap exists on any
+                         healthy OpenShift. base64enc lands the PEM under data:, never
+                         stringData:, for the same double-encoding reason as fromSecret above.
+                         Both sources empty fails template resolution and the Policy reports
+                         NonCompliant: a silently-absent CA key is strictly worse than a loud
+                         one, because the consumer would fail TLS with no visible cause. */}}
+                  {{ $read.caKey }}: '{{ printf "{{hub base64enc (default (fromConfigMap %q %q %q) (lookup %q %q %q %q).spec.tls.caCertificate) hub}}" "openshift-config-managed" "default-ingress-cert" "ca-bundle.crt" "route.openshift.io/v1" "Route" $routeNamespace $routeName }}'
             {{- end }}
 {{- end }}
