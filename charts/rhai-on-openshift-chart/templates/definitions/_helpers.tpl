@@ -941,3 +941,11 @@ Arguments (passed as dict):
 true
 {{- end -}}
 {{- end }}
+
+{{/* The chart deploys the grid gateway and the DSCI monitoring stack is on to scrape it. */}}
+{{- define "rhoai-dependencies.aiGridMonitored" -}}
+{{- $monitoring := include "rhoai-dependencies.effectiveServiceManagementState" (dict "state" .Values.services.monitoring.dsci.managementState "root" . "name" "monitoring") -}}
+{{- if and (include "rhoai-dependencies.aiGridManaged" .) (include "rhoai-dependencies.aiGridRuntimeEnabled" (dict "root" . "name" "praxis-gateway")) (eq $monitoring "Managed") -}}
+true
+{{- end -}}
+{{- end }}
