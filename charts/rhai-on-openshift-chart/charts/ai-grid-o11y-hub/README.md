@@ -173,9 +173,9 @@ user who already holds the grant can read.
 
 `spokePolicy.readCredential.enabled` delivers that identity's credential to a consumer on
 each selected spoke: a `Secret` in `readCredential.namespace` carrying the query endpoint
-under `readCredential.endpointKey` and the token under `readCredential.tokenKey`. Both
-values come from one hub Secret, `readCredential.credentialSecretName` in
-`spokePolicy.namespace`, which must carry two keys:
+under `readCredential.endpointKey`, the token under `readCredential.tokenKey`, and the CA
+bundle under `readCredential.caKey`. The endpoint and token come from one hub Secret,
+`readCredential.credentialSecretName` in `spokePolicy.namespace`, which must carry two keys:
 
 | Key | Value |
 |---|---|
@@ -187,6 +187,25 @@ endpoint is the hub Route's host, which differs per fleet and cannot be rendered
 Argo CD repo-server. The chart therefore never sees the endpoint: the policy reads both
 keys with `fromSecret` and ships them as `$ocm_encrypted` ciphertext, so neither value
 appears in a managed cluster's manifest or in this chart's rendered output.
+
+The CA key does not come from that Secret at all. It is a hub template resolved on every
+Policy render — the store Route's `spec.tls.caCertificate` when the Loki operator set one,
+otherwise the cluster's default ingress certificate, read with `fromConfigMap` from
+`default-ingress-cert` in `openshift-config-managed`, and shipped base64-encoded under
+`data:`. Two consequences:
+
+- CA rotation is picked up on the next Policy render — no Job change, no re-mint, and no
+  staleness handling, because the CA's lifecycle is independent of the token's expiry.
+- The template reads beyond the policy's namespace (the Route and the ConfigMap), so it
+  needs `hubTemplateOptions.serviceAccountName` with `get` on both plus the `list`/`watch`
+  ACM requires alongside; without a ServiceAccount the chart fails at render time.
+
+The CA is delivered unconditionally — there is no per-fleet toggle — because the consumer
+appends the bundle to the system trust pool rather than replacing it, so a redundant CA is
+harmless on fleets whose Route certificate is publicly trusted. If both sources are empty,
+template resolution fails and the Policy reports NonCompliant: a silently-absent CA key is
+strictly worse than a loud failure, because the consumer would fail TLS with no visible
+cause.
 
 The provisioning workflow is expected to discover the Route at runtime and write both
 keys in one step, validating the endpoint before it is written — https only, the exact

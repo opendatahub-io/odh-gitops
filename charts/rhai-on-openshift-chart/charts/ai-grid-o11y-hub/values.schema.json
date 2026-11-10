@@ -270,6 +270,12 @@
               "minLength": 1,
               "maxLength": 253,
               "description": "Key the reader token is written to on the spoke."
+            },
+            "caKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Key the hub store Route's CA bundle is written to on the spoke. The value is a hub template resolved on every Policy render: the Route's spec.tls.caCertificate when set, otherwise the cluster's default ingress certificate. Both sources empty fails template resolution and the Policy reports NonCompliant. Needs hubTemplateOptions.serviceAccountName."
             }
           },
           "additionalProperties": false
