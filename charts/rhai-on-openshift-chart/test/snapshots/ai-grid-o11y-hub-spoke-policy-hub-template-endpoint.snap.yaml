@@ -11,6 +11,7 @@ metadata:
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: "0.1.0"
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
 apiVersion: v1
@@ -24,6 +25,7 @@ metadata:
     app.kubernetes.io/part-of: ai-grid-usage-logs
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: "0.1.0"
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -35,6 +37,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/namespace.yaml
 apiVersion: cluster.open-cluster-management.io/v1beta2
@@ -51,6 +54,7 @@ metadata:
     app.kubernetes.io/version: "0.1.0"
 spec:
   clusterSet: "default"
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -63,6 +67,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/placement.yaml
 apiVersion: cluster.open-cluster-management.io/v1beta1
@@ -89,6 +94,7 @@ spec:
               values: ["true"]
             - key: local-cluster
               operator: DoesNotExist
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/placement.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -111,6 +117,7 @@ subjects:
   - apiGroup: policy.open-cluster-management.io
     kind: Policy
     name: "ai-grid-maas-remote-usage-logs"
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-hub/templates/spoke-policy/policy.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -169,6 +176,7 @@ spec:
                       exporters:
                         otlphttp/hub:
                           endpoint: "{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp\" (index (lookup \"route.openshift.io/v1\" \"Route\" \"ai-grid-o11y\" \"usage-logs\").status.ingress 0).host hub}}"
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

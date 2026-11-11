@@ -1,0 +1,93 @@
+{{- define "praxis-gateway.rhoai.metrics-auth.yaml" -}}
+{{- include "praxis-gateway.normalize" . }}
+{{- if .Values.metricsListener.enabled }}
+{{- $base := include "praxis-gateway.fullname" . }}
+{{- $clusterAuthName := printf "%s-metrics-auth-%s" ($base | trunc 32 | trimSuffix "-") (sha256sum (printf "%s/%s" .Release.Namespace $base) | trunc 8) }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "praxis-gateway.metricsAuthSA" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "praxis-gateway.metricsScraperSA" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "praxis-gateway.metricsTokenSecret" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/service-account.name: {{ include "praxis-gateway.metricsScraperSA" . | quote }}
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $clusterAuthName }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $clusterAuthName }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $clusterAuthName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "praxis-gateway.metricsAuthSA" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "praxis-gateway.metricsScrapeRole" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [metrics.grid.praxis-proxy.io]
+    resources: [scrapes]
+    resourceNames: [{{ $base | quote }}]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "praxis-gateway.metricsScrapeRole" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "praxis-gateway.metricsScrapeRole" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "praxis-gateway.metricsScraperSA" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "praxis-gateway.rhoai.metrics-auth.yaml" . }}
+{{- end }}

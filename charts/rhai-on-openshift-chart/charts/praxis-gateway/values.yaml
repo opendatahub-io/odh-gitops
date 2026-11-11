@@ -24,7 +24,7 @@ imagePullSecrets: []
 # -- Override the chart name used in resource names.
 nameOverride: ""
 # -- Override the fully qualified app name, which also names the Service. Set this to
-# the GridNetwork gatewayRefs[].name when using the overlay sidecar.
+# the GridNetwork consumerGateways[].name when using the overlay sidecar.
 fullnameOverride: ""
 # -- Labels added to all chart-managed resources.
 commonLabels: {}
@@ -41,7 +41,7 @@ mountReconciliation:
   enabled: false
   # -- GridNetwork name that delegates this gateway's generated mounts.
   network: ""
-  # -- GridNetwork gatewayRefs name. Defaults to this chart's Deployment name.
+  # -- GridNetwork consumerGateways name. Defaults to this chart's Deployment name.
   gatewayRef: ""
   # -- Release selected Helm-managed credential mounts and TLS mounts after
   # Grid reports the generated config Ready.
@@ -108,6 +108,10 @@ args:
 # -- credentials and other deployment-managed secrets.
 env: []
 
+# -- Render env as a Helm template (tpl) against this chart's context, so a parent chart
+# can set values or Secret names from {{ .Values.global.* }}. Escape literal {{ as {{ "{{" }}.
+envTpl: false
+
 # -- Logging, rendered as RUST_LOG on the gateway and overlay-sync containers. An env
 # entry named RUST_LOG takes precedence on the gateway. Praxis adds config.runtime.log_overrides
 # per module on top, and its admin listener can change the level at runtime without a restart.
@@ -117,6 +121,12 @@ log:
   level: ""
   # -- Full RUST_LOG directive, such as "info,praxis_filter=debug". When set, it replaces level.
   filter: ""
+
+# -- Require host and OpenSSL FIPS verification at startup. Use a gateway image built
+# -- with a FIPS-safe Policy profile on a FIPS host.
+fips:
+  # -- Render PRAXIS_REQUIRE_FIPS=1 for the Praxis container.
+  required: false
 
 # -- GridNetwork and local site used by render and the overlay sidecar.
 grid:
@@ -138,6 +148,10 @@ praxisConfig:
     configMapName: ""
     # -- Key within configMapName that holds praxis.yaml.
     key: "praxis.yaml"
+    # -- Render inline as a Helm template (tpl) against this chart's context, so it can
+    # reference values such as {{ .Release.Name }} or {{ .Values.global.* }} from a parent
+    # chart. Escape literal {{ as {{ "{{" }}.
+    tpl: false
     # -- Praxis configuration the chart stores in its own ConfigMap when configMapName
     # is empty. Changing it rolls the pods. One listener must bind port.containerPort,
     # or the install fails. The default answers GET / with a small JSON status and
@@ -183,7 +197,7 @@ praxisConfig:
       enabled: false
       # -- GridNetwork name. Empty uses mountReconciliation.network.
       networkName: ""
-      # -- This gateway's name in the GridNetwork gatewayRefs. Empty uses mountReconciliation.gatewayRef.
+      # -- This gateway's name in the GridNetwork consumerGateways. Empty uses mountReconciliation.gatewayRef.
       gatewayRefName: ""
       # -- Override the derived serving ConfigMap name grid-serving-<networkName>-<gatewayRefName>.
       configMapName: ""
@@ -215,6 +229,26 @@ praxisConfig:
       batchIntervalSecs: null
       # -- Maximum spans per export batch; must be positive.
       batchSize: null
+    # -- Praxis body size ceilings in bytes, rendered as body_limits when set. Each
+    # defaults in Praxis: a 10 MiB request and response ceiling, and a 64 MiB cap on
+    # any body a filter buffers. A request over the ceiling gets a 413 at this gateway.
+    # A provider buffers no request body, so maxRequestBytes is its limit. On a consumer
+    # with gridServing, grid_site_route buffers the body to read its prompt and sets no
+    # cap of its own, so the limit is the smaller of maxRequestBytes and maxBufferBytes.
+    # On a consumer without gridServing, model_to_header keeps its own 10 MiB buffer, so
+    # the limit stays at 10 MiB. maxBufferBytes needs image.flavor grid-gateway.
+    bodyLimits:
+      maxRequestBytes: null
+      maxResponseBytes: null
+      maxBufferBytes: null
+    # -- Praxis runtime settings rendered when set.
+    runtime:
+      # -- Idle upstream connections each worker thread keeps, across every cluster;
+      # Praxis defaults to 64. Past it, a finished connection closes instead of
+      # returning to the pool, and the next request to that backend pays a new
+      # connect and TLS handshake. Size it to the in-flight requests one replica
+      # sends a backend divided by its worker threads. At most 10000.
+      upstreamKeepalivePoolSize: null
     # -- consumer routes callers. provider serves grid peers on the grid identity and forwards to one backend.
     role: consumer
     # -- Grid peers a provider accepts, each with a Grid-CA client certificate.
@@ -337,7 +371,7 @@ praxisConfig:
       enabled: false
       # -- GridNetwork name, which with gatewayRefName names the operator's ConfigMap. Empty uses grid.networkName.
       networkName: ""
-      # -- This gateway's name in the GridNetwork gatewayRefs. Defaults to the release fullname.
+      # -- This gateway's name in the GridNetwork consumerGateways. Defaults to the release fullname.
       gatewayRefName: ""
       # -- Override the derived serving ConfigMap name grid-serving-<networkName>-<gatewayRefName>.
       configMapName: ""
@@ -418,14 +452,14 @@ networkPolicy:
   # - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress}}
   #   podSelector: {matchLabels: {app: authenticating-front}}
 
-# -- TLS listener serving only GET /metrics, for an in-cluster Prometheus. The admin
-# listener cannot be scraped from outside the pod. Needs the grid-gateway image and
-# networkPolicy.enabled, since the port is reachable only from fromNamespaces.
+# -- TLS listener serving only authorized GET /metrics requests, for an in-cluster
+# Prometheus. Kubernetes TokenReview and SubjectAccessReview authorize the scrape.
+# NetworkPolicy is recommended to limit which pods can reach the listener and trigger
+# authorization API requests, even though token authorization protects the metrics data.
 metricsListener:
-  # -- Serve the listener. auto serves it for the grid-gateway image on OpenShift with
-  # networkPolicy.enabled, and fills each unset value below from the platform: the service
-  # serving cert in <fullname>-metrics-tls, openshift-user-workload-monitoring, and the
-  # openshift-service-ca.crt CA. true needs each value set.
+  # -- Serve the listener. auto serves it for grid-gateway on OpenShift, or when an
+  # existingSecret is supplied. OpenShift requests the serving cert in <fullname>-metrics-tls
+  # and defaults the CA to openshift-service-ca.crt. Other platforms need TLS and CA values.
   enabled: auto
   # -- Container and Service port.
   port: 9443
@@ -434,7 +468,8 @@ metricsListener:
   existingSecret: ""
   # -- Mount path for the cert. The listener reloads it when it changes.
   mountPath: "/etc/praxis/metrics-tls"
-  # -- Namespaces, by name, whose pods may reach the port. Required when enabled.
+  # -- Namespaces, by name, allowed by NetworkPolicy to reach the port. Required only when
+  # networkPolicy.enabled. OpenShift defaults this to openshift-user-workload-monitoring.
   fromNamespaces: []
   service:
     # -- Annotations on the ClusterIP metrics Service.
@@ -453,7 +488,8 @@ metricsListener:
     caConfigMap:
       name: ""
       key: "ca.crt"
-    # -- Additional labels on the ServiceMonitor, for a collector that selects by label.
+    # -- Labels on the ServiceMonitor, for collectors that select by label. For example,
+    # OpenShift AI's observability collector selects monitoring.opendatahub.io/scrape: "true".
     labels: {}
 
 # -- Gateway Service configuration.
@@ -513,7 +549,7 @@ overlay:
       repository: ghcr.io/praxis-proxy/grid-overlay-sync
       # -- Image tag. Empty uses the chart appVersion, which is the praxis version,
       # not a grid-overlay-sync tag, so keep this set.
-      tag: "v0.3.0-rc.4"
+      tag: "v0.3.0"
       # -- Image pull policy.
       pullPolicy: IfNotPresent
     # -- ConfigMap data key containing the overlay envelope.

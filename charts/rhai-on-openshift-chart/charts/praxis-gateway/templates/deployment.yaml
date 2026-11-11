@@ -52,7 +52,7 @@ spec:
       {{- /* A changed chart-rendered config must reach new pods: the hash rolls the Deployment. */}}
       {{- if eq $configSource "byoInline" }}
       {{- /* A changed praxisConfig.byo.inline must reach new pods: the hash rolls the Deployment. */}}
-      {{- $_ := set $podAnnotations "checksum/config" (toString .Values.praxisConfig.byo.inline | sha256sum) }}
+      {{- $_ := set $podAnnotations "checksum/config" (include "praxis-gateway.byoInline" . | sha256sum) }}
       {{- else if eq $configSource "render" }}
       {{- $_ := set $podAnnotations "checksum/config" (include "praxis-gateway.gatewayConfigData" . | sha256sum) }}
       {{- end }}
@@ -79,7 +79,9 @@ spec:
       {{- fail (printf "terminationGracePeriodSeconds must be at least %d: the operator-generated config drains for 30 seconds after the %d second shutdownDelaySeconds" (add 30 $delay) $delay) }}
       {{- end }}
       terminationGracePeriodSeconds: {{ $grace }}
-      {{- if and .Values.overlay.configMapName .Values.overlay.sidecar.enabled }}
+      {{- if .Values.metricsListener.enabled }}
+      serviceAccountName: {{ include "praxis-gateway.metricsAuthSA" . }}
+      {{- else if and .Values.overlay.configMapName .Values.overlay.sidecar.enabled }}
       serviceAccountName: {{ include "praxis-gateway.fullname" . }}-overlay-sync
       {{- end }}
       {{- with .Values.imagePullSecrets }}
@@ -218,17 +220,38 @@ spec:
           {{- end }}
           {{- $validateCA := .Values.praxisConfig.render.auth.validateCA }}
           {{- $withCA := and (eq .Values.praxisConfig.source "render") (eq .Values.praxisConfig.render.auth.mode "api-key") (or $validateCA.configMapName $validateCA.secretName) }}
-          {{- /* A user RUST_LOG in env wins: a duplicate name fails server-side apply. */ -}}
+          {{- /* User RUST_LOG wins; required FIPS env values are checked below. */ -}}
+          {{- $env := include "praxis-gateway.env" . | fromYamlArray }}
           {{- $userLog := false }}
-          {{- range .Values.env }}{{- if eq .name "RUST_LOG" }}{{- $userLog = true }}{{- end }}{{- end }}
+          {{- $userFips := false }}
+          {{- $userFipsInvalid := false }}
+          {{- range $env }}
+            {{- if eq .name "RUST_LOG" }}{{- $userLog = true }}{{- end }}
+            {{- if eq .name "PRAXIS_REQUIRE_FIPS" }}
+              {{- $userFips = true }}
+              {{- if or (not (hasKey . "value")) (hasKey . "valueFrom") }}
+                {{- $userFipsInvalid = true }}
+              {{- else if ne (toString .value) "1" }}
+                {{- $userFipsInvalid = true }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if and .Values.fips.required $userFipsInvalid }}
+            {{- fail "fips.required needs env PRAXIS_REQUIRE_FIPS to have value \"1\" or be omitted" }}
+          {{- end }}
           {{- $rustLog := and (not $userLog) (include "praxis-gateway.rustLog" .) }}
-          {{- if or $rustLog .Values.env $gridServing.enabled $withCA (.Values.metricsListener).enabled }}
+          {{- $fips := and .Values.fips.required (not $userFips) }}
+          {{- if or $rustLog $fips $env $gridServing.enabled $withCA (.Values.metricsListener).enabled }}
           env:
             {{- if $rustLog }}
             - name: RUST_LOG
               value: {{ include "praxis-gateway.rustLog" . | quote }}
             {{- end }}
-            {{- with .Values.env }}
+            {{- if $fips }}
+            - name: PRAXIS_REQUIRE_FIPS
+              value: "1"
+            {{- end }}
+            {{- with $env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- if and $gridServing.enabled $providerRole }}
@@ -250,6 +273,10 @@ spec:
               value: {{ printf "%s/tls.crt" .mountPath | quote }}
             - name: GRID_METRICS_TLS_KEY
               value: {{ printf "%s/tls.key" .mountPath | quote }}
+            - name: GRID_METRICS_AUTH_NAMESPACE
+              value: {{ $.Release.Namespace | quote }}
+            - name: GRID_METRICS_AUTH_RESOURCE_NAME
+              value: {{ include "praxis-gateway.fullname" $ | quote }}
             {{- end }}
             {{- end }}
           {{- end }}
@@ -342,6 +369,9 @@ spec:
             {{- if .Values.metricsListener.enabled }}
             - name: metrics-tls
               mountPath: {{ .Values.metricsListener.mountPath | quote }}
+              readOnly: true
+            - name: metrics-api-auth
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
             {{- end }}
             {{- if $withCA }}
@@ -475,6 +505,17 @@ spec:
         - name: metrics-tls
           secret:
             secretName: {{ .Values.metricsListener.existingSecret | quote }}
+        - name: metrics-api-auth
+          projected:
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
         {{- end }}
         {{- range $i, $credential := .Values.providerCredentials }}
         {{- if or (not $.Values.mountReconciliation.enabled) (not $.Values.mountReconciliation.releaseHelmMounts) (not (has $credential.secretName $.Values.mountReconciliation.managedCredentialNames)) }}

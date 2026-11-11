@@ -275,6 +275,17 @@ charts:
         setJsonFlags:
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
 
+      - name: ai-grid-inference-related-images
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-ai-grid-images.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
+
       # An explicit runtime toggle remains available even when the profile enables it
       - name: ai-grid-inference-with-gateway
         setFlags:

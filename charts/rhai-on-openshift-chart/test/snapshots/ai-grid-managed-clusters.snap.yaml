@@ -144,6 +144,50 @@ metadata:
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-gateway-metrics-auth
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-gateway-metrics-scraper
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grid-gateway-metrics-token
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/service-account.name: "grid-gateway-metrics-scraper"
+type: kubernetes.io/service-account-token
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grid-gateway-config
@@ -204,6 +248,26 @@ rules:
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grid-gateway-metrics-auth-dbdf2da0
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: default-grid-bootstrap-membership-a38bf115
@@ -215,6 +279,69 @@ subjects:
 - kind: ServiceAccount
   name: grid-bootstrap-membership
   namespace: default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grid-gateway-metrics-auth-dbdf2da0
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: grid-gateway-metrics-auth-dbdf2da0
+subjects:
+  - kind: ServiceAccount
+    name: grid-gateway-metrics-auth
+    namespace: default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grid-gateway-metrics-scrape
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [metrics.grid.praxis-proxy.io]
+    resources: [scrapes]
+    resourceNames: ["grid-gateway"]
+    verbs: [get]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grid-gateway-metrics-scrape
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grid-gateway-metrics-scrape
+subjects:
+  - kind: ServiceAccount
+    name: grid-gateway-metrics-scraper
+    namespace: default
+
 
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
@@ -301,13 +428,14 @@ spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 35
+      serviceAccountName: grid-gateway-metrics-auth
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:af591eb9d62f07b6341d4db749786b59abedc9269c4b56b3d33ae5b050c7654c
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -321,6 +449,10 @@ spec:
               value: "/etc/praxis/metrics-tls/tls.crt"
             - name: GRID_METRICS_TLS_KEY
               value: "/etc/praxis/metrics-tls/tls.key"
+            - name: GRID_METRICS_AUTH_NAMESPACE
+              value: "default"
+            - name: GRID_METRICS_AUTH_RESOURCE_NAME
+              value: "grid-gateway"
           securityContext:
             runAsNonRoot: true
             runAsUser: 100
@@ -386,6 +518,9 @@ spec:
             - name: metrics-tls
               mountPath: "/etc/praxis/metrics-tls"
               readOnly: true
+            - name: metrics-api-auth
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -421,6 +556,17 @@ spec:
         - name: metrics-tls
           secret:
             secretName: "grid-gateway-metrics-tls"
+        - name: metrics-api-auth
+          projected:
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
 
 
 ---
@@ -619,7 +765,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/version: "v0.3.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   ca:
@@ -2061,7 +2207,7 @@ spec:
                   helm.sh/chart: HELM_CHART_VERSION_REDACTED
                   app.kubernetes.io/name: grid-enrollment
                   app.kubernetes.io/instance: release-test
-                  app.kubernetes.io/version: "v0.3.0-rc.4"
+                  app.kubernetes.io/version: "v0.3.0"
                   app.kubernetes.io/managed-by: Helm
               spec:
                 secretName: "{{hub $secret hub}}"
@@ -2452,6 +2598,11 @@ spec:
           configMap:
             name: "openshift-service-ca.crt"
             key: "service-ca.crt"
+      authorization:
+        type: Bearer
+        credentials:
+          name: grid-gateway-metrics-token
+          key: token
       metricRelabelings:
         # Reserve "cluster" for the managed cluster; Praxis uses it for the backend.
         - sourceLabels: [cluster]
@@ -2618,7 +2769,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/version: "v0.3.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -2637,7 +2788,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/version: "v0.3.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -2663,7 +2814,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/version: "v0.3.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
@@ -2690,7 +2841,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0-rc.4"
+    app.kubernetes.io/version: "v0.3.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: ca-bootstrap
   annotations:
@@ -2717,7 +2868,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ca-bootstrap
-          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:398fe1685fef68735a44c33ceb33be7a33a55351ed30a2ba40ab15ed593ea82d"
+          image: "ghcr.io/praxis-proxy/grid-enrollment@sha256:c931a7e0daa66093233ed1fc807438d33dd61372eadc4bb8e93871be8ee46dbd"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false

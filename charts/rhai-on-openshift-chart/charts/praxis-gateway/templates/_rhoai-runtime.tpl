@@ -15,6 +15,11 @@
 ---
 {{ $resource }}
 {{ end }}
+{{- $resource := include "praxis-gateway.rhoai.metrics-auth.yaml" . | trim -}}
+{{- if $resource }}
+---
+{{ $resource }}
+{{ end }}
 {{- $resource := include "praxis-gateway.rhoai.networkpolicy.yaml" . | trim -}}
 {{- if $resource }}
 ---

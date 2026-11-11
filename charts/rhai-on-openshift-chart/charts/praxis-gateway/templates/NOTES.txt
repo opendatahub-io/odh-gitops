@@ -27,8 +27,8 @@ Run the chart's connectivity test:
 {{- if eq $configSource "operator" }}
 
 The Grid operator writes ConfigMap {{ include "praxis-gateway.configMapName" . }} (GridNetwork
-gatewayRefs[].consumerConfig.enabled: true). The pod waits in ContainerCreating until
-that ConfigMap exists. If the GridNetwork sets another consumerConfig.configMapName, set the
+consumerGateways[].praxisConfig.generate: true). The pod waits in ContainerCreating until
+that ConfigMap exists. If the GridNetwork sets another praxisConfig.configMapName, set the
 same name in praxisConfig.operator.configMapName.
 
 NOTE: the operator's praxis.yaml has no caller authentication. A ClusterIP Service still
@@ -42,7 +42,7 @@ Limit networkPolicy.from to the authenticating front.
 NetworkPolicy is effective only where the CNI enforces it.
 
 mTLS to backends: if the operator's praxis.yaml uses mutual_tls, it reads tls.crt, tls.key
-and ca.crt from the GridNetwork's consumerConfig.tlsCertMountPath (default /etc/praxis/tls).
+and ca.crt from the GridNetwork's praxisConfig.tlsCertMountPath (default /etc/praxis/tls).
 Set the identity Secret. If the Grid CA is separate, also set caSecretName:
   gridIdentity.tlsSecretName: the site identity Secret containing tls.crt and tls.key
   gridIdentity.caSecretName: the separate Grid CA Secret containing ca.crt
@@ -66,8 +66,15 @@ restart the pods to load it right away:
 {{- end }}
 {{- with .Values.metricsListener.skipped }}
 
-The metrics listener is off: {{ . }}. Set networkPolicy.enabled and networkPolicy.from to
-serve it, since the NetworkPolicy is the only control on who can scrape the port.
+The metrics listener is off: {{ . }}. Set metricsListener.existingSecret to a Secret with
+tls.crt and tls.key to enable it outside OpenShift.
+{{- end }}
+{{- if .Values.metricsListener.enabled }}
+
+The metrics listener authorizes scrapes with Kubernetes TokenReview and SubjectAccessReview.
+Enable NetworkPolicy to limit which pods can reach the listener and trigger API reviews. Set
+metricsListener.serviceMonitor.labels to the labels required by your collector; OpenShift
+AI's observability collector uses monitoring.opendatahub.io/scrape: "true".
 {{- end }}
 {{- if .Values.overlay.configMapName }}
 

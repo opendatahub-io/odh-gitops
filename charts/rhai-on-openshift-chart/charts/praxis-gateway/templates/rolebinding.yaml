@@ -13,7 +13,11 @@ roleRef:
   name: {{ include "praxis-gateway.fullname" . }}-overlay-sync
 subjects:
   - kind: ServiceAccount
+    {{- if .Values.metricsListener.enabled }}
+    name: {{ include "praxis-gateway.metricsAuthSA" . }}
+    {{- else }}
     name: {{ include "praxis-gateway.fullname" . }}-overlay-sync
+    {{- end }}
     namespace: {{ .Release.Namespace }}
 {{- end }}
 {{- end }}
