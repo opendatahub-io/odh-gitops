@@ -171,4 +171,33 @@ praxis-provider-gateway:
     annotations:
       haproxy.router.openshift.io/timeout: 300s
 
-  # networkPolicy.from is set per site by the rhoai ApplicationSet.
+  # The listener admits the serving gateway's clients and the router; the rhoai
+  # ApplicationSet replaces from per site. The metrics port admits only the collectors.
+  # Explicit, because auto turns the metrics listener on at 0.3.0 whether or not a
+  # NetworkPolicy fronts it.
+  networkPolicy:
+    enabled: true
+    from:
+      - podSelector:
+          matchLabels:
+            grid.opendatahub.io/gateway-client: "true"
+      - namespaceSelector:
+          matchLabels:
+            network.openshift.io/policy-group: ingress
+  # TLS metrics on 9443 for the platform collector, which selects the scrape label.
+  metricsListener:
+    enabled: true
+    existingSecret: grid-provider-gateway-metrics-tls
+    fromNamespaces:
+      - redhat-ods-monitoring
+      - openshift-user-workload-monitoring
+    service:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: grid-provider-gateway-metrics-tls
+    serviceMonitor:
+      enabled: true
+      caConfigMap:
+        name: openshift-service-ca.crt
+        key: service-ca.crt
+      labels:
+        monitoring.opendatahub.io/scrape: "true"

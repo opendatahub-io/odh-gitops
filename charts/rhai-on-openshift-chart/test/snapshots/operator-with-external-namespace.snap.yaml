@@ -15,7 +15,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -82,7 +81,6 @@ spec:
       workbenchNamespace: rhods-notebooks
       workbenchesV2:
         managementState: Removed
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -95,7 +93,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

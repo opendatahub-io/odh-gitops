@@ -9,7 +9,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: v1
@@ -21,7 +20,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
@@ -33,7 +31,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: v1
@@ -47,7 +44,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
     openshift.io/cluster-monitoring: "true"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: v1
@@ -59,7 +55,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: v1
@@ -71,7 +66,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: v1
@@ -83,7 +77,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
@@ -95,7 +88,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: v1
@@ -107,7 +99,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -119,7 +110,70 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grid-provider-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-provider-gateway
+      app.kubernetes.io/instance: release-test
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              grid.opendatahub.io/gateway-client: "true"
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - port: 8080
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: ["redhat-ods-monitoring","openshift-user-workload-monitoring"]
+      ports:
+        - port: 9443
+          protocol: TCP
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-provider-gateway-metrics-auth
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-provider-gateway-metrics-scraper
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/grid-model-client.yaml
 apiVersion: v1
@@ -133,7 +187,21 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
-
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grid-provider-gateway-metrics-token
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/service-account.name: "grid-provider-gateway-metrics-scraper"
+type: kubernetes.io/service-account-token
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/grid-model-client.yaml
 apiVersion: v1
@@ -148,7 +216,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 type: kubernetes.io/service-account-token
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -193,8 +260,109 @@ data:
             response_set:
               - name: X-Grid-Provider-Site
                 value: "local-cluster"
-
-
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grid-provider-gateway-metrics-auth-05b1032e
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grid-provider-gateway-metrics-auth-05b1032e
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: grid-provider-gateway-metrics-auth-05b1032e
+subjects:
+  - kind: ServiceAccount
+    name: grid-provider-gateway-metrics-auth
+    namespace: default
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grid-provider-gateway-metrics-scrape
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [metrics.grid.praxis-proxy.io]
+    resources: [scrapes]
+    resourceNames: ["grid-provider-gateway"]
+    verbs: [get]
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grid-provider-gateway-metrics-scrape
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grid-provider-gateway-metrics-scrape
+subjects:
+  - kind: ServiceAccount
+    name: grid-provider-gateway-metrics-scraper
+    namespace: default
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-provider-gateway-metrics
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: gateway-metrics
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: grid-provider-gateway-metrics-tls
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9443
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/instance: release-test
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -217,7 +385,6 @@ spec:
   selector:
     app.kubernetes.io/name: praxis-provider-gateway
     app.kubernetes.io/instance: release-test
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: apps/v1
@@ -250,6 +417,7 @@ spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 35
+      serviceAccountName: grid-provider-gateway-metrics-auth
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -264,6 +432,16 @@ spec:
           env:
             - name: GRID_PROVIDER_CONFIG
               value: "/etc/praxis/grid-serving/provider.json"
+            - name: GRID_METRICS_ADDR
+              value: "0.0.0.0:9443"
+            - name: GRID_METRICS_TLS_CERT
+              value: "/etc/praxis/metrics-tls/tls.crt"
+            - name: GRID_METRICS_TLS_KEY
+              value: "/etc/praxis/metrics-tls/tls.key"
+            - name: GRID_METRICS_AUTH_NAMESPACE
+              value: "default"
+            - name: GRID_METRICS_AUTH_RESOURCE_NAME
+              value: "grid-provider-gateway"
           securityContext:
             runAsNonRoot: true
             runAsUser: 100
@@ -277,6 +455,9 @@ spec:
             - name: http
               containerPort: 8080
               protocol: "TCP"
+            - name: metrics
+              containerPort: 9443
+              protocol: TCP
           readinessProbe:
             exec:
               command:
@@ -320,6 +501,12 @@ spec:
             - name: upstream-ca
               mountPath: "/etc/praxis/upstream-ca"
               readOnly: true
+            - name: metrics-tls
+              mountPath: "/etc/praxis/metrics-tls"
+              readOnly: true
+            - name: metrics-api-auth
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
             - name: credential-0
               mountPath: "/run/secrets/grid-credentials/grid-model-client-token"
               readOnly: true
@@ -352,12 +539,24 @@ spec:
         - name: upstream-ca
           secret:
             secretName: "openshift-service-ca"
+        - name: metrics-tls
+          secret:
+            secretName: "grid-provider-gateway-metrics-tls"
+        - name: metrics-api-auth
+          projected:
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
         - name: credential-0
           secret:
             secretName: "grid-model-client-token"
             optional: false
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
 apiVersion: apps/v1
@@ -378,7 +577,6 @@ spec:
               value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
             - name: SSL_CERT_DIR
               value: /etc/ssl/certs
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -403,7 +601,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -472,7 +669,6 @@ spec:
       workbenchNamespace: rhods-notebooks
       workbenchesV2:
         managementState: Removed
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -508,7 +704,6 @@ spec:
     name: https
     port: 443
     protocol: HTTPS
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -520,7 +715,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
@@ -534,7 +728,6 @@ metadata:
 spec:
   observability:
     enable: true
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
 apiVersion: operator.openshift.io/v1
@@ -548,7 +741,6 @@ spec:
   logLevel: Normal
   managementState: Managed
   operatorLogLevel: Normal
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -561,7 +753,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -574,7 +765,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -589,7 +779,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-lws-operator
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -602,7 +791,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -617,7 +805,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-nfd
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -632,7 +819,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - nvidia-gpu-operator
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -645,7 +831,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -658,7 +843,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -671,7 +855,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -684,7 +867,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: route.openshift.io/v1
@@ -711,8 +893,48 @@ spec:
     termination: passthrough
     insecureEdgeTerminationPolicy: None
   wildcardPolicy: None
-
-
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grid-provider-gateway-metrics
+  labels:
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: praxis-provider-gateway
+    app.kubernetes.io/version: 0.7.0
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    monitoring.opendatahub.io/scrape: "true"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-provider-gateway
+      app.kubernetes.io/instance: release-test
+      app.kubernetes.io/component: gateway-metrics
+  endpoints:
+    - port: metrics
+      scheme: https
+      path: /metrics
+      interval: 30s
+      tlsConfig:
+        serverName: grid-provider-gateway-metrics.default.svc
+        ca:
+          configMap:
+            name: "openshift-service-ca.crt"
+            key: "service-ca.crt"
+      authorization:
+        type: Bearer
+        credentials:
+          name: grid-provider-gateway-metrics-token
+          key: token
+      metricRelabelings:
+        # Reserve "cluster" for the managed cluster; Praxis uses it for the backend.
+        - sourceLabels: [cluster]
+          regex: "(.+)"
+          targetLabel: backend
+        - action: labeldrop
+          regex: cluster
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -729,8 +951,6 @@ spec:
   name: openshift-cert-manager-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -747,8 +967,6 @@ spec:
   name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -765,7 +983,6 @@ spec:
   name: leader-worker-set
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -782,7 +999,6 @@ spec:
   name: loki-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -799,7 +1015,6 @@ spec:
   name: nfd
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -816,7 +1031,6 @@ spec:
   name: gpu-operator-certified
   source: certified-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -833,8 +1047,6 @@ spec:
   name: opentelemetry-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -855,7 +1067,6 @@ spec:
     env:
     - name: AUTH_SERVICE_TIMEOUT
       value: 5s
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -872,8 +1083,6 @@ spec:
   name: tempo-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

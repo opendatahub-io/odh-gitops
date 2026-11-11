@@ -1,40 +1,4 @@
 ---
-# Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager-operator
-  annotations:
-    helm.sh/resource-policy: keep
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-lws-operator
-  annotations:
-    helm.sh/resource-policy: keep
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kuadrant-system
-  annotations:
-    helm.sh/resource-policy: keep
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-
----
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
 kind: Namespace
@@ -45,7 +9,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -84,8 +47,6 @@ data:
               - name: Content-Type
                 value: application/json
             body: '{"error": "not found"}'
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -108,7 +69,6 @@ spec:
   selector:
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: apps/v1
@@ -204,8 +164,6 @@ spec:
             items:
               - key: "praxis.yaml"
                 path: "praxis.yaml"
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -223,7 +181,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -292,73 +249,6 @@ spec:
       workbenchNamespace: opendatahub
       workbenchesV2:
         managementState: Removed
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
-apiVersion: kuadrant.io/v1beta1
-kind: Kuadrant
-metadata:
-  name: kuadrant
-  namespace: kuadrant-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
-apiVersion: operator.openshift.io/v1
-kind: LeaderWorkerSetOperator
-metadata:
-  name: cluster
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  logLevel: Normal
-  managementState: Managed
-  operatorLogLevel: Normal
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: openshift-cert-manager-operator
-  namespace: cert-manager-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: leader-worker-set
-  namespace: openshift-lws-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-  targetNamespaces:
-    - openshift-lws-operator
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: rhcl-operator
-  namespace: kuadrant-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -371,59 +261,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: openshift-cert-manager-operator
-  namespace: cert-manager-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable-v1
-  installPlanApproval: Automatic
-  name: openshift-cert-manager-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: leader-worker-set
-  namespace: openshift-lws-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable-v1.0
-  installPlanApproval: Automatic
-  name: leader-worker-set
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: rhcl-operator
-  namespace: kuadrant-system
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable
-  installPlanApproval: Automatic
-  name: rhcl-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1

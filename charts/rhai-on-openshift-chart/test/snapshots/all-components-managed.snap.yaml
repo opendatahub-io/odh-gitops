@@ -9,7 +9,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: v1
@@ -21,7 +20,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: v1
@@ -33,7 +31,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: v1
@@ -45,19 +42,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-lws-operator
-  annotations:
-    helm.sh/resource-policy: keep
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: v1
@@ -71,7 +55,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
     openshift.io/cluster-monitoring: "true"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: v1
@@ -83,7 +66,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: v1
@@ -95,7 +77,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: v1
@@ -107,7 +88,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
@@ -119,7 +99,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: v1
@@ -131,7 +110,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -143,7 +121,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -161,7 +138,6 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -228,7 +204,6 @@ spec:
       workbenchNamespace: opendatahub
       workbenchesV2:
         managementState: Managed
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -252,7 +227,6 @@ spec:
     name: https
     port: 443
     protocol: HTTPS
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -278,7 +252,6 @@ spec:
     name: https
     port: 443
     protocol: HTTPS
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/kserve-gatewayclass.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -290,7 +263,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -302,7 +274,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/config.yaml
 apiVersion: operator.openshift.io/v1
@@ -315,7 +286,6 @@ metadata:
 spec:
   logLevel: Normal
   operatorLogLevel: Normal
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
@@ -326,7 +296,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/kueue/config.yaml
 apiVersion: kueue.openshift.io/v1
@@ -348,21 +317,6 @@ spec:
       - StatefulSet
       - TrainJob
   managementState: Managed
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
-apiVersion: operator.openshift.io/v1
-kind: LeaderWorkerSetOperator
-metadata:
-  name: cluster
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  logLevel: Normal
-  managementState: Managed
-  operatorLogLevel: Normal
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -375,7 +329,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -388,7 +341,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -403,7 +355,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-jobset-operator
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -416,22 +367,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: leader-worker-set
-  namespace: openshift-lws-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  upgradeStrategy: Default
-  targetNamespaces:
-    - openshift-lws-operator
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -444,7 +379,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -459,7 +393,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-nfd
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -474,7 +407,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - nvidia-gpu-operator
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -487,7 +419,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -500,7 +431,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -513,7 +443,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -526,7 +455,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -543,8 +471,6 @@ spec:
   name: openshift-cert-manager-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -561,8 +487,6 @@ spec:
   name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/job-set/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -579,7 +503,6 @@ spec:
   name: job-set
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/kueue/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -596,25 +519,6 @@ spec:
   name: kueue-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
----
-# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: leader-worker-set
-  namespace: openshift-lws-operator
-  labels:
-    helm.sh/chart: HELM_CHART_VERSION_REDACTED
-    app.kubernetes.io/managed-by: Helm
-spec:
-  channel: stable-v1.0
-  installPlanApproval: Automatic
-  name: leader-worker-set
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -631,7 +535,6 @@ spec:
   name: loki-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nfd/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -648,7 +551,6 @@ spec:
   name: nfd
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/nvidia-gpu-operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -665,7 +567,6 @@ spec:
   name: gpu-operator-certified
   source: certified-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -682,8 +583,6 @@ spec:
   name: opentelemetry-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -700,7 +599,6 @@ spec:
   name: rhcl-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -717,8 +615,6 @@ spec:
   name: tempo-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
