@@ -154,6 +154,14 @@ oc create secret generic usage-logs-hub-credential -n ai-grid-policies \
   --from-file=token="$TOKEN_FILE"
 ```
 
+The policy adds `ca.crt` to the spoke Secret from the hub store Route or the default
+ingress CA. Since that lookup reads outside the policy namespace, delivering the writer
+credential requires `spokePolicy.hubTemplateOptions.serviceAccountName`. Create the
+ServiceAccount in the policy namespace and grant it `get`, `list`, and `watch` on the
+store Route, the `default-ingress-cert` ConfigMap in `openshift-config-managed`, and
+the hub writer credential Secret. The chart checks for the ServiceAccount name when
+rendering; ACM checks its permissions when resolving the policy.
+
 `NOTES.txt` prints both, resolved to the names this release actually used. Delete any local
 copy of the token after the selected delivery step: `rm -- "$TOKEN_FILE"`.
 

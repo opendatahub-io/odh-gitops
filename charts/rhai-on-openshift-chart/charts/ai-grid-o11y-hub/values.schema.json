@@ -206,7 +206,7 @@
         },
         "deliverCredential": {
           "type": "boolean",
-          "description": "Deliver the credential Secret to each spoke."
+          "description": "Deliver the writer token and hub CA to each spoke. Requires hubTemplateOptions.serviceAccountName for the CA lookup."
         },
         "deliverConfiguration": {
           "type": "boolean",
@@ -220,7 +220,7 @@
         "hubTemplateOptions": {
           "type": "object",
           "additionalProperties": false,
-          "description": "spec.hubTemplateOptions on the Policy. Names the ServiceAccount ACM resolves this policy's hub templates as, which is required when a template reads beyond the policy's own namespace and the target ManagedCluster. ACM 2.12 and later.",
+          "description": "spec.hubTemplateOptions on the Policy. Names the ServiceAccount ACM resolves this policy's hub templates as. Required when delivering either credential or looking up an endpoint outside the policy's namespace. ACM 2.12 and later.",
           "properties": {
             "serviceAccountName": {
               "type": "string",

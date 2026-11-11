@@ -398,6 +398,8 @@ metadata:
 spec:
   remediationAction: enforce
   disabled: false
+  hubTemplateOptions:
+    serviceAccountName: "usage-logs-templating"
   policy-templates:
     - objectDefinition:
         apiVersion: policy.open-cluster-management.io/v1
@@ -419,6 +421,7 @@ spec:
                   namespace: "redhat-ods-monitoring"
                 data:
                   token: '{{hub fromSecret "ai-grid-policies" "usage-logs-hub-credential" "token" hub}}'
+                  ca.crt: '{{hub base64enc (default (fromConfigMap "openshift-config-managed" "default-ingress-cert" "ca-bundle.crt") (lookup "route.openshift.io/v1" "Route" "redhat-ods-monitoring" "usage-logs").spec.tls.caCertificate) hub}}'
             - complianceType: musthave
               objectDefinition:
                 apiVersion: dscinitialization.opendatahub.io/v1
