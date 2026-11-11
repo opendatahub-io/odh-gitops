@@ -148,9 +148,10 @@ spokePolicy:
   # -- Create `spokePolicy.namespace`. Set false when it is managed elsewhere.
   createNamespace: true
 
-  # -- Deliver the credential Secret to each spoke. Set false when the token reaches the
-  # spokes another way, such as External Secrets, and this policy should only set the
-  # configuration that names it.
+  # -- Deliver the credential Secret with the writer token and hub CA to each spoke.
+  # Requires `hubTemplateOptions.serviceAccountName` for the CA lookup. Set false when
+  # the credential reaches the spokes another way, such as External Secrets, and this
+  # policy should only set the configuration that names it.
   deliverCredential: true
 
   # -- Deliver the `usageLogs` patch to each spoke's DSCInitialization. Set false when the
@@ -185,12 +186,13 @@ spokePolicy:
   endpoint: ""
 
   # -- `spec.hubTemplateOptions`, which names the ServiceAccount ACM resolves this
-  # policy's hub templates as. Only needed when a template reads beyond the policy's
-  # own namespace and the target `ManagedCluster`, which is ACM's default limit —
-  # a `lookup` of the ingest Route, for instance. Requires ACM 2.12 or later.
+  # policy's hub templates as. Required when delivering either credential, because
+  # their CA lookups read the store Route and ingress ConfigMap outside the policy's
+  # namespace. Also required for a templated endpoint that looks up the Route.
+  # Requires ACM 2.12 or later.
   #
-  # It applies to **every** template in the policy, the credential's `fromSecret`
-  # included, so the ServiceAccount needs `get` on that Secret as well as on
+  # It applies to **every** template in the policy, both credentials' `fromSecret`
+  # calls included, so the ServiceAccount needs `get` on those Secrets as well as on
   # whatever the lookup reads, plus `list` and `watch` on both kinds. Grant it
   # narrowly: this is a hub-wide read identity otherwise.
   hubTemplateOptions:

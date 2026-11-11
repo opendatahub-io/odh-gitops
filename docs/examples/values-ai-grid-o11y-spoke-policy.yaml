@@ -6,9 +6,11 @@
 # and does not install ACM; the spokes must already be imported as
 # ManagedClusters.
 #
-# Before this delivers anything, two things must exist that no chart can create:
+# Before this delivers anything, three things must exist outside this chart:
 #   - Secret usage-logs-hub-credential in ai-grid-policies, key "token", holding
 #     a token minted for the writer ServiceAccount
+#   - ServiceAccount usage-logs-templating in ai-grid-policies with read grants
+#     for the store Route, default-ingress-cert ConfigMap, and writer Secret
 #   - the label ai-grid.redhat.com/maas=true on each spoke's ManagedCluster
 #
 # Usage (same release as step one; keep both -f files):
@@ -38,6 +40,8 @@ ai-grid-o11y-hub:
     #   oc get route usage-logs -n ai-grid-o11y -o jsonpath='{.spec.host}'
     endpoint: https://usage-logs-ai-grid-o11y.apps.hub.example.com/api/logs/v1/infrastructure/otlp
     credentialSecretName: usage-logs-hub-credential
+    hubTemplateOptions:
+      serviceAccountName: usage-logs-templating
 
     # A spoke-side consumer that queries this hub's store gets its credential
     # from the same policy. Uncomment, and provision the reader Secret

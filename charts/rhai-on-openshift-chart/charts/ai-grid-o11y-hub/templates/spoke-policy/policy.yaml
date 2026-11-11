@@ -49,6 +49,12 @@ spec:
                    a fleet whose spokes are installed by GitOps carries the configuration in
                    its own values and takes only the credential from here. */}}
             {{- if $d.deliverCredential }}
+            {{- $caSA := ($d.hubTemplateOptions | default dict).serviceAccountName | default "" }}
+            {{- if not $caSA }}
+            {{- fail "spokePolicy.deliverCredential requires spokePolicy.hubTemplateOptions.serviceAccountName for the writer CA lookup" }}
+            {{- end }}
+            {{- $routeName := include "ai-grid-o11y-hub.lokiStackName" . }}
+            {{- $routeNamespace := "redhat-ods-monitoring" }}
             - complianceType: musthave
               objectDefinition:
                 apiVersion: v1
@@ -64,6 +70,7 @@ spec:
                          collector would present a corrupt token. The printf is what stops Helm
                          consuming ACM's braces. */}}
                   token: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $d.credentialSecretName }}'
+                  ca.crt: '{{ printf "{{hub base64enc (default (fromConfigMap %q %q %q) (lookup %q %q %q %q).spec.tls.caCertificate) hub}}" "openshift-config-managed" "default-ingress-cert" "ca-bundle.crt" "route.openshift.io/v1" "Route" $routeNamespace $routeName }}'
             {{- end }}
             {{- if $d.deliverConfiguration }}
             {{- /* musthave on a map merges, which is what this needs: the patch must not
