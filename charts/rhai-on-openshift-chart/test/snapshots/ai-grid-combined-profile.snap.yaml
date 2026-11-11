@@ -2502,8 +2502,6 @@ spec:
           height: 8
           content:
             $ref: '#/spec/panels/ingestDropped'
-    
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: route.openshift.io/v1
