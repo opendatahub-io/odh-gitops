@@ -17,20 +17,12 @@ components:
       rhoai:
         instancesNamespace: rhoai-model-registries
     dependencies: {}
-    dsc:
-      instancesNamespace: null
-      managementState: null
+    dsc: {}
   aigateway:
-    dependencies:
-      certManager: null
-      leaderWorkerSet: null
-      rhcl: null
+    dependencies: {}
     dsc:
-      batchGateway:
-        managementState: null
-      managementState: null
-      modelsAsAService:
-        managementState: null
+      batchGateway: {}
+      modelsAsAService: {}
     modelsAsAService:
       gateway:
         annotations:
@@ -60,35 +52,26 @@ components:
           controllerName: openshift.io/gateway-controller/v1
   aipipelines:
     dependencies: {}
-    dsc:
-      managementState: null
+    dsc: {}
   dashboard:
     dependencies: {}
     dsc:
-      maasPortal:
-        managementState: null
-      standard:
-        managementState: null
+      maasPortal: {}
+      standard: {}
   data:
     dependencies: {}
     dsc:
-      dataRegistry:
-        managementState: null
-      featureStore:
-        managementState: null
+      dataRegistry: {}
+      featureStore: {}
   kserve:
     dependencies:
       certManager: true
       customMetricsAutoscaler: false
-      jobSet: null
       leaderWorkerSet: false
       rhcl: true
     dsc:
-      managementState: null
-      modelExpress:
-        managementState: null
-      nim:
-        managementState: null
+      modelExpress: {}
+      nim: {}
       rawDeploymentServiceConfig: Headless
     gateway:
       create: auto
@@ -121,26 +104,21 @@ components:
     dsc:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
-      managementState: null
   mcplifecycleoperator:
     dependencies: {}
-    dsc:
-      managementState: null
+    dsc: {}
   mlflowoperator:
     dependencies: {}
-    dsc:
-      managementState: null
+    dsc: {}
   ogx:
     dependencies:
       nfd: true
       nvidiaGPUOperator: true
-    dsc:
-      managementState: null
+    dsc: {}
   ray:
     dependencies:
       certManager: true
-    dsc:
-      managementState: null
+    dsc: {}
   sparkoperator:
     dependencies: {}
     dsc:
@@ -149,8 +127,7 @@ components:
     dependencies:
       certManager: true
       jobSet: true
-    dsc:
-      managementState: null
+    dsc: {}
   trustyai:
     dependencies: {}
     dsc:
@@ -158,7 +135,6 @@ components:
         lmeval:
           permitCodeExecution: deny
           permitOnline: deny
-      managementState: null
   workbenches:
     defaults:
       odh:
@@ -167,10 +143,7 @@ components:
         workbenchNamespace: rhods-notebooks
     dependencies: {}
     dsc:
-      managementState: null
-      workbenchNamespace: null
-      workbenchesV2:
-        managementState: null
+      workbenchesV2: {}
 dependencies:
   agentSandbox:
     dependencies: {}
@@ -816,7 +789,6 @@ services:
     dsci:
       alerting: {}
       logs: {}
-      managementState: null
       metrics: {}
       traces: {}
       usageLogs: {}
@@ -826,3 +798,5 @@ tags:
 trustedCABundle:
   customCABundle: ""
   managementState: Managed
+
+

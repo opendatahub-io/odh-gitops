@@ -9,6 +9,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: v1
@@ -20,6 +21,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: v1
@@ -33,6 +35,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
     openshift.io/cluster-monitoring: "true"
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: v1
@@ -44,6 +47,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: v1
@@ -55,6 +59,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -66,6 +71,7 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/templates/networkpolicy-allow-acm-rhai-metrics.yaml
 # Allows the ACM observability metrics-collector agents (running in
@@ -100,6 +106,7 @@ spec:
       ports:
         - port: 9999
           protocol: TCP
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
 apiVersion: dscinitialization.opendatahub.io/v2
@@ -121,6 +128,7 @@ spec:
   trustedCABundle:
     managementState: Managed
     customCABundle: ""
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
 apiVersion: datasciencecluster.opendatahub.io/v3
@@ -187,6 +195,7 @@ spec:
       workbenchNamespace: rhods-notebooks
       workbenchesV2:
         managementState: Removed
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -199,6 +208,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -211,6 +221,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -223,6 +234,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -235,6 +247,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -247,6 +260,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -259,6 +273,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
+
 ---
 # Source: rhai-on-openshift-chart/charts/ai-grid-o11y-spoke/templates/scrapeconfig.yaml
 apiVersion: monitoring.rhobs/v1alpha1
@@ -282,6 +297,7 @@ spec:
   staticConfigs:
     - targets:
         - data-science-collector-collector.custom-monitoring.svc:9999
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -298,6 +314,8 @@ spec:
   name: openshift-cert-manager-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -314,6 +332,8 @@ spec:
   name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -330,6 +350,7 @@ spec:
   name: loki-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -346,6 +367,8 @@ spec:
   name: opentelemetry-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -362,6 +385,8 @@ spec:
   name: tempo-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+
+
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
