@@ -1,0 +1,17 @@
+# A listener hostname, which a reencrypt Route can never match.
+components:
+  aigateway:
+    modelsAsAService:
+      gateway:
+        openshiftRoute:
+          enabled: true
+          host: maas.apps.example.com
+        spec:
+          listeners:
+            - name: https
+              port: 443
+              protocol: HTTPS
+              hostname: maas.apps.example.com
+              allowedRoutes:
+                namespaces:
+                  from: Same

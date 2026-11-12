@@ -629,6 +629,24 @@ charts:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
 
+      - name: ai-grid-ingress-with-clusterip-route
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-maas-route-listeners.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+
+      - name: maas-route-rejects-listener-hostname
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-maas-route-hostname.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+        expectFail: true
+        expectMessage: "hostname must be unset when openshiftRoute.enabled"
+
       - name: monitoring-without-loki
         setFlags:
           - skipCrdCheck=true

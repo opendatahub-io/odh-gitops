@@ -1,0 +1,2245 @@
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-cluster-observability-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-lws-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-operators-redhat
+  annotations:
+    helm.sh/resource-policy: keep
+    openshift.io/node-selector: ""
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+    openshift.io/cluster-monitoring: "true"
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-opentelemetry-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuadrant-system
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-tempo-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redhat-ods-operator
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grid-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - port: 8443
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: ["redhat-ods-monitoring","openshift-user-workload-monitoring"]
+      ports:
+        - port: 9443
+          protocol: TCP
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-gateway-metrics-auth
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grid-gateway-metrics-scraper
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: false
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grid-gateway-metrics-token
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/service-account.name: "grid-gateway-metrics-scraper"
+type: kubernetes.io/service-account-token
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grid-gateway-config
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  praxis.yaml: |
+    runtime:
+      upstream_ca_file: "/etc/praxis/upstream-ca/ca.crt"
+    admin:
+      metrics_address: "127.0.0.1:9901"
+    listeners:
+      - name: gateway
+        address: "0.0.0.0:8443"
+        tls:
+          certificates:
+            - cert_path: "/etc/praxis/listener-tls/tls.crt"
+              key_path: "/etc/praxis/listener-tls/tls.key"
+        filter_chains: [main]
+    filter_chains:
+      - name: main
+        filters:
+          # The caller's credential authenticates this hop only; never forward it upstream.
+          - filter: headers
+            request_remove: [Authorization]
+          - filter: model_to_header
+            header: X-Gateway-Model-Name
+          - filter: grid_site_route
+            model_header: X-Gateway-Model-Name
+            clusters: []
+
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maas-gateway-options
+  namespace: openshift-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+data:
+  service: |
+    metadata:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: "maas-gw-service-tls"
+    spec:
+      type: ClusterIP
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grid-gateway-metrics-auth-dbdf2da0
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grid-gateway-metrics-auth-dbdf2da0
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: grid-gateway-metrics-auth-dbdf2da0
+subjects:
+  - kind: ServiceAccount
+    name: grid-gateway-metrics-auth
+    namespace: default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grid-gateway-metrics-scrape
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [metrics.grid.praxis-proxy.io]
+    resources: [scrapes]
+    resourceNames: ["grid-gateway"]
+    verbs: [get]
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grid-gateway-metrics-scrape
+  namespace: default
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grid-gateway-metrics-scrape
+subjects:
+  - kind: ServiceAccount
+    name: grid-gateway-metrics-scraper
+    namespace: default
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-gateway-metrics
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: gateway-metrics
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: grid-gateway-metrics-tls
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9443
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grid-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: grid-gateway-listener-tls
+spec:
+  type: "ClusterIP"
+  ports:
+    - name: https
+      port: 443
+      targetPort: https
+      protocol: "TCP"
+  selector:
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grid-gateway
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/version: "0.7.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/instance: release-test
+        app.kubernetes.io/name: praxis-gateway
+      annotations:
+        checksum/config: b099dc29d2cd4e4e41e991034048514147121029a5e559b438d0df94324b5397
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 35
+      serviceAccountName: grid-gateway-metrics-auth
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: praxis
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --config
+            - /etc/praxis/praxis.yaml
+          env:
+            - name: GRID_SERVING_CONFIG
+              value: "/etc/praxis/grid-serving/serving-config.json"
+            - name: GRID_METRICS_ADDR
+              value: "0.0.0.0:9443"
+            - name: GRID_METRICS_TLS_CERT
+              value: "/etc/praxis/metrics-tls/tls.crt"
+            - name: GRID_METRICS_TLS_KEY
+              value: "/etc/praxis/metrics-tls/tls.key"
+            - name: GRID_METRICS_AUTH_NAMESPACE
+              value: "default"
+            - name: GRID_METRICS_AUTH_RESOURCE_NAME
+              value: "grid-gateway"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: "TCP"
+            - name: metrics
+              containerPort: 9443
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - 'if command -v curl >/dev/null 2>&1; then exec curl -fsS -m 2 -o /dev/null -H
+                ''Host: 127.0.0.1'' "$1"; else exec wget -q -T 2 --header ''Host: 127.0.0.1''
+                -O /dev/null "$1"; fi'
+              - probe
+              - http://127.0.0.1:9901/healthy
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - 'if command -v curl >/dev/null 2>&1; then exec curl -fsS -m 2 -o /dev/null -H
+                ''Host: 127.0.0.1'' "$1"; else exec wget -q -T 2 --header ''Host: 127.0.0.1''
+                -O /dev/null "$1"; fi'
+              - probe
+              - http://127.0.0.1:9901/healthy
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/praxis
+              readOnly: true
+            - name: tls
+              mountPath: "/etc/praxis/tls"
+              readOnly: true
+            - name: grid-serving
+              mountPath: "/etc/praxis/grid-serving"
+              readOnly: true
+            - name: upstream-ca
+              mountPath: "/etc/praxis/upstream-ca"
+              readOnly: true
+            - name: listener-tls
+              mountPath: "/etc/praxis/listener-tls"
+              readOnly: true
+            - name: metrics-tls
+              mountPath: "/etc/praxis/metrics-tls"
+              readOnly: true
+            - name: metrics-api-auth
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: "grid-gateway-config"
+            items:
+              - key: "praxis.yaml"
+                path: "praxis.yaml"
+        - name: tls
+          projected:
+            sources:
+              - secret:
+                  name: "grid-site-identity"
+                  items:
+                    - key: tls.crt
+                      path: tls.crt
+                    - key: tls.key
+                      path: tls.key
+              - secret:
+                  name: "grid-ca"
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+        - name: grid-serving
+          configMap:
+            name: "grid-serving-grid-grid-gateway"
+            optional: false
+        - name: upstream-ca
+          secret:
+            secretName: "openshift-service-ca"
+        - name: listener-tls
+          secret:
+            secretName: "grid-gateway-listener-tls"
+        - name: metrics-tls
+          secret:
+            secretName: "grid-gateway-metrics-tls"
+        - name: metrics-api-auth
+          projected:
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorino
+  namespace: kuadrant-system
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  template:
+    spec:
+      containers:
+        - name: authorino
+          env:
+            - name: SSL_CERT_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+            - name: SSL_CERT_DIR
+              value: /etc/pki/tls/certs:/etc/ssl/certs
+          volumeMounts:
+            - name: trusted-ca-bundle
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+      volumes:
+        - name: trusted-ca-bundle
+          projected:
+            sources:
+              - configMap:
+                  name: odh-trusted-ca-bundle
+              - configMap:
+                  name: openshift-service-ca.crt
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
+apiVersion: operator.authorino.kuadrant.io/v1beta1
+kind: Authorino
+metadata:
+  name: authorino
+  namespace: kuadrant-system
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Validate=false,DisableClientSideApplyMigration=true,Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  volumes:
+    defaultMode: 420
+    items:
+      - name: trusted-ca-bundle
+        mountPath: /etc/pki/tls/certs
+        configMaps:
+          - odh-trusted-ca-bundle
+          - openshift-service-ca.crt
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
+apiVersion: dscinitialization.opendatahub.io/v2
+kind: DSCInitialization
+metadata:
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  name: default-dsci
+spec:
+  monitoring:
+    managementState: Managed
+    namespace: redhat-ods-monitoring
+    metrics:
+      storage:
+        size: 20Gi
+    traces:
+      storage:
+        backend: pv
+        size: 10Gi
+  applicationsNamespace: redhat-ods-applications
+  trustedCABundle:
+    managementState: Managed
+    customCABundle: ""
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/datasciencecluster.yaml
+apiVersion: datasciencecluster.opendatahub.io/v3
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  components:
+    aiHub:
+      instancesNamespace: rhoai-model-registries
+      managementState: Removed
+    aigateway:
+      aiGrid:
+        managementState: Managed
+      batchGateway:
+        managementState: Removed
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
+    aipipelines:
+      managementState: Removed
+    dashboard:
+      maasPortal:
+        managementState: Managed
+      standard:
+        managementState: Managed
+    data:
+      dataRegistry:
+        managementState: Removed
+      featureStore:
+        managementState: Removed
+    kserve:
+      managementState: Removed
+      modelExpress:
+        managementState: Removed
+      nim:
+        managementState: Removed
+      rawDeploymentServiceConfig: Headless
+    kueue:
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
+      managementState: Removed
+    mcplifecycleoperator:
+      managementState: Removed
+    mlflowoperator:
+      managementState: Removed
+    ogx:
+      managementState: Removed
+    ray:
+      managementState: Removed
+    sparkoperator:
+      managementState: Removed
+    trainer:
+      managementState: Removed
+    trustyai:
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
+      managementState: Removed
+    workbenches:
+      managementState: Removed
+      workbenchNamespace: rhods-notebooks
+      workbenchesV2:
+        managementState: Removed
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: maas-default-gateway
+  namespace: openshift-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    opendatahub.io/managed: "false"
+    security.opendatahub.io/authorino-tls-bootstrap: "true"
+spec:
+  gatewayClassName: maas-gateway-class
+  infrastructure:
+    parametersRef:
+      group: ""
+      kind: ConfigMap
+      name: maas-gateway-options
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    name: http
+    port: 80
+    protocol: HTTP
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: ""
+        kind: Secret
+        name: maas-gw-service-tls
+      mode: Terminate
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: maas-gateway-class
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  controllerName: openshift.io/gateway-controller/v1
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
+apiVersion: kuadrant.io/v1beta1
+kind: Kuadrant
+metadata:
+  name: kuadrant
+  namespace: kuadrant-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  observability:
+    enable: true
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/config.yaml
+apiVersion: operator.openshift.io/v1
+kind: LeaderWorkerSetOperator
+metadata:
+  name: cluster
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  logLevel: Normal
+  managementState: Managed
+  operatorLogLevel: Normal
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-cert-manager-operator
+  namespace: cert-manager-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: leader-worker-set
+  namespace: openshift-lws-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+  targetNamespaces:
+    - openshift-lws-operator
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-operators-redhat
+  namespace: openshift-operators-redhat
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: rhcl-operator
+  namespace: kuadrant-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: rhods-operator
+  namespace: redhat-ods-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  upgradeStrategy: Default
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid-dashboard.yaml
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  # The dashboard UI lists every dashboard- name; the -admin suffix limits it to admins.
+  name: dashboard-6-ai-grid-routing-admin
+  namespace: redhat-ods-monitoring
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: perses
+spec:
+  config:
+    display:
+      name: AI Grid routing
+      description: 'Why this site''s grid gateway sent requests where it did: the outcome, how the candidate was chosen, the load and capacity it read, and how fresh those readings were. Site is the candidate''s
+        site; backend is the candidate it routed to.'
+    duration: 1h
+    variables:
+    - kind: ListVariable
+      spec:
+        name: namespace
+        display:
+          name: Project
+          description: Filter by project. The grid gateway lives in its own project; models and their endpoint pickers in theirs.
+        allowMultiple: true
+        allowAllValue: true
+        customAllValue: .*
+        defaultValue: $__all
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource: &id001
+              kind: PrometheusDatasource
+              name: data-science-prometheus-datasource
+            labelName: exported_namespace
+            matchers:
+            - grid_route_site_rho
+            - '{__name__=~"kserve_vllm:num_requests_running|vllm:num_requests_running"}'
+    - kind: ListVariable
+      spec:
+        name: site
+        display:
+          name: Site
+          description: Grid sites this gateway routes to.
+        allowMultiple: true
+        allowAllValue: true
+        customAllValue: .*
+        defaultValue: $__all
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource: *id001
+            labelName: site
+            matchers:
+            - grid_route_site_score{site!="",exported_namespace=~"$namespace"}
+    - kind: ListVariable
+      spec:
+        name: backend
+        display:
+          name: Backend cluster
+          description: The candidate cluster the gateway routed to, the gateway's cluster label renamed to backend by its ServiceMonitor.
+        allowMultiple: true
+        allowAllValue: true
+        customAllValue: .*
+        defaultValue: $__all
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource: *id001
+            labelName: backend
+            matchers:
+            - grid_route_site_score{site=~"$site",exported_namespace=~"$namespace"}
+    panels:
+      decided:
+        kind: Panel
+        spec:
+          display:
+            name: Requests decided (requests/sec)
+            description: Requests per second this gateway made a routing decision for, whether it sent them to a site or refused them.
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+                decimalPlaces: 2
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum(rate(grid_route_decisions_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+      refusedRatio:
+        kind: Panel
+        spec:
+          display:
+            name: Requests refused
+            description: 'Share of requests this gateway answered with an error instead of sending to a site. The reasons: no site was ready for the model (503), the chosen site had no route from this gateway
+              (503), the request named no model or one nobody serves (400 or 404), or the model was shed because every site serving it was full.'
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: percent-decimal
+                decimalPlaces: 1
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: (sum(rate(grid_route_decisions_total{reason=~"not_ready|no_route|bad_request|shed",exported_namespace=~"$namespace"}[$__rate_interval]))) / (sum(rate(grid_route_decisions_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+                    > 0)
+      fallbackRatio:
+        kind: Panel
+        spec:
+          display:
+            name: Sent to unhealthy sites
+            description: Share of requests this gateway sent to a site it had marked unhealthy, because no healthy site was left for that model. The request still gets served. Above zero means the grid is running
+              a model on sites it would normally avoid.
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: percent-decimal
+                decimalPlaces: 1
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: (sum(rate(grid_route_decisions_total{reason="fallback",exported_namespace=~"$namespace"}[$__rate_interval]))) / (sum(rate(grid_route_decisions_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+                    > 0)
+      shedding:
+        kind: Panel
+        spec:
+          display:
+            name: Models shedding
+            description: 'Models this gateway is shedding now: every healthy site serving them is past full.'
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+                decimalPlaces: 0
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: count(max by (model) (grid_route_shedding{exported_namespace=~"$namespace"}) == 1) or vector(0)
+      sitesFull:
+        kind: Panel
+        spec:
+          display:
+            name: Site capacity full
+            description: Candidates at their ceiling with work waiting for 5 s. This reading has no hold and flips near the ceiling. A model sheds only when every site stays full, so read Shedding for the decision.
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+                decimalPlaces: 0
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: count(max by (backend) (grid_route_site_full{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"}) == 1) or vector(0)
+      oldestReading:
+        kind: Panel
+        spec:
+          display:
+            name: Oldest site load reading in use
+            description: Age of the stalest load reading any routing decision used, across every site this gateway routes to. The gateway refreshes readings every few seconds, so a value in the tens of seconds
+              means a site has stopped answering and is routed on old data.
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: seconds
+                decimalPlaces: 1
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max(grid_route_site_reading_age_seconds{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+      routedPerCandidate:
+        kind: Panel
+        spec:
+          display:
+            name: Routed per model and site (requests/sec)
+            description: Requests sent to each site and cluster.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 0.25
+                areaOpacity: 1
+                connectNulls: false
+                stack: all
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (site, backend) (rate(grid_route_decisions_total{site=~"$site",backend=~"$backend",reason=~"routed|fallback",exported_namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: '{{site}} {{backend}}'
+      decisionsByReason:
+        kind: Panel
+        spec:
+          display:
+            name: Decisions by outcome (requests/sec)
+            description: 'routed: a healthy site. fallback: a demoted site. not_ready: every candidate excluded (503). no_route: no route from this gateway (503). bad_request: no model or an unknown one (400/404).
+              shed: every healthy site past full (429).'
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 0.25
+                areaOpacity: 1
+                connectNulls: false
+                stack: all
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (reason) (rate(grid_route_decisions_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: '{{reason}}'
+      selectionPath:
+        kind: Panel
+        spec:
+          display:
+            name: How the site was chosen (requests/sec)
+            description: 'two_choices: three or more sites with room, the lower load of two drawn by capacity. between_two: two sites with room, weighted by capacity over 1 + load. lone: one site with room.
+              by_capacity: no site with room, drawn by capacity among sites not full.'
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 0.25
+                areaOpacity: 1
+                connectNulls: false
+                stack: all
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (path) (rate(grid_route_selections_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: '{{path}}'
+      prefixAffinity:
+        kind: Panel
+        spec:
+          display:
+            name: Prompt affinity (requests/sec)
+            description: 'sticky: kept to the sites holding the prompt. load_override: their queue outweighed the match. exploration: sent elsewhere to learn. no_match: no site held the prompt. not_applicable:
+              fewer than two sites with room. Requests with no conversation are left out.'
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 0.25
+                areaOpacity: 1
+                connectNulls: false
+                stack: all
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (outcome) (rate(grid_route_prefix_affinity_total{outcome!="not_applicable",exported_namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: '{{outcome}}'
+      prefixIndexFill:
+        kind: Panel
+        spec:
+          display:
+            name: Prompt index fill
+            description: Keys held over capacity, for the fullest gateway replica. Each replica keeps its own index. Expired keys count until displaced or re-sent.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: percent-decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (backend) (grid_route_prefix_index_entries{backend=~"$backend",exported_namespace=~"$namespace"} / (grid_route_prefix_index_capacity{backend=~"$backend",exported_namespace=~"$namespace"}
+                    > 0))
+                  seriesNameFormat: '{{backend}}'
+      prefixIndexEvictions:
+        kind: Panel
+        spec:
+          display:
+            name: Prompt index evictions (requests/sec)
+            description: 'capacity: a full index pushed out a live key, so raise the prefix affinity capacity. ttl: a turn arrived after its key expired with nothing waiting on it, so turns arrive late and
+              capacity does not fix it. pending: an expired key was pushed out while a request still waited on it, so responses are slow or lost. forgotten: failed or refused requests withdrew their keys, so
+              it tracks backend errors.'
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 0.25
+                areaOpacity: 1
+                connectNulls: false
+                stack: all
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (backend, reason) (rate(grid_route_prefix_index_evictions_total{backend=~"$backend",exported_namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: '{{backend}} {{reason}}'
+      rho:
+        kind: Panel
+        spec:
+          display:
+            name: Load per model and site
+            description: 'Saturation the draw weighs each candidate by: the nearer of its counted and reported load, smoothed. 1 means no room. A gap means unmeasured.'
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_rho{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}} {{backend}}'
+      rhoSources:
+        kind: Panel
+        spec:
+          display:
+            name: 'Load: site report vs this gateway''s in-flight requests'
+            description: Two readings of the same load per model and site. The site report is the KV cache use the site publishes about itself, plus its spread, polled a few seconds ago and complete. The in-flight
+              count is what this gateway has sent to that candidate and is still waiting on, over its ceiling, current but only its own traffic.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_rho_reported{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: site report {{site}} {{backend}}
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_rho_counted{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: this gateway in flight {{site}} {{backend}}
+      weight:
+        kind: Panel
+        spec:
+          display:
+            name: Capacity per model and site
+            description: How many requests the gateway believes each candidate can carry at once, measured from how it has been serving. A bigger capacity gets a bigger share of the traffic. A gap means not
+              yet measured, and the gateway then assumes the average of the others.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_weight{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}} {{backend}}'
+      inFlight:
+        kind: Panel
+        spec:
+          display:
+            name: In flight vs ceiling per model and site
+            description: Requests this gateway has running at each candidate against the ceiling it used. The soft bound is what it learned from congestion and the hard bound is what the site declared. In flight
+              near the ceiling with the soft bound under the hard one means the gateway capped the site below what it declared.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_in_flight{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: in flight {{site}} {{backend}}
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_ceiling{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: ceiling {{site}} {{backend}}
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_ceiling_soft{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: ceiling soft {{site}} {{backend}}
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_ceiling_hard{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: ceiling hard {{site}} {{backend}}
+      score:
+        kind: Panel
+        spec:
+          display:
+            name: Score per model and site
+            description: Score each candidate ranks by in the current snapshot. A gap means excluded or demoted. A 1 on the unavailable line means the selector had no score for that candidate and could only
+              fall back.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_score{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}} {{backend}}'
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_score_unavailable{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: score unavailable {{site}} {{backend}}
+      full:
+        kind: Panel
+        spec:
+          display:
+            name: Full per model and site
+            description: 1 while a candidate has had a backlog at its ceiling long enough to shed.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                max: 1
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_full{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}} {{backend}}'
+      silent:
+        kind: Panel
+        spec:
+          display:
+            name: Silent per model and site
+            description: 1 while a site that has published sent nothing within the freshness window. A silent site takes no request while a live one can.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                max: 1
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_silent{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}} {{backend}}'
+      readingAge:
+        kind: Panel
+        spec:
+          display:
+            name: Age of the load reading used per model and site
+            description: How old the peer's load reading was when each decision used it. A line that only climbs is a frozen reading, not a steady one.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site, backend) (grid_route_site_reading_age_seconds{site=~"$site",backend=~"$backend",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}} {{backend}}'
+      roundAge:
+        kind: Panel
+        spec:
+          display:
+            name: Seconds since each site last reported its load
+            description: Seconds since this gateway last fetched a load reading from each peer site. Empty for its own site.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: max by (site) (grid_route_site_round_age_seconds{site=~"$site",exported_namespace=~"$namespace"})
+                  seriesNameFormat: '{{site}}'
+      signalsPoll:
+        kind: Panel
+        spec:
+          display:
+            name: Load reading fetches per second
+            description: How often this gateway fetches load readings from each peer site, by result. Anything but ok leaves that site's reading to age.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 0.25
+                areaOpacity: 1
+                connectNulls: false
+                stack: all
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (result) (rate(grid_signals_poll_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: '{{result}}'
+      ingestDropped:
+        kind: Panel
+        spec:
+          display:
+            name: Load readings rejected per second
+            description: Load readings the gateway threw away instead of routing on them, by reason.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (reason) (rate(grid_signals_ingest_dropped_total{exported_namespace=~"$namespace"}[$__rate_interval])) or label_replace(vector(0), "reason", "none", "", "")
+                  seriesNameFormat: '{{reason}}'
+      ttft:
+        kind: Panel
+        spec:
+          display:
+            name: Time to first token p95
+            description: Per model server namespace, so a site's latency sits beside the share it was sent.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: histogram_quantile(0.95, sum by (le, exported_namespace) (rate({__name__=~"kserve_vllm:time_to_first_token_seconds_bucket|vllm:time_to_first_token_seconds_bucket",exported_namespace=~"$namespace"}[$__rate_interval])))
+                  seriesNameFormat: '{{exported_namespace}}'
+      queueTime:
+        kind: Panel
+        spec:
+          display:
+            name: Queue time mean
+            description: Time requests waited in the model server before running.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                position: bottom
+                mode: list
+                values: []
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+              visual:
+                display: line
+                lineWidth: 1.5
+                areaOpacity: 0
+                connectNulls: false
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum by (exported_namespace) (rate({__name__=~"kserve_vllm:request_queue_time_seconds_sum|vllm:request_queue_time_seconds_sum",exported_namespace=~"$namespace"}[$__rate_interval])) /
+                    (sum by (exported_namespace) (rate({__name__=~"kserve_vllm:request_queue_time_seconds_count|vllm:request_queue_time_seconds_count",exported_namespace=~"$namespace"}[$__rate_interval])) >
+                    0)
+                  seriesNameFormat: '{{exported_namespace}}'
+      affinityKept:
+        kind: Panel
+        spec:
+          display:
+            name: Prompt affinity kept
+            description: 'Share of follow-up turns the gateway sent back to the site that already holds the conversation. Exploration and load overrides send a turn elsewhere on purpose; no match means the
+              index had forgotten it. Needs chat traffic: text completions carry no conversation and count as not applicable.'
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: percent-decimal
+                decimalPlaces: 1
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum(rate(grid_route_prefix_affinity_total{outcome="sticky",exported_namespace=~"$namespace"}[$__rate_interval])) / (sum(rate(grid_route_prefix_affinity_total{outcome!="not_applicable",exported_namespace=~"$namespace"}[$__rate_interval]))
+                    > 0)
+      pollsOk:
+        kind: Panel
+        spec:
+          display:
+            name: Load reading fetch success rate
+            description: Share of this gateway's fetches of peer sites' load readings that succeeded. Below 100% a site is routed on its last good reading until it answers again.
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: percent-decimal
+                decimalPlaces: 1
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  query: sum(rate(grid_signals_poll_total{result="ok",exported_namespace=~"$namespace"}[$__rate_interval])) / (sum(rate(grid_signals_poll_total{exported_namespace=~"$namespace"}[$__rate_interval]))
+                    > 0)
+      sharePerCandidate:
+        kind: Panel
+        spec:
+          display:
+            name: Share of requests per model and site
+            description: Each candidate's share of the requests this gateway sent anywhere, routed or fallback.
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              yAxis:
+                format:
+                  unit: percent-decimal
+                  decimalPlaces: 0
+                max: 1
+                min: 0
+              visual:
+                stack: all
+                areaOpacity: 1
+                lineWidth: 0.25
+                connectNulls: false
+                display: line
+              legend:
+                position: bottom
+                mode: list
+                values: []
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource: *id001
+                  seriesNameFormat: '{{site}} {{backend}}'
+                  query: sum by (site, backend) (rate(grid_route_decisions_total{site=~"$site",backend=~"$backend",reason=~"routed|fallback",exported_namespace=~"$namespace"}[$__rate_interval])) / ignoring(site,
+                    backend) group_left() (sum(rate(grid_route_decisions_total{reason=~"routed|fallback",exported_namespace=~"$namespace"}[$__rate_interval])) > 0)
+    layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Summary
+          collapse:
+            open: true
+        items:
+        - x: 0
+          y: 0
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/decided'
+        - x: 6
+          y: 0
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/refusedRatio'
+        - x: 12
+          y: 0
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/fallbackRatio'
+        - x: 18
+          y: 0
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/shedding'
+        - x: 0
+          y: 4
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/sitesFull'
+        - x: 6
+          y: 4
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/oldestReading'
+        - x: 12
+          y: 4
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/affinityKept'
+        - x: 18
+          y: 4
+          width: 6
+          height: 4
+          content:
+            $ref: '#/spec/panels/pollsOk'
+    - kind: Grid
+      spec:
+        display:
+          title: Site routing
+          collapse:
+            open: true
+        items:
+        - x: 0
+          y: 4
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/routedPerCandidate'
+        - x: 12
+          y: 4
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/decisionsByReason'
+        - x: 0
+          y: 12
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/sharePerCandidate'
+    - kind: Grid
+      spec:
+        display:
+          title: Load and availability per model and site
+          collapse:
+            open: true
+        items:
+        - x: 0
+          y: 20
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/score'
+        - x: 12
+          y: 20
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/rho'
+        - x: 0
+          y: 28
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/full'
+        - x: 12
+          y: 28
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/silent'
+    - kind: Grid
+      spec:
+        display:
+          title: Latency
+          collapse:
+            open: true
+        items:
+        - x: 0
+          y: 36
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/ttft'
+        - x: 12
+          y: 36
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/queueTime'
+    - kind: Grid
+      spec:
+        display:
+          title: Routing internals
+          collapse:
+            open: false
+        items:
+        - x: 0
+          y: 44
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/selectionPath'
+        - x: 12
+          y: 44
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/prefixAffinity'
+        - x: 0
+          y: 52
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/prefixIndexFill'
+        - x: 12
+          y: 52
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/prefixIndexEvictions'
+    - kind: Grid
+      spec:
+        display:
+          title: Capacity detail
+          collapse:
+            open: false
+        items:
+        - x: 0
+          y: 60
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/rhoSources'
+        - x: 12
+          y: 60
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/weight'
+        - x: 0
+          y: 68
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/inFlight'
+    - kind: Grid
+      spec:
+        display:
+          title: Freshness of site load readings
+          collapse:
+            open: false
+        items:
+        - x: 0
+          y: 76
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/readingAge'
+        - x: 12
+          y: 76
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/roundAge'
+        - x: 0
+          y: 84
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/signalsPoll'
+        - x: 12
+          y: 84
+          width: 12
+          height: 8
+          content:
+            $ref: '#/spec/panels/ingestDropped'
+    
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/gateway/maas.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: maas-gateway-route
+  namespace: openshift-ingress
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  host: maas.apps.example.com
+  to:
+    kind: Service
+    name: maas-default-gateway-maas-gateway-class
+    weight: 100
+  port:
+    targetPort: 443
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+
+---
+# Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grid-gateway-metrics
+  labels:
+    app.kubernetes.io/instance: release-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: praxis-gateway
+    app.kubernetes.io/version: 0.7.0
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    monitoring.opendatahub.io/scrape: "true"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: praxis-gateway
+      app.kubernetes.io/instance: release-test
+      app.kubernetes.io/component: gateway-metrics
+  endpoints:
+    - port: metrics
+      scheme: https
+      path: /metrics
+      interval: 30s
+      tlsConfig:
+        serverName: grid-gateway-metrics.default.svc
+        ca:
+          configMap:
+            name: "openshift-service-ca.crt"
+            key: "service-ca.crt"
+      authorization:
+        type: Bearer
+        credentials:
+          name: grid-gateway-metrics-token
+          key: token
+      metricRelabelings:
+        # Reserve "cluster" for the managed cluster; Praxis uses it for the backend.
+        - sourceLabels: [cluster]
+          regex: "(.+)"
+          targetLabel: backend
+        - action: labeldrop
+          regex: cluster
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-cert-manager-operator
+  namespace: cert-manager-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable-v1
+  installPlanApproval: Automatic
+  name: openshift-cert-manager-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: cluster-observability-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: leader-worker-set
+  namespace: openshift-lws-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable-v1.0
+  installPlanApproval: Automatic
+  name: leader-worker-set
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: loki-operator
+  namespace: openshift-operators-redhat
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable-6.5
+  installPlanApproval: Automatic
+  name: loki-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: opentelemetry-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: rhcl-operator
+  namespace: kuadrant-system
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: rhcl-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: AUTH_SERVICE_TIMEOUT
+      value: 5s
+
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: tempo-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
+# Source: rhai-on-openshift-chart/templates/operator/operator.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: rhods-operator
+  namespace: redhat-ods-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+spec:
+  channel: beta
+  installPlanApproval: Automatic
+  name: rhods-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  config:
+    env:
+    - name: DISABLE_DSC_CONFIG
+      value: "true"
