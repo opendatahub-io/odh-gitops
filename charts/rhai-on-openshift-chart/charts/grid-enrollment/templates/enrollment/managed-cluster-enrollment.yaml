@@ -159,6 +159,7 @@ spec:
               namespace: {{ $ext.delivery.namespace | quote }}
             data:
               ca.crt: '{{ printf "{{hub fromSecret %q %q %q hub}}" .Release.Namespace $bundle $bundleKey }}'
+        {{- include "grid-enrollment.external.trustBundleCopies" (dict "root" $ "bundle" $bundle "bundleKey" $bundleKey) | nindent 8 }}
 {{- end }}
 {{- end }}
 {{- if .Chart.IsRoot }}

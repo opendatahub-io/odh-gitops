@@ -391,7 +391,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:66ee6a3a85e72d7d013d0690417edc7fe816af772dea9ff4407d63e8cece396c
           imagePullPolicy: "IfNotPresent"
           args:
             - --config

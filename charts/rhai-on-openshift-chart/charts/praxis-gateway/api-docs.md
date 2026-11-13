@@ -1,6 +1,6 @@
 # praxis-gateway
 
-![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.7.0](https://img.shields.io/badge/AppVersion-0.7.0-informational?style=flat-square)
+![Version: 0.3.1](https://img.shields.io/badge/Version-0.3.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.7.0](https://img.shields.io/badge/AppVersion-0.7.0-informational?style=flat-square)
 
 Deploys the Praxis proxy as a Kubernetes Deployment and Service, configured from Helm values or an existing ConfigMap. Works on its own as a gateway or reverse proxy; no operator or CRDs required.
 
@@ -88,16 +88,16 @@ Kubernetes: `>=1.26.0-0`
 | networkPolicy.enabled | bool | `false` | Render the NetworkPolicy. |
 | networkPolicy.from | list | `[]` | NetworkPolicyPeer entries allowed to reach the listener. Required when enabled. {podSelector: {}} admits every pod in this namespace. An empty namespaceSelector and an ipBlock of 0.0.0.0/0 or ::/0 admit everyone and fail the render. |
 | nodeSelector | object | `{}` | Node selector for pod scheduling. |
-| overlay | object | `{"configMapName":"","mountPath":"/etc/praxis/routing","sidecar":{"dataKey":"routing-overlay.json","enabled":true,"image":{"pullPolicy":"IfNotPresent","repository":"ghcr.io/praxis-proxy/grid-overlay-sync","tag":"v0.3.0"},"resources":{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}}}}` | Optional operator-produced routing overlay for BYO praxis.yaml. Setting configMapName turns it on; render and operator sources reject overlays because their praxis.yaml does not read overlay_file. |
+| overlay | object | `{"configMapName":"","mountPath":"/etc/praxis/routing","sidecar":{"dataKey":"routing-overlay.json","enabled":true,"image":{"pullPolicy":"IfNotPresent","repository":"ghcr.io/praxis-proxy/grid-overlay-sync","tag":"v0.3.1"},"resources":{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}}}}` | Optional operator-produced routing overlay for BYO praxis.yaml. Setting configMapName turns it on; render and operator sources reject overlays because their praxis.yaml does not read overlay_file. |
 | overlay.configMapName | string | `""` | Name of the operator-produced overlay ConfigMap. Empty turns overlay delivery off. |
 | overlay.mountPath | string | `"/etc/praxis/routing"` | Directory where praxis.yaml reads routing-overlay.json. |
-| overlay.sidecar | object | `{"dataKey":"routing-overlay.json","enabled":true,"image":{"pullPolicy":"IfNotPresent","repository":"ghcr.io/praxis-proxy/grid-overlay-sync","tag":"v0.3.0"},"resources":{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}}}` | Overlay sync sidecar settings. |
+| overlay.sidecar | object | `{"dataKey":"routing-overlay.json","enabled":true,"image":{"pullPolicy":"IfNotPresent","repository":"ghcr.io/praxis-proxy/grid-overlay-sync","tag":"v0.3.1"},"resources":{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}}}` | Overlay sync sidecar settings. |
 | overlay.sidecar.dataKey | string | `"routing-overlay.json"` | ConfigMap data key containing the overlay envelope. |
 | overlay.sidecar.enabled | bool | `true` | Run overlay-sync. False mounts routing-overlay.json directly, without validation or RBAC. |
-| overlay.sidecar.image | object | `{"pullPolicy":"IfNotPresent","repository":"ghcr.io/praxis-proxy/grid-overlay-sync","tag":"v0.3.0"}` | Sidecar container image. |
+| overlay.sidecar.image | object | `{"pullPolicy":"IfNotPresent","repository":"ghcr.io/praxis-proxy/grid-overlay-sync","tag":"v0.3.1"}` | Sidecar container image. |
 | overlay.sidecar.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | overlay.sidecar.image.repository | string | `"ghcr.io/praxis-proxy/grid-overlay-sync"` | Image repository. |
-| overlay.sidecar.image.tag | string | `"v0.3.0"` | Image tag. Empty uses the chart appVersion, which is the praxis version, not a grid-overlay-sync tag, so keep this set. |
+| overlay.sidecar.image.tag | string | `"v0.3.1"` | Image tag. Empty uses the chart appVersion, which is the praxis version, not a grid-overlay-sync tag, so keep this set. |
 | overlay.sidecar.resources | object | `{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}}` | Sidecar resource requests and limits. |
 | platform | string | `""` | Cloud whose load balancer settings LoadBalancer Services get: `aws` (an NLB, since the default carries no UDP), `azure`, `gcp`, or `any` for all three. Each cloud reads only its own keys, so `any` suits a render that runs on every cloud. |
 | podAnnotations | object | `{}` | Annotations on the gateway pod template. |
