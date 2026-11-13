@@ -15,6 +15,8 @@
 #   Reads snapshot definitions from scripts/snapshot-config.yaml
 #   Each snapshot supports:
 #     setFlags / setJsonFlags / valuesFiles  - helm template arguments
+#     skipTestValues: true                   - render without the chart's
+#                                              testValuesFile
 #     expectFail: true                       - the case must FAIL to render;
 #                                              no snapshot file is generated
 #     expectMessage: "..."                   - (with expectFail) the failure
@@ -196,6 +198,13 @@ get_snapshot_values_files() {
     done < <("${YQ}" eval ".charts.${chart_name}.snapshots[${index}].valuesFiles[]?" "${CONFIG_FILE}")
 }
 
+# Get whether a snapshot renders without the chart's testValuesFile (empty if not set)
+get_snapshot_skip_test_values() {
+    local chart_name="$1"
+    local index="$2"
+    "${YQ}" eval ".charts.${chart_name}.snapshots[${index}].skipTestValues // \"\"" "${CONFIG_FILE}"
+}
+
 # Get whether a snapshot is an expected-failure case (empty if not set)
 get_snapshot_expect_fail() {
     local chart_name="$1"
@@ -259,8 +268,11 @@ process_snapshot() {
     local test_values_file
     test_values_file=$(get_test_values_file "${chart_name}")
 
+    local skip_test_values
+    skip_test_values=$(get_snapshot_skip_test_values "${chart_name}" "${snapshot_index}")
+
     local -a helm_args=(template -f "${chart_path}/values.yaml")
-    if [[ -n "${test_values_file}" && -f "${chart_path}/${test_values_file}" ]]; then
+    if [[ "${skip_test_values}" != "true" && -n "${test_values_file}" && -f "${chart_path}/${test_values_file}" ]]; then
         helm_args+=(-f "${chart_path}/${test_values_file}")
     fi
     helm_args+=(--name-template=release-test -n default)
