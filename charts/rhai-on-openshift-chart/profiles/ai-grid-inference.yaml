@@ -111,6 +111,25 @@ components:
                   matchLabels:
                     grid.opendatahub.io/allowed: "true"
 
+          # Requires a client certificate signed by the Grid CA, which the mesh reads
+          # from key cacert of the Secret openshift-ai-inference-service-tls-cacert.
+          # Keep it after https: KServe takes a model's address from the first HTTPS listener.
+          - name: grid
+            port: 8443
+            protocol: HTTPS
+            tls:
+              mode: Terminate
+              certificateRefs:
+                - name: openshift-ai-inference-service-tls
+              options:
+                gateway.istio.io/tls-terminate-mode: MUTUAL
+            allowedRoutes:
+              namespaces:
+                from: Selector
+                selector:
+                  matchLabels:
+                    grid.opendatahub.io/allowed: "true"
+
 # Enrollment comes from grid-bootstrap on the hub, through ACM.
 
 praxis-gateway:
