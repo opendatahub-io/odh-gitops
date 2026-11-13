@@ -71,8 +71,13 @@ metadata:
   namespace: {{ $gateway.namespace }}
   labels:
     {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  {{- $annotations := deepCopy ($gateway.annotations | default dict) }}
+  {{- if $openshiftRoute.enabled }}
+    {{- /* maas-api reports the Route's host as the external URL: the listeners name none. */}}
+    {{- $_ := set $annotations "maas.opendatahub.io/external-hostname" ($annotations | dig "maas.opendatahub.io/external-hostname" $openshiftRoute.host) }}
+  {{- end }}
   annotations:
-    {{- toYaml $gateway.annotations | nindent 4 }}
+    {{- toYaml $annotations | nindent 4 }}
 spec:
   {{- toYaml $gatewaySpec | nindent 2 }}
 {{- if $openshiftRoute.enabled }}
