@@ -65,6 +65,11 @@ argocd.argoproj.io/sync-options: Prune=false,Delete=false
 {{- if not (and $cm.enabled $cm.issuer.create) -}}
 {{- $_ := required "external issuer delivery requires external.trustBundleSecretRef" $ext.trustBundleSecretRef -}}
 {{- end -}}
+{{- range $copy := $ext.delivery.trustBundleCopies -}}
+{{- if and (eq $copy.namespace $ext.delivery.namespace) (has $copy.secretName (list $ext.delivery.identitySecretName $ext.delivery.caSecretName)) -}}
+{{- fail "external.delivery.trustBundleCopies must not name the delivered identity or CA Secret" -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
 {{- $secrets := dict -}}
 {{- $clusters := dict -}}
@@ -84,4 +89,24 @@ argocd.argoproj.io/sync-options: Prune=false,Delete=false
 {{- $_ := set $clusters $site.cluster true -}}
 {{- end -}}
 {{- end -}}
+{{- end }}
+
+{{/*
+Object templates delivering the public trust bundle to each
+external.delivery.trustBundleCopies entry. Takes dict root, bundle, bundleKey.
+*/}}
+{{- define "grid-enrollment.external.trustBundleCopies" -}}
+{{- $root := .root -}}
+{{- range $copy := $root.Values.external.delivery.trustBundleCopies }}
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: v1
+    kind: Secret
+    type: Opaque
+    metadata:
+      name: {{ $copy.secretName | quote }}
+      namespace: {{ $copy.namespace | quote }}
+    data:
+      {{ $copy.key | default "ca.crt" }}: '{{ printf "{{hub fromSecret %q %q %q hub}}" $root.Release.Namespace $.bundle $.bundleKey }}'
+{{- end }}
 {{- end }}

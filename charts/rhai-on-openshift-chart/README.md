@@ -273,7 +273,7 @@ hub's gateway ConfigMap. The profile defaults render the upstream gateway status
 configure routing before using it for inference. Removal does not delete externally supplied
 ConfigMaps or Secrets, or resources retained by upstream Helm hooks/retention policies.
 
-The gateway and enrollment charts are version `0.3.0`, vendored from `praxis-proxy/grid` tag `v0.3.0`.
+The gateway and enrollment charts are version `0.3.1`, vendored from `praxis-proxy/grid` tag `v0.3.1`.
 The vendored grid-enrollment keeps only mode external, which Grid hubs install standalone as
 grid-bootstrap. The update script drops the enrollment service, its database and invites, and
 the parent keeps the subchart disabled.

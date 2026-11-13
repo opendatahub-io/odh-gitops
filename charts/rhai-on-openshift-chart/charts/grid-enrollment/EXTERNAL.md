@@ -189,6 +189,13 @@ renewal does not require a Helm hook. When the chart creates a CA Issuer, the
 delivery bundle comes from that CA Secret's public `tls.crt`. Otherwise an
 explicit public trust bundle is required, including with an external issuer.
 
+`external.delivery.trustBundleCopies` delivers the same public bundle to more
+Secrets, each with a `namespace`, a `secretName` and an optional `key` that
+defaults to `ca.crt`. Use it for a workload outside the delivery namespace that
+verifies grid certificates, such as a gateway listener that requires a grid
+client certificate. The policy does not create these namespaces, and it stays
+non-compliant until each one exists.
+
 Leave `cluster` empty for an identity issued locally on the hub. Certificate
 Secrets always live in the release namespace; local identity consumers must
 read them there. Each managed cluster receives one identity. The chart rejects policy names

@@ -394,7 +394,7 @@ operator expects.
 | `overlay.mountPath` | string | `/etc/praxis/routing` | Directory where BYO `praxis.yaml` reads `routing-overlay.json`. |
 | `overlay.sidecar.enabled` | bool | `true` | Run overlay-sync. False mounts the ConfigMap directly (slower kubelet updates, no validation, ServiceAccount, or Role). |
 | `overlay.sidecar.image.repository` | string | `grid-overlay-sync` | Overlay-sync image repository. Use a published or locally built image appropriate to the deployment. |
-| `overlay.sidecar.image.tag` | string | `v0.3.0` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
+| `overlay.sidecar.image.tag` | string | `v0.3.1` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
 | `overlay.sidecar.image.pullPolicy` | string | `IfNotPresent` | Overlay-sync image pull policy. |
 | `overlay.sidecar.dataKey` | string | `routing-overlay.json` | Content-addressed envelope key in the overlay ConfigMap. |
 | `overlay.sidecar.resources` | object | small requests and limits | Resources for both the one-shot init container and continuous sidecar. |

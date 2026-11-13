@@ -10,9 +10,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 |------------|------|---------|
 |  | ai-grid-o11y-hub | 0.1.0 |
 |  | ai-grid-o11y-spoke | 0.1.0 |
-|  | grid-enrollment | 0.3.0 |
-|  | praxis-gateway | 0.3.0 |
-|  | praxis-provider-gateway(praxis-gateway) | 0.3.0 |
+|  | grid-enrollment | 0.3.1 |
+|  | praxis-gateway | 0.3.1 |
+|  | praxis-provider-gateway(praxis-gateway) | 0.3.1 |
 
 ## Values
 
@@ -171,9 +171,9 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | global | object | `{"relatedImages":[],"skipCrdCheck":false}` | Values shared by the optional AI Grid subcharts. |
 | global.relatedImages | list | `[]` | Full image references using the XKS name/value convention. See README.md for supported names. |
 | global.skipCrdCheck | bool | `false` | Mirror of `skipCrdCheck` for subcharts, which cannot read the parent's root values. Set both when rendering without a cluster, as the snapshot scenarios do. |
-| grid-enrollment | object | `{"enabled":false,"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:c931a7e0daa66093233ed1fc807438d33dd61372eadc4bb8e93871be8ee46dbd"}}` | AI Grid identity bootstrap |
+| grid-enrollment | object | `{"enabled":false,"fullnameOverride":"grid-enrollment","image":{"digest":"sha256:9e70bcb819ce7a94fae5353c3bd07a5326390ccbb6214d5c411cae03284728f2"}}` | AI Grid identity bootstrap |
 | grid-enrollment.fullnameOverride | string | `"grid-enrollment"` | Stable resource names, independent of the release name |
-| grid-enrollment.image.digest | string | `"sha256:c931a7e0daa66093233ed1fc807438d33dd61372eadc4bb8e93871be8ee46dbd"` | Grid v0.3.0. The platform's related image replaces it downstream. |
+| grid-enrollment.image.digest | string | `"sha256:9e70bcb819ce7a94fae5353c3bd07a5326390ccbb6214d5c411cae03284728f2"` | Grid v0.3.1. The platform's related image replaces it downstream. |
 | labels | object | `{}` | Common labels applied to all resources |
 | olm.installPlanApproval | string | `"Automatic"` | Install plan approval mode (Automatic or Manual) |
 | olm.source | string | `"redhat-operators"` | Default catalog source for OLM subscriptions |
@@ -182,7 +182,7 @@ A Helm chart for installing ODH/RHOAI dependencies and component configurations
 | operator.odh | object | `{"applicationsNamespace":"opendatahub","monitoringNamespace":"opendatahub","olm":{"channel":"fast-3","createNamespace":true,"name":"opendatahub-operator","namespace":"opendatahub-operator-system","source":"community-operators"}}` | ODH operator settings |
 | operator.rhoai | object | `{"applicationsNamespace":"redhat-ods-applications","monitoringNamespace":"redhat-ods-monitoring","olm":{"channel":"beta","createNamespace":true,"name":"rhods-operator","namespace":"redhat-ods-operator","source":"redhat-operators"}}` | RHOAI operator settings |
 | operator.type | string | `"odh"` | Operator type: odh (Open Data Hub) or rhoai (Red Hat OpenShift AI) |
-| praxis-gateway | object | `{"fullnameOverride":"grid-gateway","image":{"digest":"sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.3.0"}}` | AI Grid gateway (Praxis) |
+| praxis-gateway | object | `{"fullnameOverride":"grid-gateway","image":{"digest":"sha256:66ee6a3a85e72d7d013d0690417edc7fe816af772dea9ff4407d63e8cece396c","flavor":"grid-gateway","repository":"ghcr.io/praxis-proxy/grid-gateway","tag":"v0.3.1"}}` | AI Grid gateway (Praxis) |
 | praxis-gateway.fullnameOverride | string | `"grid-gateway"` | Stable resource names, independent of the release name |
 | praxis-gateway.image.repository | string | `"ghcr.io/praxis-proxy/grid-gateway"` | Use the Grid gateway build, which includes Grid routing filters. |
 | praxis-provider-gateway | object | `{}` | AI Grid provider gateway for inference sites; a profile alias of praxis-gateway |

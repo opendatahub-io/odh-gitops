@@ -300,7 +300,7 @@ grid-enrollment:
   enabled: false
   fullnameOverride: grid-enrollment
   image:
-    digest: sha256:c931a7e0daa66093233ed1fc807438d33dd61372eadc4bb8e93871be8ee46dbd
+    digest: sha256:9e70bcb819ce7a94fae5353c3bd07a5326390ccbb6214d5c411cae03284728f2
 labels: {}
 olm:
   installPlanApproval: Automatic
@@ -360,11 +360,11 @@ praxis-gateway:
       periodSeconds: 5
       tcpSocket: {}
   image:
-    digest: sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b
+    digest: sha256:66ee6a3a85e72d7d013d0690417edc7fe816af772dea9ff4407d63e8cece396c
     flavor: grid-gateway
     pullPolicy: IfNotPresent
     repository: ghcr.io/praxis-proxy/grid-gateway
-    tag: v0.3.0
+    tag: v0.3.1
   imagePullSecrets: []
   imageUser:
     enabled: auto
@@ -418,7 +418,7 @@ praxis-gateway:
       image:
         pullPolicy: IfNotPresent
         repository: ghcr.io/praxis-proxy/grid-overlay-sync
-        tag: v0.3.0
+        tag: v0.3.1
       resources:
         limits:
           cpu: 50m
@@ -643,7 +643,7 @@ praxis-provider-gateway:
       image:
         pullPolicy: IfNotPresent
         repository: ghcr.io/praxis-proxy/grid-overlay-sync
-        tag: v0.3.0
+        tag: v0.3.1
       resources:
         limits:
           cpu: 50m

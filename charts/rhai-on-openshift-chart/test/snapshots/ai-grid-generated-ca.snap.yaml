@@ -391,7 +391,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:0c3ecddfffdfba7c068d645e8bd878aeba6ac92570d6b50a88430ada0c92602b
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:66ee6a3a85e72d7d013d0690417edc7fe816af772dea9ff4407d63e8cece396c
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -589,7 +589,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0"
+    app.kubernetes.io/version: "v0.3.1"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
@@ -631,7 +631,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0"
+    app.kubernetes.io/version: "v0.3.1"
     app.kubernetes.io/managed-by: Helm
 spec:
   secretName: "site-a-identity"
@@ -798,7 +798,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0"
+    app.kubernetes.io/version: "v0.3.1"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
@@ -818,7 +818,7 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/name: grid-enrollment
     app.kubernetes.io/instance: release-test
-    app.kubernetes.io/version: "v0.3.0"
+    app.kubernetes.io/version: "v0.3.1"
     app.kubernetes.io/managed-by: Helm
 spec:
   ca:

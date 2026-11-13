@@ -21,6 +21,10 @@ external:
     clusterSet: default
     identitySecretName: grid-site-identity
     caSecretName: grid-ca
+    # -- More copies of the public trust bundle, each { namespace, secretName, key
+    # (default ca.crt) }, for a workload in another namespace that verifies grid
+    # certificates. The namespace must already exist on the cluster.
+    trustBundleCopies: []
     createClusterSetBinding: true
     # -- Permit delivery to the local cluster, using the same flow as other members.
     includeLocalCluster: false
