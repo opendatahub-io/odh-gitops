@@ -1,0 +1,28 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: "{{ .Values.namespace }}/opendatahub-operator-controller-manager-service-cert"
+  name: kserve-llmisvc-kueuelabels-validator.opendatahub.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: opendatahub-operator-controller-manager-service
+        namespace: {{ .Values.namespace }}
+        path: /validate-kueue
+        port: 443
+    failurePolicy: Fail
+    name: kserve-llmisvc-kueuelabels-validator.opendatahub.io
+    rules:
+      - apiGroups:
+          - serving.kserve.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - llminferenceservices
+    sideEffects: None

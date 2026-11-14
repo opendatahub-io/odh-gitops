@@ -1,0 +1,5 @@
+# RHOAI Operator Helm Chart
+namespace: opendatahub-operator
+
+bundle:
+  version: "v3.4.0-ea.1"
