@@ -111,7 +111,11 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
           {{- /* First, and the only filter that picks an upstream: the gateway refuses to start otherwise. */}}
           - filter: grid_provider
             allowed_paths:
-              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings" "/v1/messages" "/v1/responses")) }}
+              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings" "/v1/messages" "/v1/responses" "/v1/conversations")) }}
+              - {{ . | quote }}
+              {{- end }}
+            allowed_path_prefixes:
+              {{- range (($cfg.provider).allowedPathPrefixes | default (list "/v1/conversations/")) }}
               - {{ . | quote }}
               {{- end }}
           {{- with ($cfg.peerTrust).rateLimit }}
@@ -152,10 +156,11 @@ The data of the chart-rendered gateway ConfigMap, also hashed into checksum/conf
             conditions:
               - unless:
                   methods: [GET, POST]
-          # Exact paths: a traversal or a longer path never matches, so it gets a 404.
+          # The static provider admits only exact paths. The operator-managed
+          # `grid_provider` filter owns and validates Conversation prefixes.
           - filter: router
             routes:
-              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings" "/v1/messages" "/v1/responses")) }}
+              {{- range (($cfg.provider).allowedPaths | default (list "/v1/chat/completions" "/v1/completions" "/v1/models" "/v1/embeddings" "/v1/messages" "/v1/responses" "/v1/conversations")) }}
               - path: {{ . | quote }}
                 cluster: {{ (first $cfg.backends).cluster | quote }}
               {{- end }}

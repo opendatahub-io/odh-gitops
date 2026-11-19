@@ -442,6 +442,15 @@
                     "pattern": "^(/[A-Za-z0-9_-]+)+$"
                   },
                   "description": "Exact paths forwarded to the local backend."
+                },
+                "allowedPathPrefixes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(/[A-Za-z0-9_-]+)+/$"
+                  },
+                  "description": "Path prefixes forwarded to the local backend. Each prefix ends with a slash."
                 }
               }
             },
