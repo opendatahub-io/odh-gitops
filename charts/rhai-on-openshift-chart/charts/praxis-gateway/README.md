@@ -351,7 +351,8 @@ operator expects.
 | `praxisConfig.render.peerTrust.spiffeId` | string | `""` | SPIFFE mode: an allowed SPIFFE ID. `spiffeIds` takes more. The render needs one unless `allowAnyGridSite`. |
 | `praxisConfig.render.peerTrust.spiffeIds` | list | `[]` | SPIFFE mode: every allowed peer. The handshake admits exactly these through `trusted_spiffe_ids`, and the filter chain names the same sites in an unconditional `peer_identity_trust`. A site certificate carries its site name in both the SPIFFE path segment and the subject organization, so one list drives both and a narrower per-candidate check can only take sites away from what is already admitted. |
 | `praxisConfig.render.peerTrust.allowAnyGridSite` | bool | `false` | SPIFFE mode with no IDs: accept any enrolled site. It cannot be set beside `spiffeIds`. |
-| `praxisConfig.render.provider.allowedPaths` | list | chat, completions, models, embeddings, messages, responses | Exact paths a provider forwards, GET and POST only. Other paths get a 404, other methods a 405. |
+| `praxisConfig.render.provider.allowedPaths` | list | chat, completions, models, embeddings, messages, responses, conversations | Exact paths a provider forwards, GET and POST only. Other paths get a 404, other methods a 405. |
+| `praxisConfig.render.provider.allowedPathPrefixes` | list | `/v1/conversations/` | Safe path prefixes forwarded by the operator-managed `grid_provider` filter. The default permits tagged Conversation follow-up paths after the exact Conversation creation path; the standalone provider router remains exact-path only. |
 | `grid.networkName` | string | `""` | GridNetwork name for overlay-sidecar scope validation. Required when the sidecar is on. |
 | `grid.siteName` | string | `""` | This gateway's site name. Required for render and when the overlay sidecar is on. A consumer scores locality with it; a provider returns it in `X-Grid-Provider-Site`. |
 | `praxisConfig.render.auth.mode` | string | **required** for a render consumer | `api-key` validates a consumer caller's key and needs an image that registers `identity/api-key` (praxis-policy 0.4 or later); provider role rejects it because providers authenticate peers by Grid identity. The render refuses it on the legacy `ai:0.4.0` image (by effective reference; a digest pin of that same image is not detected). `none` renders no policy filter, for use only behind an authenticating front. |
@@ -394,7 +395,7 @@ operator expects.
 | `overlay.mountPath` | string | `/etc/praxis/routing` | Directory where BYO `praxis.yaml` reads `routing-overlay.json`. |
 | `overlay.sidecar.enabled` | bool | `true` | Run overlay-sync. False mounts the ConfigMap directly (slower kubelet updates, no validation, ServiceAccount, or Role). |
 | `overlay.sidecar.image.repository` | string | `grid-overlay-sync` | Overlay-sync image repository. Use a published or locally built image appropriate to the deployment. |
-| `overlay.sidecar.image.tag` | string | `v0.3.1` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
+| `overlay.sidecar.image.tag` | string | `v0.3.2` | Overlay-sync image tag. Use an immutable published tag for reproducible deployments. |
 | `overlay.sidecar.image.pullPolicy` | string | `IfNotPresent` | Overlay-sync image pull policy. |
 | `overlay.sidecar.dataKey` | string | `routing-overlay.json` | Content-addressed envelope key in the overlay ConfigMap. |
 | `overlay.sidecar.resources` | object | small requests and limits | Resources for both the one-shot init container and continuous sidecar. |

@@ -279,6 +279,10 @@ praxisConfig:
         - /v1/embeddings
         - /v1/messages
         - /v1/responses
+        - /v1/conversations
+      # -- Path prefixes forwarded to the local backend. Each prefix must end with `/`.
+      allowedPathPrefixes:
+        - /v1/conversations/
     # -- Model advertised on the routing candidates. A consumer without
     # praxisConfig.render.gridServing needs it.
     model: ""
@@ -549,7 +553,7 @@ overlay:
       repository: ghcr.io/praxis-proxy/grid-overlay-sync
       # -- Image tag. Empty uses the chart appVersion, which is the praxis version,
       # not a grid-overlay-sync tag, so keep this set.
-      tag: "v0.3.1"
+      tag: "v0.3.2"
       # -- Image pull policy.
       pullPolicy: IfNotPresent
     # -- ConfigMap data key containing the overlay envelope.

@@ -393,6 +393,9 @@ data:
               - "/v1/embeddings"
               - "/v1/messages"
               - "/v1/responses"
+              - "/v1/conversations"
+            allowed_path_prefixes:
+              - "/v1/conversations/"
           - filter: headers
             response_set:
               - name: X-Grid-Provider-Site
@@ -708,7 +711,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:66ee6a3a85e72d7d013d0690417edc7fe816af772dea9ff4407d63e8cece396c
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:69e6fb455d6e9cfad7d8cc9adeb9c12702189c4eea354ed70b60934775f09471
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
@@ -876,7 +879,7 @@ spec:
         app.kubernetes.io/instance: release-test
         app.kubernetes.io/name: praxis-provider-gateway
       annotations:
-        checksum/config: 313f42c7d1e01b162035dfcd4bfd0fe227e430e8889ee239bd1f800375442a7e
+        checksum/config: e089d8f25de17803fb3499351d814358e915f6048778ca40b7ac4bc4834b735a
     spec:
       enableServiceLinks: false
       automountServiceAccountToken: false
@@ -888,7 +891,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: praxis
-          image: ghcr.io/praxis-proxy/grid-gateway@sha256:66ee6a3a85e72d7d013d0690417edc7fe816af772dea9ff4407d63e8cece396c
+          image: ghcr.io/praxis-proxy/grid-gateway@sha256:69e6fb455d6e9cfad7d8cc9adeb9c12702189c4eea354ed70b60934775f09471
           imagePullPolicy: "IfNotPresent"
           args:
             - --config
