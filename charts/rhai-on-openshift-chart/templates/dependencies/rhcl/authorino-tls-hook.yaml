@@ -1,0 +1,144 @@
+{{- $dep := .Values.dependencies.rhcl -}}
+{{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "rhcl" "dependency" $dep "root" $) -}}
+{{- if eq $shouldInstall "true" }}
+{{- if and $dep.config $dep.config.tlsEnabled }}
+{{- $certSecretName := ($dep.config.authorinoSpec.listener.tls.certSecretRef.name) | default "authorino-server-cert" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhai-authorino-tls-setup
+  namespace: {{ $dep.olm.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhai-authorino-tls-setup
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "create", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhai-authorino-tls-setup
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhai-authorino-tls-setup
+subjects:
+  - kind: ServiceAccount
+    name: rhai-authorino-tls-setup
+    namespace: {{ $dep.olm.namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhai-authorino-tls-setup
+  namespace: {{ $dep.olm.namespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "rhoai-dependencies.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rhai-authorino-tls-setup
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: annotate-service
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          env:
+            - name: HOME
+              value: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              NS="{{ $dep.olm.namespace }}"
+              SVC="authorino-authorino-authorization"
+              SECRET="{{ $certSecretName }}"
+
+              echo "Ensuring Service ${SVC} exists in ${NS} with serving-cert annotation..."
+              printf '%s' '{
+                "apiVersion": "v1",
+                "kind": "Service",
+                "metadata": {
+                  "name": "'"${SVC}"'",
+                  "namespace": "'"${NS}"'",
+                  "annotations": {
+                    "service.beta.openshift.io/serving-cert-secret-name": "'"${SECRET}"'"
+                  }
+                },
+                "spec": {
+                  "ports": [
+                    {"name": "grpc", "port": 50051, "protocol": "TCP", "targetPort": 50051},
+                    {"name": "http", "port": 5001, "protocol": "TCP", "targetPort": 5001}
+                  ],
+                  "selector": {"authorino-resource": "authorino"},
+                  "type": "ClusterIP"
+                }
+              }' | kubectl apply --server-side --force-conflicts -f -
+
+              echo "Waiting for cert secret ${SECRET}..."
+              for i in $(seq 1 30); do
+                if kubectl get secret "${SECRET}" -n "${NS}" >/dev/null 2>&1; then
+                  echo "Cert secret ${SECRET} is ready."
+                  exit 0
+                fi
+                sleep 2
+              done
+              echo "Warning: cert secret ${SECRET} not found after 60s (service-ca may still be processing)"
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}
+{{- end }}
