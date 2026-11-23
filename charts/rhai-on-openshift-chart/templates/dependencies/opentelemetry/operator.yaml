@@ -7,12 +7,18 @@
 ) -}}
 {{- if eq $shouldInstall "true" }}
 {{- if eq (include "rhoai-dependencies.isOlmMode" $) "true" }}
+{{- $gated := eq (include "rhoai-dependencies.otelCertManagerGateEnabled" .) "true" -}}
 {{ include "rhoai-dependencies.operator.olm" (dict
   "name" $dep.olm.name
   "namespace" $dep.olm.namespace
   "channel" $dep.olm.channel
   "version" $dep.olm.version
   "config" $dep.olm.config
+  "createNamespace" (dig "createNamespace" true $dep.olm)
+  "createOperatorGroup" (dig "createOperatorGroup" true $dep.olm)
+  "operatorGroupName" $dep.olm.operatorGroupName
+  "syncWave" (ternary "-30" "" $gated)
+  "subscriptionSyncWave" (ternary "-10" "" $gated)
   "root" $
 ) }}
 {{- end }}

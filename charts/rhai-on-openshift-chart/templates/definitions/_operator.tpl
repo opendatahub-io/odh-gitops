@@ -12,6 +12,7 @@ Arguments (passed as dict):
   - root: root context ($)
   - namespaceLabels: additional Namespace labels (optional)
   - namespaceAnnotations: additional Namespace annotations (optional)
+  - syncWave: Argo CD sync wave (optional)
 */}}
 {{- define "rhoai-dependencies.operator.namespace" -}}
 apiVersion: v1
@@ -20,6 +21,9 @@ metadata:
   name: {{ .namespace }}
   annotations:
     helm.sh/resource-policy: keep
+    {{- with .syncWave }}
+    argocd.argoproj.io/sync-wave: {{ . | quote }}
+    {{- end }}
     {{- with .namespaceAnnotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -37,6 +41,7 @@ Arguments (passed as dict):
   - operatorGroupName: custom OperatorGroup name (optional, defaults to name)
   - namespace: namespace name
   - targetNamespaces: list of target namespaces (optional, omit for AllNamespaces mode)
+  - syncWave: Argo CD sync wave (optional)
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.operatorgroup" -}}
@@ -45,6 +50,10 @@ kind: OperatorGroup
 metadata:
   name: {{ .operatorGroupName | default .name }}
   namespace: {{ .namespace }}
+  {{- with .syncWave }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ . | quote }}
+  {{- end }}
   labels:
     {{- include "rhoai-dependencies.labels" .root | nindent 4 }}
 spec:
@@ -70,6 +79,8 @@ Arguments (passed as dict):
              3) if both version and installPlanApproval set: use both, this is for a minimum version case
              4) if neither set: explicitly set to "Automatic"
   - config: configuration for the subscription (optional)
+  - syncWave: Argo CD sync wave (optional)
+  - subscriptionSyncWave: override the Subscription's sync wave (optional)
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.subscription" -}}
@@ -86,6 +97,10 @@ kind: Subscription
 metadata:
   name: {{ .name }}
   namespace: {{ .namespace }}
+  {{- with (default .syncWave .subscriptionSyncWave) }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ . | quote }}
+  {{- end }}
   labels:
     {{- include "rhoai-dependencies.labels" .root | nindent 4 }}
 spec:
@@ -121,6 +136,8 @@ Arguments (passed as dict):
              3) if both version and installPlanApproval set: use both, this is for a minimum version case
              4) if neither set: explicitly set to "Automatic"
   - targetNamespaces: list of target namespaces for OperatorGroup (optional)
+  - syncWave: Argo CD sync wave for all generated resources (optional)
+  - subscriptionSyncWave: override the Subscription's sync wave (optional)
   - root: root context ($)
 */}}
 {{- define "rhoai-dependencies.operator.olm" -}}

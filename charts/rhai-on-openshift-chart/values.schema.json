@@ -247,7 +247,7 @@
           "$ref": "#/definitions/dependency"
         },
         "opentelemetry": {
-          "$ref": "#/definitions/dependency"
+          "$ref": "#/definitions/opentelemetryDependency"
         },
         "tempo": {
           "$ref": "#/definitions/dependency"
@@ -1269,6 +1269,56 @@
         }
       },
       "required": ["create", "name"],
+      "additionalProperties": false
+    },
+    "opentelemetryDependency": {
+      "type": "object",
+      "description": "Operator dependency configuration",
+      "properties": {
+        "enabled": {
+          "$ref": "#/definitions/triStateEnabled",
+          "description": "Whether to install this dependency: auto (if needed), true (always), false (never)"
+        },
+        "dependencies": {
+          "$ref": "#/definitions/dependencyDeps"
+        },
+        "olm": {
+          "$ref": "#/definitions/olmConfig"
+        },
+        "certManagerReadiness": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "$ref": "#/definitions/triStateEnabled"
+            },
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            },
+            "pollIntervalSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            },
+            "requestTimeoutSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            },
+            "image": {
+              "type": "string",
+              "pattern": "^.+@sha256:[a-f0-9]{64}$",
+              "description": "Immutable CLI image providing bash, oc and timeout"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["enabled"],
       "additionalProperties": false
     }
   },

@@ -908,6 +908,25 @@ true
 {{- end -}}
 {{- end }}
 
+{{/* Gate cert-manager APIs for Argo CD managed monitoring, including external
+     cert-manager. Explicit true also supports other chart-installed OTel consumers. */}}
+{{- define "rhoai-dependencies.otelCertManagerGateEnabled" -}}
+{{- $dep := .Values.dependencies.opentelemetry -}}
+{{- $enabled := $dep.certManagerReadiness.enabled | toString -}}
+{{- $monitoring := include "rhoai-dependencies.effectiveServiceManagementState" (dict
+  "state" .Values.services.monitoring.dsci.managementState "root" . "name" "monitoring") -}}
+{{- $needed := and (eq $monitoring "Managed") .Values.services.monitoring.dependencies.certManager -}}
+{{- $install := include "rhoai-dependencies.shouldInstall" (dict "dependencyName" "opentelemetry" "dependency" $dep "root" .) -}}
+{{- if and .Values.argocd.enabled (eq (include "rhoai-dependencies.isOlmMode" .) "true") (eq $install "true")
+  (or (eq $enabled "true") (and (eq $enabled "auto") $needed)) -}}
+true
+{{- end -}}
+{{- end }}
+
+{{- define "rhoai-dependencies.otelCertManagerGateName" -}}
+{{- printf "%s-otel-cert-manager" (.Release.Name | trunc 40 | trimSuffix "-") -}}
+{{- end }}
+
 {{/* Resolve runtime ownership from exactly the same configuration as the DSC. */}}
 {{- define "rhoai-dependencies.aiGridManaged" -}}
 {{- $dsc := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "aigateway" "component" .Values.components.aigateway "root" .) | fromYaml -}}
