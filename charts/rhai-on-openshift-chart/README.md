@@ -75,6 +75,79 @@ done
 2. **Subsequent runs**: Once operators are ready and CRDs exist, CR configurations are created.
 3. **Later runs**: Idempotent - no changes if everything is already deployed.
 
+### cert-manager before OpenTelemetry in Argo CD
+
+OpenTelemetry Operator 0.158.0 detects cert-manager APIs and permissions at startup
+and caches the result. If it starts before the CRDs exist, Target Allocator mTLS
+Certificates/Issuers can remain absent after cert-manager recovers, leaving the
+collector and allocator waiting for `data-science-collector-ta-client-cert` and
+`data-science-collector-ta-server-cert`. The chart prevents that missing-CRD race
+with this sequence inside one Argo CD Application:
+
+| Sync wave | Behavior |
+| --- | --- |
+| `-30` | Install cert-manager; prepare the existing OpenTelemetry Namespace/OperatorGroup and the gate's ServiceAccount/read-only RBAC. |
+| `-20` | Run a **Sync** hook Job until the three required CRDs are Established and live discovery advertises their APIs. |
+| `-10` | Apply the existing OpenTelemetry Subscription. |
+
+The required CRDs are `certificates.cert-manager.io`,
+`certificaterequests.cert-manager.io` and `issuers.cert-manager.io`; discovery uses
+`/apis/cert-manager.io/v1`. The Job never waits for the OLM-created OpenTelemetry
+ServiceAccount. A PreSync Job would deadlock waiting for the same Application to
+install cert-manager. Other operators and workloads keep their later waves;
+custom health checks on early resources must not depend on those later resources.
+Use a full sync: selective resource sync skips hooks. Separate Applications or
+independent OLM dependency resolution are outside this ordering guarantee.
+
+Configuration is under `dependencies.opentelemetry.certManagerReadiness`; see the
+[generated API reference](api-docs.md) for every option and default. `enabled: auto`
+activates for Argo CD/OLM installations with chart-installed OpenTelemetry and
+Managed monitoring requiring cert-manager, including all three Grid profiles.
+`true` also covers other OTel cert-manager consumers; `false` disables the gate.
+Argo CD and OLM mode are always required. External cert-manager is supported with
+`dependencies.certManager.enabled=false`. Externally owned operator Namespaces or
+OperatorGroups require the corresponding `olm.createNamespace=false` or
+`olm.createOperatorGroup=false`; retain their existing owner during upgrades.
+
+Polling defaults to 600 seconds, with configurable poll/request limits and a Job
+deadline 30 seconds longer. Failed reads keep the gate closed. The Job retains its
+logs until the next full sync; `BeforeHookCreation` replaces it for an idempotent
+retry. Allow enough Argo operation time for OLM installation and the Job deadline,
+and approve cert-manager's InstallPlan if using Manual approval.
+
+**External prerequisites:** this is an API availability barrier. It does not verify
+controller/webhook health or OpenTelemetry permissions. The downstream ACM policy
+`apps/rhoai-prerequisites/hub/12-otel-cert-manager-policy.yaml` owns
+`ai-grid-otel-cert-manager-compat`; confirm its compliance before syncing RHOAI.
+The chart does not adopt or duplicate that grant or product-owned RBAC. Other
+installations must supply the [startup permissions](https://github.com/open-telemetry/opentelemetry-operator/blob/v0.158.0/internal/autodetect/certmanager/check.go)
+for their actual operator ServiceAccount before it starts. Missing permissions can
+still cause cached unavailability even after this gate succeeds.
+
+**Ordinary Helm:** Argo annotations do not enforce ordering, including with
+`--wait` or `--wait-for-jobs`. Stage cert-manager APIs and the external grant before
+enabling OpenTelemetry. The gate can be omitted from that manual flow with
+`dependencies.opentelemetry.certManagerReadiness.enabled=false`. The packaged
+[Bash check](files/wait-for-cert-manager.sh) can verify APIs between stages;
+verify operand health and operator permissions separately. See also
+[Installation Flow](#installation-flow) and [ArgoCD Usage](#argocd-usage).
+
+**Existing affected operators:** first verify APIs, operand health and effective
+operator permissions. Then replace the cached processes once, keeping Ready webhook
+capacity: replace webhook pods one at a time and verify endpoints, then controller
+pods one at a time. OLM may revert Deployment-template changes such as
+`rollout restart`. Verify fresh detection logs, Certificates/Issuers, the expected
+Secrets and collector/allocator readiness. The preventive gate alone does not reset
+an already-running process; it performs no automatic restarts or TLS Secret creation.
+
+**Validation and adoption:** snapshots cover rendered variants; Bash tests cover
+polling and explicit ordering. These local checks do not validate live Argo/OLM
+timing, SCC admission or image pulls; those require an authorized fresh-cluster
+verification. Publish a new immutable chart version through the normal release
+workflow, then update `targetRevision` in downstream
+`apps/rhoai/hub/01-applicationset.yaml`. Retain the ACM grant until an equivalent
+early owner has been verified.
+
 ### Enable Authorino TLS
 
 The Kuadrant operator creates the Authorino resource automatically. To enable TLS, use the provided script which:

@@ -250,6 +250,9 @@ update-ai-grid-charts: yq ## Vendor AI Grid charts from praxis-proxy/grid. Use G
 chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
 	@bash ./scripts/generate-chart-defaults.sh --check charts/rhai-on-openshift-chart
 	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
+	@if [ -z "$(CHART_NAME)" ] || [ "$(CHART_NAME)" = "rhai-on-openshift-chart" ]; then \
+		bash scripts/tests/test-otel-cert-manager-readiness.sh; \
+	fi
 
 .PHONY: chart-defaults
 chart-defaults: ## Regenerate the RHOAI chart's coalesced default values

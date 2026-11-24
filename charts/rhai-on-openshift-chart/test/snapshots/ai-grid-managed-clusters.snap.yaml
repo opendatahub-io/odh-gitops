@@ -6,10 +6,10 @@ metadata:
   name: cert-manager-operator
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: v1
@@ -21,7 +21,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: v1
@@ -33,7 +32,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: v1
@@ -47,7 +45,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
     openshift.io/cluster-monitoring: "true"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: v1
@@ -56,10 +53,10 @@ metadata:
   name: openshift-opentelemetry-operator
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: v1
@@ -71,7 +68,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: v1
@@ -83,7 +79,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -95,7 +90,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: networking.k8s.io/v1
@@ -131,8 +125,6 @@ spec:
       ports:
         - port: 9443
           protocol: TCP
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -140,7 +132,6 @@ kind: ServiceAccount
 metadata:
   name: grid-bootstrap-membership
   namespace: default
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -154,7 +145,6 @@ metadata:
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -168,7 +158,18 @@ metadata:
     app.kubernetes.io/version: "0.7.0"
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: false
-
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: release-test-otel-cert-manager
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -184,7 +185,6 @@ metadata:
   annotations:
     kubernetes.io/service-account.name: "grid-gateway-metrics-scraper"
 type: kubernetes.io/service-account-token
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -222,8 +222,6 @@ data:
           - filter: grid_site_route
             model_header: X-Gateway-Model-Name
             clusters: []
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -244,7 +242,6 @@ rules:
     resources: [configmaps]
     resourceNames: ["grid-bootstrap-state"]
     verbs: [get, list, watch]
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -264,7 +261,24 @@ rules:
   - apiGroups: [authorization.k8s.io]
     resources: [subjectaccessreviews]
     verbs: [create]
-
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: release-test-otel-cert-manager-gate
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
+rules:
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    resourceNames: [certificates.cert-manager.io, certificaterequests.cert-manager.io, issuers.cert-manager.io]
+    verbs: [get]
+  - nonResourceURLs: [/apis/cert-manager.io/v1]
+    verbs: [get]
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -279,7 +293,6 @@ subjects:
 - kind: ServiceAccount
   name: grid-bootstrap-membership
   namespace: default
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -300,7 +313,25 @@ subjects:
   - kind: ServiceAccount
     name: grid-gateway-metrics-auth
     namespace: default
-
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: release-test-otel-cert-manager-gate
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: release-test-otel-cert-manager-gate
+subjects:
+  - kind: ServiceAccount
+    name: release-test-otel-cert-manager
+    namespace: openshift-opentelemetry-operator
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -319,7 +350,6 @@ rules:
     resources: [scrapes]
     resourceNames: ["grid-gateway"]
     verbs: [get]
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -341,8 +371,6 @@ subjects:
   - kind: ServiceAccount
     name: grid-gateway-metrics-scraper
     namespace: default
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -368,8 +396,6 @@ spec:
   selector:
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: v1
@@ -394,8 +420,6 @@ spec:
   selector:
     app.kubernetes.io/name: praxis-gateway
     app.kubernetes.io/instance: release-test
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: apps/v1
@@ -567,8 +591,6 @@ spec:
                   items:
                     - key: ca.crt
                       path: ca.crt
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
 apiVersion: apps/v1
@@ -601,6 +623,121 @@ spec:
                   name: odh-trusted-ca-bundle
               - configMap:
                   name: openshift-service-ca.crt
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: release-test-otel-cert-manager
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "-20"
+    # Retain success/failure logs until the next full sync, which recreates the Job.
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  activeDeadlineSeconds: 630
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: otel-cert-manager-readiness
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: release-test-otel-cert-manager
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: readiness
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          env:
+            - name: TIMEOUT_SECONDS
+              value: "600"
+            - name: POLL_INTERVAL_SECONDS
+              value: "5"
+            - name: REQUEST_TIMEOUT_SECONDS
+              value: "10"
+          command: [/bin/bash, -c]
+          args:
+            - |
+              #!/usr/bin/env bash
+              set -euo pipefail
+
+              # Every request and sleep shares one deadline; a slow API cannot extend the loop.
+              deadline=$((SECONDS + TIMEOUT_SECONDS))
+              reason="initial readiness check"
+              last_failure=""
+              resources="certificates certificaterequests issuers"
+
+              request() {
+                local remaining=$((deadline - SECONDS))
+                ((remaining > 0)) || return 1
+                local duration=$REQUEST_TIMEOUT_SECONDS
+                if ((duration > remaining)); then duration=$remaining; fi
+                # Match the XKS Job convention: bound the entire CLI process. A client-go
+                # --request-timeout override can bypass the in-cluster config fallback.
+                timeout --kill-after=1s "${duration}s" oc --cache-dir=/tmp/oc-cache "$@"
+              }
+
+              ready() {
+                local resource condition discovery
+                for resource in $resources; do
+                  reason="CRD ${resource}.cert-manager.io is absent or not Established"
+                  condition=$(request get customresourcedefinition "${resource}.cert-manager.io" \
+                    -o 'jsonpath={.status.conditions[?(@.type=="Established")].status}') || return 1
+                  [[ "$condition" == True ]] || return 1
+                done
+
+                reason="cert-manager.io/v1 API discovery is unavailable"
+                discovery=$(request get --raw /apis/cert-manager.io/v1) || return 1
+                for resource in $resources; do
+                  reason="cert-manager.io/v1 discovery does not advertise ${resource}"
+                  grep -Eq '"name"[[:space:]]*:[[:space:]]*"'"$resource"'"' <<< "$discovery" || return 1
+                done
+              }
+
+              echo "Waiting up to ${TIMEOUT_SECONDS}s for cert-manager CRDs and API discovery"
+              while ! ready; do
+                remaining=$((deadline - SECONDS))
+                if ((remaining <= 0)); then
+                  echo "ERROR: cert-manager readiness timed out after ${TIMEOUT_SECONDS}s: ${last_failure:-$reason}." \
+                    "OpenTelemetry Subscription remains gated." >&2
+                  exit 1
+                fi
+                last_failure=$reason
+                echo "Waiting: ${reason}; ${remaining}s remaining"
+                delay=$POLL_INTERVAL_SECONDS
+                if ((delay > remaining)); then delay=$remaining; fi
+                sleep "$delay"
+              done
+              echo "cert-manager CRDs are Established and all required APIs are discoverable"
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/authorino-service-ca.yaml
@@ -753,7 +890,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   controllerName: openshift.io/gateway-controller/v1
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: cert-manager.io/v1
@@ -770,8 +906,6 @@ metadata:
 spec:
   ca:
     secretName: "grid-ca-key"
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/config.yaml
 apiVersion: kuadrant.io/v1beta1
@@ -809,7 +943,6 @@ metadata:
   namespace: default
 spec:
   clusterSet: "default"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -817,12 +950,13 @@ kind: OperatorGroup
 metadata:
   name: openshift-cert-manager-operator
   namespace: cert-manager-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -835,7 +969,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/leader-worker-set/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -850,7 +983,6 @@ spec:
   upgradeStrategy: Default
   targetNamespaces:
     - openshift-lws-operator
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -863,7 +995,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -871,12 +1002,13 @@ kind: OperatorGroup
 metadata:
   name: opentelemetry-product
   namespace: openshift-opentelemetry-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/rhcl/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -889,7 +1021,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -902,7 +1033,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -915,7 +1045,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid-dashboard.yaml
 apiVersion: perses.dev/v1alpha2
@@ -2085,7 +2214,6 @@ spec:
       labelSelector:
         matchLabels:
           local-cluster: "true"
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: cluster.open-cluster-management.io/v1beta1
@@ -2100,7 +2228,6 @@ spec:
       labelSelector:
         matchLabels:
           "grid.praxis.fast/member": "true"
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -2116,7 +2243,6 @@ subjects:
 - apiGroup: policy.open-cluster-management.io
   kind: Policy
   name: grid-bootstrap-membership-hub
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -2132,7 +2258,6 @@ subjects:
 - apiGroup: policy.open-cluster-management.io
   kind: Policy
   name: grid-bootstrap-membership-identities
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -2148,7 +2273,6 @@ subjects:
 - apiGroup: policy.open-cluster-management.io
   kind: Policy
   name: grid-bootstrap-membership
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -2269,7 +2393,6 @@ spec:
           
           {{hub end hub}}
           {{hub end hub}}
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -2324,8 +2447,6 @@ spec:
               namespace: "grid-system"
             data:
               ca.crt: '{{hub fromSecret "default" "grid-ca-key" "tls.crt" hub}}'
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: policy.open-cluster-management.io/v1
@@ -2566,8 +2687,6 @@ spec:
                   namespace: {{hub printf "%q" $namespace hub}}
                   siteName: {{hub printf "%q" .ManagedClusterName hub}}
                 {{hub end hub}}
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: monitoring.coreos.com/v1
@@ -2618,6 +2737,8 @@ kind: Subscription
 metadata:
   name: openshift-cert-manager-operator
   namespace: cert-manager-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2688,6 +2809,8 @@ kind: Subscription
 metadata:
   name: opentelemetry-product
   namespace: openshift-opentelemetry-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -2776,7 +2899,6 @@ metadata:
     helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation
 automountServiceAccountToken: false
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2802,7 +2924,6 @@ rules:
     resources: [configmaps]
     resourceNames: ["grid-bootstrap-state"]
     verbs: [get]
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2828,8 +2949,6 @@ subjects:
   - kind: ServiceAccount
     name: grid-bootstrap-ca-bootstrap
     namespace: default
-
-
 ---
 # Source: rhai-on-openshift-chart/templates/components/ai-grid.yaml
 apiVersion: batch/v1
@@ -2886,5 +3005,3 @@ spec:
             - "--grid-id-config-map"
             - "grid-bootstrap-state"
             - "--skip-ca"
-
-

@@ -616,6 +616,25 @@ dependencies:
       channel: stable
       name: opentelemetry-product
       namespace: openshift-opentelemetry-operator
+    certManagerReadiness:
+      # -- CRD/discovery Sync gate: auto for Argo CD managed monitoring, true for other OTel cert-manager consumers, false to disable. OLM mode only.
+      enabled: auto
+      # -- Maximum polling duration in seconds. Job deadline adds 30 seconds for startup/termination.
+      timeoutSeconds: 600
+      # -- Delay between readiness attempts in seconds.
+      pollIntervalSeconds: 5
+      # -- Maximum duration of each CLI process in seconds, also capped by remaining polling time (plus one-second kill grace).
+      requestTimeoutSeconds: 10
+      # -- Same immutable CLI image used by the XKS chart's Jobs. Must provide oc, bash and timeout.
+      image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573
+      # -- CLI Job container resources, following the XKS hook defaults.
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
 
   # -- Tempo operator
   tempo:

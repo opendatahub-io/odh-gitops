@@ -48,6 +48,71 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - tags.install-with-helm-dependencies=true
+          # Even explicit enablement must not render this Argo/OLM-only gate.
+          - argocd.enabled=true
+          - dependencies.opentelemetry.enabled=true
+          - dependencies.opentelemetry.certManagerReadiness.enabled=true
+
+      # Gate variants use the common renderer; Bash tests exercise polling and
+      # assert the dependency relationship in the three existing Grid profiles.
+      - name: otel-cert-manager-external-custom
+        setFlags:
+          - skipCrdCheck=true
+          - operator.enabled=false
+          - argocd.enabled=true
+          - dependencies.certManager.enabled=false
+          - dependencies.opentelemetry.enabled=true
+          - dependencies.opentelemetry.olm.namespace=custom-otel
+          - dependencies.opentelemetry.olm.operatorGroupName=custom-group
+          - dependencies.opentelemetry.olm.name=custom-product
+          - dependencies.opentelemetry.certManagerReadiness.enabled=true
+          - dependencies.opentelemetry.certManagerReadiness.timeoutSeconds=120
+          - dependencies.opentelemetry.certManagerReadiness.pollIntervalSeconds=2
+          - dependencies.opentelemetry.certManagerReadiness.requestTimeoutSeconds=4
+
+      - name: otel-cert-manager-disabled-external-owners
+        setFlags:
+          - skipCrdCheck=true
+          - operator.enabled=false
+          - argocd.enabled=true
+          - dependencies.certManager.enabled=true
+          - dependencies.certManager.olm.createNamespace=false
+          - dependencies.certManager.olm.createOperatorGroup=false
+          - dependencies.opentelemetry.enabled=true
+          - dependencies.opentelemetry.olm.createNamespace=false
+          - dependencies.opentelemetry.olm.createOperatorGroup=false
+          - dependencies.opentelemetry.certManagerReadiness.enabled=false
+
+      - name: otel-cert-manager-auto-not-required
+        setFlags:
+          - skipCrdCheck=true
+          - operator.enabled=false
+          - argocd.enabled=true
+          - dependencies.opentelemetry.enabled=true
+
+      - name: otel-cert-manager-invalid-timeout
+        expectFail: true
+        expectMessage: "timeoutSeconds"
+        setFlags:
+          - dependencies.opentelemetry.certManagerReadiness.timeoutSeconds=0
+
+      - name: otel-cert-manager-invalid-poll-interval
+        expectFail: true
+        expectMessage: "pollIntervalSeconds"
+        setFlags:
+          - dependencies.opentelemetry.certManagerReadiness.pollIntervalSeconds=0
+
+      - name: otel-cert-manager-invalid-request-timeout
+        expectFail: true
+        expectMessage: "requestTimeoutSeconds"
+        setFlags:
+          - dependencies.opentelemetry.certManagerReadiness.requestTimeoutSeconds=-1
+
+      - name: otel-cert-manager-mutable-image
+        expectFail: true
+        expectMessage: "image"
+        setFlags:
+          - dependencies.opentelemetry.certManagerReadiness.image=mutable:latest
 
       - name: kserve-grid-model-client
         setFlags:
@@ -687,6 +752,8 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - operator.type=rhoai
+          # Plain Helm must not acquire the Argo-only gate, even when requested.
+          - dependencies.opentelemetry.certManagerReadiness.enabled=true
 
       - name: monitoring-with-usage-logs
         valuesFiles:

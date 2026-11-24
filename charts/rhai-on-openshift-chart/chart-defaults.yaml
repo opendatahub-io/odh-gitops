@@ -255,6 +255,19 @@ dependencies:
       targetNamespaces:
       - nvidia-gpu-operator
   opentelemetry:
+    certManagerReadiness:
+      enabled: auto
+      image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573
+      pollIntervalSeconds: 5
+      requestTimeoutSeconds: 10
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      timeoutSeconds: 600
     dependencies: {}
     enabled: auto
     olm:
@@ -804,5 +817,3 @@ tags:
 trustedCABundle:
   customCABundle: ""
   managementState: Managed
-
-

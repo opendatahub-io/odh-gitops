@@ -6,10 +6,10 @@ metadata:
   name: cert-manager-operator
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: v1
@@ -21,7 +21,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: v1
@@ -35,7 +34,6 @@ metadata:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
     openshift.io/cluster-monitoring: "true"
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: v1
@@ -44,10 +42,10 @@ metadata:
   name: openshift-opentelemetry-operator
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: v1
@@ -59,7 +57,6 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: v1
@@ -71,6 +68,170 @@ metadata:
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: release-test-otel-cert-manager
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: release-test-otel-cert-manager-gate
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
+rules:
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    resourceNames: [certificates.cert-manager.io, certificaterequests.cert-manager.io, issuers.cert-manager.io]
+    verbs: [get]
+  - nonResourceURLs: [/apis/cert-manager.io/v1]
+    verbs: [get]
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: release-test-otel-cert-manager-gate
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: release-test-otel-cert-manager-gate
+subjects:
+  - kind: ServiceAccount
+    name: release-test-otel-cert-manager
+    namespace: openshift-opentelemetry-operator
+---
+# Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/cert-manager-readiness.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: release-test-otel-cert-manager
+  namespace: openshift-opentelemetry-operator
+  labels:
+    helm.sh/chart: HELM_CHART_VERSION_REDACTED
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "-20"
+    # Retain success/failure logs until the next full sync, which recreates the Job.
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  activeDeadlineSeconds: 630
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: otel-cert-manager-readiness
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: release-test-otel-cert-manager
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: readiness
+          image: "registry.redhat.io/openshift4/ose-cli-rhel9:v4.20@sha256:11d63d113e970c5e219e721cee81ad6bd271971e04a024c45f38f699d5354573"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          env:
+            - name: TIMEOUT_SECONDS
+              value: "600"
+            - name: POLL_INTERVAL_SECONDS
+              value: "5"
+            - name: REQUEST_TIMEOUT_SECONDS
+              value: "10"
+          command: [/bin/bash, -c]
+          args:
+            - |
+              #!/usr/bin/env bash
+              set -euo pipefail
+
+              # Every request and sleep shares one deadline; a slow API cannot extend the loop.
+              deadline=$((SECONDS + TIMEOUT_SECONDS))
+              reason="initial readiness check"
+              last_failure=""
+              resources="certificates certificaterequests issuers"
+
+              request() {
+                local remaining=$((deadline - SECONDS))
+                ((remaining > 0)) || return 1
+                local duration=$REQUEST_TIMEOUT_SECONDS
+                if ((duration > remaining)); then duration=$remaining; fi
+                # Match the XKS Job convention: bound the entire CLI process. A client-go
+                # --request-timeout override can bypass the in-cluster config fallback.
+                timeout --kill-after=1s "${duration}s" oc --cache-dir=/tmp/oc-cache "$@"
+              }
+
+              ready() {
+                local resource condition discovery
+                for resource in $resources; do
+                  reason="CRD ${resource}.cert-manager.io is absent or not Established"
+                  condition=$(request get customresourcedefinition "${resource}.cert-manager.io" \
+                    -o 'jsonpath={.status.conditions[?(@.type=="Established")].status}') || return 1
+                  [[ "$condition" == True ]] || return 1
+                done
+
+                reason="cert-manager.io/v1 API discovery is unavailable"
+                discovery=$(request get --raw /apis/cert-manager.io/v1) || return 1
+                for resource in $resources; do
+                  reason="cert-manager.io/v1 discovery does not advertise ${resource}"
+                  grep -Eq '"name"[[:space:]]*:[[:space:]]*"'"$resource"'"' <<< "$discovery" || return 1
+                done
+              }
+
+              echo "Waiting up to ${TIMEOUT_SECONDS}s for cert-manager CRDs and API discovery"
+              while ! ready; do
+                remaining=$((deadline - SECONDS))
+                if ((remaining <= 0)); then
+                  echo "ERROR: cert-manager readiness timed out after ${TIMEOUT_SECONDS}s: ${last_failure:-$reason}." \
+                    "OpenTelemetry Subscription remains gated." >&2
+                  exit 1
+                fi
+                last_failure=$reason
+                echo "Waiting: ${reason}; ${remaining}s remaining"
+                delay=$POLL_INTERVAL_SECONDS
+                if ((delay > remaining)); then delay=$remaining; fi
+                sleep "$delay"
+              done
+              echo "cert-manager CRDs are Established and all required APIs are discoverable"
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 
 ---
 # Source: rhai-on-openshift-chart/templates/operator/dscinitialization.yaml
@@ -173,12 +334,13 @@ kind: OperatorGroup
 metadata:
   name: openshift-cert-manager-operator
   namespace: cert-manager-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cluster-observability/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -191,7 +353,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/loki/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -204,7 +365,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/opentelemetry/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -212,12 +372,13 @@ kind: OperatorGroup
 metadata:
   name: opentelemetry-product
   namespace: openshift-opentelemetry-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/tempo/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -230,7 +391,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/operator/operator.yaml
 apiVersion: operators.coreos.com/v1
@@ -243,7 +403,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   upgradeStrategy: Default
-
 ---
 # Source: rhai-on-openshift-chart/templates/dependencies/cert-manager/operator.yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -251,6 +410,8 @@ kind: Subscription
 metadata:
   name: openshift-cert-manager-operator
   namespace: cert-manager-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm
@@ -304,6 +465,8 @@ kind: Subscription
 metadata:
   name: opentelemetry-product
   namespace: openshift-opentelemetry-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
   labels:
     helm.sh/chart: HELM_CHART_VERSION_REDACTED
     app.kubernetes.io/managed-by: Helm

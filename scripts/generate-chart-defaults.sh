@@ -43,14 +43,17 @@ tmp_dir=$(mktemp -d)
 trap 'rm -rf "${tmp_dir}"' EXIT
 cp -a "${chart_dir}" "${tmp_dir}/chart"
 
+# Delimit the data so Helm's trailing output padding is excluded without
+# stripping meaningful trailing newlines from YAML block scalar values.
 cat > "${tmp_dir}/chart/templates/zz-chart-defaults.yaml" <<'EOF'
 {{ .Values | toYaml }}
+# END CHART DEFAULTS
 EOF
 
 helm template chart-defaults "${tmp_dir}/chart" \
     --set skipCrdCheck=false \
     --show-only templates/zz-chart-defaults.yaml \
-    | sed '1,2d' > "${tmp_dir}/chart-defaults.yaml"
+    | sed '1,2d; /^# END CHART DEFAULTS$/,$d' > "${tmp_dir}/chart-defaults.yaml"
 
 if [[ "${check}" == "true" ]]; then
     if ! cmp -s "${tmp_dir}/chart-defaults.yaml" "${defaults_file}"; then
