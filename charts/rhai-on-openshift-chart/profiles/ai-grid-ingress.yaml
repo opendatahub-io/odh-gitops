@@ -1,0 +1,192 @@
+# AI Grid profile - AI Grid multi-cluster routing only
+# Enables AIGateway with only aiGrid and its gateway.
+
+argocd:
+  enabled: true
+
+operator:
+  type: rhoai
+
+ai-grid-o11y-spoke:
+  enabled: true
+  collector:
+    namespace: redhat-ods-monitoring
+
+dependencies:
+  rhcl:
+    olm:
+      config:
+        env:
+          - name: AUTH_SERVICE_TIMEOUT
+            value: 5s
+    config:
+      authorinoServiceCaTrust: true
+      authorinoTrustedCA:
+        volumeName: trusted-ca-bundle
+        mountPath: /etc/pki/tls/certs
+        configMaps:
+          - odh-trusted-ca-bundle
+          - openshift-service-ca.crt
+      spec:
+        observability:
+          enable: true
+
+services:
+  monitoring:
+    dsci:
+      managementState: Managed
+      # Minimal dev config: metrics need storage size; traces require a
+      # storage backend (pv = ephemeral-ish local dev storage, no S3 needed).
+      # ACM reads the collector's own prometheus exporter, so no extra exporter here.
+      metrics:
+        storage:
+          size: 20Gi
+      traces:
+        storage:
+          backend: pv
+          size: 10Gi
+
+components:
+  dashboard:
+    dsc:
+      standard:
+        managementState: Managed
+      maasPortal:
+        managementState: Managed
+  aigateway:
+    dependencies:
+      certManager: true
+      leaderWorkerSet: true
+      rhcl: true
+    dsc:
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
+      aiGrid:
+        managementState: Managed
+    modelsAsAService:
+      gateway:
+        spec:
+          # A platform-issued serving cert on the https listener.
+          infrastructure:
+            annotations:
+              service.beta.openshift.io/serving-cert-secret-name: maas-default-gateway-service-tls
+          listeners:
+            - name: http
+              port: 80
+              # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
+              protocol: HTTP
+              allowedRoutes:
+                namespaces:
+                  # The following is an example of how to restrict the namespaces to the interested ones.
+                  from: Selector
+                  selector:
+                    matchExpressions:
+                      - key: kubernetes.io/metadata.name
+                        operator: In
+                        values:
+                          - openshift-ingress
+                          # MaaS models in a Grid are represented by ExternalModel resources pointing to the Grid GW.
+                          - models-as-a-service
+                          - redhat-ai-gateway-infra
+
+            # TODO: fix https listener with TLS certs
+            - name: https
+              port: 443
+              # hostname: <HOSTNAME> # Uncomment this line to use a specific hostname.
+              protocol: HTTPS
+              tls:
+                mode: Terminate
+                certificateRefs:
+                  - name: maas-default-gateway-service-tls
+              allowedRoutes:
+                namespaces:
+                  # The following is an example of how to restrict the namespaces to the interested ones.
+                  from: Selector
+                  selector:
+                    matchExpressions:
+                      - key: kubernetes.io/metadata.name
+                        operator: In
+                        values:
+                          - openshift-ingress
+                          # MaaS models in a Grid are represented by ExternalModel resources pointing to the Grid GW.
+                          - models-as-a-service
+                          - redhat-ai-gateway-infra
+
+# Enrollment comes from grid-bootstrap on the hub, through ACM.
+
+praxis-gateway:
+  enabled: true
+  # MaaS dials this service to reach Grid sites. Keep the name and service
+  # certificate contract expected by the tenant's ExternalProvider policy.
+  fullnameOverride: grid-gateway
+
+  image:
+    flavor: grid-gateway
+
+  grid:
+    networkName: grid
+    # siteName comes from the ApplicationSet, one per cluster.
+
+  praxisConfig:
+    source: render
+    render:
+      # MaaS authenticates the caller.
+      auth:
+        mode: none
+      # No backends: the gateway dials what the operator derives from the
+      # InferenceProviders and GridSites of this site, through the serving
+      # ConfigMap's dial file. Local models are reached through the RHOAI
+      # serving gateway, so the EPP picks the pod.
+      gridServing:
+        enabled: true
+        networkName: grid
+        # Explicit: the default follows fullnameOverride.
+        gatewayRefName: grid-gateway
+  gridIdentity:
+    tlsSecretName: grid-site-identity
+    caSecretName: grid-ca
+    mountPath: /etc/praxis/tls
+  listenerTls:
+    secretName: grid-gateway-listener-tls
+  # No model-client token: an ingress site serves no local models, and the
+  # chart creates that token only where KServe runs.
+  # The service CA verifies the serving gateway's cert on a local dial;
+  # remote hops carry the grid CA.
+  upstreamCA:
+    secretName: openshift-service-ca
+    key: ca.crt
+  port:
+    containerPort: 8443
+  service:
+    enabled: true
+    type: ClusterIP
+    # What inference.opendatahub.io/port already names.
+    port: 443
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: grid-gateway-listener-tls
+  # The gateway listener admits only the serving gateway's namespace, and the
+  # metrics port only the collectors. auto would leave both off under Argo CD.
+  networkPolicy:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            network.openshift.io/policy-group: ingress
+  # TLS metrics on 9443 for the platform collector, which selects the scrape label.
+  metricsListener:
+    enabled: true
+    existingSecret: grid-gateway-metrics-tls
+    fromNamespaces:
+      - redhat-ods-monitoring
+      - openshift-user-workload-monitoring
+    service:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: grid-gateway-metrics-tls
+    serviceMonitor:
+      enabled: true
+      caConfigMap:
+        name: openshift-service-ca.crt
+        key: service-ca.crt
+      labels:
+        monitoring.opendatahub.io/scrape: "true"

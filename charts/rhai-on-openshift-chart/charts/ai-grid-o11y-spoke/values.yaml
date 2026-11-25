@@ -1,0 +1,95 @@
+# ai-grid-o11y-spoke is the spoke side of AI Grid observability, and it does two unrelated
+# jobs for the one collector in `collector.namespace`:
+#
+#   metrics      a ScrapeConfig and a NetworkPolicy that let the ACM observability
+#                metrics-collector agents federate RHOAI metrics off this cluster
+#   usage logs   the monitoring namespace and the hub credential the usage-log collector
+#                mounts, in place *before* that collector starts
+#
+# Neither configures the collector itself. Metrics exporters and
+# `services.monitoring.dsci.usageLogs` are both the parent chart's, which the platform
+# operator passes to odh-observability — a subchart cannot contribute to the
+# DSCInitialization, which the parent owns.
+#
+# Why the usage-log half exists at all: the monitoring namespace is created by the operator
+# while it reconciles the DSCInitialization, so before the parent chart runs there is
+# nowhere to put the credential. A collector whose `credentialSecret` names a Secret that
+# does not exist yet sits in ContainerCreating on FailedMount, and because both the local
+# and the remote pipeline share one collector deployment, the spoke then has no usage
+# logging at all — not just no forwarding. Helm orders Namespace and Secret ahead of
+# unrecognised kinds such as DSCInitialization, so rendering them here closes that window in
+# a single install.
+#
+# Nothing here is created unless `enabled` is true.
+
+# -- Render this chart. The parent chart gates the whole subchart on this key through
+# `condition:` in its Chart.yaml, so it is not re-checked in the templates here; each half
+# below has its own toggle.
+enabled: false
+
+collector:
+  # -- Namespace the collector runs in. Must match `operator.<type>.monitoringNamespace`
+  # when used through the parent chart, which fails the render if they disagree:
+  # `redhat-ods-monitoring` for RHOAI, `opendatahub` for ODH.
+  namespace: redhat-ods-monitoring
+  # -- Prometheus exporter port, shared by the scrape target, NetworkPolicy and
+  # parent-injected exporter.
+  port: 8890
+  # -- Create `collector.namespace`, so the usage-log credential has somewhere to land
+  # before the operator reconciles the DSCInitialization. Only consulted when
+  # `credential.enabled` is set, since that Secret is the only reason to create it early.
+  #
+  # **Defaults to false**, because the common case for this chart is onboarding a spoke whose
+  # usage logs already run locally: there RHOAI created the namespace long ago, Helm will not
+  # adopt a namespace it does not own, and the upgrade fails with `invalid ownership metadata`
+  # before delivering the credential. It must also stay false on OSD and ROSA, where GitOps
+  # writes to Red Hat managed namespaces are rejected.
+  #
+  # Set it true only where this chart runs *before* the operator has reconciled the
+  # DSCInitialization and the namespace genuinely does not exist. When true it carries
+  # `helm.sh/resource-policy: keep`, so uninstalling never deletes the namespace the operator
+  # is using.
+  createNamespace: false
+
+# -- Labels added to the objects this chart's usage-log half renders: the credential `Secret`
+# and the monitoring `Namespace`. The metrics half (`ScrapeConfig`,
+# `NetworkPolicy allow-acm-rhai-metrics`) does not carry them, so that #215's rendered output
+# stays byte-identical.
+commonLabels: {}
+
+metrics:
+  # -- Federate RHOAI metrics to ACM: render the ScrapeConfig and the NetworkPolicy that
+  # lets the metrics-collector agents reach the collector. On by default, which is this
+  # chart's original behaviour. It needs ACM observability on the cluster — the ScrapeConfig
+  # goes to `open-cluster-management-observability` and needs the rhobs CRD — so a spoke
+  # outside an ACM fleet, installing this chart only to receive the usage-log credential,
+  # sets this false.
+  enabled: true
+
+credential:
+  # -- Deliver the hub credential: render the Secret below, and `collector.namespace` ahead
+  # of it. Off by default, because a spoke that only federates metrics needs no hub token
+  # and should not be asked for one.
+  enabled: false
+
+  # -- Name of the Secret the collector mounts. It must equal
+  # `services.monitoring.dsci.usageLogs.credentialSecret`; nothing can check that for you,
+  # because a subchart cannot see the parent's values.
+  secretName: hub-usage-logs-auth
+
+  # -- The hub writer token, stored under key `token`. Mint it on the hub with
+  # `oc create token <writer-sa> -n <o11y-namespace> --duration=8760h`.
+  #
+  # Required when `credential.enabled` is set, and deliberately has no other source: an
+  # `existingSecret` option would look equivalent while silently giving up the ordering
+  # guarantee above, since a Secret created outside the release may not exist when the
+  # collector starts.
+  #
+  # Never commit it. Supply it out of band:
+  #   --set-file credential.token=./token (standalone)
+  #   --set-file ai-grid-o11y-spoke.credential.token=./token (parent)
+  # or from a values file kept out of version control. Under GitOps, template it from
+  # whatever secret manager is in use rather than checking it in.
+  # Helm stores the supplied token in release history as well as the credential Secret.
+  # Restrict access to the release namespace as strictly as the credential namespace.
+  token: ""

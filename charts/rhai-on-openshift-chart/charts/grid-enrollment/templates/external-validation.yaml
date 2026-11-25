@@ -1,0 +1,8 @@
+{{- define "grid-enrollment.rhoai.external-validation.yaml" -}}
+{{- if eq .Values.mode "external" }}
+{{- include "grid-enrollment.external.validate" . }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "grid-enrollment.rhoai.external-validation.yaml" . }}
+{{- end }}

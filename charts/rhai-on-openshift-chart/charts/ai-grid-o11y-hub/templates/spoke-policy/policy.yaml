@@ -1,0 +1,153 @@
+{{- if and .Values.enabled .Values.spokePolicy.enabled }}
+{{- $d := .Values.spokePolicy }}
+{{- $spoke := $d.spoke }}
+{{- $read := $d.readCredential | default dict }}
+{{- if not (or $d.deliverCredential $d.deliverConfiguration $read.enabled) }}
+{{- fail "spokePolicy needs deliverCredential and/or deliverConfiguration, or readCredential.enabled: with all off the ConfigurationPolicy would carry no object-templates" }}
+{{- end }}
+{{- if and $d.deliverConfiguration (eq $spoke.exporterName "otlphttp/loki") }}
+{{- fail "spokePolicy.spoke.exporterName may not be otlphttp/loki: that name is reserved for the spoke-local write and odh-observability rejects it" }}
+{{- end }}
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: {{ $d.name | quote }}
+  namespace: {{ $d.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+  {{- with $d.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  remediationAction: {{ $d.remediationAction }}
+  disabled: false
+  {{- with ($d.hubTemplateOptions | default dict).serviceAccountName }}
+  {{- /* ACM resolves hub templates with the propagator's own access, limited to
+         this policy's namespace and the target ManagedCluster. A template that
+         reads anything else -- a Route, for instance, to discover the ingest
+         endpoint -- needs a ServiceAccount named here (ACM 2.12 and later).
+         It applies to EVERY template in this policy, including the credential's
+         fromSecret, so it must be able to read that Secret too. */}}
+  hubTemplateOptions:
+    serviceAccountName: {{ . | quote }}
+  {{- end }}
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: {{ $d.name | quote }}
+        spec:
+          remediationAction: {{ $d.remediationAction }}
+          severity: {{ $d.severity }}
+          pruneObjectBehavior: {{ $d.pruneObjectBehavior }}
+          object-templates:
+            {{- /* The credential first, then the configuration that names it. Order is not
+                   enforced by ACM, but a collector that reconciles between the two reports a
+                   missing Secret rather than a failed write. Either half can be turned off:
+                   a fleet whose spokes are installed by GitOps carries the configuration in
+                   its own values and takes only the credential from here. */}}
+            {{- if $d.deliverCredential }}
+            {{- $caSA := ($d.hubTemplateOptions | default dict).serviceAccountName | default "" }}
+            {{- if not $caSA }}
+            {{- fail "spokePolicy.deliverCredential requires spokePolicy.hubTemplateOptions.serviceAccountName for the writer CA lookup" }}
+            {{- end }}
+            {{- $routeName := include "ai-grid-o11y-hub.lokiStackName" . }}
+            {{- $routeNamespace := "redhat-ods-monitoring" }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: {{ $spoke.credentialSecretName | quote }}
+                  namespace: {{ $spoke.monitoringNamespace | quote }}
+                data:
+                  {{- /* fromSecret emits base64 already, and ships it as $ocm_encrypted:
+                         ciphertext with a per-policy IV. Under stringData it would be encoded
+                         a second time and the policy would still report Compliant, so the
+                         collector would present a corrupt token. The printf is what stops Helm
+                         consuming ACM's braces. */}}
+                  token: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $d.credentialSecretName }}'
+                  ca.crt: '{{ printf "{{hub base64enc (default (fromConfigMap %q %q %q) (lookup %q %q %q %q).spec.tls.caCertificate) hub}}" "openshift-config-managed" "default-ingress-cert" "ca-bundle.crt" "route.openshift.io/v1" "Route" $routeNamespace $routeName }}'
+            {{- end }}
+            {{- if $d.deliverConfiguration }}
+            {{- /* musthave on a map merges, which is what this needs: the patch must not
+                   disturb the rest of spec.monitoring — metrics, traces and log forwarding
+                   are the spoke's own, and mustonlyhave would replace them. It also means the
+                   patch creates usageLogs where the spoke's install leaves it absent, which
+                   is now the normal case. */}}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: dscinitialization.opendatahub.io/v1
+                kind: DSCInitialization
+                metadata:
+                  name: {{ $spoke.dsciName | quote }}
+                spec:
+                  monitoring:
+                    usageLogs:
+                      credentialSecret: {{ $spoke.credentialSecretName | quote }}
+                      {{- with $spoke.size }}
+                      size: {{ . | quote }}
+                      {{- end }}
+                      {{- with $spoke.attributes }}
+                      attributes:
+                        {{- /* Emitted one key at a time rather than with toYaml, which wraps a
+                               long value at 80 columns. YAML folding keeps such a value
+                               correct, but these are ACM templates a reader has to be able to
+                               check by eye, and a folded one cannot be. Single quotes suit
+                               them: they contain double quotes and no single ones. */}}
+                        {{- range $k, $v := . }}
+                        {{- if contains "'" ($v | toString) }}
+                        {{- fail (printf "spokePolicy.spoke.attributes.%s may not contain a single quote: the value is emitted as a single-quoted YAML scalar" $k) }}
+                        {{- end }}
+                        {{ $k }}: '{{ $v }}'
+                        {{- end }}
+                      {{- end }}
+                      exporters:
+                        {{ $spoke.exporterName }}:
+                          endpoint: {{ include "ai-grid-o11y-hub.spokeEndpoint" $ | quote }}
+            {{- end }}
+            {{- if $read.enabled }}
+            {{- $routeName := include "ai-grid-o11y-hub.lokiStackName" . }}
+            {{- /* The store Route lives in the operator's monitoring namespace,
+                   redhat-ods-monitoring, wherever the LokiStack was rendered
+                   from: it is the Loki operator's, not this chart's, and the
+                   templating ServiceAccount's Route grant is there. */}}
+            {{- $routeNamespace := "redhat-ods-monitoring" }}
+            {{- $caSA := ($d.hubTemplateOptions | default dict).serviceAccountName | default "" }}
+            {{- if not $caSA }}
+            {{- fail "spokePolicy.readCredential.enabled ships a CA hub template that uses `lookup` and `fromConfigMap`, which ACM allows only when spokePolicy.hubTemplateOptions.serviceAccountName names a ServiceAccount that can read the store Route and the openshift-config-managed ConfigMaps (ACM 2.12 and later)" }}
+            {{- end }}
+            {{- /* A separate consumer on the spoke, in its own namespace, holding its own
+                   identity: the read credential is unrelated to the collector's write
+                   path and must be deliverable without it (both halves above off).
+
+            */}}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: {{ $read.secretName | quote }}
+                  namespace: {{ $read.namespace | quote }}
+                data:
+                  {{ $read.tokenKey }}: '{{ printf "{{hub fromSecret %q %q \"token\" hub}}" $d.namespace $read.credentialSecretName }}'
+                  {{ $read.endpointKey }}: '{{ printf "{{hub fromSecret %q %q \"endpoint\" hub}}" $d.namespace $read.credentialSecretName }}'
+                  {{- /* The CA bundle the spoke's read consumer needs to trust the store
+                         Route's certificate. Re-resolved on every Policy render, so CA
+                         rotation needs no Job change and no re-mint: the Route's
+                         spec.tls.caCertificate when the operator set one, otherwise the
+                         cluster's default ingress certificate from openshift-config-managed.
+                         The `default` form is eager -- fromConfigMap evaluates even when the
+                         Route CA wins -- accepted because that ConfigMap exists on any
+                         healthy OpenShift. base64enc lands the PEM under data:, never
+                         stringData:, for the same double-encoding reason as fromSecret above.
+                         Both sources empty fails template resolution and the Policy reports
+                         NonCompliant: a silently-absent CA key is strictly worse than a loud
+                         one, because the consumer would fail TLS with no visible cause. */}}
+                  {{ $read.caKey }}: '{{ printf "{{hub base64enc (default (fromConfigMap %q %q %q) (lookup %q %q %q %q).spec.tls.caCertificate) hub}}" "openshift-config-managed" "default-ingress-cert" "ca-bundle.crt" "route.openshift.io/v1" "Route" $routeNamespace $routeName }}'
+            {{- end }}
+{{- end }}

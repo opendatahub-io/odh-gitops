@@ -1,0 +1,10 @@
+{{ range $name := (list "gridnetworks.grid.praxis.fast" "gridsites.grid.praxis.fast") }}
+{{ $crd := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" $name }}
+{{ $established := false }}
+{{ range $condition := $crd.status.conditions }}
+{{ if and (eq $condition.type "Established") (eq $condition.status "True") }}
+{{ $established = true }}
+{{ end }}
+{{ end }}
+{{ if not $established }}{{ fail (printf "waiting for CRD %s to be Established" $name) }}{{ end }}
+{{ end }}

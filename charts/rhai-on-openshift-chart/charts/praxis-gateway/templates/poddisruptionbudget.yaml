@@ -1,0 +1,18 @@
+{{- define "praxis-gateway.rhoai.poddisruptionbudget.yaml" -}}
+{{- if include "praxis-gateway.ha" . }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "praxis-gateway.fullname" . }}
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "praxis-gateway.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "praxis-gateway.rhoai.poddisruptionbudget.yaml" . }}
+{{- end }}

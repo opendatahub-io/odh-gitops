@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $aigateway := .Values.components.aigateway | default dict -}}
 {{- $aigatewayDscMerged := include "rhoai-dependencies.componentDSCConfig" (dict "componentName" "aigateway" "component" $aigateway "root" .) | fromYaml -}}
 {{- $maas := $aigateway.modelsAsAService | default dict -}}
@@ -50,9 +51,15 @@ data:
 {{- if $openshiftRoute.enabled }}
   {{- $_ := set $gatewaySpec "infrastructure" (dict "parametersRef" (dict "group" "" "kind" "ConfigMap" "name" $openshiftRoute.gatewayParametersName)) }}
   {{- $listeners := list }}
-  {{- range $gateway.spec.listeners }}
-    {{- $listener := deepCopy . }}
-    {{- $_ := set $listener "tls" (dict "mode" "Terminate" "certificateRefs" (list (dict "group" "" "kind" "Secret" "name" $openshiftRoute.servingCertSecretName))) }}
+  {{- range $i, $l := $gateway.spec.listeners }}
+    {{- /* The reencrypt Route arrives with the Service name as SNI, so a listener hostname never matches. */}}
+    {{- if $l.hostname }}
+      {{- fail (printf "components.aigateway.modelsAsAService.gateway.spec.listeners[%d].hostname must be unset when openshiftRoute.enabled: the Route's host is the external name" $i) }}
+    {{- end }}
+    {{- $listener := deepCopy $l }}
+    {{- if has ($l.protocol | default "" | upper) (list "HTTPS" "TLS") }}
+      {{- $_ := set $listener "tls" (dict "mode" "Terminate" "certificateRefs" (list (dict "group" "" "kind" "Secret" "name" $openshiftRoute.servingCertSecretName))) }}
+    {{- end }}
     {{- $listeners = append $listeners $listener }}
   {{- end }}
   {{- $_ := set $gatewaySpec "listeners" $listeners }}

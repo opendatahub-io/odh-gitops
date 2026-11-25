@@ -1,0 +1,16 @@
+profile: ai-grid-ingress
+praxis-gateway:
+  grid:
+    networkName: grid-network
+    siteName: hub
+  overlay:
+    sidecar:
+      enabled: true
+global:
+  relatedImages:
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_GATEWAY_IMAGE
+      value: registry.example.com/rhai/grid-gateway@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_ENROLLMENT_IMAGE
+      value: registry.example.com/rhai/grid-enrollment@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    - name: RELATED_IMAGE_ODH_PRAXIS_AI_GRID_OVERLAY_SYNC_IMAGE
+      value: registry.example.com/rhai/grid-overlay-sync@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd

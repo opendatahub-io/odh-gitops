@@ -1,0 +1,336 @@
+# ai-grid-o11y-hub renders the hub side of AI Grid usage-log aggregation: a LokiStack that
+# spoke clusters write their MaaS usage records to, plus the identities that authorize the
+# write. It installs on the ACM hub and needs no RHOAI — only the Loki operator, which the
+# parent chart provides through `dependencies.loki`.
+#
+# Nothing here is created unless `enabled` is true.
+
+# -- Render this chart. The parent gates the subchart on the same key.
+enabled: false
+
+# -- Namespace holding the LokiStack, its storage Secret and the ingest identities.
+namespace: ai-grid-o11y
+
+# -- Create `namespace`. Set false when it is managed elsewhere.
+createNamespace: true
+
+# -- Labels added to every object this chart renders.
+commonLabels: {}
+
+lokiStack:
+  # -- Render the store: the LokiStack, its object storage and the ingest identities. Set
+  # false to render nothing but the spoke policy, for a hub that forwards to a
+  # LokiStack this chart did not create — the endpoint is only a string, so the store may
+  # live anywhere. Everything under `objectStorage` and `ingest` is skipped with it.
+  enabled: true
+
+  # -- LokiStack name. It also prefixes the storage Secret, the ingest ClusterRoles and the
+  # Route the Loki operator creates, so the ingest endpoint is
+  # `https://<name>-<namespace>.apps.<hub-domain>/api/logs/v1/infrastructure/otlp`.
+  name: usage-logs
+
+  # -- Loki t-shirt size. `1x.extra-small` requests 1 CPU and 5.25Gi per ingester across
+  # three ingesters and will not schedule on a small hub; `1x.demo` carries identical
+  # ingestion limits (4 MB/s sustained, 6 MB burst, 5 MB per stream) with a single ingester
+  # and no resource requests at all, but has no redundancy and is documented by Loki as
+  # demo-only.
+  size: 1x.extra-small
+
+  # -- StorageClass for the ingester, compactor and index-gateway volumes. Must be RWO.
+  storageClassName: gp3-csi
+
+  # -- Object storage schemas. `effectiveDate` must not be in the future at install time or
+  # the stack never becomes Ready, so it has no default and must be set.
+  schemas:
+    - version: v13
+      effectiveDate: ""
+
+  # -- `spec.limits`, passed through. Retention lives here and Loki keeps everything
+  # forever without it, e.g. `global: {retention: {days: 30}}`. The hub carries aggregated
+  # fleet volume, so this is a sizing decision the chart cannot make.
+  limits: {}
+
+  # -- `spec.template`, passed through, for per-component replicas, tolerations and node
+  # placement.
+  template: {}
+
+objectStorage:
+  # -- Name of the S3-shaped Secret the LokiStack reads. The Loki operator requires the
+  # keys `bucketnames`, `endpoint`, `access_key_id` and `access_key_secret`.
+  secretName: ""
+
+  secret:
+    # -- Render the storage Secret from the values below. Leave false and set
+    # `objectStorage.secretName` to bring your own, which is the right choice when the
+    # credentials come from a cloud credential operator.
+    create: false
+    # -- Bucket name.
+    bucketNames: ""
+    # -- S3 endpoint, e.g. `https://s3.openshift-storage.svc:443` for Multicloud Object
+    # Gateway or `https://s3.us-east-1.amazonaws.com`.
+    endpoint: ""
+    # -- Region, for endpoints that require it.
+    region: ""
+    # -- Access key id.
+    accessKeyId: ""
+    # -- Access key secret.
+    accessKeySecret: ""
+
+  obc:
+    # -- Render an ObjectBucketClaim, for a hub with OpenShift Data Foundation. The claim's
+    # credentials are **not** copied into the storage Secret: ODF publishes them under
+    # different key names than Loki reads, and no controller translates them. See the
+    # chart README for the one command that does it.
+    create: false
+    # -- ObjectBucketClaim name. Defaults to `<lokiStack.name>-bucket`.
+    name: ""
+    # -- Bucket name prefix; ODF appends a unique suffix.
+    generateBucketName: ""
+    # -- ObjectBucketClaim StorageClass.
+    storageClassName: openshift-storage.noobaa.io
+
+  serviceCA:
+    # -- Render a service-CA ConfigMap and point `spec.storage.tls` at it. Needed when the
+    # S3 endpoint is an in-cluster Service, whose certificate the stack does not otherwise
+    # trust. An endpoint with a publicly trusted certificate needs neither.
+    enabled: false
+    # -- ConfigMap name.
+    configMapName: openshift-service-ca-bundle
+
+# Ingest identities. The tenant is the RBAC resource, not the thing written: a role
+# granting `logs` instead of `infrastructure` authorizes nothing. `oc auth can-i` cannot
+# check these grants, because `loki.grafana.com/infrastructure` is not a served API — use a
+# SubjectAccessReview, or test by writing.
+#
+# The chart creates the identities; it cannot mint their tokens, since a token is not a
+# declarative object. Mint with `oc create token <sa> -n <namespace> --duration=...`.
+ingest:
+  writer:
+    # -- Create the writer ServiceAccount, ClusterRole and binding. This is the identity
+    # every spoke presents, so without it no spoke can write.
+    create: true
+    # -- Writer ServiceAccount name. Defaults to `<lokiStack.name>-writer`.
+    serviceAccountName: ""
+
+  reader:
+    # -- Create a read-only identity, for Grafana, a billing job or any other consumer that
+    # should not be able to write. Off by default: reads also work with any hub user who
+    # already holds the grant, so this is only needed for an unattended consumer.
+    create: false
+    # -- Reader ServiceAccount name. Defaults to `<lokiStack.name>-reader`.
+    serviceAccountName: ""
+
+
+# The spoke policy. One ACM Placement and one Policy, on this same hub, that set
+# DSCInitialization.spec.monitoring.usageLogs on every MaaS spoke and deliver the writer
+# token there, so onboarding a spoke needs no per-cluster hand editing and no spoke
+# credentials.
+#
+# The data path does not depend on any of this: a spoke forwards given an endpoint and a
+# token. This is the delivery mechanism, not the pipeline.
+#
+# `usageLogs.storage` is deliberately not delivered, and a spoke does not want it: a spoke
+# forwards to this hub and keeps no usage-log store of its own. So this policy does turn
+# forwarding on — it delivers everything a spoke needs, and the spoke's own install
+# contributes nothing under `usageLogs`.
+spokePolicy:
+  # -- Render the Placement and Policy. Needs ACM on this cluster and the spokes imported.
+  # The chart renders no ACM install, which is the established pattern in this repo.
+  enabled: false
+
+  # -- Policy and ConfigurationPolicy name.
+  name: ai-grid-maas-remote-usage-logs
+
+  # -- Namespace on this hub holding the Placement, Policy and the credential the Policy
+  # reads. ACM evaluates Policies per namespace, so it must carry a ManagedClusterSetBinding.
+  namespace: ai-grid-policies
+
+  # -- Create `spokePolicy.namespace`. Set false when it is managed elsewhere.
+  createNamespace: true
+
+  # -- Deliver the credential Secret with the writer token and hub CA to each spoke.
+  # Requires `hubTemplateOptions.serviceAccountName` for the CA lookup. Set false when
+  # the credential reaches the spokes another way, such as External Secrets, and this
+  # policy should only set the configuration that names it.
+  deliverCredential: true
+
+  # -- Deliver the `usageLogs` patch to each spoke's DSCInitialization. Set false when the
+  # spoke's own install already carries that configuration: in a GitOps fleet Argo CD
+  # renders the DSCI from chart values and an ApplicationSet supplies the per-cluster
+  # attributes, so this patch would make Argo CD's `selfHeal` and this policy two writers
+  # on one object. With it off the policy delivers the token alone, and
+  # `spokePolicy.endpoint` is neither required nor read.
+  deliverConfiguration: true
+
+  # -- The ingest endpoint spokes write to: the LokiStack Route host plus the tenant path and
+  # `/otlp`. The collector's otlphttp exporter appends `/v1/logs` itself, so do not include
+  # it. Not derived from the store this chart renders, because the Route's domain is the
+  # cluster's and may carry an infrastructure-specific prefix — read it with
+  # `oc get route <stack> -n <namespace>` after the LokiStack is Ready. Required when delivering configuration.
+  # Must have a hostname and the exact `/api/logs/v1/infrastructure/otlp` path,
+  # without a query or fragment. Not read when `deliverConfiguration` is false.
+  #
+  # May instead be an **ACM hub template**, resolved on the hub at delivery time.
+  # That is how a GitOps consumer supplies this without committing a cluster's
+  # Route host: the hub knows its own Route, Argo CD's repo-server does not, and
+  # `helm lookup` cannot help because the repo-server renders without cluster
+  # access. A template is not parsed at render time, so the checks that remain
+  # are made against its text: the tenant path, the `/v1/logs` suffix, and the
+  # scheme, where `https://` must appear and a literal `http://` must not --
+  # interpolate only the Route host into an `https://` format string. Only ACM
+  # resolves the template, so no check here can prove what it produces. `lookup`
+  # additionally needs `hubTemplateOptions.serviceAccountName` below.
+  #
+  #   endpoint: '{{hub printf "https://%s/api/logs/v1/infrastructure/otlp"
+  #     (index (lookup "route.openshift.io/v1" "Route" "ai-grid-o11y" "usage-logs").status.ingress 0).host hub}}'
+  endpoint: ""
+
+  # -- `spec.hubTemplateOptions`, which names the ServiceAccount ACM resolves this
+  # policy's hub templates as. Required when delivering either credential, because
+  # their CA lookups read the store Route and ingress ConfigMap outside the policy's
+  # namespace. Also required for a templated endpoint that looks up the Route.
+  # Requires ACM 2.12 or later.
+  #
+  # It applies to **every** template in the policy, both credentials' `fromSecret`
+  # calls included, so the ServiceAccount needs `get` on those Secrets as well as on
+  # whatever the lookup reads, plus `list` and `watch` on both kinds. Grant it
+  # narrowly: this is a hub-wide read identity otherwise.
+  hubTemplateOptions:
+    serviceAccountName: ""
+
+  # -- Name of the Secret in `spokePolicy.namespace` holding the writer token under key
+  # `token`. This chart does not create it, because a token is not a declarative object. ACM
+  # reads it with `fromSecret` and ships `$ocm_encrypted:` ciphertext, so the token is not
+  # replicated in clear text.
+  credentialSecretName: usage-logs-hub-credential
+
+  # Delivers a read-only credential to each selected spoke, for a consumer there
+  # that queries this hub's store: a Secret holding the query endpoint and a token
+  # minted for a reader identity. Nothing here turns the read path on — it only
+  # hands over what a spoke-side consumer needs to reach the store.
+  readCredential:
+    # -- Deliver the read credential Secret to each spoke. The spoke namespace below
+    # must exist there before the policy can create the Secret: `redhat-ai-gateway-infra`
+    # arrives with the spoke's own install, and until then the policy is NonCompliant
+    # there for the same reason the DSCInitialization patch is.
+    enabled: false
+
+    # -- Name of the Secret created on each spoke.
+    secretName: usage-logs-loki
+
+    # -- Namespace on each spoke the Secret is created in. Whatever consumes it there
+    # owns this name; the chart only writes into it.
+    namespace: redhat-ai-gateway-infra
+
+    # -- Name of the Secret in `spokePolicy.namespace` holding the reader credential.
+    # Not created by this chart, for the same reason the writer token's is not:
+    # a token is not a declarative object, and the endpoint is the hub Route's
+    # host, which differs per fleet. The Secret must carry two keys: `token`
+    # (the reader token) and `endpoint` (the query endpoint). ACM reads both
+    # with `fromSecret` and ships `$ocm_encrypted:` ciphertext.
+    credentialSecretName: usage-logs-hub-read-credential
+
+    # -- Key the query endpoint is written to on the spoke.
+    endpointKey: LOKI_READ_ENDPOINT
+
+    # -- Key the reader token is written to on the spoke.
+    tokenKey: LOKI_READ_TOKEN
+
+    # -- Key the hub store Route's CA bundle is written to on the spoke. The value
+    # is a hub template resolved on every Policy render: the Route's
+    # `spec.tls.caCertificate` when the Loki operator set one, otherwise the
+    # cluster's default ingress certificate (`default-ingress-cert` in
+    # `openshift-config-managed`). Delivered unconditionally -- no toggle -- because
+    # the consumer appends the bundle to the system trust pool, so a redundant CA
+    # is harmless on fleets whose Route certificate is publicly trusted. Both
+    # sources empty fails template resolution and the Policy reports NonCompliant
+    # rather than shipping a silently-absent key. The template reads the store
+    # Route (`lokiStack.name` in `redhat-ods-monitoring`, the operator's
+    # monitoring namespace) and the ConfigMap, so it needs
+    # `hubTemplateOptions.serviceAccountName` with grants for both.
+    caKey: LOKI_READ_CA
+
+  # -- `enforce` creates and repairs the delivered objects; `inform` only reports drift
+  # without changing anything, which is the safe way to preview a rollout.
+  remediationAction: enforce
+
+  # -- Policy severity, surfaced in ACM's governance view.
+  severity: medium
+
+  # -- What happens to the delivered objects when the Policy is deleted. `DeleteIfCreated`
+  # removes those this policy created and leaves pre-existing ones; `DeleteAll` removes both;
+  # `None` orphans everything.
+  # Changes to a pre-existing DSCI are not undone: remove its forwarding references before
+  # deleting a policy-created credential Secret. See the README teardown sequence.
+  pruneObjectBehavior: DeleteIfCreated
+
+  # -- Annotations added to the Policy, for ACM's governance catalogue.
+  annotations:
+    policy.open-cluster-management.io/standards: AI Grid
+
+  # Which managed clusters receive the configuration.
+  placement:
+    # -- Placement and PlacementBinding name.
+    name: ai-grid-maas-spokes
+
+    # -- ManagedClusterSet the Placement selects from. A ManagedClusterSetBinding for it is
+    # rendered in `spokePolicy.namespace`.
+    clusterSet: default
+
+    # -- Create the ManagedClusterSetBinding. Set false when another release already binds
+    # this set in this namespace; two bindings for one set in one namespace conflict.
+    createClusterSetBinding: true
+
+    # -- Labels a ManagedCluster must carry to receive the policy. The default selects on
+    # "runs MaaS" rather than "is an AI Grid spoke": those are different predicates, and a
+    # cluster with the grid label but no MaaS install would make this policy permanently
+    # NonCompliant there. Nothing sets either label automatically.
+    matchLabels:
+      ai-grid.redhat.com/maas: "true"
+
+    # -- Additional set-based requirements, appended to the selector built from
+    # `matchLabels`. Each entry is a ManagedCluster label selector requirement --
+    # `key`, `operator`, and `values` for `In`/`NotIn`. Use this where `matchLabels`
+    # cannot reach: it renders one single-value `In` per key, so a predicate over
+    # several values of one label has no form there. Entries are passed through
+    # verbatim and ANDed with everything else in the selector.
+    matchExpressions: []
+
+    # -- Exclude the hub itself, which carries no MaaS, by requiring the `local-cluster`
+    # label to be absent.
+    excludeLocalCluster: true
+
+  # What is delivered to each selected spoke.
+  spoke:
+    # -- Namespace on the spoke that the usage-log collector reads its credential from. This
+    # is the operator's monitoring namespace: `redhat-ods-monitoring` for RHOAI,
+    # `opendatahub` for ODH.
+    monitoringNamespace: redhat-ods-monitoring
+
+    # -- Name of the credential Secret created on the spoke. It must match
+    # `Monitoring.spec.usageLogs.credentialSecret`, which the same policy sets. Distinct from
+    # `spokePolicy.credentialSecretName`, which names the Secret on this hub that the policy
+    # reads the token from.
+    credentialSecretName: hub-usage-logs-auth
+
+    # -- Name of the DSCInitialization the policy patches.
+    dsciName: default-dsci
+
+    # -- Exporter name under `usageLogs.exporters`. `otlphttp/loki` is reserved for the
+    # spoke-local write and is rejected.
+    exporterName: otlphttp/hub
+
+    # -- Per-spoke resource attributes stamped on the forwarded copy, so records can be
+    # attributed to the cluster that produced them. The values are ACM templates resolved
+    # per cluster, not Helm templates: `cluster_name` comes from the Placement decision on
+    # the hub, `cluster_id` from a ClusterClaim lookup on the managed cluster itself. A spoke
+    # outside ACM has neither and must be configured directly.
+    attributes:
+      cluster_name: '{{hub .ManagedClusterName hub}}'
+      cluster_id: '{{ (lookup "cluster.open-cluster-management.io/v1alpha1" "ClusterClaim" "" "id.k8s.io").spec.value }}'
+
+    # -- LokiStack t-shirt size for a spoke that also keeps a usage-log store of its own,
+    # set through the same patch. Unrelated to `lokiStack.size` here. A forwarding spoke has
+    # no such store and ignores it, so the empty default — which leaves the spoke's value
+    # alone — is what nearly every fleet wants.
+    size: ""

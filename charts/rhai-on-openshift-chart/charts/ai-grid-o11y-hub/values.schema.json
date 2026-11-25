@@ -1,0 +1,470 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "ai-grid-o11y-hub values",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global values Helm passes to every subchart."
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63
+    },
+    "createNamespace": {
+      "type": "boolean"
+    },
+    "commonLabels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "lokiStack": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1x.demo",
+            "1x.pico",
+            "1x.extra-small",
+            "1x.small",
+            "1x.medium"
+          ]
+        },
+        "storageClassName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schemas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string",
+                "enum": [
+                  "v11",
+                  "v12",
+                  "v13"
+                ]
+              },
+              "effectiveDate": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "effectiveDate"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "limits": {
+          "type": "object"
+        },
+        "template": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "size",
+        "storageClassName",
+        "schemas"
+      ],
+      "additionalProperties": false
+    },
+    "objectStorage": {
+      "type": "object",
+      "properties": {
+        "secretName": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "bucketNames": {
+              "type": "string"
+            },
+            "endpoint": {
+              "type": "string"
+            },
+            "region": {
+              "type": "string"
+            },
+            "accessKeyId": {
+              "type": "string"
+            },
+            "accessKeySecret": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "obc": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "generateBucketName": {
+              "type": "string"
+            },
+            "storageClassName": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "serviceCA": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "configMapName": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingest": {
+      "type": "object",
+      "properties": {
+        "writer": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "serviceAccountName": {
+              "type": "string",
+              "maxLength": 253
+            }
+          },
+          "additionalProperties": false
+        },
+        "reader": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "serviceAccountName": {
+              "type": "string",
+              "maxLength": 253
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "spokePolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "createNamespace": {
+          "type": "boolean"
+        },
+        "deliverCredential": {
+          "type": "boolean",
+          "description": "Deliver the writer token and hub CA to each spoke. Requires hubTemplateOptions.serviceAccountName for the CA lookup."
+        },
+        "deliverConfiguration": {
+          "type": "boolean",
+          "description": "Deliver the usageLogs patch to each spoke DSCInitialization."
+        },
+        "endpoint": {
+          "type": "string",
+          "pattern": "^(https://.*|\\{\\{hub .*hub\\}\\}.*|)$",
+          "description": "HTTPS ingest endpoint with a hostname and the exact /api/logs/v1/infrastructure/otlp path, without a query or fragment. May instead be an ACM hub template, resolved on the hub at delivery time, which is how a GitOps consumer avoids committing a cluster's Route host; a lookup in that template also needs hubTemplateOptions.serviceAccountName. Empty is allowed for deliverConfiguration: false."
+        },
+        "hubTemplateOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "spec.hubTemplateOptions on the Policy. Names the ServiceAccount ACM resolves this policy's hub templates as. Required when delivering either credential or looking up an endpoint outside the policy's namespace. ACM 2.12 and later.",
+          "properties": {
+            "serviceAccountName": {
+              "type": "string",
+              "description": "ServiceAccount in the policy's namespace. Applies to every template in the policy, so it needs get on the credential Secret as well as on whatever the lookup reads, plus list and watch on both kinds."
+            }
+          }
+        },
+        "credentialSecretName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "readCredential": {
+          "type": "object",
+          "description": "Delivers a read-only credential Secret to each selected spoke, for a spoke-side consumer that queries this hub's store.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Deliver the read credential Secret. The spoke namespace must exist there before the policy can create the Secret."
+            },
+            "secretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Name of the Secret created on each spoke."
+            },
+            "namespace": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "description": "Namespace on each spoke the Secret is created in. Whatever consumes it there owns this name."
+            },
+            "credentialSecretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Name of the Secret in spokePolicy.namespace holding the reader credential under keys token and endpoint. Not created by this chart; ACM reads both with fromSecret and ships $ocm_encrypted ciphertext."
+            },
+            "endpointKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Key the query endpoint is written to on the spoke."
+            },
+            "tokenKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Key the reader token is written to on the spoke."
+            },
+            "caKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "description": "Key the hub store Route's CA bundle is written to on the spoke. The value is a hub template resolved on every Policy render: the Route's spec.tls.caCertificate when set, otherwise the cluster's default ingress certificate. Both sources empty fails template resolution and the Policy reports NonCompliant. Needs hubTemplateOptions.serviceAccountName."
+            }
+          },
+          "additionalProperties": false
+        },
+        "remediationAction": {
+          "type": "string",
+          "enum": [
+            "enforce",
+            "inform"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "pruneObjectBehavior": {
+          "type": "string",
+          "enum": [
+            "DeleteIfCreated",
+            "DeleteAll",
+            "None"
+          ]
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "placement": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "clusterSet": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "createClusterSetBinding": {
+              "type": "boolean"
+            },
+            "matchLabels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "matchExpressions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "In",
+                      "NotIn",
+                      "Exists",
+                      "DoesNotExist"
+                    ]
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "operator"
+                ],
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "operator": {
+                          "enum": [
+                            "In",
+                            "NotIn"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "operator"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "values"
+                      ],
+                      "properties": {
+                        "values": {
+                          "minItems": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "operator": {
+                          "enum": [
+                            "Exists",
+                            "DoesNotExist"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "operator"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "values": {
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "excludeLocalCluster": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "spoke": {
+          "type": "object",
+          "properties": {
+            "monitoringNamespace": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63
+            },
+            "credentialSecretName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "dsciName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "exporterName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attributes": {
+              "type": "object",
+              "maxProperties": 20,
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "size": {
+              "type": "string",
+              "enum": [
+                "",
+                "1x.demo",
+                "1x.pico",
+                "1x.extra-small",
+                "1x.small",
+                "1x.medium"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -2,5 +2,8 @@ dependencies:
 - name: cert-manager-operator
   repository: file://../dependencies/cert-manager-operator
   version: 1.1.0
-digest: sha256:009862c240826369b1aecc0ad3602251db24998200ea883ffe434105c3f29cb8
-generated: "2026-08-11T14:21:26.673212+05:30"
+- name: xks-gateway
+  repository: file://../dependencies/xks-gateway
+  version: 0.1.0
+digest: sha256:9ec70e093a959909e26416b3d9da219ca7d7f5afbc2b922440a94fdb4b5b463c
+generated: "2026-10-15T12:53:21.026354+01:00"

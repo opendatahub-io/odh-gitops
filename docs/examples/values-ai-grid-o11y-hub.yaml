@@ -1,0 +1,109 @@
+# =============================================================================
+# AI Grid usage-log aggregation: the hub
+#
+# A LokiStack on an ACM hub that AI Grid spoke clusters write their MaaS usage
+# records to. The hub runs no OpenShift AI, so no components or services are
+# enabled here — only the Loki operator, which the subchart reuses through
+# dependencies.loki, and object storage.
+#
+# Usage:
+#   helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+#     -f docs/examples/values-ai-grid-o11y-hub.yaml \
+#     -n rhoai-gitops --create-namespace
+# =============================================================================
+
+# The hub runs no OpenShift AI, so do not install its operator. With this false
+# the DSCInitialization and DataScienceCluster also disappear on a real cluster,
+# because they are gated on their CRDs existing and nothing installs them here.
+# (A render with --set skipCrdCheck=true still shows them; that flag forces the
+# check true, which is why the committed snapshot contains them.)
+operator:
+  enabled: false
+
+dependencies:
+  loki:
+    enabled: true
+    olm:
+      # openshift-operators-redhat ships with OpenShift, so Helm cannot create it and will
+      # not adopt a namespace it does not own. It has no OperatorGroup by default, so that
+      # one is still ours to create.
+      createNamespace: false
+
+ai-grid-o11y-hub:
+  enabled: true
+
+  lokiStack:
+    name: usage-logs
+    # 1x.demo fits a small hub: identical ingestion limits to 1x.extra-small with a single
+    # ingester and no resource requests. It is the only size with replication factor 1, so
+    # it has NO redundancy and Loki documents it as demo-only -- a production hub must
+    # choose a larger size.
+    size: 1x.demo
+    storageClassName: gp3-csi
+    schemas:
+      - version: v13
+        effectiveDate: "2026-10-01"
+    limits:
+      global:
+        # Loki keeps everything forever without this. 30 days suits a reference fleet;
+        # a production hub carries aggregated volume and MUST set its own figure --
+        # see the chart README on sizing and retention.
+        retention:
+          days: 30
+        # Promote the fleet-identity attributes to stream labels so per-spoke queries are
+        # selectable rather than filtered. Without this the infrastructure tenant has one
+        # index label, log_type, and every fleet query scans the whole tenant.
+        # odh-observability does the same spoke-side for its application tenant.
+        #
+        # Everything NOT listed here -- model, response_code, tokens_*, key_name,
+        # subscription -- arrives as structured metadata. That is queryable, but only after
+        # a filter stage: it cannot appear in the `{...}` stream selector. So
+        #   {service_name="models-as-a-service"}                    matches nothing
+        #   {cluster_name="spoke-a"} | service_name="models-as-..." works
+        # and `sum by (model)` / `| unwrap tokens_total` work either way. A selector on an
+        # unpromoted attribute returns zero rows with no error.
+        #
+        # Name each entry as it arrives ON THE WIRE, not as the label it becomes: Loki
+        # replaces dots with underscores when it forms the label. MaaS's gateway EnvoyFilter
+        # sends the OTLP-convention resource attribute `service.name`, so that is what goes
+        # here, and it lands as the label `service_name` that the usage dashboards select on.
+        #
+        # service.name must be listed even though Loki promotes it by default, because
+        # setting streamLabels at all renders
+        # `otlp_config.default_resource_attributes_as_index_labels: []` -- the operator drops
+        # Loki's built-in promotions and indexes only this list plus its own OpenShift set
+        # (k8s.namespace.name, log_type, openshift.*). Omit it and every MaaS usage dashboard
+        # returns no rows, because each of their queries selects on {service_name=...}.
+        #
+        # Keep this list short and low-cardinality. Each entry multiplies the number of
+        # streams, so never promote a per-user or per-key identifier, and never a token
+        # count -- that would create a stream per distinct value. cluster_name/cluster_id are
+        # bounded by fleet size, service.name by what the fleet serves.
+        #
+        # Promotion applies at ingestion, not retroactively: records already stored keep
+        # these as structured metadata, and only new records get the added label.
+        otlp:
+          streamLabels:
+            resourceAttributes:
+              - name: cluster_name
+              - name: cluster_id
+              - name: service.name
+
+  objectStorage:
+    # Multicloud Object Gateway: the chart creates the claim, and NOTES.txt
+    # prints the command that turns its outputs into the Loki-shaped Secret.
+    secretName: usage-logs-object-storage
+    obc:
+      create: true
+      storageClassName: openshift-storage.noobaa.io
+    # The MCG endpoint is an in-cluster Service, so the stack needs the
+    # service CA to trust it.
+    serviceCA:
+      enabled: true
+
+  ingest:
+    writer:
+      create: true
+    # A read-only identity for Grafana or a billing job.
+    reader:
+      create: true

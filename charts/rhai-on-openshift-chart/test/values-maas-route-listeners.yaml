@@ -1,0 +1,22 @@
+# The ai-grid-ingress listener pair, http and https, which testValues.yaml narrows to one.
+components:
+  aigateway:
+    modelsAsAService:
+      gateway:
+        openshiftRoute:
+          enabled: true
+          host: maas.apps.example.com
+        spec:
+          listeners:
+            - name: http
+              port: 80
+              protocol: HTTP
+              allowedRoutes:
+                namespaces:
+                  from: Same
+            - name: https
+              port: 443
+              protocol: HTTPS
+              allowedRoutes:
+                namespaces:
+                  from: Same

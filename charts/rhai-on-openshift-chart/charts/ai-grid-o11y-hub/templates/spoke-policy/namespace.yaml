@@ -1,0 +1,24 @@
+{{- if and .Values.enabled .Values.spokePolicy.enabled }}
+{{- $d := .Values.spokePolicy }}
+{{- if $d.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $d.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+{{- end }}
+{{- if $d.placement.createClusterSetBinding }}
+---
+{{- /* The name must equal the set it binds; ACM matches them by name. */}}
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: {{ $d.placement.clusterSet | quote }}
+  namespace: {{ $d.namespace | quote }}
+  labels:
+    {{- include "ai-grid-o11y-hub.labels" . | nindent 4 }}
+spec:
+  clusterSet: {{ $d.placement.clusterSet | quote }}
+{{- end }}
+{{- end }}

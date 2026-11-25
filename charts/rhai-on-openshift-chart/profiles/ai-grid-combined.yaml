@@ -1,0 +1,13 @@
+# AI Grid combined profile - one site provides both MaaS ingress and inference.
+# It inherits the inference site's local model-serving and Grid provider
+# gateway, then the ingress site's MaaS consumer gateway.
+extends:
+  - ai-grid-inference
+  - ai-grid-ingress
+ai-grid-o11y-spoke:
+  collector:
+    namespace: redhat-ods-monitoring
+praxis-gateway:
+  # The model-client token a local dial sends to the serving gateway.
+  providerCredentials:
+    - secretName: grid-model-client-token

@@ -15,6 +15,13 @@ charts:
       - name: default
         # No additional flags for default
 
+      - name: missing-profile
+        expectFail: true
+        expectMessage: "profile missing-profile does not match a bundled profiles/missing-profile.yaml file"
+        setFlags:
+          - skipCrdCheck=true
+          - profile=missing-profile
+
       - name: skip-crd-check-odh
         setFlags:
           - skipCrdCheck=true
@@ -24,6 +31,12 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - operator.type=rhoai
+
+      - name: operator-with-external-namespace
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - operator.rhoai.olm.createNamespace=false
 
       - name: all-components-managed
         valuesFiles:
@@ -35,6 +48,13 @@ charts:
         setFlags:
           - skipCrdCheck=true
           - tags.install-with-helm-dependencies=true
+
+      - name: kserve-grid-model-client
+        setFlags:
+          - skipCrdCheck=true
+          - components.aigateway.dsc.managementState=Managed
+          - components.aigateway.dsc.aiGrid.managementState=Managed
+          - components.kserve.dsc.managementState=Managed
 
       - name: inference-only
         setFlags:
@@ -142,12 +162,49 @@ charts:
           - skipCrdCheck=true
           - components.kserve.dsc.wva.managementState=Managed
 
+      - name: enable-modelexpress
+        setFlags:
+          - skipCrdCheck=true
+          - components.kserve.dsc.managementState=Managed
+          - components.kserve.dsc.modelExpress.managementState=Managed
+
       - name: with-rhcl-config
         setFlags:
           - skipCrdCheck=true
           - components.kserve.dsc.managementState=Managed
           - dependencies.rhcl.olm.config.env[0].name=RELATED_IMAGE_WASMSHIM
           - dependencies.rhcl.olm.config.env[0].value=image-value
+
+      - name: argocd-authorino-service-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+
+      - name: argocd-authorino-trusted-ca
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=true
+          - dependencies.rhcl.config.authorinoTrustedCA.volumeName=trusted-ca-bundle
+          - dependencies.rhcl.config.authorinoTrustedCA.mountPath=/etc/pki/tls/certs
+          - dependencies.rhcl.config.authorinoTrustedCA.configMaps[0]=custom-ca
+
+      - name: argocd-authorino-service-ca-disabled
+        setFlags:
+          - skipCrdCheck=true
+          - argocd.enabled=true
+          - profile=maas
+          - dependencies.rhcl.config.authorinoServiceCaTrust=false
+
+      - name: argocd-kuadrant-auth-timeout
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+          - dependencies.rhcl.olm.config.env[0].name=AUTH_SERVICE_TIMEOUT
+          - dependencies.rhcl.olm.config.env[0].value=1s
 
       - name: maas-profile
         setFlags:
@@ -158,6 +215,415 @@ charts:
         setJsonFlags:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+
+      - name: ai-grid-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"maas.opendatahub.io/gateway-access":"true"}}}'
+
+      - name: ai-grid-removed
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - components.aigateway.dsc.aiGrid.managementState=Removed
+
+      - name: ai-grid-parent-removed
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - components.aigateway.dsc.managementState=Removed
+
+      - name: ai-grid-manual
+        setFlags:
+          - skipCrdCheck=true
+          - components.aigateway.dsc.managementState=Managed
+          - components.aigateway.dsc.aiGrid.managementState=Managed
+
+      - name: ai-grid-external-runtimes
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - grid-enrollment.enabled=false
+          - praxis-gateway.enabled=false
+
+      - name: ai-grid-external-gateway
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.enabled=false
+
+      - name: ai-grid-external-enrollment
+        setFlags:
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - grid-enrollment.enabled=false
+          - praxis-gateway.grid.siteName=local-cluster
+
+      - name: ai-grid-inference-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
+
+      # testValues.yaml replaces the serving gateway listeners, so this case renders without it
+      - name: ai-grid-inference-profile-listeners
+        skipTestValues: true
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.grid.siteName=local-cluster
+
+      - name: ai-grid-inference-related-images
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-ai-grid-images.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
+
+      # An explicit runtime toggle remains available even when the profile enables it
+      - name: ai-grid-inference-with-gateway
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-inference
+          - praxis-provider-gateway.enabled=true
+          - praxis-provider-gateway.grid.siteName=local-cluster
+        setJsonFlags:
+          - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"Selector","selector":{"matchLabels":{"grid.opendatahub.io/allowed":"true"}}}'
+
+      - name: ai-grid-combined-profile
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-combined
+          - praxis-gateway.grid.siteName=local-cluster
+          - praxis-provider-gateway.grid.siteName=local-cluster
+
+      - name: ai-grid-external-identities
+        setFlags:
+          - grid-enrollment.enabled=true
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.sites.site-a.secretName=provided-site-a
+          - grid-enrollment.external.sites.site-a.cluster=managed-a
+          - grid-enrollment.external.trustBundleSecretRef=provided-trust
+          - grid-enrollment.external.delivery.enabled=true
+          - grid-enrollment.external.delivery.namespace=grid-system
+
+      - name: ai-grid-existing-ca
+        setFlags:
+          - grid-enrollment.enabled=true
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+
+      - name: ai-grid-managed-clusters
+        setFlags:
+          - grid-enrollment.enabled=true
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.fullnameOverride=grid-bootstrap
+          - grid-enrollment.mode=external
+          - grid-enrollment.gridIdentity.enabled=true
+          - grid-enrollment.grid.membership.source=Local
+          - grid-enrollment.managedClusters.enabled=true
+          - grid-enrollment.external.delivery.namespace=grid-system
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+
+      - name: ai-grid-generated-ca
+        setFlags:
+          - grid-enrollment.enabled=true
+          - skipCrdCheck=true
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+          - grid-enrollment.mode=external
+          - grid-enrollment.external.certManager.enabled=true
+          - grid-enrollment.external.certManager.issuer.create=true
+          - grid-enrollment.external.certManager.ca.mode=Generate
+          - grid-enrollment.external.sites.site-a.secretName=site-a-identity
+
+      - name: ai-grid-related-images
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-ai-grid-images.yaml
+        setFlags:
+          - skipCrdCheck=true
+
+      - name: ai-grid-hub
+        setFlags:
+          - profile=ai-grid-ingress
+          - skipCrdCheck=true
+          - praxis-gateway.grid.siteName=local-cluster
+
+      - name: ai-grid-o11y-hub
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+        setFlags:
+          # The store's CRs are CRD-gated like every other dependency CR; a
+          # reproducible render needs the subchart to see the flag too.
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+
+      - name: ai-grid-o11y-hub-spoke-policy
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          # The store's CRs are CRD-gated like every other dependency CR; a
+          # reproducible render needs the subchart to see the flag too.
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+
+      - name: ai-grid-o11y-hub-spoke-policy-credential-only
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          # A GitOps fleet: Argo CD renders the DSCI from the chart's own values and an
+          # ApplicationSet supplies the per-cluster attributes, so the policy must not
+          # patch that object too. It delivers the token alone. The endpoint is cleared
+          # here to prove it is no longer read in this mode.
+          - ai-grid-o11y-hub.spokePolicy.deliverConfiguration=false
+          - ai-grid-o11y-hub.spokePolicy.endpoint=
+
+      # The writer credential's CA template reads outside the policy namespace.
+      # Credential-only delivery must therefore name a templating ServiceAccount.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-writer-credential-without-sa
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          - ai-grid-o11y-hub.spokePolicy.deliverConfiguration=false
+          - ai-grid-o11y-hub.spokePolicy.endpoint=
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=
+        expectFail: true
+        expectMessage: "hubTemplateOptions.serviceAccountName"
+
+      - name: ai-grid-o11y-hub-spoke-policy-read-credential
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          # The read credential alongside the write path: same policy, third
+          # object template, into the consumer's namespace on each spoke. The
+          # endpoint is not set here: it comes from the hub Secret's endpoint
+          # key, not from values. The templating ServiceAccount is set because
+          # the read credential now carries a CA hub template that reads the
+          # store Route and the default-ingress-cert ConfigMap, both beyond the
+          # policy's namespace.
+          - ai-grid-o11y-hub.spokePolicy.readCredential.enabled=true
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=usage-logs-templating
+
+      # The read credential's CA template uses lookup and fromConfigMap, which
+      # ACM refuses unless the policy names a ServiceAccount to resolve
+      # templates as. Caught at render time rather than surfacing later as a
+      # NonCompliant policy.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-read-credential-without-sa
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          - ai-grid-o11y-hub.spokePolicy.deliverCredential=false
+          - ai-grid-o11y-hub.spokePolicy.deliverConfiguration=false
+          - ai-grid-o11y-hub.spokePolicy.readCredential.enabled=true
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=
+        expectFail: true
+        expectMessage: "hubTemplateOptions.serviceAccountName"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-nothing-to-deliver
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-hub.yaml
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - global.skipCrdCheck=true
+          - skipCrdCheck=true
+          - ai-grid-o11y-hub.spokePolicy.deliverCredential=false
+          - ai-grid-o11y-hub.spokePolicy.deliverConfiguration=false
+        expectFail: true
+        expectMessage: "deliverCredential and/or deliverConfiguration"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-missing-otlp
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/
+        expectFail: true
+        expectMessage: "exact ingest base path"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-missing-host
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - ai-grid-o11y-hub.spokePolicy.endpoint=https:///api/logs/v1/infrastructure/otlp
+        expectFail: true
+        expectMessage: "must include a hostname"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-query
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp?extra=value'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-fragment
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp#fragment'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-empty-query
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp?'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      - name: ai-grid-o11y-hub-spoke-policy-reject-empty-fragment
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint=https://hub.example.test/api/logs/v1/infrastructure/otlp#'
+        expectFail: true
+        expectMessage: "without a query or fragment"
+
+      # An ACM hub template, which is how a GitOps consumer supplies the endpoint
+      # without committing a cluster's Route host. Not parsed at render time, so
+      # the structural checks are skipped and only the tenant and the /v1/logs
+      # suffix are still enforced on the template text.
+      - name: ai-grid-o11y-hub-spoke-policy-hub-template-endpoint
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=usage-logs-endpoint-templating
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp\" (index (lookup \"route.openshift.io/v1\" \"Route\" \"ai-grid-o11y\" \"usage-logs\").status.ingress 0).host hub}}"'
+
+      # A lookup reads beyond the policy's own namespace, which ACM refuses unless
+      # the policy names a ServiceAccount to resolve templates as. Caught at render
+      # time rather than surfacing later as a NonCompliant policy.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-template-lookup-without-sa
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+          - ai-grid-o11y-hub.spokePolicy.hubTemplateOptions.serviceAccountName=
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp\" (index (lookup \"route.openshift.io/v1\" \"Route\" \"ai-grid-o11y\" \"usage-logs\").status.ingress 0).host hub}}"'
+        expectFail: true
+        expectMessage: "hubTemplateOptions.serviceAccountName"
+
+      # The exporter appends /v1/logs, and a template can smuggle it in anywhere
+      # rather than only as a suffix.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-template-v1-logs
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub printf \"https://%s/api/logs/v1/infrastructure/otlp/v1/logs\" .X hub}}"'
+        expectFail: true
+        expectMessage: "must not contain /v1/logs"
+
+      # A template carrying https:// in one branch and http:// in another satisfies
+      # the https:// requirement and still resolves to plaintext. The text cannot
+      # prove what a template produces, but a literal http:// in it is never right.
+      - name: ai-grid-o11y-hub-spoke-policy-reject-template-plaintext-branch
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-policy.yaml
+        setFlags:
+          - ai-grid-o11y-hub.enabled=true
+          - ai-grid-o11y-hub.lokiStack.enabled=false
+        setJsonFlags:
+          - 'ai-grid-o11y-hub.spokePolicy.endpoint="{{hub if .X hub}}https://hub.example.test/api/logs/v1/infrastructure/otlp{{hub else hub}}http://hub.example.test/api/logs/v1/infrastructure/otlp{{hub end hub}}"'
+        expectFail: true
+        expectMessage: "must not contain a literal http://"
+
+      - name: ai-grid-o11y-spoke-acm
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke-acm.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - global.skipCrdCheck=true
+          # The ACM path renders no Secret and no subchart objects: the hub's policy supplies
+          # credentialSecret, attributes and exporters, so only storage and size appear.
+
+      - name: ai-grid-o11y-spoke
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke.yaml
+        setFlags:
+          - skipCrdCheck=true
+          # The token is a required value with no default; the snapshot needs a
+          # placeholder, never a real credential.
+          - ai-grid-o11y-spoke.credential.token=snapshot-placeholder-token
+          - ai-grid-o11y-spoke.credential.enabled=true
+
+      - name: ai-grid-o11y-spoke-credential-preserve-metrics
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - ai-grid-o11y-spoke.credential.token=snapshot-placeholder-token
+          # Credential delivery must preserve an independently configured metrics exporter
+          # when this chart's metrics federation is disabled by the example values.
+          - services.monitoring.dsci.metrics.exporters.prometheus/rhacm.endpoint=0.0.0.0:9999
+
+      - name: ai-grid-o11y-spoke-credential-reject-namespace-mismatch
+        valuesFiles:
+          - docs/examples/values-ai-grid-o11y-spoke.yaml
+        setFlags:
+          - ai-grid-o11y-spoke.credential.token=snapshot-placeholder-token
+          - ai-grid-o11y-spoke.collector.namespace=custom-monitoring
+        expectFail: true
+        expectMessage: "collector.namespace must match"
 
       - name: maas-profile-with-clusterip-route
         setFlags:
@@ -171,6 +637,24 @@ charts:
         setJsonFlags:
           - 'components.aigateway.modelsAsAService.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
           - 'components.kserve.gateway.spec.listeners[0].allowedRoutes.namespaces={"from":"All"}'
+
+      - name: ai-grid-ingress-with-clusterip-route
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-maas-route-listeners.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - profile=ai-grid-ingress
+          - praxis-gateway.grid.siteName=local-cluster
+
+      - name: maas-route-rejects-listener-hostname
+        valuesFiles:
+          - charts/rhai-on-openshift-chart/test/values-maas-route-hostname.yaml
+        setFlags:
+          - skipCrdCheck=true
+          - profile=maas
+        expectFail: true
+        expectMessage: "hostname must be unset when openshiftRoute.enabled"
 
       - name: monitoring-without-loki
         setFlags:
@@ -211,10 +695,100 @@ charts:
           - skipCrdCheck=true
           - operator.type=rhoai
 
+      - name: o11y-spoke-rhoai
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+
+      - name: o11y-spoke-odh
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=odh
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+          - ai-grid-o11y-spoke.collector.namespace=opendatahub
+
+      - name: o11y-spoke-custom-collector
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - operator.rhoai.monitoringNamespace=custom-monitoring
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+          - ai-grid-o11y-spoke.collector.namespace=custom-monitoring
+          - ai-grid-o11y-spoke.collector.port=9999
+
+      - name: o11y-spoke-preserve-exporters
+        setFlags:
+          - skipCrdCheck=true
+          - operator.type=rhoai
+          - services.monitoring.dsci.managementState=Managed
+          - ai-grid-o11y-spoke.enabled=true
+        setJsonFlags:
+          - 'services.monitoring.dsci.metrics.exporters={"prometheus/rhacm":{"endpoint":"0.0.0.0:8890","send_timestamps":true},"prometheus/other":{"endpoint":"0.0.0.0:8891"}}'
+
+      # Parent/spoke consistency must be checked even before CRDs are installed.
+      - name: o11y-spoke-reject-namespace-mismatch
+        expectFail: true
+        expectMessage: "ai-grid-o11y-spoke.collector.namespace must match operator.rhoai.monitoringNamespace"
+        setFlags:
+          - operator.type=rhoai
+          - operator.rhoai.monitoringNamespace=custom-monitoring
+          - ai-grid-o11y-spoke.enabled=true
+
+      - name: o11y-spoke-reject-endpoint-port
+        expectFail: true
+        expectMessage: 'endpoint must be 0.0.0.0:8890'
+        setFlags:
+          - operator.type=rhoai
+          - ai-grid-o11y-spoke.enabled=true
+        setJsonFlags:
+          - 'services.monitoring.dsci.metrics.exporters={"prometheus/rhacm":{"endpoint":"0.0.0.0:9999"}}'
+
+      - name: o11y-spoke-reject-loopback
+        expectFail: true
+        expectMessage: 'endpoint must be 0.0.0.0:8890'
+        setFlags:
+          - operator.type=rhoai
+          - ai-grid-o11y-spoke.enabled=true
+        setJsonFlags:
+          - 'services.monitoring.dsci.metrics.exporters={"prometheus/rhacm":{"endpoint":"127.0.0.1:8890"}}'
+
       - name: agent-sandbox-enabled
         setFlags:
           - skipCrdCheck=true
           - dependencies.agentSandbox.enabled=true
+
+  rhai-on-openshift-chart/charts/ai-grid-o11y-spoke:
+    snapshots:
+      - name: default
+
+      - name: custom-collector
+        setFlags:
+          - collector.namespace=custom-monitoring
+          - collector.port=9999
+
+      - name: credential
+        setFlags:
+          # The usage-log half alone: a spoke outside an ACM fleet, where there is no
+          # open-cluster-management-observability namespace to scrape from.
+          - metrics.enabled=false
+          - credential.enabled=true
+          - credential.token=snapshot-placeholder-token
+
+      - name: reject-invalid-port
+        expectFail: true
+        expectMessage: "port"
+        setFlags:
+          - collector.port=65536
+
+      - name: reject-invalid-namespace
+        expectFail: true
+        expectMessage: "pattern"
+        setFlags:
+          - collector.namespace=Invalid_Namespace
 
   dependencies/cert-manager-operator:
     snapshots:
@@ -235,6 +809,75 @@ charts:
   dependencies/rhcl-operator:
     snapshots:
       - name: default
+
+  dependencies/xks-gateway:
+    snapshots:
+      - name: default
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+
+      - name: with-custom-settings
+        valuesFiles:
+          - charts/dependencies/xks-gateway/test/values-custom-domain.yaml
+        setFlags:
+          - gateway.subdomain=ai-platform
+          - gateway.oidc.issuerURL=https://auth.example.com/realms/ai
+          - gateway.oidc.clientID=ai-platform-client
+          - gateway.oidc.clientSecretRef.name=ai-oidc-secret
+          - gateway.oidc.clientSecretRef.key=secret
+          - gateway.oidc.secretNamespace=auth-system
+          - gateway.certificate.type=Provided
+          - gateway.certificate.secretName=my-tls-cert
+          - gateway.cookie.expire=8h
+          - gateway.cookie.refresh=30m
+          - gateway.providerCASecretName=keycloak-ca-cert
+
+      - name: with-selfsigned-minimal
+        setFlags:
+          - gateway.domain=dev.example.com
+          - gateway.oidc.issuerURL=https://keycloak.dev.example.com/realms/dev
+          - gateway.oidc.clientID=dev-client
+          - gateway.oidc.clientSecretRef.name=dev-oidc-secret
+          - gateway.verifyProviderCertificate=false
+
+      - name: with-network-policy-disabled
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - gateway.networkPolicy.ingress.enabled=false
+
+      - name: with-managed-oidc-secret
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - gateway.oidc.clientID=rhai-client
+          - gateway.oidc.oidcClientSecret=test-client-secret-value
+          - gateway.oidc.clientSecretRef.name=managed-oidc-secret
+
+      - name: with-aks-oidc
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://login.microsoftonline.com/example/v2.0
+          - gateway.oidc.clientID=gateway-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - gateway.oidc.scope=openid offline_access <AKS_SERVER_APP_ID>/.default
+          - gateway.oidc.passAccessToken=true
+          - gateway.oidc.skipClaimsFromProfileURL=true
+
+      - name: reject-oidc-scope-without-openid
+        expectFail: true
+        expectMessage: "does not match pattern"
+        setFlags:
+          - gateway.domain=example.com
+          - gateway.oidc.issuerURL=https://login.microsoftonline.com/example/v2.0
+          - gateway.oidc.clientID=gateway-client
+          - gateway.oidc.clientSecretRef.name=my-oidc-secret
+          - gateway.oidc.scope=profile
 
   rhai-on-xks-chart:
     snapshots:
@@ -284,6 +927,17 @@ charts:
         setFlags:
           - azure.enabled=true
           - gateway.hostname=*.redhat.com
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-gateway-service-enabled
+        setFlags:
+          - azure.enabled=true
+          - xks-gateway.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - xks-gateway.gateway.domain=example.com
+          - xks-gateway.gateway.oidc.issuerURL=https://keycloak.example.com/realms/rhai
+          - xks-gateway.gateway.oidc.clientID=rhai-client
+          - xks-gateway.gateway.oidc.clientSecretRef.name=my-oidc-secret
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-tls-disabled
@@ -369,13 +1023,56 @@ charts:
         setFlags:
           - azure.enabled=true
           - components.aigateway.enabled=true
+          - components.aigateway.spec.modelsAsAService.managementState=Managed
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
           - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-aigateway-defaults
+        setFlags:
+          - azure.enabled=true
+          - components.aigateway.enabled=true
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+          - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-batch-gateway
+        setFlags:
+          - azure.enabled=true
+          - components.aigateway.enabled=true
+          - components.aigateway.spec.batchGateway.managementState=Managed
+          - components.aigateway.modelsAsAService.gateway.create=false
+          - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-ai-grid
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - components.aigateway.enabled=true
+          - components.aigateway.modelsAsAService.gateway.create=false
+          - components.aigateway.spec.aiGrid.managementState=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-maas-and-batch-gateway
+        setFlags:
+          - azure.enabled=true
+          - components.aigateway.enabled=true
+          - components.aigateway.spec.modelsAsAService.managementState=Managed
+          - components.aigateway.spec.batchGateway.managementState=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
+          - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same
+
+      - name: azure-with-modelexpress
+        setFlags:
+          - azure.enabled=true
+          - imagePullSecret.dockerConfigJson=testauth
+          - components.kserve.spec.modelExpress.managementState=Managed
+          - components.kserve.gateway.allowedRoutes.namespaces.from=Same
 
       - name: azure-with-maas-and-pull-secret
         setFlags:
           - azure.enabled=true
           - components.aigateway.enabled=true
+          - components.aigateway.spec.modelsAsAService.managementState=Managed
           - imagePullSecret.dockerConfigJson=testauth
           - components.kserve.gateway.allowedRoutes.namespaces.from=Same
           - components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from=Same

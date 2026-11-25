@@ -5,7 +5,7 @@
 {{- $keResource := include "rhai-on-xks-chart.keResourceName" . }}
 {{- $createGateway := and .Values.components.kserve.enabled .Values.components.kserve.gateway.create }}
 {{- $gatewayTls := and $createGateway .Values.gateway.tls.enabled }}
-{{- $createMaasGateway := and .Values.components.aigateway.enabled .Values.components.aigateway.modelsAsAService.gateway.create }}
+{{- $createMaasGateway := and (include "rhai-on-xks-chart.maasManaged" .) .Values.components.aigateway.modelsAsAService.gateway.create }}
 {{- $appNs := .Values.rhaiOperator.applicationsNamespace }}
 {{- $issuerName := .Values.gateway.tls.issuerRef.name }}
 {{- $issuerKind := .Values.gateway.tls.issuerRef.kind }}

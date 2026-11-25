@@ -1,0 +1,23 @@
+{{- if .Values.metrics.enabled }}
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: rhai-metrics
+  namespace: open-cluster-management-observability
+  labels:
+    app.kubernetes.io/component: user-workload-metrics-collector
+spec:
+  jobName: rhai-metrics
+  metricsPath: /metrics
+  params:
+    match[]:
+      - '{__name__=~".*"}' # PromQL matchers
+  scheme: HTTP
+  # Add a label to make debugging easier, so we can validate these came from the RHAI stack
+  relabelings:
+    - targetLabel: scrape_source
+      replacement: rhai-metrics
+  staticConfigs:
+    - targets:
+        - data-science-collector-collector.{{ .Values.collector.namespace }}.svc:{{ .Values.collector.port }}
+{{- end }}

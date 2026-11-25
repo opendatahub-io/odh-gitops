@@ -1,0 +1,46 @@
+{{- define "praxis-gateway.rhoai.role-mount-reconciliation.yaml" -}}
+{{- include "praxis-gateway.normalize" . }}
+{{- $mounts := .Values.mountReconciliation }}
+{{- $rbac := $mounts.rbac | default dict }}
+{{- $operator := $mounts.operator | default dict }}
+{{- if and $mounts.enabled $rbac.create }}
+{{- if not $operator.serviceAccount }}
+{{- fail "mountReconciliation.operator.serviceAccount is required when mountReconciliation.rbac.create is true: name the operator ServiceAccount the Role binds, or set rbac.create false and create the Role yourself" }}
+{{- end }}
+{{- if not $operator.namespace }}
+{{- fail "mountReconciliation.operator.namespace is required when mountReconciliation.rbac.create is true: name the operator ServiceAccount's namespace, or set rbac.create false and create the Role yourself" }}
+{{- end }}
+{{- $fullname := include "praxis-gateway.fullname" . }}
+{{- /* This delegated-mount Role grants access only to the Deployment carrying the
+       opt-in annotations; certificate rotation has its own named grant. */}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-mount-reconciliation
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: [{{ $fullname | quote }}]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-mount-reconciliation
+  labels:
+    {{- include "praxis-gateway.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}-mount-reconciliation
+subjects:
+  - kind: ServiceAccount
+    name: {{ $operator.serviceAccount | quote }}
+    namespace: {{ $operator.namespace | quote }}
+{{- end }}
+{{- end }}
+{{- if .Chart.IsRoot }}
+{{ include "praxis-gateway.rhoai.role-mount-reconciliation.yaml" . }}
+{{- end }}

@@ -1,3 +1,4 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
 {{- $dep := .Values.dependencies.tempo -}}
 {{- $shouldInstall := include "rhoai-dependencies.shouldInstall" (dict
   "dependencyName" "tempo"

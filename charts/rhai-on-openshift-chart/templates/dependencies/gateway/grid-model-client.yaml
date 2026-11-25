@@ -1,0 +1,32 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
+{{- $kserve := .Values.components.kserve | default dict -}}
+{{- $kserveDsc := $kserve.dsc | default dict -}}
+{{- $effectiveKserveState := include "rhoai-dependencies.effectiveComponentManagementState" (dict "state" $kserveDsc.managementState "root" . "name" "kserve") -}}
+{{- $isKserveManaged := include "rhoai-dependencies.isComponentActive" $effectiveKserveState -}}
+{{- $isGridManaged := include "rhoai-dependencies.aiGridManaged" . -}}
+{{- $modelClient := ($kserve.gateway | default dict).gridModelClient | default dict -}}
+{{- $create := ($modelClient.create | toString) -}}
+{{- if or (eq $create "true") (and (eq $create "auto") $isKserveManaged $isGridManaged) }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $modelClient.serviceAccountName }}
+  namespace: {{ $modelClient.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $modelClient.tokenSecretName }}
+  namespace: {{ $modelClient.namespace }}
+  annotations:
+    kubernetes.io/service-account.name: {{ $modelClient.serviceAccountName }}
+    argocd.argoproj.io/sync-wave: "-2"
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+type: kubernetes.io/service-account-token
+{{- end }}

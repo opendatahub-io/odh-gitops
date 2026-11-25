@@ -55,7 +55,7 @@ YQ ?= $(LOCALBIN)/yq
 
 ## Application Versions
 # RHOAI version to use for bundle updates - update this when new catalog folder appears in RHOAI-Build-Config
-RHOAI_VERSION ?= 3.5.0
+RHOAI_VERSION ?= 3.6.0
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.0
@@ -232,15 +232,28 @@ CHART_NAME ?=
 CHART_PATH ?= $(CHARTS_DIR)/$(if $(CHART_NAME),$(CHART_NAME),rhai-on-openshift-chart)
 
 # Snapshot configuration (in scripts directory)
-HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677 # v1.14.2
+# v1.14.2
+HELM_DOCS_VERSION ?= 37d3055fece566105cf8cff7c17b7b2355a01677
 ##@ Helm Chart utilities
 .PHONY: chart-snapshots
 chart-snapshots: yq ## Create snapshots for chart(s). Use CHART_NAME=<name> for specific chart, omit for all
+	@bash ./scripts/generate-chart-defaults.sh --check charts/rhai-on-openshift-chart
 	@./scripts/chart-snapshots.sh --generate $(if $(CHART_NAME),--chart $(CHART_NAME),)
+
+GRID_REPO ?= https://github.com/praxis-proxy/grid.git
+GRID_REF ?= fce66e6e083dbf8aed0142fb629c51aeb57f0565
+.PHONY: update-ai-grid-charts
+update-ai-grid-charts: yq ## Vendor AI Grid charts from praxis-proxy/grid. Use GRID_REF=<tag|sha>, optional GRID_REPO=<url|path>
+	@YQ='$(subst ','"'"',$(YQ))' GRID_REPO='$(subst ','"'"',$(GRID_REPO))' ./scripts/update-ai-grid-charts.sh '$(subst ','"'"',$(GRID_REF))'
 
 .PHONY: chart-test
 chart-test: yq ## Test chart(s) against snapshots. Use CHART_NAME=<name> for specific chart, omit for all
+	@bash ./scripts/generate-chart-defaults.sh --check charts/rhai-on-openshift-chart
 	@./scripts/chart-snapshots.sh --test $(if $(CHART_NAME),--chart $(CHART_NAME),)
+
+.PHONY: chart-defaults
+chart-defaults: ## Regenerate the RHOAI chart's coalesced default values
+	@bash ./scripts/generate-chart-defaults.sh charts/rhai-on-openshift-chart
 
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 .PHONY: helm-docs-ensure

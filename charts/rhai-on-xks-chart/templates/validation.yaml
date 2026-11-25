@@ -12,4 +12,7 @@
   {{- fail "components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces.from is required. Choose: Selector (recommended) or Same.\nSet it in your values file or use: --set-json 'components.aigateway.modelsAsAService.gateway.allowedRoutes.namespaces={\"from\":\"Selector\",\"selector\":{\"matchLabels\":{\"example-label\":\"true\"}}}'" }}
 {{- end }}
 {{- end }}
+{{- if and (include "rhai-on-xks-chart.aiGridManaged" .) (gt (len .Values.rhaiOperator.applicationsNamespace) 55) }}
+{{- fail "rhaiOperator.applicationsNamespace must be 55 characters or fewer when AI Grid is Managed so the chart can create its derived *-ai-grid namespace" }}
+{{- end }}
 {{- end }}

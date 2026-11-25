@@ -1,0 +1,50 @@
+# =============================================================================
+# AI Grid usage-log aggregation: a spoke in an ACM fleet
+#
+# The counterpart to values-ai-grid-o11y-spoke.yaml. That file configures a spoke directly,
+# placing the hub credential with the ai-grid-o11y-spoke subchart. This one is for a spoke the
+# hub's spokePolicy configures, where ACM delivers the credential and the forwarding fields —
+# so this file deliberately supplies neither.
+#
+# There is no division of labour left on the usage-log side: ACM delivers all of it.
+#
+#   ACM (policy) credentialSecret    the name is fleet-uniform, and ACM writes the Secret
+#                attributes          cluster_name from the placement decision, cluster_id from
+#                                    this cluster's own ClusterClaim
+#                exporters           the hub endpoint, one value for the whole fleet
+#   Helm (here)  nothing
+#
+# A spoke keeps no usage-log store of its own, so the one thing Helm used to have to supply —
+# per-cluster storage, and the size of the stack it fed — is gone. The chart contributes an
+# empty usageLogs, which the DSCInitialization template omits entirely rather than writing as
+# an empty object, so Helm cannot overwrite the policy's patch on each upgrade.
+#
+# Usage:
+#   helm upgrade --install rhoai ./charts/rhai-on-openshift-chart \
+#     -f docs/examples/values-ai-grid-o11y-spoke-acm.yaml -n rhoai-gitops --create-namespace
+#
+# Then import the cluster into ACM and label it, which is what triggers delivery:
+#   oc label managedcluster <spoke> ai-grid.redhat.com/maas=true
+#
+# Do not set attributes or exporters here as well: two owners on one field is how a Compliant
+# policy ends up proving nothing — the contents agree, so compliance stops being evidence that
+# ACM delivered anything. Nothing enforces this, and nothing can: the spoke cannot see whether
+# the hub's Placement selects it.
+#
+# This file covers usage logs only. A real spoke also runs MaaS, which has its own required
+# values — add values-maas-profile.yaml or your own MaaS values alongside this one.
+# =============================================================================
+
+operator:
+  type: rhoai
+
+services:
+  monitoring:
+    dependencies:
+      # A forwarding spoke creates no LokiStack, so the Loki operator has nothing to
+      # reconcile. The chart defaults this to true for clusters that keep a local store;
+      # a spoke saves the install. odh-observability agrees: its precondition requires
+      # the Loki operator only when usage-log storage or log forwarding is configured.
+      loki: false
+    dsci:
+      managementState: Managed

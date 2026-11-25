@@ -1,0 +1,16 @@
+{{- include "rhoai-dependencies.applyProfileValues" . -}}
+{{- if and (include "rhoai-dependencies.aiGridMonitored" .) (include "rhoai-dependencies.crdExists" (dict "crdName" "persesdashboards.perses.dev" "root" .)) -}}
+{{- $operatorConfig := index .Values.operator .Values.operator.type -}}
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  # The dashboard UI lists every dashboard- name; the -admin suffix limits it to admins.
+  name: dashboard-6-ai-grid-routing-admin
+  namespace: {{ $operatorConfig.monitoringNamespace }}
+  labels:
+    {{- include "rhoai-dependencies.labels" . | nindent 4 }}
+    app.kubernetes.io/component: perses
+spec:
+  config:
+    {{- .Files.Get "dashboards/ai-grid-routing.yaml" | nindent 4 }}
+{{- end }}
